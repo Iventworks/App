@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { eachDayOfInterval } from 'date-fns'
 import type { Period, Range } from '~/types'
 
 const model = defineModel<Period>({ required: true })
@@ -8,7 +7,9 @@ const props = defineProps<{
   range: Range
 }>()
 
-const days = computed(() => eachDayOfInterval(props.range))
+const days = computed(() => [
+  ...Array(Math.ceil((props.range.end.getTime() - props.range.start.getTime()) / (1000 * 60 * 60 * 24))).keys()
+])
 
 const periods = computed<Period[]>(() => {
   if (days.value.length <= 8) {

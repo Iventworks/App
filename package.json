@@ -5,7 +5,7 @@
     "scripts": {
         "build": "nuxt build",
         "start": "bun run .output/server/index.mjs",
-        "dev": "nuxt dev",
+        "dev": "nuxt dev --port 31316",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
         "postinstall": "nuxt prepare"

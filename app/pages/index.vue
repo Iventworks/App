@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { sub } from 'date-fns'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Period, Range } from '~/types'
 
@@ -16,7 +15,7 @@ const items = [[{
 }]] satisfies DropdownMenuItem[][]
 
 const range = shallowRef<Range>({
-  start: sub(new Date(), { days: 14 }),
+  start: new Date("2024-05-25T00:00:00.000Z"),
   end: new Date()
 })
 const period = ref<Period>('daily')
@@ -62,7 +61,6 @@ const period = ref<Period>('daily')
 
     <template #body>
       <HomeStats :period="period" :range="range" />
-      <HomeChart :period="period" :range="range" />
       <HomeSales :period="period" :range="range" />
     </template>
   </UDashboardPanel>
