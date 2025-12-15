@@ -74,36 +74,22 @@ const groups = computed(() => [{
 	}]
 }])
 
-onMounted(async () => {
-	const cookie = useCookie('cookie-consent')
-	if (cookie.value === 'accepted') {
-		return
-	}
 
-	toast.add({
-		title: 'We use first-party cookies to enhance your experience on our website.',
-		duration: 0,
-		close: false,
-		actions: [{
-			label: 'Accept',
-			color: 'neutral',
-			variant: 'outline',
-			onClick: () => {
-				cookie.value = 'accepted'
-			}
-		}, {
-			label: 'Opt out',
-			color: 'neutral',
-			variant: 'ghost'
-		}]
-	})
-})
 </script>
 
 <template>
-	<UDashboardGroup unit="rem">
-		<UDashboardSidebar id="default" v-model:open="open" collapsible resizable class="bg-elevated/25"
-			:ui="{ footer: 'lg:border-t lg:border-default' }">
+	<UDashboardGroup>
+		<UDashboardSidebar id="default"
+			v-model:open="open"
+			collapsible
+			resizable
+			:ui="{
+				footer: 'lg:border-t lg:border-default'
+			}"
+			:min-size="18"
+            :default-size="18"
+            :max-size="30"
+		>
 			<template #header="{ collapsed }">
 				<TeamsMenu :collapsed="collapsed" />
 			</template>

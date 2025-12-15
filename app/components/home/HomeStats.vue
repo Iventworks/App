@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Period, Range, Stat } from '~/types'
+import { Utils } from '~/utils';
 
 const props = defineProps<{
   period: Period
@@ -47,8 +48,8 @@ const baseStats = [{
 
 const { data: stats } = await useAsyncData<Stat[]>('stats', async () => {
   return baseStats.map((stat) => {
-    const value = randomInt(stat.minValue, stat.maxValue)
-    const variation = randomInt(stat.minVariation, stat.maxVariation)
+    const value = Utils.randomInt(stat.minValue, stat.maxValue)
+    const variation = Utils.randomInt(stat.minVariation, stat.maxVariation)
 
     return {
       title: stat.title,

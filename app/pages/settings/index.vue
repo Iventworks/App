@@ -1,158 +1,159 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-
-const fileRef = ref<HTMLInputElement>()
+import { UserStore } from '~/utils/stores/userStore'
 
 const profileSchema = z.object({
-  name: z.string().min(2, 'Too short'),
-  email: z.string().email('Invalid email'),
-  username: z.string().min(2, 'Too short'),
-  avatar: z.string().optional(),
-  bio: z.string().optional()
+	username: z.string().trim()
+		.min(5, 'Must be at least 5 characters')
+		.max(30, 'Must be at most 30 characters')
+		.regex(/^[a-zA-Z0-9_]+$/, 'Only alphanumeric characters and underscores are allowed'),
+	display_name: z.string().trim()
+		.max(50, 'Must be at most 50 characters')
+		.optional(),
+	email: z.email('Invalid email').trim(),
 })
+
+const userInfo = await UserStore.use()
+const loading = ref(false)
 
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive<Partial<ProfileSchema>>({
-  name: 'Benjamin Canac',
-  email: 'ben@nuxtlabs.com',
-  username: 'benjamincanac',
-  avatar: undefined,
-  bio: undefined
+	username: userInfo.username,
+	display_name: userInfo.display_name || '',
+	email: userInfo.email,
 })
+
 const toast = useToast()
+
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
-  toast.add({
-    title: 'Success',
-    description: 'Your settings have been updated.',
-    icon: 'i-lucide-check',
-    color: 'success'
-  })
-  console.log(event.data)
-}
+	loading.value = true
 
-function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
+	try {
+		// const result = await useAPI((api) => api.putAccount({
+		// 	body: {
+		// 		username: event.data.username,
+		// 		display_name: event.data.display_name || undefined,
+		// 		email: event.data.email
+		// 	}
+		// }))
+		const result = { success: true, message: '' } // Mock result
 
-  if (!input.files?.length) {
-    return
-  }
+		if (result.success) {
+			toast.add({
+				title: 'Profile updated',
+				description: 'Your profile has been successfully updated.',
+				icon: 'i-lucide-check',
+				color: 'success'
+			})
 
-  profile.avatar = URL.createObjectURL(input.files[0]!)
-}
-
-function onFileClick() {
-  fileRef.value?.click()
+			UserStore.set({
+				...userInfo,
+				username: event.data.username,
+				display_name: event.data.display_name || userInfo.display_name,
+				email: event.data.email
+			})
+		} else {
+			toast.add({
+				title: 'Error',
+				description: result.message || 'An error occurred while updating your profile.',
+				icon: 'i-lucide-alert-circle',
+				color: 'error'
+			})
+		}
+	} catch (error) {
+		toast.add({
+			title: 'Error',
+			description: 'An unexpected error occurred.',
+			icon: 'i-lucide-alert-circle',
+			color: 'error'
+		})
+	} finally {
+		loading.value = false
+	}
 }
 </script>
 
 <template>
-  <UForm
-    id="settings"
-    :schema="profileSchema"
-    :state="profile"
-    @submit="onSubmit"
-  >
-    <UPageCard
-      title="Profile"
-      description="These informations will be displayed publicly."
-      variant="naked"
-      orientation="horizontal"
-      class="mb-4"
-    >
-      <UButton
-        form="settings"
-        label="Save changes"
-        color="neutral"
-        type="submit"
-        class="w-fit lg:ms-auto"
-      />
-    </UPageCard>
+	<div class="space-y-6">
+		<!-- Header -->
+		<div>
+			<h2 class="text-xl font-semibold text-white">Profile Settings</h2>
+			<p class="text-sm text-slate-400 mt-1">Manage your public profile information</p>
+		</div>
 
-    <UPageCard variant="subtle">
-      <UFormField
-        name="name"
-        label="Name"
-        description="Will appear on receipts, invoices, and other communication."
-        required
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-      >
-        <UInput
-          v-model="profile.name"
-          autocomplete="off"
-        />
-      </UFormField>
-      <USeparator />
-      <UFormField
-        name="email"
-        label="Email"
-        description="Used to sign in, for email receipts and product updates."
-        required
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-      >
-        <UInput
-          v-model="profile.email"
-          type="email"
-          autocomplete="off"
-        />
-      </UFormField>
-      <USeparator />
-      <UFormField
-        name="username"
-        label="Username"
-        description="Your unique username for logging in and your profile URL."
-        required
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-      >
-        <UInput
-          v-model="profile.username"
-          type="username"
-          autocomplete="off"
-        />
-      </UFormField>
-      <USeparator />
-      <UFormField
-        name="avatar"
-        label="Avatar"
-        description="JPG, GIF or PNG. 1MB Max."
-        class="flex max-sm:flex-col justify-between sm:items-center gap-4"
-      >
-        <div class="flex flex-wrap items-center gap-3">
-          <UAvatar
-            :src="profile.avatar"
-            :alt="profile.name"
-            size="lg"
-          />
-          <UButton
-            label="Choose"
-            color="neutral"
-            @click="onFileClick"
-          />
-          <input
-            ref="fileRef"
-            type="file"
-            class="hidden"
-            accept=".jpg, .jpeg, .png, .gif"
-            @change="onFileChange"
-          >
-        </div>
-      </UFormField>
-      <USeparator />
-      <UFormField
-        name="bio"
-        label="Bio"
-        description="Brief description for your profile. URLs are hyperlinked."
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-        :ui="{ container: 'w-full' }"
-      >
-        <UTextarea
-          v-model="profile.bio"
-          :rows="5"
-          autoresize
-          class="w-full"
-        />
-      </UFormField>
-    </UPageCard>
-  </UForm>
+		<!-- Profile Card -->
+		<div class="rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
+			<div class="px-6 py-4 border-b border-slate-800">
+				<div class="flex items-center gap-3">
+					<div class="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center">
+						<UIcon name="i-lucide-user" class="w-5 h-5 text-sky-400" />
+					</div>
+					<div>
+						<h3 class="font-medium text-white">Profile Information</h3>
+						<p class="text-sm text-slate-400">Update your account profile details</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="p-6">
+				<UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit"
+					class="divide-y divide-slate-800">
+					<UFormField name="username" label="Username" description="Your unique username for logging in."
+						required
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+							root: "w-full sm:w-auto",
+							container: "w-full sm:w-auto",
+						}'>
+						<UInput v-model="profile.username" placeholder="Enter username" class="w-full sm:w-96" />
+					</UFormField>
+
+					<UFormField name="display_name" label="Display Name"
+						description="Shown publicly. Leave empty to use username."
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+							root: "w-full sm:w-auto",
+							container: "w-full sm:w-auto",
+						}'>
+						<UInput v-model="profile.display_name" placeholder="Enter display name"
+							class="w-full sm:w-96" />
+					</UFormField>
+
+					<UFormField name="email" label="Email" description="Used to sign in and for notifications." required
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+							root: "w-full sm:w-auto",
+							container: "w-full sm:w-auto",
+						}'>
+						<UInput v-model="profile.email" type="email" placeholder="Enter email" class="w-full sm:w-96" />
+					</UFormField>
+
+					<div class="pt-4">
+						<UButton label="Save Changes" color="primary" type="submit" :loading="loading"
+							icon="i-lucide-save" />
+					</div>
+				</UForm>
+			</div>
+		</div>
+
+		<!-- Account Info Card -->
+		<div class="rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm p-6">
+			<div class="flex items-center gap-4">
+				<div
+					class="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+					<span class="text-xl font-bold text-white">{{ profile.display_name?.charAt(0) ||
+						profile.username?.charAt(0)
+						|| '?' }}</span>
+				</div>
+				<div>
+					<p class="font-medium text-white">{{ profile.display_name || profile.username }}</p>
+					<p class="text-sm text-slate-400">@{{ profile.username }}</p>
+				</div>
+				<div class="ml-auto">
+					<UBadge :label="userInfo.role"
+						:color="userInfo.role === 'admin' ? 'error' : userInfo.role === 'developer' ? 'primary' : 'neutral'"
+						size="sm" />
+				</div>
+			</div>
+		</div>
+	</div>
 </template>

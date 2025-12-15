@@ -2,6 +2,7 @@
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { Period, Range, Sale } from '~/types'
+import { Utils } from '~/utils';
 
 const props = defineProps<{
   period: Period
@@ -23,15 +24,15 @@ const { data } = await useAsyncData('sales', async () => {
   const currentDate = new Date()
 
   for (let i = 0; i < 5; i++) {
-    const hoursAgo = randomInt(0, 48)
+    const hoursAgo = Utils.randomInt(0, 48)
     const date = new Date(currentDate.getTime() - hoursAgo * 3600000)
 
     sales.push({
       id: (4600 - i).toString(),
       date: date.toISOString(),
-      status: randomFrom(['paid', 'failed', 'refunded']),
-      email: randomFrom(sampleEmails),
-      amount: randomInt(100, 1000)
+      status: Utils.randomFrom(['paid', 'failed', 'refunded']),
+      email: Utils.randomFrom(sampleEmails),
+      amount: Utils.randomInt(100, 1000)
     })
   }
 

@@ -1,18 +1,16 @@
-@import "tailwindcss" theme(static);
+@import "tailwindcss";
 @import "@nuxt/ui";
 
-@theme static {
-  --font-sans: 'Public Sans', sans-serif;
 
-  --color-blackbg-50: #020617;
-  --color-blackbg-100: #020617;
-  --color-blackbg-200: #020617;
-  --color-blackbg-300: #020617;
-  --color-blackbg-400: #020617;
-  --color-blackbg-500: #020617;
-  --color-blackbg-600: #020617;
-  --color-blackbg-700: #020617;
-  --color-blackbg-800: #020617;
-  --color-blackbg-900: #020617;
-  --color-blackbg-950: #020617;
+@theme {
+  --font-sans: 'Public Sans', sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+:root {
+    color-scheme: dark;
 }
