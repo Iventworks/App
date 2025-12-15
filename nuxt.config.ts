@@ -1,31 +1,37 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: [
-    '@nuxt/eslint',
-    '@nuxt/ui',
-    '@vueuse/nuxt'
-  ],
+	compatibilityDate: '2025-07-15',
+	devtools: { enabled: true },
+	modules: ['@nuxt/ui'],
 
-  devtools: {
-    enabled: true
-  },
+	colorMode: {
+		preference: 'dark',
+		fallback: 'dark',
+		classSuffix: ''
+	},
 
-  css: ['~/assets/css/main.css'],
+	ssr: true,
 
-  routeRules: {
-    '/api/**': {
-      cors: true
-    }
-  },
+	css: [
+		'~/assets/css/main.css',
+	],
 
-  compatibilityDate: '2024-07-11',
+	nitro: {
+		preset: 'bun'
+	},
 
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
-  }
-})
+	runtimeConfig: {
+		public: {
+			apiUrl: process.env.CMP_API_URL || 'https://localhost:12151',
+		}
+	},
+
+	vite: {
+		server: {
+			allowedHosts: [
+				"cmp-website-test.tun.is-on.net"
+			]
+
+		}
+	}
+});
