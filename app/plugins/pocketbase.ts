@@ -1,8 +1,9 @@
 // plugins/pocketbase.js
 import PocketBase from 'pocketbase';
+import type { TypedPocketBase } from '~/types/pocketbase';
 
 export default defineNuxtPlugin(async () => {
-  const pb = new PocketBase('https://api.crossover.is-on.net');
+  const pb = new PocketBase('https://api.crossover.is-on.net') satisfies TypedPocketBase as TypedPocketBase;
 
   const cookie = useCookie('pb_auth', {
     path:     '/',

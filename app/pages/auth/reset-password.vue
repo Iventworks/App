@@ -73,16 +73,14 @@ const validate = (state: Partial<NewPasswordSchema>): FormError[] => {
 async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
 
     const result = await useAPI((api) => {
-        return api.postAuthResetPassword({
-            body: {
-                reset_token,
-                new_password: payload.data.password,
-            }
-        });
+        return api.collection("users").confirmPasswordReset(
+            reset_token,
+            payload.data.password,
+            payload.data.confirm_password
+        );
     });
 
-
-    if (result.success) {
+    if (result) {
 
         toast.add({
             title: 'Password Reset Successful',

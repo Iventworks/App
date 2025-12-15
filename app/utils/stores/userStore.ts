@@ -1,9 +1,8 @@
 import { reactive } from "vue";
 import { useAPI } from "~/composables/useAPI";
+import type { UsersRecord } from "~/types/pocketbase";
 
-type UserInfo = {
-    
-}
+type UserInfo = UsersRecord;
 
 export class UserStore {
 
@@ -30,10 +29,14 @@ export class UserStore {
 
     static async fetchAndSet() {
         const result = await useAPI((api) => {
-            return api.authStore.record;
+            const record_id = api.authStore.record?.id;
+            if (!record_id) {
+                return null;
+            }
+            return api.collection('users').getOne(record_id);
         });
-        if (result.success) {
-            this.set(result.data);
+        if (result) {
+            this.set(result);
         }
     }
 

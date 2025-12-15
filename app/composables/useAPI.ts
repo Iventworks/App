@@ -1,43 +1,25 @@
-import type PocketBase from "pocketbase";
+import type { TypedPocketBase } from '~/types/pocketbase';
 
-export async function useAPI<TReturn>(handler: (api: PocketBase) => TReturn, disableAuthRedirect = false) {
+export async function useAPI<TReturn>(handler: (api: TypedPocketBase) => TReturn, disableAuthRedirect = false) {
+    if (import.meta.server) {
 
-    try {
-        if (import.meta.server) {
+        const { data } = await useAsyncData(async (nuxtApp) => {
+            return handler(nuxtApp.$pb);
+        });
 
-            const { data } = await useAsyncData(async (nuxtApp) => {
-                return handler(nuxtApp.$pb);
-            });
+        return data.value as TReturn;
 
-            return data.value ?? {
-                success: false,
-                code: 500,
-                message: "Failed to process API request on server.",
-                data: null
-            } as const
+    } else if (import.meta.client) {
 
-        } else if (import.meta.client) {
-
-            const sessionToken = useCookie("session_token");
-
-            if (!useNuxtApp().$pb.authStore.isValid) {
-                if (!disableAuthRedirect) {
-                    navigateTo('/auth/login?url=' + encodeURIComponent(useRoute().fullPath));
-                }
+        if (!useNuxtApp().$pb.authStore.isValid) {
+            if (!disableAuthRedirect) {
+                navigateTo('/auth/login?url=' + encodeURIComponent(useRoute().fullPath));
             }
-
-            return handler(useNuxtApp().$pb);
-
-        } else {
-            throw new Error("Unknown environment");
         }
-        
-    } catch (error) {
-        return {
-            success: false,
-            code: 500,
-            message: (error as Error).message ?? "An unknown error occurred.",
-            data: null
-        } as const;
+
+        return handler(useNuxtApp().$pb);
+
+    } else {
+        throw new Error("Unknown environment");
     }
 }

@@ -61,24 +61,16 @@ const schema = z.object({
 type Schema = z.output<typeof schema>;
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-    const result = await useAPI((api) => {
-        return api.postAuthLogin({ body: payload.data });
+    
+    const result = await useAPI(async (api) => {
+        await api.collection("users").authWithPassword(payload.data.username, payload.data.password);
+        return api.authStore;
     });
 
-    if (result.success) {
-        updateAPIClient(result.data.token);
-
-        const sessionToken = useCookie("session_token", {
-            path: "/",
-            secure: true,
-            sameSite: "lax",
-            httpOnly: false,
-            maxAge: payload.data.remember ? 60 * 60 * 24 * 30 : undefined, // 30 days
-        });
-
-        sessionToken.value = result.data.token;
+    if (result.isValid) {
 
         await UserStore.fetchAndSet();
+        result.record?.id
 
         toast.add({
             title: "Login Successful",
