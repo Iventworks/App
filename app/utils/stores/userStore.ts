@@ -1,7 +1,9 @@
 import { reactive } from "vue";
-import type { GetAccountResponses } from "@/api-client/types.gen";
+import { useAPI } from "~/composables/useAPI";
 
-type UserInfo = GetAccountResponses["200"]["data"];
+type UserInfo = {
+    
+}
 
 export class UserStore {
 
@@ -28,7 +30,7 @@ export class UserStore {
 
     static async fetchAndSet() {
         const result = await useAPI((api) => {
-            return api.getAccount({});
+            return api.authStore.record;
         });
         if (result.success) {
             this.set(result.data);
