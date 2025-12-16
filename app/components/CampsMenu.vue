@@ -7,13 +7,13 @@ defineProps<{
 
 const teams = ref([
   {
-    label: 'Nuxt',
+    label: 'Höfgen Kids Sommer 2025',
     avatar: {
       src: 'https://github.com/nuxt.png',
       alt: 'Nuxt'
     }
   }, {
-    label: 'NuxtHub',
+    label: 'Höfgen Teens Sommer 2025',
     avatar: {
       src: 'https://github.com/nuxt-hub.png',
       alt: 'NuxtHub'
