@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent, AuthFormField } from "@nuxt/ui";
+import { UserStore } from "~/utils/stores/userStore";
+
+const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
 
 definePageMeta({
     layout: 'auth'
@@ -30,26 +33,44 @@ const schema = z.object({
 type Schema = z.output<typeof schema>;
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-
-    const result = await useAPI((api) => {
-        return api.collection("users").requestPasswordReset(payload.data.email);
+    // @TODO: Implement forgot password when backend is implemented
+    toast.add({
+        title: "Feature Not Implemented",
+        description: "The forgot password feature is not yet implemented.",
     });
 
-    if (result) {
+    // const result = await useAPI().postAuthLogin({ body: payload.data });
 
-        toast.add({
-            title: 'Password Reset Request Successful',
-            description: 'If an account with that email exists, a password reset link has been sent.'
-        });
+    // if (result.success) {
 
-        return;
+    //     updateAPIClient(result.data.token);
 
-    } else {
-        toast.add({
-            title: 'Password Reset Failed',
-            description: 'An error occurred during password reset.'
-        });
-    }
+    //     const sessionToken = useCookie('session_token', {
+    //         path:     '/',
+    //         secure:   true,
+    //         sameSite: 'strict',
+    //         httpOnly: false,
+    //         maxAge:   604800,
+    //     });
+
+    //     sessionToken.value = result.data.token;
+
+    //     await UserStore.fetchAndSetUserInfo();
+
+    //     toast.add({
+    //         title: 'Login Successful',
+    //         description: 'You have been logged in successfully.'
+    //     });
+
+    //     await navigateTo(redirectUrl.toString());
+    //     return;
+
+    // } else {
+    //     toast.add({
+    //         title: 'Login Failed',
+    //         description: 'An error occurred during login.'
+    //     });
+    // }
 }
 </script>
 
