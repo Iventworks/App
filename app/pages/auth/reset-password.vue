@@ -73,14 +73,16 @@ const validate = (state: Partial<NewPasswordSchema>): FormError[] => {
 async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
 
     const result = await useAPI((api) => {
-        return api.collection("users").confirmPasswordReset(
-            reset_token,
-            payload.data.password,
-            payload.data.confirm_password
-        );
+        return api.postAuthResetPassword({
+            body: {
+                reset_token,
+                new_password: payload.data.password,
+            }
+        });
     });
 
-    if (result) {
+
+    if (result.success) {
 
         toast.add({
             title: 'Password Reset Successful',
@@ -107,8 +109,6 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
             description="Reset your password by entering your email address below."
             icon="i-lucide-mail"
             :fields="fields"
-            :state="formState"
-            :validate="validate"
             @submit="onSubmit"
             :submit="{
                 label: 'Reset Password',

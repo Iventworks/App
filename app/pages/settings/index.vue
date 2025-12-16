@@ -20,6 +20,7 @@ const loading = ref(false)
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive<Partial<ProfileSchema>>({
+	username: userInfo.username,
 	display_name: userInfo.display_name || '',
 	email: userInfo.email,
 })
@@ -28,16 +29,15 @@ const toast = useToast()
 
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 	loading.value = true
-
+	
 	try {
-		// const result = await useAPI((api) => api.putAccount({
-		// 	body: {
-		// 		username: event.data.username,
-		// 		display_name: event.data.display_name || undefined,
-		// 		email: event.data.email
-		// 	}
-		// }))
-		const result = { success: true, message: '' } // Mock result
+		const result = await useAPI((api) => api.putAccount({
+			body: {
+				username: event.data.username,
+				display_name: event.data.display_name || undefined,
+				email: event.data.email
+			}
+		}))
 
 		if (result.success) {
 			toast.add({
@@ -49,6 +49,7 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
 			UserStore.set({
 				...userInfo,
+				username: event.data.username,
 				display_name: event.data.display_name || userInfo.display_name,
 				email: event.data.email
 			})
@@ -94,40 +95,58 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 					</div>
 				</div>
 			</div>
-
+			
 			<div class="p-6">
-				<UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit"
-					class="divide-y divide-slate-800">
-					<UFormField name="username" label="Username" description="Your unique username for logging in."
+				<UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit" class="divide-y divide-slate-800">
+					<UFormField 
+						name="username" 
+						label="Username"
+						description="Your unique username for logging in."
 						required
-						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
+						:ui='{
 							root: "w-full sm:w-auto",
 							container: "w-full sm:w-auto",
-						}'>
+						}'
+					>
 						<UInput v-model="profile.username" placeholder="Enter username" class="w-full sm:w-96" />
 					</UFormField>
 
-					<UFormField name="display_name" label="Display Name"
+					<UFormField 
+						name="display_name" 
+						label="Display Name"
 						description="Shown publicly. Leave empty to use username."
-						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
+						:ui='{
 							root: "w-full sm:w-auto",
 							container: "w-full sm:w-auto",
-						}'>
-						<UInput v-model="profile.display_name" placeholder="Enter display name"
-							class="w-full sm:w-96" />
+						}'
+					>
+						<UInput v-model="profile.display_name" placeholder="Enter display name" class="w-full sm:w-96" />
 					</UFormField>
 
-					<UFormField name="email" label="Email" description="Used to sign in and for notifications." required
-						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0" :ui='{
+					<UFormField 
+						name="email" 
+						label="Email"
+						description="Used to sign in and for notifications."
+						required
+						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
+						:ui='{
 							root: "w-full sm:w-auto",
 							container: "w-full sm:w-auto",
-						}'>
+						}'
+					>
 						<UInput v-model="profile.email" type="email" placeholder="Enter email" class="w-full sm:w-96" />
 					</UFormField>
 
 					<div class="pt-4">
-						<UButton label="Save Changes" color="primary" type="submit" :loading="loading"
-							icon="i-lucide-save" />
+						<UButton 
+							label="Save Changes" 
+							color="primary" 
+							type="submit" 
+							:loading="loading"
+							icon="i-lucide-save"
+						/>
 					</div>
 				</UForm>
 			</div>
@@ -136,20 +155,19 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 		<!-- Account Info Card -->
 		<div class="rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm p-6">
 			<div class="flex items-center gap-4">
-				<div
-					class="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
-					<span class="text-xl font-bold text-white">{{ profile.display_name?.charAt(0) ||
-						profile.username?.charAt(0)
-						|| '?' }}</span>
+				<div class="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+					<span class="text-xl font-bold text-white">{{ profile.display_name?.charAt(0) || profile.username?.charAt(0) || '?' }}</span>
 				</div>
 				<div>
 					<p class="font-medium text-white">{{ profile.display_name || profile.username }}</p>
 					<p class="text-sm text-slate-400">@{{ profile.username }}</p>
 				</div>
 				<div class="ml-auto">
-					<UBadge :label="userInfo.role"
-						:color="userInfo.role === 'admin' ? 'error' : userInfo.role === 'developer' ? 'primary' : 'neutral'"
-						size="sm" />
+					<UBadge 
+						:label="userInfo.role" 
+						:color="userInfo.role === 'admin' ? 'error' : userInfo.role === 'volunteer' ? 'primary' : 'neutral'"
+						size="sm"
+					/>
 				</div>
 			</div>
 		</div>

@@ -45,7 +45,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
     //     updateAPIClient(result.data.token);
 
-    //     const sessionToken = useCookie('session_token', {
+    //     const sessionToken = useCookie('cmp_session_token', {
     //         path:     '/',
     //         secure:   true,
     //         sameSite: 'strict',

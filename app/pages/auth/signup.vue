@@ -11,7 +11,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Sign Up | NowIP",
+    title: "Sign Up | CMP",
     description: "Create a new account",
 });
 
@@ -111,7 +111,7 @@ async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
 
     //     updateAPIClient(result.data.token);
 
-    //     const sessionToken = useCookie('session_token', {
+    //     const sessionToken = useCookie('cmp_session_token', {
     //         path:     '/',
     //         secure:   true,
     //         sameSite: 'strict',

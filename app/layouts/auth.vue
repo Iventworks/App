@@ -3,27 +3,24 @@
 </script>
 
 <template>
-    <div class="app-layout">
-        <!-- Navigation -->
-        <Header />
-
-        <!-- Main Content -->
-        <UMain class="main-content">
+    <UMain class="main-content">
+        <div class="app-layout">
+            <!-- Main Content -->
             <UPageCard class="w-full max-w-md border-slate-800">
                 <slot />
             </UPageCard>
-        </UMain>
 
-        <!-- Footer -->
-        <Footer />
-    </div>
+        </div>
+    </UMain>
 </template>
 
 <style scoped>
 .app-layout {
-    min-height: 100vh;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin-top: -2rem;
 }
 
 .main-content {

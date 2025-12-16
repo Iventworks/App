@@ -2,10 +2,10 @@ import { UserStore } from "~/utils/stores/userStore";
 
 export default defineNuxtRouteMiddleware(async(to) => {
 
-    const isAuthenticated = useNuxtApp().$pb.authStore.isValid;
+    const token = useCookie("cmp_session_token").value;
 
     if (to.path.startsWith('/auth')) {
-        if (!isAuthenticated) {
+        if (!token) {
             return;
         }
 
@@ -14,9 +14,16 @@ export default defineNuxtRouteMiddleware(async(to) => {
         return navigateTo('/');
     }
 
-    if (!isAuthenticated) {
+    if (!token) {
         return navigateTo('/auth/login?url=' + encodeURIComponent(to.fullPath));
     }
 
-    await UserStore.fetchAndSetIfNeeded();
+    const user = await UserStore.use();
+
+    if (to.path.startsWith('/admin')) {
+        // Check admin access
+        if (!user || user.role !== 'admin') {
+            navigateTo('/')
+        }
+    }
 });
