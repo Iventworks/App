@@ -12,6 +12,12 @@
 
         </div>
     </UMain>
+
+    <UFooter class="mt-8">
+        <div class="text-sm text-slate-500 text-center">
+            &copy; {{ new Date().getFullYear() }} Linus Fischer & LeiCraft_MC. All rights reserved.
+        </div>
+    </UFooter>
 </template>
 
 <style scoped>
