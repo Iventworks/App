@@ -38,7 +38,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
     label: 'Freizeit Erstellen',
     icon: 'i-lucide-circle-plus'
   }, {
-    label: 'Manage teams',
+    label: 'Freizeit Verwalten',
     icon: 'i-lucide-cog'
   }]]
 })

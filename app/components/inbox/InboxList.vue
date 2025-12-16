@@ -1,6 +1,33 @@
 <script setup lang="ts">
-import { format, isToday } from 'date-fns'
 import type { Mail } from '~/types'
+
+
+function isToday(date: Date): boolean {
+  const today = new Date()
+  return date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+}
+
+function format(date: Date, formatStr: string): string {
+  const options: Intl.DateTimeFormatOptions = {}
+
+  if (formatStr.includes('HH')) {
+    options.hour = '2-digit'
+    options.hour12 = false
+  }
+  if (formatStr.includes('mm')) {
+    options.minute = '2-digit'
+  }
+  if (formatStr.includes('dd')) {
+    options.day = '2-digit'
+  }
+  if (formatStr.includes('MMM')) {
+    options.month = 'short'
+  }
+
+  return new Intl.DateTimeFormat('de-DE', options).format(date)
+}
 
 const props = defineProps<{
   mails: Mail[]

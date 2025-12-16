@@ -1,10 +1,29 @@
 <script setup lang="ts">
-import { format } from 'date-fns'
 import type { Mail } from '~/types'
 
 defineProps<{
   mail: Mail
 }>()
+
+function format(date: Date, formatStr: string): string {
+  const options: Intl.DateTimeFormatOptions = {}
+
+  if (formatStr.includes('HH')) {
+    options.hour = '2-digit'
+    options.hour12 = false
+  }
+  if (formatStr.includes('mm')) {
+    options.minute = '2-digit'
+  }
+  if (formatStr.includes('dd')) {
+    options.day = '2-digit'
+  }
+  if (formatStr.includes('MMM')) {
+    options.month = 'short'
+  }
+
+  return new Intl.DateTimeFormat('de-DE', options).format(date)
+}
 
 const emits = defineEmits(['close'])
 

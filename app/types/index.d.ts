@@ -8,8 +8,6 @@ export interface User {
   name: string
   email: string
   avatar?: AvatarProps
-  status: UserStatus
-  location: string
 }
 
 export interface Mail {
@@ -47,7 +45,7 @@ export interface Sale {
 export interface Notification {
   id: number
   unread?: boolean
-  sender: User
+  sender: Omit<User, 'id', 'email'>
   body: string
   date: string
 }

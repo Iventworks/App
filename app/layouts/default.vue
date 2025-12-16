@@ -14,23 +14,41 @@ if (sessionCookie.value) {
 const isAdmin = computed(() => user.value?.role === "admin");
 
 const sidebarItems = computed<NavigationMenuItem[][]>(() => {
-    const devItems: NavigationMenuItem[] = [
+    const basicItems: NavigationMenuItem[] = [
         {
             label: "Overview",
             icon: "i-lucide-layout-dashboard",
-            to: "/dashboard",
+            to: "/",
         },
+		{
+			label: "Emails",
+			icon: "i-lucide-mail",
+			to: "/emails/inbox",
+		},
         {
-            label: "Packages",
+            label: "Chats",
             icon: "i-lucide-package",
-            to: "/dashboard/packages",
+            to: "/chats",
         },
         {
-            label: "Tasks",
+            label: "Meine Aufgaben",
             icon: "i-lucide-list-checks",
-            to: "/dashboard/tasks",
+            to: "/my-tasks",
         },
     ];
+
+	const campItems: NavigationMenuItem[] = [
+		{
+			label: 'Camps',
+			icon: 'i-lucide-tent',
+			type: 'label'
+		},
+		{
+			label: 'My Camps',
+			icon: 'i-lucide-users',
+			to: '/dashboard/camps',
+		},
+	];
 
     const settings: NavigationMenuItem[] = [
         {
@@ -63,21 +81,6 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
             icon: "i-lucide-shield",
             type: "label",
             class: "mt-4 pt-4 border-t-2 border-default",
-            // defaultOpen: route.path.startsWith("/dashboard/admin"),
-            // children: [
-            //     {
-            //         label: "Stable Requests",
-            //         to: "/dashboard/admin/requests",
-            //     },
-            //     {
-            //         label: "Users",
-            //         to: "/dashboard/admin/users",
-            //     },
-            //     {
-            //         label: "All Packages",
-            //         to: "/dashboard/admin/packages",
-            //     },
-            // ],
         },
         {
             label: "Users",
@@ -85,19 +88,9 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
             to: "/dashboard/admin/users",
         },
         {
-            label: "All Packages",
+            label: "Alle Freizeiten",
             icon: "i-lucide-package-search",
             to: "/dashboard/admin/packages",
-        },
-        {
-            label: "Stable Requests",
-            icon: "i-lucide-git-pull-request",
-            to: "/dashboard/admin/requests",
-        },
-        {
-            label: "OS Releases",
-            icon: "i-lucide-rocket",
-            to: "/dashboard/admin/os-releases",
         },
         {
             label: "Tasks",
@@ -119,7 +112,7 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
         },
     ];
 
-    return [[...devItems, ...adminItems, ...settings], footerItems];
+    return [[...basicItems], [...campItems, ...adminItems, ...settings], [...footerItems]];
 });
 
 const groups = computed(() => [{
@@ -144,25 +137,43 @@ const groups = computed(() => [{
             :max-size="30"
 		>
 			<template #header="{ collapsed }">
-				<CampsMenu :collapsed="collapsed" />
+				<img
+					src="/static/logo/crossover-favicon.png"
+					alt="Crossover Management Portal"
+					class="w-10 max-h-10 mx-auto"
+					style="width: auto; height: auto;"
+				/>
+				<h1
+					class="text-lg font-semibold"
+					v-if="!collapsed"
+				>Crossover Management Portal</h1>
 			</template>
 
 			<template #default="{ collapsed }">
-
+				
 				<UDashboardSearchButton
 					:collapsed="collapsed"
 					class="bg-transparent ring-default"
 				/>
 
-                <UNavigationMenu
+				<UNavigationMenu
                     :collapsed="collapsed"
                     :items="sidebarItems[0]"
+                    orientation="vertical"
+					class="mb-4 pb-4 border-b-2 border-default"
+                />
+
+				<CampsMenu :collapsed="collapsed" />
+
+                <UNavigationMenu
+                    :collapsed="collapsed"
+                    :items="sidebarItems[1]"
                     orientation="vertical"
                 />
 
                 <UNavigationMenu
                     :collapsed="collapsed"
-                    :items="sidebarItems[1]"
+                    :items="sidebarItems[2]"
                     orientation="vertical"
                     class="mt-auto"
                 />
