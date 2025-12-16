@@ -20,7 +20,6 @@ const loading = ref(false)
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive<Partial<ProfileSchema>>({
-	username: userInfo.username,
 	display_name: userInfo.display_name || '',
 	email: userInfo.email,
 })
@@ -50,7 +49,6 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
 			UserStore.set({
 				...userInfo,
-				username: event.data.username,
 				display_name: event.data.display_name || userInfo.display_name,
 				email: event.data.email
 			})

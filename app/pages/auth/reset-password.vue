@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Reset Password | LeiOS Hub",
+    title: "Reset Password | CMP",
     description: "Reset your password",
 });
 
@@ -107,6 +107,8 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
             description="Reset your password by entering your email address below."
             icon="i-lucide-mail"
             :fields="fields"
+            :state="formState"
+            :validate="validate"
             @submit="onSubmit"
             :submit="{
                 label: 'Reset Password',

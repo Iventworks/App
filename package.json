@@ -6,7 +6,7 @@
         "build": "nuxt build",
         "start": "bun run .output/server/index.mjs",
         "dev": "nuxt dev --port 31316",
-		"api-client:generate": "bunx pocketbase-typegen -o app/types/pocketbase.d.ts ",
+        "api-client:generate": "bunx pocketbase-typegen -o app/types/pocketbase.d.ts ",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
         "postinstall": "nuxt prepare"
@@ -18,11 +18,13 @@
         "@unovis/vue": "^1.6.2",
         "@vueuse/nuxt": "^13.9.0",
         "bun-types": "^1.3.4",
+        "drizzle-orm": "^0.45.1",
+        "drizzle-zod": "^0.8.3",
         "nuxt": "^4.2.2",
-        "pocketbase": "^0.26.5",
         "zod": "^4.1.13"
     },
     "devDependencies": {
-        "@iconify-json/lucide": "^1.2.77"
+        "@iconify-json/lucide": "^1.2.77",
+		"drizzle-kit": "^0.31.8"
     }
 }

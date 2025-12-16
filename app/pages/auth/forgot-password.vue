@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent, AuthFormField } from "@nuxt/ui";
-import { UserStore } from "~/utils/stores/userStore";
-
-const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
 
 definePageMeta({
     layout: 'auth'
 });
 
 useSeoMeta({
-    title: "Forgot Password | LeiOS Hub",
+    title: "Forgot Password | CMP",
     description: "Reset your password",
 });
 

@@ -10,7 +10,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Login | LeiOS Hub",
+    title: "Login | CMP",
     description: "Login to your account",
 });
 

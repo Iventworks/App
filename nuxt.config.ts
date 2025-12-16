@@ -22,8 +22,9 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.CMP_API_URL || 'https://localhost:12151',
-		}
+			
+		},
+		
 	},
 
 	vite: {
