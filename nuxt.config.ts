@@ -30,6 +30,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
 			apiUrl: process.env.CMP_API_URL || 'http://localhost:31317',
+			appUrl: process.env.CMP_APP_URL || 'http://localhost:31316',
 			isSignupEnabled: process.env.CMP_ENABLE_SIGNUP === 'true' ? true : false,
 		},
 	},

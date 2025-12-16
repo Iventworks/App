@@ -7,22 +7,22 @@ defineProps<{
 
 const teams = ref([
   {
-    label: 'Höfgen Kids Sommer 2025',
+    label: 'SkiWelt Wilder Kaiser 2025',
     avatar: {
-      src: 'https://github.com/nuxt.png',
-      alt: 'Nuxt'
+      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      alt: 'SkiWelt Wilder Kaiser 2025'
     }
   }, {
-    label: 'Höfgen Teens Sommer 2025',
+    label: 'Orchesterfreizeit im Kloster 2025',
     avatar: {
-      src: 'https://github.com/nuxt-hub.png',
-      alt: 'NuxtHub'
+      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      alt: 'Orchesterfreizeit im Kloster 2025'
     }
   }, {
-    label: 'NuxtLabs',
+    label: 'young+free Crottendorf 2025',
     avatar: {
-      src: 'https://github.com/nuxtlabs.png',
-      alt: 'NuxtLabs'
+      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      alt: 'young+free Crottendorf 2025'
     }
   }
 ])
