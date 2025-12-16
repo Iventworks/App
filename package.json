@@ -1,17 +1,18 @@
 {
-    "name": "cmp",
+    "name": "cmp-website",
     "private": true,
     "type": "module",
     "scripts": {
         "build": "nuxt build",
         "start": "bun run .output/server/index.mjs",
         "dev": "nuxt dev --port 31316",
-        "api-client:generate": "bunx pocketbase-typegen -o app/types/pocketbase.d.ts ",
+        "api-client:generate": "openapi-ts",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
         "postinstall": "nuxt prepare"
     },
     "dependencies": {
+        "@hey-api/nuxt": "^0.2.1",
         "@iconify-json/simple-icons": "^1.2.60",
         "@nuxt/ui": "^4.2.1",
         "@unovis/ts": "^1.6.2",
@@ -26,5 +27,8 @@
     "devDependencies": {
         "@iconify-json/lucide": "^1.2.77",
 		"drizzle-kit": "^0.31.8"
+    },
+    "patchedDependencies": {
+        "@hey-api/openapi-ts@0.88.0": "patches/@hey-api%2Fopenapi-ts@0.88.0.patch"
     }
 }
