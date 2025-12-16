@@ -1,24 +1,35 @@
 <script setup lang="ts">
 import type { NuxtError } from '#app'
 
-defineProps<{
-	error: NuxtError
+const props = defineProps<{
+    error: NuxtError
 }>()
 
-useSeoMeta({
-	title: 'Page not found',
-	description: 'We are sorry but this page could not be found.'
-})
-
-useHead({
-	htmlAttrs: {
-		lang: 'de'
-	}
-})
 </script>
 
 <template>
-	<UApp>
-		<UError :error="error" />
-	</UApp>
+    <div class="app-layout">
+        <!-- Navigation -->
+        <Header />
+
+        <!-- Main Content -->
+        <UMain class="main-content">
+            <UError :error="error" />
+        </UMain>
+
+        <!-- Footer -->
+        <Footer />
+    </div>
 </template>
+
+<style scoped>
+.app-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+}
+</style>
