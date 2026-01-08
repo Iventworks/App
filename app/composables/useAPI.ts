@@ -114,7 +114,7 @@ export async function useAPI<TReturn>(handler: (api: UseAPITypes.APIClient) => T
                     data: null
                 } as const;
             }
-            const sessionToken = getCookie(event, "dla_session_token");
+            const sessionToken = getCookie(event, "cmp_session_token");
             updateAPIClient(sessionToken ?? null);
             
             return await handler(baseAPIClient);
