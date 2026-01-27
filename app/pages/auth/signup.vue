@@ -11,8 +11,8 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Sign Up | CMP",
-    description: "Create a new account",
+    title: "Registrieren | CMP",
+    description: "Erstelle ein neues Konto",
 });
 
 const toast = useToast();
@@ -21,57 +21,57 @@ const fields: AuthFormField[] = [
     {
         name: "username",
         type: "text",
-        label: "Username",
-        placeholder: "Enter your username",
+        label: "Benutzername",
+        placeholder: "Geben Sie Ihren Benutzernamen ein",
         required: true,
     },
     {
         name: "email",
         type: "email",
-        label: "Email Address",
-        placeholder: "Enter your email address",
+        label: "E-Mail-Adresse",
+        placeholder: "Geben Sie Ihre E-Mail-Adresse ein",
         required: true,
     },
     {
         name: "password",
-        label: "Password",
+        label: "Passwort",
         type: "password",
-        placeholder: "Enter your password",
+        placeholder: "Geben Sie Ihr Passwort ein",
         required: true,
     },
     {
         name: "confirm_password",
-        label: "Confirm Password",
+        label: "Passwort bestätigen",
         type: "password",
-        placeholder: "Re-enter your password",
+        placeholder: "Geben Sie Ihr Passwort erneut ein",
         required: true,
     },
 ];
 
 const schema = z.object({
     username: z
-        .string("Username is required")
+        .string("Benutzername ist erforderlich")
         .trim()
-        .min(5, "Must be at least 5 characters")
-        .max(30, "Must be at most 30 characters")
+        .min(5, "Muss mindestens 5 Zeichen lang sein")
+        .max(30, "Darf höchstens 30 Zeichen lang sein")
         .regex(
             /^[a-zA-Z0-9_]+$/,
-            "Only alphanumeric characters and underscores are allowed"
+            "Es sind nur alphanumerische Zeichen und Unterstriche erlaubt"
         ),
-    email: z.email("Invalid email address").trim(),
+    email: z.email("Ungültige E-Mail-Adresse").trim(),
     password: z
-        .string("Password is required")
+        .string("Passwort ist erforderlich")
         .trim()
-        .min(8, "Must be at least 8 characters")
-        .max(50, "Must be at most 50 characters")
-        .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-        .regex(/[a-z]/, "Must contain at least one lowercase letter")
-        .regex(/[0-9]/, "Must contain at least one number")
-        .regex(/[\W_]/, "Must contain at least one special character"),
+        .min(8, "Muss mindestens 8 Zeichen lang sein")
+        .max(50, "Darf höchstens 50 Zeichen lang sein")
+        .regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
+        .regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
+        .regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
+        .regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
     confirm_password: z
-        .string("Confirm Password is required")
+        .string("Passwort bestätigen ist erforderlich")
         .trim()
-        .min(1, "Confirm Password is required"),
+        .min(1, "Passwort bestätigen ist erforderlich"),
 });
 
 type SingupSchema = z.output<typeof schema>;
@@ -92,7 +92,7 @@ const validate = (state: Partial<SingupSchema>): FormError[] => {
     ) {
         errors.push({
             name: "confirm_password",
-            message: "Passwords do not match",
+            message: "Passwörter stimmen nicht überein",
         });
     }
     return errors;
@@ -101,8 +101,8 @@ const validate = (state: Partial<SingupSchema>): FormError[] => {
 async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
     // @TODO: Implement signup when backend is implemented
     toast.add({
-        title: "Feature Not Implemented",
-        description: "The signup feature is not yet implemented.",
+        title: "Funktion noch nicht implementiert",
+        description: "Die Registrierung ist noch nicht implementiert.",
     });
 
     // const result = await useAPI().postAuthLogin({ body: payload.data });
@@ -145,8 +145,8 @@ async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
         :schema="schema"
         :state="formState"
         :validate="validate"
-        title="Sign Up"
-        description="Create a new account by filling in the information below."
+        title="Registrieren"
+        description="Erstellen Sie ein neues Konto, indem Sie die untenstehenden Informationen ausfüllen."
         icon="i-lucide-user"
         :fields="fields"
         @submit="onSubmit"
@@ -156,12 +156,12 @@ async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
     >
         <template #footer>
             <div class="text-center text-sm">
-                Already have an account?
+                Haben Sie bereits ein Konto?
                 <NuxtLink
                     to="/auth/login"
                     class="text-sky-400 hover:underline"
                 >
-                    Login here
+                    Hier einloggen
                 </NuxtLink>
             </div>
         </template>

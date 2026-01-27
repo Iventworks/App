@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
-import type { Mail } from '~/types'
+import type { Mail } from '~/utils/types'
 
 const tabItems = [{
     label: 'All',

@@ -2,18 +2,18 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 useSeoMeta({
-	title: 'Settings | CMP',
-	description: 'Manage your account settings'
+	title: 'Kontoeinstellungen | CMP',
+	description: 'Verwalten Sie Ihre Kontoeinstellungen'
 })
 
 const links = [[
 	{
-		label: 'General',
+		label: 'Allgemein',
 		icon: 'i-lucide-user',
 		to: '/dashboard/settings',
 		exact: true
 	}, {
-		label: 'Security',
+		label: 'Sicherheit',
 		icon: 'i-lucide-shield',
 		to: '/dashboard/settings/security'
 	}
@@ -24,7 +24,7 @@ const links = [[
 <template>
 	<UDashboardPanel id="settings" :ui="{ body: 'lg:py-12' }">
 		<template #header>
-			<UDashboardNavbar title="Settings" icon="i-lucide-settings">
+			<UDashboardNavbar title="Kontoeinstellungen" icon="i-lucide-settings">
             </UDashboardNavbar>
 
 			<UDashboardToolbar>

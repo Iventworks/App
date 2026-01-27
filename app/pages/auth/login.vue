@@ -11,7 +11,7 @@ definePageMeta({
 
 useSeoMeta({
     title: "Login | CMP",
-    description: "Login to your account",
+    description: "Loggen Sie sich ins CMP-Dashboard ein",
 });
 
 const route = useRoute();
@@ -29,34 +29,34 @@ const fields: AuthFormField[] = [
     {
         name: "username",
         type: "text",
-        label: "Username",
-        placeholder: "Enter your username",
+        label: "Benutzername",
+        placeholder: "Geben Sie Ihren Benutzernamen ein",
         required: true,
     },
     {
         name: "password",
-        label: "Password",
+        label: "Passwort",
         type: "password",
-        placeholder: "Enter your password",
+        placeholder: "Geben Sie Ihr Passwort ein",
         required: true,
     },
     {
         name: "remember",
-        label: "Remember me",
+        label: "Angemeldet bleiben",
         type: "checkbox",
-        description: "You will stay logged in for 30 days.",
+        description: "Sie bleiben 30 Tage lang angemeldet.",
     },
 ];
 
 const schema = z.object({
     username: z
-        .string("Username is required")
+        .string("Benutzername ist erforderlich")
         .trim()
-        .min(1, "Username is required"),
+        .min(1, "Benutzername ist erforderlich"),
     password: z
-        .string("Password is required")
+        .string("Passwort ist erforderlich")
         .trim()
-        .min(1, "Password is required"),
+        .min(1, "Passwort ist erforderlich"),
     remember: z.boolean().optional(),
 });
 
@@ -83,8 +83,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         await useUserInfoStore().refresh();
 
         toast.add({
-            title: "Login Successful",
-            description: "You have been logged in successfully.",
+            title: "Login erfolgreich",
+            description: "Sie haben sich erfolgreich eingeloggt.",
         });
 
         await navigateTo(redirectUrl.toString());
@@ -92,15 +92,15 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     } else {
         if ((result.code as number) === 401) {
             toast.add({
-                title: "Invalid Username or Password",
-                description: "Please check your credentials and try again.",
+                title: "Ungültiger Benutzername oder Passwort",
+                description: "Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut.",
                 icon: "i-lucide-alert-circle",
                 color: "error",
             });
         } else {
             toast.add({
-                title: "Login Failed",
-                description: result.message || "An error occurred during login. Please try again later.",
+                title: "Login fehlgeschlagen",
+                description: result.message || "Beim Login ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.",
                 icon: "i-lucide-alert-circle",
                 color: "error",
             });
@@ -113,7 +113,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     <UAuthForm
         :schema="schema"
         title="Login"
-        description="Enter your credentials to access your account."
+        description="Geben Sie Ihre Anmeldedaten ein, um auf Ihr Konto zuzugreifen."
         icon="i-lucide-user"
         :fields="fields"
         @submit="onSubmit"
@@ -123,21 +123,21 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     >
         <template #footer>
             <div class="text-center text-sm">
-                Forgot your password?
+                Passwort vergessen?
                 <NuxtLink
                     to="/auth/forgot-password"
                     class="text-sky-400 hover:underline"
                 >
-                    Reset here
+                    Hier zurücksetzen
                 </NuxtLink>
             </div>
             <div v-if="isSignupEnabled" class="text-center text-sm mt-2">
-                Don't have an account?
+                Haben Sie noch kein Konto?
                 <NuxtLink
                     to="/auth/signup"
                     class="text-sky-400 hover:underline"
                 >
-                    Sign up
+                    Hier registrieren
                 </NuxtLink>
             </div>
         </template>

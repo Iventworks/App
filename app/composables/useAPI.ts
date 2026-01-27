@@ -25,19 +25,19 @@ export namespace UseAPITypes {
         refresh: () => Promise<void>;
     }
 
-    export type LazyRequestReturn<TReturn> = LazyRequestWrapper<TReturn>;
+    export type AsyncRequestTaskReturn<TReturn> = AsyncRequestTaskWrapper<TReturn>;
 
     export type LazyAsyncDataRequestReturn<TReturn> = LazyAsyncDataRequestWrapper<TReturn>;
 
 }
 
-class LazyRequestWrapper<TReturn> {
+class AsyncRequestTaskWrapper<TReturn> {
 
     readonly loading = ref(false);
 
     constructor(
         protected readonly handler: () => Promise<TReturn>
-    ) { }
+    ) {}
 
     async execute(): Promise<TReturn> {
         this.loading.value = true;
@@ -148,16 +148,7 @@ export async function useAPI<TReturn>(handler: (api: UseAPITypes.APIClient) => T
     try {
         if (import.meta.server) {
 
-            const event = useRequestEvent();
-            if (!event) {
-                return {
-                    success: false,
-                    code: 500,
-                    message: "Failed to retrieve request event on server.",
-                    data: null
-                } as const;
-            }
-            const sessionToken = getCookie(event, "cmp_session_token");
+            const sessionToken = useAppCookies().sessionToken.get().value;
             updateAPIClient(sessionToken ?? null);
             
             return await handler(baseAPIClient);
@@ -202,28 +193,36 @@ export async function useAPI<TReturn>(handler: (api: UseAPITypes.APIClient) => T
 
 export async function useAPIAsyncData<TReturn>(name: string, handler: () => Promise<TReturn>) {
 
-    const { data, pending: loading, refresh } = await useAsyncData<TReturn>(name, handler);
+    const {
+        data,
+        pending: loading,
+        refresh
+    } = await useAsyncData<TReturn>(name, handler);
 
-    return { data, loading, refresh } as {
-        data: Ref<TReturn>;
-        loading: Ref<boolean>;
-        refresh: () => Promise<void>;
+    return {
+        data: data as Ref<TReturn>,
+        loading,
+        refresh
     } satisfies UseAPITypes.AsyncDataReturn<TReturn>;
 }
 
 export async function useAPILazyAsyncData<TReturn>(name: string, handler: () => Promise<TReturn>) {
 
-    const { data, pending: loading, refresh } = await useLazyAsyncData<TReturn>(name, handler);
+    const {
+        data,
+        pending: loading,
+        refresh
+    } = await useLazyAsyncData<TReturn>(name, handler);
 
-    return { data, loading, refresh } as {
-        data: Ref<TReturn>;
-        loading: Ref<boolean>;
-        refresh: () => Promise<void>;
+    return {
+        data: data as Ref<TReturn>,
+        loading,
+        refresh
     } satisfies UseAPITypes.LazyAsyncDataReturn<TReturn>;
 }
 
-export function useAPILazyRequest<TReturn>(handler: () => Promise<TReturn>) {
-    return new LazyRequestWrapper<TReturn>(handler) satisfies UseAPITypes.LazyRequestReturn<TReturn>;
+export function useAPIAsyncRequestTask<TReturn>(handler: () => Promise<TReturn>) {
+    return new AsyncRequestTaskWrapper<TReturn>(handler) satisfies UseAPITypes.AsyncRequestTaskReturn<TReturn>;
 }
 
 export function useAPILazyAsyncRequest<TReturn>(name: string, handler: () => Promise<TReturn>, immediateFNInit = false) {

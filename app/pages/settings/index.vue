@@ -5,13 +5,13 @@ import { useUserInfoStore } from '~/composables/stores/useUserStore';
 
 const profileSchema = z.object({
 	username: z.string().trim()
-		.min(5, 'Must be at least 5 characters')
-		.max(30, 'Must be at most 30 characters')
-		.regex(/^[a-zA-Z0-9_]+$/, 'Only alphanumeric characters and underscores are allowed'),
+		.min(5, 'Muss mindestens 5 Zeichen lang sein')
+		.max(30, 'Darf höchstens 30 Zeichen lang sein')
+		.regex(/^[a-zA-Z0-9_]+$/, 'Es sind nur alphanumerische Zeichen und Unterstriche erlaubt'),
 	display_name: z.string().trim()
-		.max(50, 'Must be at most 50 characters')
+		.max(50, 'Darf höchstens 50 Zeichen lang sein')
 		.optional(),
-	email: z.email('Invalid email').trim(),
+	email: z.email('Ungültige E-Mail-Adresse').trim(),
 })
 
 const userInfoStore = await useUserInfoStore();
@@ -46,8 +46,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
 		if (result.success) {
 			toast.add({
-				title: 'Profile updated',
-				description: 'Your profile has been successfully updated.',
+				title: 'Profil aktualisiert',
+				description: 'Ihr Profil wurde erfolgreich aktualisiert.',
 				icon: 'i-lucide-check',
 				color: 'success'
 			});
@@ -60,16 +60,16 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
 		} else {
 			toast.add({
-				title: 'Error',
-				description: result.message || 'An error occurred while updating your profile.',
+				title: 'Fehler',
+				description: result.message || 'Beim Aktualisieren Ihres Profils ist ein Fehler aufgetreten.',
 				icon: 'i-lucide-alert-circle',
 				color: 'error'
 			})
 		}
 	} catch (error) {
 		toast.add({
-			title: 'Error',
-			description: 'An unexpected error occurred.',
+			title: 'Fehler',
+			description: 'Ein unerwarteter Fehler ist aufgetreten.',
 			icon: 'i-lucide-alert-circle',
 			color: 'error'
 		})
@@ -83,8 +83,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 	<div class="space-y-6">
 		<!-- Header -->
 		<div>
-			<h2 class="text-xl font-semibold text-white">Profile Settings</h2>
-			<p class="text-sm text-slate-400 mt-1">Manage your public profile information</p>
+			<h2 class="text-xl font-semibold text-white">Profil Einstellungen</h2>
+			<p class="text-sm text-slate-400 mt-1">Verwalten Sie Ihre öffentlichen Profilinformationen</p>
 		</div>
 
 		<!-- Profile Card -->
@@ -95,8 +95,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 						<UIcon name="i-lucide-user" class="w-5 h-5 text-sky-400" />
 					</div>
 					<div>
-						<h3 class="font-medium text-white">Profile Information</h3>
-						<p class="text-sm text-slate-400">Update your account profile details</p>
+						<h3 class="font-medium text-white">Profilinformationen</h3>
+						<p class="text-sm text-slate-400">Aktualisieren Sie Ihre Kontoprofilinformationen</p>
 					</div>
 				</div>
 			</div>
@@ -105,8 +105,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 				<UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit" class="divide-y divide-slate-800">
 					<UFormField 
 						name="username" 
-						label="Username"
-						description="Your unique username for logging in."
+						label="Benutzername"
+						description="Ihr eindeutiger Benutzername zum Anmelden."
 						required
 						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
 						:ui='{
@@ -114,26 +114,26 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 							container: "w-full sm:w-auto",
 						}'
 					>
-						<UInput v-model="profile.username" placeholder="Enter username" class="w-full sm:w-96" />
+						<UInput v-model="profile.username" placeholder="Benutzername eingeben" class="w-full sm:w-96" />
 					</UFormField>
 
 					<UFormField 
 						name="display_name" 
-						label="Display Name"
-						description="Shown publicly. Leave empty to use username."
+						label="Anzeigename"
+						description="Wird öffentlich angezeigt. Lassen Sie das Feld leer, um den Benutzernamen zu verwenden."
 						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
 						:ui='{
 							root: "w-full sm:w-auto",
 							container: "w-full sm:w-auto",
 						}'
 					>
-						<UInput v-model="profile.display_name" placeholder="Enter display name" class="w-full sm:w-96" />
+						<UInput v-model="profile.display_name" placeholder="Anzeigename eingeben" class="w-full sm:w-96" />
 					</UFormField>
 
 					<UFormField 
 						name="email" 
-						label="Email"
-						description="Used to sign in and for notifications."
+						label="E-Mail-Adresse"
+						description="Wird zum Anmelden und für Benachrichtigungen verwendet."
 						required
 						class="flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0"
 						:ui='{
@@ -141,12 +141,12 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 							container: "w-full sm:w-auto",
 						}'
 					>
-						<UInput v-model="profile.email" type="email" placeholder="Enter email" class="w-full sm:w-96" />
+						<UInput v-model="profile.email" type="email" placeholder="E-Mail-Adresse eingeben" class="w-full sm:w-96" />
 					</UFormField>
 
 					<div class="pt-4">
 						<UButton 
-							label="Save Changes" 
+							label="Änderungen speichern" 
 							color="primary" 
 							type="submit" 
 							:loading="loading"

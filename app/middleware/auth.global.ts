@@ -1,6 +1,6 @@
-import { UserStore } from "~/utils/stores/userStore";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
-export default defineNuxtRouteMiddleware(async(to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
 
     const token = useCookie("cmp_session_token").value;
 
@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async(to) => {
             return;
         }
 
-        await UserStore.fetchAndSetIfNeeded();
+        await useUserInfoStore().refreshIfNeeded();
 
         return navigateTo('/');
     }
@@ -18,12 +18,12 @@ export default defineNuxtRouteMiddleware(async(to) => {
         return navigateTo('/auth/login?url=' + encodeURIComponent(to.fullPath));
     }
 
-    const user = await UserStore.use();
+    const user = await useUserInfoStore().use();
 
-    if (to.path.startsWith('/admin')) {
+    if (to.path.startsWith('/dashboard/admin')) {
         // Check admin access
-        if (!user || user.role !== 'admin') {
-            navigateTo('/')
+        if (!user.value || user.value.role !== 'admin') {
+            return navigateTo('/dashboard');
         }
     }
 });

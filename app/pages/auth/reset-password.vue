@@ -7,8 +7,8 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Reset Password | CMP",
-    description: "Reset your password",
+    title: "Passwort zurücksetzen | CMP",
+    description: "Setzen Sie Ihr Passwort zurück",
 });
 
 const route = useRoute();
@@ -19,34 +19,34 @@ const toast = useToast();
 const fields: AuthFormField[] = [
     {
         name: "password",
-        label: "New Password",
+        label: "Neues Passwort",
         type: "password",
-        placeholder: "Enter a new password",
+        placeholder: "Geben Sie ein neues Passwort ein",
         required: true,
     },
     {
         name: "confirm_password",
-        label: "Confirm New Password",
+        label: "Neues Passwort bestätigen",
         type: "password",
-        placeholder: "Re-enter your new password",
+        placeholder: "Geben Sie Ihr neues Passwort erneut ein",
         required: true,
     },
 ];
 
 const schema = z.object({
     password: z
-        .string("Password is required")
+        .string("Passwort ist erforderlich")
         .trim()
-        .min(8, "Must be at least 8 characters")
-        .max(50, "Must be at most 50 characters")
-        .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-        .regex(/[a-z]/, "Must contain at least one lowercase letter")
-        .regex(/[0-9]/, "Must contain at least one number")
-        .regex(/[\W_]/, "Must contain at least one special character"),
+        .min(8, "Muss mindestens 8 Zeichen lang sein")
+        .max(50, "Darf höchstens 50 Zeichen lang sein")
+        .regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
+        .regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
+        .regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
+        .regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
     confirm_password: z
-        .string("Confirm Password is required")
+        .string("Passwort bestätigen ist erforderlich")
         .trim()
-        .min(1, "Confirm Password is required"),
+        .min(1, "Passwort bestätigen ist erforderlich"),
 });
 
 type NewPasswordSchema = z.output<typeof schema>;
@@ -65,7 +65,7 @@ const validate = (state: Partial<NewPasswordSchema>): FormError[] => {
     ) {
         errors.push({
             name: "confirm_password",
-            message: "Passwords do not match",
+            message: "Passwörter stimmen nicht überein",
         });
     }
     return errors;
@@ -85,8 +85,8 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
     if (result.success) {
 
         toast.add({
-            title: 'Password Reset Successful',
-            description: 'Your password has been reset successfully.'
+            title: 'Passwort erfolgreich zurückgesetzt',
+            description: 'Ihr Passwort wurde erfolgreich zurückgesetzt.'
         });
 
         await navigateTo("/auth/login");
@@ -94,8 +94,8 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
 
     } else {
         toast.add({
-            title: 'Password Reset Failed',
-            description: 'An error occurred during password reset.'
+            title: 'Passwort zurücksetzen fehlgeschlagen',
+            description: 'Beim Zurücksetzen des Passworts ist ein Fehler aufgetreten.'
         });
     }
 }
@@ -105,23 +105,23 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
     <template v-if="reset_token">
         <UAuthForm
             :schema="schema"
-            title="Reset Password"
-            description="Reset your password by entering your email address below."
+            title="Passwort zurücksetzen"
+            description="Setzen Sie Ihr Passwort zurück, indem Sie unten Ihre E-Mail-Adresse eingeben."
             icon="i-lucide-mail"
             :fields="fields"
             @submit="onSubmit"
             :submit="{
-                label: 'Reset Password',
+                label: 'Passwort zurücksetzen',
             }"
         >
             <template #footer>
                 <div class="text-center text-sm">
-                    Remembered your password?
+                    Haben Sie Ihr Passwort erinnert?
                     <NuxtLink
                         to="/auth/login"
                         class="text-sky-400 hover:underline"
                     >
-                        Login here
+                        Hier einloggen
                     </NuxtLink>
                 </div>
             </template>
@@ -129,14 +129,14 @@ async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
     </template>
     <template v-else>
         <div class="text-center h-12 mb-4">
-            Invalid or missing reset token. Please check your reset link or
-            request a new password reset.
+            Ungültiges oder fehlendes Zurücksetzungs-Token. Bitte überprüfen Sie Ihren Zurücksetzungslink oder
+            fordern Sie eine neue Passwortzurücksetzung an.
         </div>
         <NuxtLink
             to="/auth/forgot-password"
             class="text-sky-400 hover:underline text-center"
         >
-            Request a new password reset
+            Fordern Sie eine neue Passwortzurücksetzung an
         </NuxtLink>
     </template>
 </template>

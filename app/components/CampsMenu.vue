@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { useRuntimeAppConfigs } from '~/composables/useRuntimeAppConfigs';
 
 defineProps<{
   collapsed?: boolean
@@ -9,19 +10,19 @@ const teams = ref([
   {
     label: 'SkiWelt Wilder Kaiser 2025',
     avatar: {
-      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
       alt: 'SkiWelt Wilder Kaiser 2025'
     }
   }, {
     label: 'Orchesterfreizeit im Kloster 2025',
     avatar: {
-      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
       alt: 'Orchesterfreizeit im Kloster 2025'
     }
   }, {
     label: 'young+free Crottendorf 2025',
     avatar: {
-      src: `${useAppURL()}/static/logo/crossover-favicon.png`,
+      src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
       alt: 'young+free Crottendorf 2025'
     }
   }

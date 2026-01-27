@@ -9,8 +9,8 @@ definePageMeta({
 });
 
 useSeoMeta({
-    title: "Forgot Password | CMP",
-    description: "Reset your password",
+    title: "Passwort vergessen | CMP",
+    description: "Setzen Sie Ihr Passwort zurück",
 });
 
 const toast = useToast();
@@ -19,14 +19,14 @@ const fields: AuthFormField[] = [
     {
         name: "email",
         type: "email",
-        label: "Email Address",
-        placeholder: "Enter your email address",
+        label: "E-Mail-Adresse",
+        placeholder: "Geben Sie Ihre E-Mail-Adresse ein",
         required: true,
     },
 ];
 
 const schema = z.object({
-    email: z.email("Invalid email address").trim(),
+    email: z.string().email("Ungültige E-Mail-Adresse").trim(),
 });
 
 type Schema = z.output<typeof schema>;
@@ -34,8 +34,8 @@ type Schema = z.output<typeof schema>;
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
     // @TODO: Implement forgot password when backend is implemented
     toast.add({
-        title: "Feature Not Implemented",
-        description: "The forgot password feature is not yet implemented.",
+        title: "Funktion nicht implementiert",
+        description: "Die Funktion zum Zurücksetzen des Passworts ist noch nicht implementiert.",
     });
 
     // const result = await useAPI().postAuthLogin({ body: payload.data });
@@ -76,8 +76,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
     <UAuthForm
         :schema="schema"
-        title="Forgot Password"
-        description="Reset your password by entering your email address below."
+        title="Passwort vergessen"
+        description="Setzen Sie Ihr Passwort zurück, indem Sie unten Ihre E-Mail-Adresse eingeben."
         icon="i-lucide-mail"
         :fields="fields"
         @submit="onSubmit"
@@ -87,12 +87,12 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     >
         <template #footer>
             <div class="text-center text-sm">
-                Remembered your password?
+                Passwort erinnert?
                 <NuxtLink
                     to="/auth/login"
                     class="text-sky-400 hover:underline"
                 >
-                    Login here
+                    Hier einloggen
                 </NuxtLink>
             </div>
         </template>
