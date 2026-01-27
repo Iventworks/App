@@ -17,6 +17,7 @@
         "@nuxt/ui": "^4.4.0",
         "@unovis/ts": "^1.6.2",
         "@unovis/vue": "^1.6.2",
+        "@vite-pwa/nuxt": "^1.1.0",
         "@vueuse/nuxt": "^14.1.0",
         "bun-types": "^1.3.6",
         "nuxt": "^4.3.0",
@@ -29,7 +30,6 @@
         "@iconify-json/lucide": "^1.2.87"
     },
     "patchedDependencies": {
-        "@hey-api/openapi-ts@0.90.4": "patches/@hey-api%2Fopenapi-ts@0.90.4.patch",
         "@hey-api/openapi-ts@0.90.10": "patches/@hey-api%2Fopenapi-ts@0.90.10.patch"
     }
 }

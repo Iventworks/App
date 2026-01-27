@@ -1,15 +1,8 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { UserStore } from '~/utils/stores/userStore';
 
-const route = useRoute()
-
-const sessionCookie = useCookie<string | null>("session_token");
-const user = ref<any | null>(null);
-
-if (sessionCookie.value) {
-    user.value = await UserStore.use().catch(() => null);
-}
+const userInfoStore = useUserInfoStore();
+const user = await userInfoStore.use();
 
 const isAdmin = computed(() => user.value?.role === "admin");
 
@@ -100,22 +93,17 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
     ] : [];
 
     const footerItems: NavigationMenuItem[] = [
-        {
-            label: "Explorer",
-            icon: "i-lucide-compass",
-            to: "/explorer",
-        },
-        {
-            label: "Back to Home",
-            icon: "i-lucide-home",
-            to: "/",
-        },
+        // {
+        //     label: "Back to Home",
+        //     icon: "i-lucide-home",
+        //     to: "/",
+        // },
     ];
 
     return [[...basicItems], [...campItems, ...adminItems, ...settings], [...footerItems]];
 });
 
-const groups = computed(() => [{
+const searchGroups = computed(() => [{
 	id: 'links',
 	label: 'Go to',
 	items: sidebarItems.value.flat()
@@ -185,7 +173,7 @@ const groups = computed(() => [{
 
 		</UDashboardSidebar>
 
-		<UDashboardSearch :groups="groups" />
+		<UDashboardSearch :groups="searchGroups" />
 
 		<slot />
 

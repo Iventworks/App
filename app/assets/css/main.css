@@ -1,16 +1,22 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-
 @theme {
   --font-sans: 'Public Sans', sans-serif;
+}
+
+/* ===========================
+   Base & Reset Styles
+   =========================== */
+
+:root {
+    color-scheme: dark;
 }
 
 html {
     scroll-behavior: smooth;
 }
 
-
-:root {
-    color-scheme: dark;
+.main-bg-color {
+    background-color: rgb(0 0 0);
 }

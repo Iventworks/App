@@ -25,6 +25,7 @@ const props = defineProps<{
 <style scoped>
 .app-layout {
     min-height: 100vh;
+    background-color: rgb(0 0 0);
     display: flex;
     flex-direction: column;
 }

@@ -1,3 +1,18 @@
+import type {
+    GetAccountResponses
+} from "~/api-client";
+
+export namespace UtilityTypes {
+
+    export type SomePartial<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>;
+
+}
+
+
+export type UserInfo = GetAccountResponses["200"]["data"];
+
+
+
 import type { AvatarProps } from '@nuxt/ui'
 
 export type UserStatus = 'subscribed' | 'unsubscribed' | 'bounced'
@@ -45,7 +60,7 @@ export interface Sale {
 export interface Notification {
   id: number
   unread?: boolean
-  sender: Omit<User, 'id', 'email'>
+  sender: Omit<User, 'id' | 'email'>
   body: string
   date: string
 }

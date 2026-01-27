@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
 	compatibilityDate: '2025-07-15',
 	devtools: { enabled: true },
-	modules: ['@nuxt/ui'],
+	modules: ['@nuxt/ui', '@vite-pwa/nuxt'],
 
 	colorMode: {
 		preference: 'dark',
@@ -10,7 +10,7 @@ export default defineNuxtConfig({
 		classSuffix: ''
 	},
 
-	ssr: false,
+	ssr: true,
 
 	css: [
 		'~/assets/css/main.css',
@@ -42,5 +42,25 @@ export default defineNuxtConfig({
 			]
 
 		}
-	}
+	},
+
+	routeRules: {
+		"/**": { ssr: false }
+	},
+
+	pwa: {
+        registerType: 'autoUpdate',
+        manifest: {
+            name: 'Crossover Management Portal',
+            short_name: 'CMP',
+            start_url: '/',
+            description: 'Crossover Management Portal',
+
+            display: 'standalone',
+            orientation: 'portrait',
+
+            theme_color: '#ffffff',
+            background_color: '#18181a',
+        }
+    }
 });
