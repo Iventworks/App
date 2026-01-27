@@ -26,7 +26,7 @@ const fields: AuthFormField[] = [
 ];
 
 const schema = z.object({
-    email: z.string().email("Ungültige E-Mail-Adresse").trim(),
+    email: z.email("Ungültige E-Mail-Adresse").trim(),
 });
 
 type Schema = z.output<typeof schema>;
