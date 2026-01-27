@@ -8,7 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
-    <div class="app-layout">
+    <div class="app-layout main-bg-color">
         <!-- Navigation -->
         <Header />
 
@@ -25,7 +25,6 @@ const props = defineProps<{
 <style scoped>
 .app-layout {
     min-height: 100vh;
-    background-color: rgb(0 0 0);
     display: flex;
     flex-direction: column;
 }

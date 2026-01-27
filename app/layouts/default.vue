@@ -113,12 +113,16 @@ const searchGroups = computed(() => [{
 </script>
 
 <template>
-	<UDashboardGroup>
+	<UDashboardGroup class="main-bg-color">
 		<UDashboardSidebar id="default"
 			collapsible
 			resizable
 			:ui="{
-				footer: 'lg:border-t lg:border-default'
+                header: 'main-bg-color',
+                body: 'main-bg-color',
+                content: 'main-bg-color',
+                footer: 'border-t border-default main-bg-color',
+				//footer: 'lg:border-t lg:border-default main-bg-color'
 			}"
 			:min-size="18"
             :default-size="18"
