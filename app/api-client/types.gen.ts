@@ -54,6 +54,7 @@ export type PostAuthLoginResponses = {
         data: {
             user_id: number;
             user_role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            created_at: number;
             expires_at: number;
             token: string;
         };
@@ -93,6 +94,7 @@ export type GetAuthSessionResponses = {
         data: {
             user_id: number;
             user_role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            created_at: number;
             expires_at: number;
         };
     };
@@ -140,7 +142,7 @@ export type PostAuthResetPasswordData = {
         /**
          * New password for the account
          */
-        new_password: unknown & unknown & unknown & unknown;
+        new_password: string;
     };
     path?: never;
     query?: never;
@@ -282,6 +284,7 @@ export type GetAccountResponses = {
         message: 'Account information retrieved successfully';
         data: {
             id: number;
+            created_at: number;
             username: string;
             display_name: string;
             email: string;
@@ -347,7 +350,7 @@ export type PutAccountPasswordData = {
         /**
          * New password for the account
          */
-        new_password: unknown & unknown & unknown & unknown;
+        new_password: string;
     };
     path?: never;
     query?: never;
@@ -411,6 +414,7 @@ export type GetAdminUsersResponses = {
         message: 'Users retrieved successfully';
         data: Array<{
             id: number;
+            created_at: number;
             username: string;
             display_name: string;
             email: string;
@@ -423,6 +427,7 @@ export type GetAdminUsersResponse = GetAdminUsersResponses[keyof GetAdminUsersRe
 
 export type PostAdminUsersData = {
     body?: {
+        created_at?: number;
         username: string;
         display_name: string;
         email: string;
@@ -465,6 +470,7 @@ export type PostAdminUsersResponses = {
         message: 'User created successfully';
         data: {
             id: number;
+            created_at: number;
             username: string;
             display_name: string;
             email: string;
@@ -551,6 +557,7 @@ export type GetAdminUsersUserIdResponses = {
         message: 'User retrieved successfully';
         data: {
             id: number;
+            created_at: number;
             username: string;
             display_name: string;
             email: string;
@@ -563,6 +570,7 @@ export type GetAdminUsersUserIdResponse = GetAdminUsersUserIdResponses[keyof Get
 
 export type PutAdminUsersUserIdData = {
     body?: {
+        created_at?: number;
         username?: string;
         display_name?: string;
         email?: string;
@@ -614,6 +622,7 @@ export type PutAdminUsersUserIdResponses = {
         message: 'User updated successfully';
         data: {
             id: number;
+            created_at: number;
             username: string;
             display_name: string;
             email: string;
@@ -629,7 +638,7 @@ export type PutAdminUsersUserIdPasswordData = {
         /**
          * New password for the account
          */
-        password: unknown & unknown & unknown & unknown;
+        password: string;
     };
     path: {
         userId: number;

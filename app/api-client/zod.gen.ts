@@ -26,6 +26,7 @@ export const zPostAuthLoginResponse = z.object({
             'volunteer',
             'unverified'
         ]),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         expires_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         token: z.string()
     })
@@ -52,6 +53,7 @@ export const zGetAuthSessionResponse = z.object({
             'volunteer',
             'unverified'
         ]),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         expires_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -75,7 +77,7 @@ export const zPostAuthLogoutResponse = z.object({
 export const zPostAuthResetPasswordData = z.object({
     body: z.optional(z.object({
         reset_token: z.string().min(1),
-        new_password: z.intersection(z.unknown(), z.unknown(), z.unknown(), z.unknown())
+        new_password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
     })),
     path: z.optional(z.never()),
     query: z.optional(z.never())
@@ -140,6 +142,7 @@ export const zGetAccountResponse = z.object({
     message: z.literal('Account information retrieved successfully'),
     data: z.object({
         id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         username: z.string(),
         display_name: z.string(),
         email: z.string(),
@@ -154,7 +157,7 @@ export const zGetAccountResponse = z.object({
 
 export const zPutAccountData = z.object({
     body: z.optional(z.object({
-        username: z.optional(z.string().min(5).max(30).regex(/^[a-zA-Z0-9_]+$/)),
+        username: z.optional(z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/)),
         display_name: z.optional(z.string()),
         email: z.optional(z.email().regex(/^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/))
     })),
@@ -175,7 +178,7 @@ export const zPutAccountResponse = z.object({
 export const zPutAccountPasswordData = z.object({
     body: z.optional(z.object({
         current_password: z.string(),
-        new_password: z.intersection(z.unknown(), z.unknown(), z.unknown(), z.unknown())
+        new_password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
     })),
     path: z.optional(z.never()),
     query: z.optional(z.never())
@@ -216,6 +219,7 @@ export const zGetAdminUsersResponse = z.object({
     message: z.literal('Users retrieved successfully'),
     data: z.array(z.object({
         id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         username: z.string(),
         display_name: z.string(),
         email: z.string(),
@@ -230,7 +234,8 @@ export const zGetAdminUsersResponse = z.object({
 
 export const zPostAdminUsersData = z.object({
     body: z.optional(z.object({
-        username: z.string().min(5).max(30).regex(/^[a-zA-Z0-9_]+$/),
+        created_at: z.optional(z.int().gte(-9007199254740991).lte(9007199254740991)),
+        username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/),
         display_name: z.string().min(1).max(64),
         email: z.email().regex(/^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/),
         role: z.optional(z.enum([
@@ -254,6 +259,7 @@ export const zPostAdminUsersResponse = z.object({
     message: z.literal('User created successfully'),
     data: z.object({
         id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         username: z.string(),
         display_name: z.string(),
         email: z.string(),
@@ -301,6 +307,7 @@ export const zGetAdminUsersUserIdResponse = z.object({
     message: z.literal('User retrieved successfully'),
     data: z.object({
         id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         username: z.string(),
         display_name: z.string(),
         email: z.string(),
@@ -315,6 +322,7 @@ export const zGetAdminUsersUserIdResponse = z.object({
 
 export const zPutAdminUsersUserIdData = z.object({
     body: z.optional(z.object({
+        created_at: z.optional(z.int().gte(-9007199254740991).lte(9007199254740991)),
         username: z.optional(z.string()),
         display_name: z.optional(z.string()),
         email: z.optional(z.string()),
@@ -340,6 +348,7 @@ export const zPutAdminUsersUserIdResponse = z.object({
     message: z.literal('User updated successfully'),
     data: z.object({
         id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         username: z.string(),
         display_name: z.string(),
         email: z.string(),
@@ -354,7 +363,7 @@ export const zPutAdminUsersUserIdResponse = z.object({
 
 export const zPutAdminUsersUserIdPasswordData = z.object({
     body: z.optional(z.object({
-        password: z.intersection(z.unknown(), z.unknown(), z.unknown(), z.unknown())
+        password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
     })),
     path: z.object({
         userId: z.int().gt(0).lte(9007199254740991)
