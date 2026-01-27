@@ -111,7 +111,7 @@ async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
 
     //     updateAPIClient(result.data.token);
 
-    //     const sessionToken = useCookie('cmp_session_token', {
+    //     const sessionToken = useCookie("cmp_session_token", {
     //         path:     '/',
     //         secure:   true,
     //         sameSite: 'strict',
@@ -121,7 +121,7 @@ async function onSubmit(payload: FormSubmitEvent<SingupSchema>) {
 
     //     sessionToken.value = result.data.token;
 
-    //     await UserStore.fetchAndSetUserInfo();
+    //     await useUserInfoStore().refreshIfNeeded();
 
     //     toast.add({
     //         title: 'Login Successful',

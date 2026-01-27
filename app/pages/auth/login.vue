@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent, AuthFormField } from "@nuxt/ui";
-import { UserStore } from "~/utils/stores/userStore";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
 
@@ -15,9 +15,11 @@ useSeoMeta({
 });
 
 const route = useRoute();
-let redirectUrl = route.query.url?.toString() || "/";
-if (redirectUrl.endsWith("/auth/login")) {
-    redirectUrl = "/";
+let redirectUrl = route.query.url?.toString() || "/dashboard";
+
+// Ensure redirectUrl is a safe path within the application
+if (!redirectUrl.startsWith("/dashboard")) {
+    redirectUrl = "/dashboard";
 }
 
 
@@ -78,7 +80,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
         sessionToken.value = result.data.token;
 
-        await UserStore.fetchAndSet();
+        await useUserInfoStore().refresh();
 
         toast.add({
             title: "Login Successful",
@@ -88,10 +90,21 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         await navigateTo(redirectUrl.toString());
         return;
     } else {
-        toast.add({
-            title: "Login Failed",
-            description: "An error occurred during login.",
-        });
+        if ((result.code as number) === 401) {
+            toast.add({
+                title: "Invalid Username or Password",
+                description: "Please check your credentials and try again.",
+                icon: "i-lucide-alert-circle",
+                color: "error",
+            });
+        } else {
+            toast.add({
+                title: "Login Failed",
+                description: result.message || "An error occurred during login. Please try again later.",
+                icon: "i-lucide-alert-circle",
+                color: "error",
+            });
+        }
     }
 }
 </script>
