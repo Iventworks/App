@@ -8,7 +8,7 @@
         
         <!-- Main Content -->
         <UMain class="main-content">
-            <div class="auth-wrapper flex min-h-[calc(100vh-80px)] items-center justify-center">
+            <div class="auth-wrapper flex min-h-[calc(100vh-0px)] items-center justify-center">
                 <UPageCard class="w-full max-w-md border-slate-800">
                     <slot />
                 </UPageCard>
@@ -17,7 +17,7 @@
         </UMain>
 
         <!-- Footer -->
-        <UFooter class="mt-8">
+        <UFooter class="mt-8 bg-neutral-900">
             <div class="text-sm text-slate-500 text-center">
                 &copy; {{ new Date().getFullYear() }} LeiCraft_MC (Linus Fischer). All rights reserved.
             </div>
