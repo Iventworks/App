@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
-import { UserStore } from '~/utils/stores/userStore'
+import { useUserInfoStore } from '~/composables/stores/useUserStore'
 
 const toast = useToast()
 const overlay = useOverlay()
@@ -29,7 +29,7 @@ const password = reactive<Partial<PasswordSchema>>({
 	current_password: undefined,
 	new_password: undefined,
 	confirm_password: undefined
-})
+});
 
 const validate = (state: Partial<PasswordSchema>): FormError[] => {
 	const errors: FormError[] = []
@@ -61,8 +61,8 @@ async function onPasswordSubmit(event: FormSubmitEvent<PasswordSchema>) {
 				color: 'success'
 			})
 
-			UserStore.clear()
-			useCookie('cmp_session_token').value = null
+			await useUserInfoStore().clear()
+			useAppCookies().sessionToken.get().value = null;
 			navigateTo('/auth/login')
 		} else {
 			toast.add({
@@ -108,8 +108,8 @@ async function onDeleteAccount() {
 				color: 'success'
 			})
 
-			UserStore.clear()
-			useCookie('cmp_session_token').value = null
+			await useUserInfoStore().clear()
+			useAppCookies().sessionToken.get().value = null;
 			navigateTo('/')
 		} else {
 			toast.add({

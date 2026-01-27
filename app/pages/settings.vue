@@ -25,7 +25,7 @@ const links = [[
 	<UDashboardPanel id="settings" :ui="{ body: 'lg:py-12' }">
 		<template #header>
 			<UDashboardNavbar title="Settings" icon="i-lucide-settings">
-			</UDashboardNavbar>
+            </UDashboardNavbar>
 
 			<UDashboardToolbar>
 				<!-- NOTE: The `-mx-1` class is used to align with the `DashboardSidebarCollapse` button here. -->

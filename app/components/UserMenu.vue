@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
-import { UserStore } from "~/utils/stores/userStore";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 defineProps<{
     collapsed?: boolean;
@@ -8,14 +8,28 @@ defineProps<{
 
 const toast = useToast();
 
-const userinfo = await UserStore.use();
+const userinfoStore = await useUserInfoStore();
+const userinfo = await userinfoStore.use();
+if (!userinfoStore.isValid(userinfo)) {
+    throw new Error("User not authenticated but should be to access UserMenu");
+}
 
-const user = computed(() => ({
-    name: userinfo.display_name,
-    avatar: {
-        alt: userinfo.username,
-    },
-}));
+const user = computed(() => {
+    if (!userinfo.value) {
+        return {
+            name: "Unknown User",
+            avatar: {
+                alt: "Unknown User",
+            },
+        };
+    }
+    return {
+        name: userinfo.value.display_name,
+        avatar: {
+            alt: userinfo.value.display_name,
+        },
+    };
+});
 
 async function logout() {
     try {
@@ -23,9 +37,9 @@ async function logout() {
             return api.postAuthLogout({});
         });
 
-        UserStore.clear();
+        await userinfoStore.clear();
 
-        useCookie("session_token").value = null;
+        useAppCookies().sessionToken.get().value = null;
 
         if (!result.success) {
             toast.add({

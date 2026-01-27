@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { UserStore } from '~/utils/stores/userStore'
+import { useUserInfoStore } from '~/composables/stores/useUserStore';
 
 const profileSchema = z.object({
 	username: z.string().trim()
@@ -14,15 +14,20 @@ const profileSchema = z.object({
 	email: z.email('Invalid email').trim(),
 })
 
-const userInfo = await UserStore.use()
+const userInfoStore = await useUserInfoStore();
+const userInfo = await userInfoStore.use()
 const loading = ref(false)
+
+if (!userInfoStore.isValid(userInfo)) {
+	throw new Error('User not authenticated but trying to access Profile Settings')
+}
 
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive<Partial<ProfileSchema>>({
-	username: userInfo.username,
-	display_name: userInfo.display_name || '',
-	email: userInfo.email,
+	username: userInfo.value.username,
+	display_name: userInfo.value.display_name || '',
+	email: userInfo.value.email,
 })
 
 const toast = useToast()
@@ -45,14 +50,14 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 				description: 'Your profile has been successfully updated.',
 				icon: 'i-lucide-check',
 				color: 'success'
-			})
+			});
 
-			UserStore.set({
-				...userInfo,
+			userInfoStore.update({
 				username: event.data.username,
-				display_name: event.data.display_name || userInfo.display_name,
+				display_name: event.data.display_name || undefined,
 				email: event.data.email
-			})
+			});
+
 		} else {
 			toast.add({
 				title: 'Error',
@@ -165,7 +170,7 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 				<div class="ml-auto">
 					<UBadge 
 						:label="userInfo.role" 
-						:color="userInfo.role === 'admin' ? 'error' : userInfo.role === 'volunteer' ? 'primary' : 'neutral'"
+						:color="userInfo.role === 'admin' ? 'error' : userInfo.role === 'developer' ? 'primary' : 'neutral'"
 						size="sm"
 					/>
 				</div>
