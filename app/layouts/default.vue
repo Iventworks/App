@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { useUserInfoStore } from '~/composables/stores/useUserStore';
 
 const userInfoStore = useUserInfoStore();
 const user = await userInfoStore.use();
@@ -20,13 +21,13 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
 		},
         {
             label: "Chats",
-            icon: "i-lucide-package",
+            icon: "i-lucide-message-circle",
             to: "/chats",
         },
         {
             label: "Meine Aufgaben",
             icon: "i-lucide-list-checks",
-            to: "/my-tasks",
+            to: "/tasks",
         },
     ];
 
@@ -39,7 +40,7 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
 		{
 			label: 'My Camps',
 			icon: 'i-lucide-users',
-			to: '/dashboard/camps',
+			to: '/camps',
 		},
 	];
 
@@ -50,19 +51,19 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
         },
         {
             label: "Settings",
-            to: "/dashboard/settings",
+            to: "/settings",
             icon: "i-lucide-settings",
             defaultOpen: true,
             type: "trigger",
             children: [
                 {
                     label: "General",
-                    to: "/dashboard/settings",
+                    to: "/settings",
                     exact: true,
                 },
                 {
                     label: "Security",
-                    to: "/dashboard/settings/security",
+                    to: "/settings/security",
                 },
             ],
         },
@@ -78,17 +79,12 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
         {
             label: "Users",
             icon: "i-lucide-users",
-            to: "/dashboard/admin/users",
+            to: "/admin/users",
         },
         {
             label: "Alle Freizeiten",
             icon: "i-lucide-package-search",
-            to: "/dashboard/admin/packages",
-        },
-        {
-            label: "Tasks",
-            icon: "i-lucide-list-checks",
-            to: "/dashboard/admin/tasks",
+            to: "/admin/packages",
         }
     ] : [];
 
@@ -122,23 +118,26 @@ const searchGroups = computed(() => [{
                 body: 'main-bg-color',
                 content: 'main-bg-color',
                 footer: 'border-t border-default main-bg-color',
-				//footer: 'lg:border-t lg:border-default main-bg-color'
 			}"
 			:min-size="18"
             :default-size="18"
             :max-size="30"
 		>
 			<template #header="{ collapsed }">
-				<img
-					src="/static/logo/crossover-favicon.png"
-					alt="Crossover Management Portal"
-					class="w-10 max-h-10 mx-auto"
-					style="width: auto; height: auto;"
-				/>
-				<h1
-					class="text-lg font-semibold"
-					v-if="!collapsed"
-				>Crossover Management Portal</h1>
+                <NuxtLink to="/" :class="`flex items-center gap-1.5`">
+                    <img
+                        src="/static/logo/crossover-favicon.png"
+                        alt="Crossover Management Portal"
+                        class="w-10 max-h-10 mx-auto"
+                        style="width: auto; height: auto;"
+                    />
+                    <h1
+                        class="text-lg font-semibold"
+                        v-if="!collapsed"
+                    >
+                        Crossover Management Portal
+                    </h1>
+                </NuxtLink>
 			</template>
 
 			<template #default="{ collapsed }">

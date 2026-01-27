@@ -10,12 +10,12 @@ const links = [[
 	{
 		label: 'Allgemein',
 		icon: 'i-lucide-user',
-		to: '/dashboard/settings',
+		to: '/settings',
 		exact: true
 	}, {
 		label: 'Sicherheit',
 		icon: 'i-lucide-shield',
-		to: '/dashboard/settings/security'
+		to: '/settings/security'
 	}
 ]] satisfies NavigationMenuItem[][]
 

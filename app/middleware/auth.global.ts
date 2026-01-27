@@ -20,10 +20,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     const user = await useUserInfoStore().use();
 
-    if (to.path.startsWith('/dashboard/admin')) {
+    if (to.path.startsWith('/admin')) {
         // Check admin access
         if (!user.value || user.value.role !== 'admin') {
-            return navigateTo('/dashboard');
+            return navigateTo('/');
         }
     }
 });
