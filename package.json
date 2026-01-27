@@ -29,6 +29,7 @@
         "@iconify-json/lucide": "^1.2.87"
     },
     "patchedDependencies": {
-        "@hey-api/openapi-ts@0.90.4": "patches/@hey-api%2Fopenapi-ts@0.90.4.patch"
+        "@hey-api/openapi-ts@0.90.4": "patches/@hey-api%2Fopenapi-ts@0.90.4.patch",
+        "@hey-api/openapi-ts@0.90.10": "patches/@hey-api%2Fopenapi-ts@0.90.10.patch"
     }
 }

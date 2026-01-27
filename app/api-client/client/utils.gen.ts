@@ -362,6 +362,10 @@ export const unwrapRefs = <T>(value: T): UnwrapRefs<T> => {
     return value.map((item) => unwrapRefs(item)) as UnwrapRefs<T>;
   }
 
+  if (value instanceof Blob) {
+    return value as UnwrapRefs<T>;
+  }
+
   if (isRef(value)) {
     return unwrapRefs(unref(value) as T);
   }
