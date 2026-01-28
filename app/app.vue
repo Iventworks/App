@@ -16,7 +16,7 @@
 </script>
 
 <template>
-	<NuxtPwaManifest />
+	<!-- <NuxtPwaManifest /> -->
 	<UApp>
 		<NuxtLoadingIndicator
         	color="#ff8904"

@@ -1,3 +1,5 @@
+import { f } from "vue-router/dist/router-CWoNjPRp.mjs";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 	compatibilityDate: '2025-07-15',
@@ -53,22 +55,44 @@ export default defineNuxtConfig({
 			// 1. Manually add the manifest link
 			link: [
 				{ rel: 'manifest', href: '/manifest.webmanifest' }, 
+			],
+			script: [
+				{
+				// We use innerHTML to insert raw JS
+				innerHTML: `
+					if ('serviceWorker' in navigator) {
+					window.addEventListener('load', () => {
+						navigator.serviceWorker.register('/sw.js', { scope: '/' })
+						.then(registration => {
+							console.log('SW registered: ', registration);
+						})
+						.catch(registrationError => {
+							console.log('SW registration failed: ', registrationError);
+						});
+					});
+					}
+				`,
+				type: 'text/javascript'
+				}
 			]
 		}
 	},
 
 	pwa: {
         registerType: 'autoUpdate',
+		injectRegister: false,
         manifest: {
             name: 'Crossover Management Portal',
             short_name: 'CMP',
             start_url: '/',
             description: 'Crossover Management Portal',
 
+			id: "info.crossover.cmp.app",
+
 			icons: [
 				{
-					src: "/static/logo/crossover-favicon.png",
-					sizes: "256x256",
+					src: "/static/logo/crossover-favicon-512x512.png",
+					sizes: "512x512",
 					type: "image/png"
 				}
 			],
