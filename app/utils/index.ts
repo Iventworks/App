@@ -134,4 +134,30 @@ export namespace Utils {
 		return role === 'admin'
 	}
 
+
+	export function getVisualSettingsForRole(role: UserInfo["role"]) {
+		switch (role) {
+			case "volunteer":
+				return {
+					color: "neutral",
+					label: "Freiwilliger",
+				} as const;
+			case "core_team":
+				return {
+					color: "primary",
+					label: "Kernteam",
+				} as const;
+			case "admin":
+				return {
+					color: "error",
+					label: "Admin",
+				} as const;
+			default:
+				return {
+					color: "neutral",
+					label: "User",
+				} as const;
+		}
+	}
+
 }
