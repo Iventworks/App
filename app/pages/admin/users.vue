@@ -9,8 +9,8 @@ import { Utils } from "~/utils";
 type AdminUser = GetAdminUsersResponses[200]["data"][number];
 
 useSeoMeta({
-    title: "Users | CMP",
-    description: "Manage users",
+    title: "Benutzerverwaltung | Admin | CMP",
+    description: "Benutzer verwalten",
 });
 
 const toast = useToast();
@@ -29,18 +29,18 @@ if (!currentUser || currentUser.value.role !== "admin") {
 
 const userColumns: TableColumn<AdminUser>[] = [
     { accessorKey: "id", header: "ID" },
-    { accessorKey: "username", header: "Username" },
-    { accessorKey: "display_name", header: "Display Name" },
-    { accessorKey: "email", header: "Email" },
-    { id: "role", header: "Role" },
+    { accessorKey: "username", header: "Benutzername" },
+    { accessorKey: "display_name", header: "Anzeigename" },
+    { accessorKey: "email", header: "E-Mail-Adresse" },
+    { id: "role", header: "Rolle" },
     { id: "actions", header: "", enableSorting: false, enableHiding: false },
 ];
 
 const roleOptions = [
     { label: "Admin", value: "admin" },
     { label: "Kernteam", value: "core_team" },
-    { label: "Volunteer", value: "volunteer" },
-    { label: "Unverified", value: "unverified" },
+    { label: "Freiwilliger", value: "volunteer" },
+    { label: "Unverifiziert", value: "unverified" },
 ];
 
 const {
@@ -51,7 +51,7 @@ const {
     const res = await useAPI((api) => api.getAdminUsers({}));
     if (!res.success) {
         toast.add({
-            title: "Failed to load users",
+            title: "Benutzer konnten nicht geladen werden",
             description: res.message,
             color: "error",
         });
@@ -64,19 +64,19 @@ function getUserOptionsDropdownItems(row: { original: AdminUser }): DropdownMenu
     return [
         [
             {
-                label: "Edit",
+                label: "Bearbeiten",
                 icon: "i-lucide-pencil",
                 onSelect: () => openEdit(row.original),
             },
             {
-                label: "Reset Password",
+                label: "Passwort zurücksetzen",
                 icon: "i-lucide-key",
                 onSelect: () => openPassword(row.original),
             },
         ],
         [
             {
-                label: "Delete",
+                label: "Löschen",
                 icon: "i-lucide-trash-2",
                 color: "error",
                 onSelect: () => openDelete(row.original),
@@ -91,14 +91,22 @@ const showPasswordModal = ref(false);
 const selectedUser = ref<AdminUser | null>(null);
 
 const createSchema = z.object({
-    username: z.string().min(1, "Username is required"),
-    display_name: z.string().min(1, "Display name is required"),
-    email: z.string().email("Must be a valid email"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    username: z.string().min(1, "Benutzername ist erforderlich"),
+    display_name: z.string().min(1, "Anzeigename ist erforderlich"),
+    email: z.email("Muss eine gültige E-Mail-Adresse sein"),
+    password: z.string().min(8, "Passwort muss mindestens 8 Zeichen lang sein"),
     role: z.enum(["admin", "core_team", "volunteer", "unverified"]),
 });
 
 type CreateSchema = z.output<typeof createSchema>;
+
+const createState = ref<CreateSchema>({
+    username: "",
+    display_name: "",
+    email: "",
+    password: "",
+    role: "unverified" as AdminUser["role"],
+});
 
 const editForm = reactive({
     display_name: "",
@@ -110,9 +118,9 @@ const passwordForm = reactive({
     password: "",
 });
 
-async function handleCreate(event: FormSubmitEvent<CreateSchema>) {
+async function handleCreate() {
     const res = await useAPI((api) => api.postAdminUsers({
-        body: event.data
+        body: createState.value
     }));
     if (res.success) {
         toast.add({ title: "User created", color: "success" });
@@ -120,11 +128,18 @@ async function handleCreate(event: FormSubmitEvent<CreateSchema>) {
         await refresh();
     } else {
         toast.add({
-            title: "Create failed",
+            title: "Benutzererstellung fehlgeschlagen",
             description: res.message,
             color: "error",
         });
     }
+    createState.value = {
+        username: "",
+        display_name: "",
+        email: "",
+        password: "",
+        role: "unverified" as AdminUser["role"],
+    };
 }
 
 function openEdit(user: AdminUser) {
@@ -150,12 +165,16 @@ async function submitEdit() {
     );
 
     if (res.success) {
-        toast.add({ title: "User updated", color: "success" });
+        toast.add({
+            title: "Benutzer aktualisiert",
+            description: "Die Benutzerdaten wurden erfolgreich aktualisiert.",
+            color: "success",
+        });
         showEditModal.value = false;
         await refresh();
     } else {
         toast.add({
-            title: "Update failed",
+            title: "Aktualisierung fehlgeschlagen",
             description: res.message,
             color: "error",
         });
@@ -183,11 +202,15 @@ async function submitPassword() {
     );
 
     if (res.success) {
-        toast.add({ title: "Password updated", color: "success" });
+        toast.add({
+            title: "Passwort aktualisiert",
+            description: "Das Passwort wurde erfolgreich aktualisiert.",
+            color: "success"
+        });
         showPasswordModal.value = false;
     } else {
         toast.add({
-            title: "Update failed",
+            title: "Passwortaktualisierung fehlgeschlagen",
             description: res.message,
             color: "error",
         });
@@ -205,11 +228,15 @@ async function deleteUser(user: AdminUser) {
     );
 
     if (res.success) {
-        toast.add({ title: "User deleted", color: "success" });
+        toast.add({
+            title: "Benutzer gelöscht",
+            description: "Der Benutzer wurde erfolgreich gelöscht.",
+            color: "success"
+        });
         await refresh();
     } else {
         toast.add({
-            title: "Delete failed",
+            title: "Benutzerlöschung fehlgeschlagen",
             description: res.message,
             color: "error",
         });
@@ -224,10 +251,10 @@ function getRoleColor(role: AdminUser["role"]) {
 <template>
     <UDashboardPanel>
         <template #header>
-            <UDashboardNavbar title="Users" icon="i-lucide-users">
+            <UDashboardNavbar title="Benutzerverwaltung" icon="i-lucide-users">
                 <template #right>
                     <UButton
-                        label="New User"
+                        label="Neuer Benutzer"
                         icon="i-lucide-user-plus"
                         color="primary"
                         @click="showCreateModal = true"
@@ -270,11 +297,9 @@ function getRoleColor(role: AdminUser["role"]) {
                     </template>
                     <template #role-cell="{ row }">
                         <UBadge
-                            :color="getRoleColor(row.original.role)"
+                            v-bind="Utils.getVisualSettingsForRole(row.original.role)"
                             variant="soft"
-                        >
-                            {{ row.original.role }}
-                        </UBadge>
+                        />
                     </template>
                     <template #actions-cell="{ row }">
                         <UDropdownMenu
@@ -294,12 +319,12 @@ function getRoleColor(role: AdminUser["role"]) {
                 <UEmpty
                     v-else
                     icon="i-lucide-users"
-                    title="No users"
-                    description="Create your first user to get started."
+                    title="Keine Benutzer gefunden"
+                    description="Erstellen Sie Ihren ersten Benutzer, um zu beginnen."
                 >
                     <template #actions>
                         <UButton
-                            label="Create User"
+                            label="Benutzer erstellen"
                             color="primary"
                             @click="showCreateModal = true"
                         />
@@ -312,38 +337,70 @@ function getRoleColor(role: AdminUser["role"]) {
     <!-- Create User Modal -->
     <DashboardModal
         v-model:open="showCreateModal"
-        title="Create User"
+        title="Benutzer erstellen"
         icon="i-lucide-user-plus"
     >
-        <UForm :schema="createSchema" class="space-y-4" @submit="handleCreate">
-            <UFormField label="Username" name="username" required>
-                <UInput placeholder="lukas.pohl" class="w-full" />
+        <UForm
+            :state="createState"
+            :schema="createSchema"
+            class="space-y-4"
+            @submit="handleCreate"
+        >
+            <UFormField label="Benutzername" name="username" required>
+                <UInput
+                    v-model="createState.username"
+                    placeholder="lukas.pohl"
+                    class="w-full"
+                />
             </UFormField>
 
-            <UFormField label="Display Name" name="display_name" required>
-                <UInput placeholder="John Doe" class="w-full" />
+            <UFormField label="Anzeigename" name="display_name" required>
+                <UInput
+                    v-model="createState.display_name"
+                    placeholder="Lukas Pohl"
+                    class="w-full"
+                />
             </UFormField>
 
-            <UFormField label="Email" name="email" required>
-                <UInput type="email" placeholder="john@example.com" class="w-full" />
+            <UFormField label="E-Mail-Adresse" name="email" required>
+                <UInput
+                    v-model="createState.email"
+                    type="email"
+                    placeholder="l.pohl@crossover.info"
+                    class="w-full"
+                />
             </UFormField>
 
-            <UFormField label="Password" name="password" required>
-                <UInput type="password" placeholder="••••••••" class="w-full" />
+            <UFormField label="Passwort" name="password" required>
+                <UInput
+                    v-model="createState.password"
+                    type="password"
+                    placeholder="••••••••"
+                    class="w-full"
+                />
             </UFormField>
 
-            <UFormField label="Role" name="role" required>
-                <USelect :items="roleOptions" placeholder="Select role" class="w-full" />
+            <UFormField label="Rolle" name="role" required>
+                <USelect
+                    v-model="createState.role"
+                    :items="roleOptions"
+                    placeholder="Rolle auswählen"
+                    class="w-full"
+                />
             </UFormField>
 
             <div class="flex justify-end gap-2 pt-4">
                 <UButton
-                    label="Cancel"
+                    label="Abbrechen"
                     color="neutral"
                     variant="ghost"
                     @click="showCreateModal = false"
                 />
-                <UButton type="submit" label="Create" color="primary" />
+                <UButton
+                    type="submit"
+                    label="Erstellen"
+                    color="primary"
+                />
             </div>
         </UForm>
     </DashboardModal>
@@ -351,30 +408,34 @@ function getRoleColor(role: AdminUser["role"]) {
     <!-- Edit User Modal -->
     <DashboardModal
         v-model:open="showEditModal"
-        :title="`Edit User: ${selectedUser?.username}`"
+        :title="`Benutzer bearbeiten: ${selectedUser?.username}`"
         icon="i-lucide-pencil"
     >
         <div class="space-y-4">
-            <UFormField label="Display Name">
+            <UFormField label="Anzeigename">
                 <UInput v-model="editForm.display_name" class="w-full" />
             </UFormField>
 
-            <UFormField label="Email">
+            <UFormField label="E-Mail-Adresse">
                 <UInput v-model="editForm.email" type="email" class="w-full" />
             </UFormField>
 
-            <UFormField label="Role">
+            <UFormField label="Rolle">
                 <USelect v-model="editForm.role" :items="roleOptions" class="w-full" />
             </UFormField>
 
             <div class="flex justify-end gap-2 pt-4">
                 <UButton
-                    label="Cancel"
+                    label="Abbrechen"
                     color="neutral"
                     variant="ghost"
                     @click="showEditModal = false"
                 />
-                <UButton label="Save" color="primary" @click="submitEdit" />
+                <UButton
+                    label="Speichern"
+                    color="primary"
+                    @click="submitEdit"
+                />
             </div>
         </div>
     </DashboardModal>
@@ -382,12 +443,12 @@ function getRoleColor(role: AdminUser["role"]) {
     <!-- Password Modal -->
     <DashboardModal
         v-model:open="showPasswordModal"
-        :title="`Reset Password: ${selectedUser?.username}`"
+        :title="`Passwort zurücksetzen: ${selectedUser?.username}`"
         icon="i-lucide-key"
         icon-color="amber"
     >
         <div class="space-y-4">
-            <UFormField label="New Password">
+            <UFormField label="Neues Passwort">
                 <UInput
                     v-model="passwordForm.password"
                     type="password"
@@ -398,13 +459,13 @@ function getRoleColor(role: AdminUser["role"]) {
 
             <div class="flex justify-end gap-2 pt-4">
                 <UButton
-                    label="Cancel"
+                    label="Abbrechen"
                     color="neutral"
                     variant="ghost"
                     @click="showPasswordModal = false"
                 />
                 <UButton
-                    label="Update Password"
+                    label="Passwort aktualisieren"
                     color="primary"
                     @click="submitPassword"
                 />

@@ -139,7 +139,7 @@ export namespace Utils {
 		switch (role) {
 			case "volunteer":
 				return {
-					color: "neutral",
+					color: "info",
 					label: "Freiwilliger",
 				} as const;
 			case "core_team":

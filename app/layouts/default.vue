@@ -77,15 +77,15 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => {
             class: "mt-4 pt-4 border-t-2 border-default",
         },
         {
-            label: "Users",
+            label: "Benutzerverwaltung",
             icon: "i-lucide-users",
             to: "/admin/users",
         },
-        {
-            label: "Alle Freizeiten",
-            icon: "i-lucide-package-search",
-            to: "/admin/packages",
-        }
+        // {
+        //     label: "Alle Freizeiten",
+        //     icon: "i-lucide-package-search",
+        //     to: "/admin/packages",
+        // }
     ] : [];
 
     const footerItems: NavigationMenuItem[] = [
