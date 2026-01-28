@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
 interface Transaction {
     id: number
     date: Date
@@ -132,13 +134,13 @@ function formatCurrency(amount: number) {
     }).format(amount)
 }
 
-const columns = [
-    { key: 'date', label: 'Datum' },
-    { key: 'description', label: 'Beschreibung' },
-    { key: 'category', label: 'Kategorie' },
-    { key: 'amount', label: 'Betrag' },
-    { key: 'status', label: 'Status' },
-    { key: 'actions', label: '' }
+const columns: TableColumn<Transaction>[] = [
+    { accessorKey: 'date', header: 'Datum' },
+    { accessorKey: 'description', header: 'Beschreibung' },
+    { accessorKey: 'category', header: 'Kategorie' },
+    { accessorKey: 'amount', header: 'Betrag' },
+    { accessorKey: 'status', header: 'Status' },
+    { id: 'actions', header: '' }
 ]
 </script>
 
@@ -296,51 +298,52 @@ const columns = [
 
                     <!-- Transactions Table -->
                     <UCard>
-                        <UTable :columns="columns as any" :rows="filteredTransactions">
-                            <template #date-data="{ row }">
-                                <span class="text-sm">{{ formatDate(((row as unknown) as Transaction).date) }}</span>
+                        <UTable :columns="columns" :data="filteredTransactions">
+
+                            <template #date-cell="{ row }">
+                                <span class="text-sm">{{ formatDate(row.original.date) }}</span>
                             </template>
 
-                            <template #description-data="{ row }">
+                            <template #description-cell="{ row }">
                                 <div>
-                                    <p class="font-medium">{{ ((row as unknown) as Transaction).description }}</p>
-                                    <p v-if="((row as unknown) as Transaction).relatedTo" class="text-xs text-gray-500">{{ ((row as unknown) as Transaction).relatedTo }}</p>
+                                    <p class="font-medium">{{ row.original.description }}</p>
+                                    <p v-if="row.original.relatedTo" class="text-xs text-gray-500">{{ row.original.relatedTo }}</p>
                                 </div>
                             </template>
 
-                            <template #category-data="{ row }">
+                            <template #category-cell="{ row }">
                                 <UBadge color="neutral" variant="subtle" size="xs">
-                                    {{ ((row as unknown) as Transaction).category }}
+                                    {{ row.original.category }}
                                 </UBadge>
                             </template>
 
-                            <template #amount-data="{ row }">
+                            <template #amount-cell="{ row }">
                                 <div class="flex items-center gap-2">
                                     <UIcon 
-                                        :name="((row as unknown) as Transaction).type === 'income' ? 'i-lucide-arrow-down-left' : 'i-lucide-arrow-up-right'" 
-                                        :class="((row as unknown) as Transaction).type === 'income' ? 'text-green-500' : 'text-red-500'"
+                                        :name="row.original.type === 'income' ? 'i-lucide-arrow-down-left' : 'i-lucide-arrow-up-right'" 
+                                        :class="row.original.type === 'income' ? 'text-green-500' : 'text-red-500'"
                                         class="w-4 h-4"
                                     />
                                     <span 
                                         class="font-medium"
-                                        :class="((row as unknown) as Transaction).type === 'income' ? 'text-green-600' : 'text-red-600'"
+                                        :class="row.original.type === 'income' ? 'text-green-600' : 'text-red-600'"
                                     >
-                                        {{ ((row as unknown) as Transaction).type === 'income' ? '+' : '-' }}{{ formatCurrency(((row as unknown) as Transaction).amount) }}
+                                        {{ row.original.type === 'income' ? '+' : '-' }}{{ formatCurrency(row.original.amount) }}
                                     </span>
                                 </div>
                             </template>
 
-                            <template #status-data="{ row }">
+                            <template #status-cell="{ row }">
                                 <UBadge 
-                                    :color="getStatusConfig(((row as unknown) as Transaction).status).color as any" 
+                                    :color="getStatusConfig(row.original.status).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ getStatusConfig(((row as unknown) as Transaction).status).label }}
+                                    {{ getStatusConfig(row.original.status).label }}
                                 </UBadge>
                             </template>
 
-                            <template #actions-data="{ row }">
+                            <template #actions-cell="{ row }">
                                 <UDropdown
                                     :items="[
                                         [{ label: 'Details', icon: 'i-lucide-eye' }],
