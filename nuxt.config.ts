@@ -45,13 +45,16 @@ export default defineNuxtConfig({
 	},
 
 	routeRules: {
-		'/': {
-			      headers: {
-				          'Service-Worker-Allowed': '/',
-						          'Cache-Control': 'no-cache'
-								        }
-		},
 		"/**": { ssr: false }
+	},
+
+	app: {
+		head: {
+			// 1. Manually add the manifest link
+			link: [
+				{ rel: 'manifest', href: '/manifest.webmanifest' }, 
+			]
+		}
 	},
 
 	pwa: {
