@@ -108,6 +108,60 @@ const searchQuery = ref('')
 const selectedStatus = ref('all')
 const selectedPaymentStatus = ref('all')
 
+// Modalsteuerung
+const isActionsModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+const isEditMode = ref(false)
+const selectedParticipant = ref<Participant | null>(null)
+const editedParticipant = ref<Participant | null>(null)
+
+// Aktionen
+function openActionsModal(participant: Participant) {
+    selectedParticipant.value = participant
+    editedParticipant.value = { ...participant }
+    isEditMode.value = false
+    isActionsModalOpen.value = true
+}
+
+function enableEditMode() {
+    isEditMode.value = true
+}
+
+function cancelEdit() {
+    if (selectedParticipant.value) {
+        editedParticipant.value = { ...selectedParticipant.value }
+    }
+    isEditMode.value = false
+}
+
+function sendEmail(participant: Participant) {
+    window.location.href = `mailto:${participant.email}?subject=young+free Crottendorf 2026`
+}
+
+function confirmDelete() {
+    isDeleteModalOpen.value = true
+}
+
+function deleteParticipant() {
+    if (selectedParticipant.value) {
+        participants.value = participants.value.filter(p => p.id !== selectedParticipant.value!.id)
+        selectedParticipant.value = null
+        editedParticipant.value = null
+        isActionsModalOpen.value = false
+    }
+}
+
+function saveParticipant() {
+    if (selectedParticipant.value && editedParticipant.value) {
+        const index = participants.value.findIndex(p => p.id === selectedParticipant.value!.id)
+        if (index !== -1) {
+            participants.value[index] = { ...editedParticipant.value }
+            selectedParticipant.value = { ...editedParticipant.value }
+        }
+        isEditMode.value = false
+    }
+}
+
 const filteredParticipants = computed(() => {
     return participants.value.filter(p => {
         const matchesSearch = !searchQuery.value || 
@@ -135,13 +189,13 @@ const paymentStatusConfig = {
     pending: { label: 'Ausstehend', color: 'error' },
     partial: { label: 'Teilweise', color: 'warning' },
     paid: { label: 'Bezahlt', color: 'success' }
-}
+} as const;
 
 const statusConfig = {
     registered: { label: 'Angemeldet', color: 'primary' },
     confirmed: { label: 'Bestätigt', color: 'success' },
     cancelled: { label: 'Abgesagt', color: 'error' }
-}
+} as const;
 
 function formatDate(date: Date) {
     return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -346,21 +400,13 @@ const columns: TableColumn<Participant>[] = [
                             </template>
 
                             <template #actions-cell="{ row }">
-                                <UDropdownMenu
-                                    :items="[
-                                        [{ label: 'Details anzeigen', icon: 'i-lucide-eye' }],
-                                        [{ label: 'Bearbeiten', icon: 'i-lucide-pencil' }],
-                                        [{ label: 'E-Mail senden', icon: 'i-lucide-mail' }],
-                                        [{ label: 'Löschen', icon: 'i-lucide-trash-2', class: 'text-red-500' }]
-                                    ]"
-                                >
-                                    <UButton 
-                                        icon="i-lucide-more-horizontal" 
-                                        variant="ghost" 
-                                        color="neutral"
-                                        size="xs"
-                                    />
-                                </UDropdownMenu>
+                                <UButton 
+                                    icon="i-lucide-settings" 
+                                    variant="ghost" 
+                                    color="neutral"
+                                    size="xs"
+                                    @click="openActionsModal(row.original)"
+                                />
                             </template>
                         </UTable>
                     </UCard>
@@ -368,4 +414,204 @@ const columns: TableColumn<Participant>[] = [
             </DashboardPageBody>
         </template>
     </UDashboardPanel>
+
+    <!-- Actions Modal -->
+    <DashboardModal
+        v-model:open="isActionsModalOpen"
+        :title="isEditMode ? 'Teilnehmer bearbeiten' : 'Teilnehmer verwalten'"
+        :icon="isEditMode ? 'i-lucide-pencil' : 'i-lucide-user'"
+        icon-color="sky"
+    >
+        <div v-if="selectedParticipant && editedParticipant" class="space-y-6">
+            <!-- View Mode -->
+            <template v-if="!isEditMode">
+                <div class="flex items-center gap-4">
+                    <UAvatar :alt="`${selectedParticipant.firstName} ${selectedParticipant.lastName}`" size="lg" />
+                    <div>
+                        <h3 class="text-xl font-bold">{{ selectedParticipant.firstName }} {{ selectedParticipant.lastName }}</h3>
+                        <p class="text-sm text-gray-500">{{ selectedParticipant.age }} Jahre</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">E-Mail</label>
+                        <p class="mt-1">{{ selectedParticipant.email }}</p>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Telefon</label>
+                        <p class="mt-1">{{ selectedParticipant.phone }}</p>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Geschlecht</label>
+                        <p class="mt-1">{{ selectedParticipant.gender === 'male' ? 'Männlich' : selectedParticipant.gender === 'female' ? 'Weiblich' : 'Divers' }}</p>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Anmeldedatum</label>
+                        <p class="mt-1">{{ formatDate(selectedParticipant.registrationDate) }}</p>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Status</label>
+                        <div class="mt-1">
+                            <UBadge :color="statusConfig[selectedParticipant.status].color" variant="subtle">
+                                {{ statusConfig[selectedParticipant.status].label }}
+                            </UBadge>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Zahlungsstatus</label>
+                        <div class="mt-1">
+                            <UBadge :color="paymentStatusConfig[selectedParticipant.paymentStatus].color" variant="subtle">
+                                {{ paymentStatusConfig[selectedParticipant.paymentStatus].label }}
+                            </UBadge>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="text-sm font-medium text-gray-500">Notfallkontakt</label>
+                        <p class="mt-1">{{ selectedParticipant.emergencyContact }} ({{ selectedParticipant.emergencyPhone }})</p>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="text-sm font-medium text-gray-500">Medizinische Informationen</label>
+                        <p class="mt-1">{{ selectedParticipant.medicalInfo }}</p>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="text-sm font-medium text-gray-500">Ernährungswünsche</label>
+                        <p class="mt-1">{{ selectedParticipant.dietaryRequirements }}</p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Edit Mode -->
+            <template v-else>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <UFormField label="Vorname" required>
+                            <UInput v-model="editedParticipant.firstName" />
+                        </UFormField>
+                        <UFormField label="Nachname" required>
+                            <UInput v-model="editedParticipant.lastName" />
+                        </UFormField>
+                    </div>
+
+                    <UFormField label="E-Mail" required>
+                        <UInput v-model="editedParticipant.email" type="email" class="w-full" />
+                    </UFormField>
+
+                    <UFormField label="Telefon">
+                        <UInput v-model="editedParticipant.phone" class="w-full" />
+                    </UFormField>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <UFormField label="Alter" required>
+                            <UInput v-model.number="editedParticipant.age" type="number" />
+                        </UFormField>
+                        <UFormField label="Geschlecht">
+                            <USelect v-model="editedParticipant.gender" :items="[
+                                { label: 'Männlich', value: 'male' },
+                                { label: 'Weiblich', value: 'female' },
+                                { label: 'Divers', value: 'other' }
+                            ]" />
+                        </UFormField>
+                    </div>
+
+                    <UFormField label="Status">
+                        <USelect v-model="editedParticipant.status" :items="[
+                            { label: 'Angemeldet', value: 'registered' },
+                            { label: 'Bestätigt', value: 'confirmed' },
+                            { label: 'Abgesagt', value: 'cancelled' }
+                        ]" />
+                    </UFormField>
+
+                    <UFormField label="Zahlungsstatus">
+                        <USelect v-model="editedParticipant.paymentStatus" :items="[
+                            { label: 'Ausstehend', value: 'pending' },
+                            { label: 'Teilweise', value: 'partial' },
+                            { label: 'Bezahlt', value: 'paid' }
+                        ]" />
+                    </UFormField>
+
+                    <UFormField label="Notfallkontakt">
+                        <UInput v-model="editedParticipant.emergencyContact" />
+                    </UFormField>
+
+                    <UFormField label="Notfall-Telefon">
+                        <UInput v-model="editedParticipant.emergencyPhone" />
+                    </UFormField>
+
+                    <UFormField label="Medizinische Informationen">
+                        <UTextarea v-model="editedParticipant.medicalInfo" :rows="3" />
+                    </UFormField>
+
+                    <UFormField label="Ernährungswünsche">
+                        <UTextarea v-model="editedParticipant.dietaryRequirements" :rows="2" />
+                    </UFormField>
+                </div>
+            </template>
+        </div>
+
+
+        <template #footer>
+            <!-- View Mode Actions -->
+            <div v-if="!isEditMode" class="flex justify-between w-full">
+                <UButton
+                    label="Löschen"
+                    icon="i-lucide-trash-2"
+                    color="error"
+                    variant="soft"
+                    @click="confirmDelete"
+                />
+                <div class="flex gap-2">
+                    <UButton
+                        label="Schließen"
+                        color="neutral"
+                        variant="ghost"
+                        @click="isActionsModalOpen = false"
+                    />
+                    <UButton
+                        label="E-Mail senden"
+                        icon="i-lucide-mail"
+                        variant="soft"
+                        @click="sendEmail(selectedParticipant!)"
+                    />
+                    <UButton
+                        label="Bearbeiten"
+                        icon="i-lucide-pencil"
+                        color="primary"
+                        @click="enableEditMode"
+                    />
+                </div>
+            </div>
+            <!-- Edit Mode Actions -->
+            <div v-else class="flex justify-end gap-2">
+                <UButton
+                    label="Abbrechen"
+                    color="neutral"
+                    variant="ghost"
+                    @click="cancelEdit"
+                />
+                <UButton
+                    label="Speichern"
+                    icon="i-lucide-save"
+                    color="primary"
+                    @click="saveParticipant"
+                />
+            </div>
+        </template>
+    </DashboardModal>
+
+        <!-- Delete Modal -->
+        <DashboardDeleteModal
+            v-model:open="isDeleteModalOpen"
+            title="Teilnehmer löschen"
+            :warning-text="`Teilnehmer ${selectedParticipant?.firstName} ${selectedParticipant?.lastName} wird permanent gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`"
+            :on-delete="deleteParticipant"
+        />
 </template>
