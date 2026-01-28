@@ -148,13 +148,13 @@ function formatDate(date: Date) {
 }
 
 const columns: TableColumn<Participant>[] = [
-    { key: 'name', label: 'Name' },
-    { key: 'age', label: 'Alter' },
-    { key: 'contact', label: 'Kontakt' },
-    { key: 'status', label: 'Status' },
-    { key: 'payment', label: 'Zahlung' },
-    { key: 'actions', label: '' }
-] as any
+    { id: 'name', header: 'Name' },
+    { accessorKey: 'age', header: 'Alter' },
+    { accessorKey: 'contact', header: 'Kontakt' },
+    { accessorKey: 'status', header: 'Status' },
+    { accessorKey: 'payment', header: 'Zahlung' },
+    { id: 'actions', header: '' }
+]
 </script>
 
 <template>
@@ -303,50 +303,50 @@ const columns: TableColumn<Participant>[] = [
 
                     <!-- Participants Table -->
                     <UCard>
-                        <UTable :columns="columns" :rows="filteredParticipants">
-                            <template #name-data="{ row }">
+                        <UTable :columns="columns" :data="filteredParticipants">
+                            <template #name-cell="{ row }">
                                 <div class="flex items-center gap-3">
-                                    <UAvatar :alt="`${((row as unknown) as Participant).firstName} ${((row as unknown) as Participant).lastName}`" size="sm" />
+                                    <UAvatar :alt="`${row.original.firstName} ${row.original.lastName}`" size="sm" />
                                     <div>
-                                        <p class="font-medium">{{ ((row as unknown) as Participant).firstName }} {{ ((row as unknown) as Participant).lastName }}</p>
-                                        <p class="text-xs text-gray-500">{{ ((row as unknown) as Participant).email }}</p>
+                                        <p class="font-medium">{{ row.original.firstName }} {{ row.original.lastName }}</p>
+                                        <p class="text-xs text-gray-500">{{ row.original.email }}</p>
                                     </div>
                                 </div>
                             </template>
 
-                            <template #age-data="{ row }">
-                                <span>{{ ((row as unknown) as Participant).age }} Jahre</span>
+                            <template #age-cell="{ row }">
+                                <span>{{ row.original.age }} Jahre</span>
                             </template>
 
-                            <template #contact-data="{ row }">
+                            <template #contact-cell="{ row }">
                                 <div class="text-sm">
-                                    <p>{{ ((row as unknown) as Participant).phone }}</p>
-                                    <p class="text-xs text-gray-500">Notfall: {{ ((row as unknown) as Participant).emergencyContact }}</p>
+                                    <p>{{ row.original.phone }}</p>
+                                    <p class="text-xs text-gray-500">Notfall: {{ row.original.emergencyContact }}</p>
                                 </div>
                             </template>
 
-                            <template #status-data="{ row }">
+                            <template #status-cell="{ row }">
                                 <UBadge 
-                                    :color="statusConfig[((row as unknown) as Participant).status].color as any" 
+                                    :color="statusConfig[row.original.status].color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ statusConfig[((row as unknown) as Participant).status].label }}
+                                    {{ statusConfig[row.original.status].label }}
                                 </UBadge>
                             </template>
 
-                            <template #payment-data="{ row }">
+                            <template #payment-cell="{ row }">
                                 <UBadge 
-                                    :color="paymentStatusConfig[((row as unknown) as Participant).paymentStatus].color as any" 
+                                    :color="paymentStatusConfig[row.original.paymentStatus].color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ paymentStatusConfig[((row as unknown) as Participant).paymentStatus].label }}
+                                    {{ paymentStatusConfig[row.original.paymentStatus].label }}
                                 </UBadge>
                             </template>
 
-                            <template #actions-data="{ row }">
-                                <UDropdown
+                            <template #actions-cell="{ row }">
+                                <UDropdownMenu
                                     :items="[
                                         [{ label: 'Details anzeigen', icon: 'i-lucide-eye' }],
                                         [{ label: 'Bearbeiten', icon: 'i-lucide-pencil' }],
@@ -360,7 +360,7 @@ const columns: TableColumn<Participant>[] = [
                                         color="neutral"
                                         size="xs"
                                     />
-                                </UDropdown>
+                                </UDropdownMenu>
                             </template>
                         </UTable>
                     </UCard>

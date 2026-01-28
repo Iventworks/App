@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
 interface Contact {
     id: number
     firstName: string
@@ -128,15 +130,15 @@ function formatDate(date: Date) {
     return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const columns = [
-    { key: 'name', label: 'Name' },
-    { key: 'category', label: 'Kategorie' },
-    { key: 'contact', label: 'Kontakt' },
-    { key: 'tags', label: 'Tags' },
-    { key: 'lastContact', label: 'Letzter Kontakt' },
-    { key: 'status', label: 'Status' },
-    { key: 'actions', label: '' }
-] as any
+const columns: TableColumn<Contact>[] = [
+    { id: 'name', header: 'Name' },
+    { accessorKey: 'category', header: 'Kategorie' },
+    { id: 'contact', header: 'Kontakt' },
+    { accessorKey: 'tags', header: 'Tags' },
+    { accessorKey: 'lastContact', header: 'Letzter Kontakt' },
+    { accessorKey: 'status', header: 'Status' },
+    { id: 'actions', header: '' }
+];
 </script>
 
 <template>
@@ -263,44 +265,44 @@ const columns = [
 
                     <!-- Contacts Table -->
                     <UCard>
-                        <UTable :columns="columns" :rows="filteredContacts">
-                            <template #name-data="{ row }">
+                        <UTable :columns="columns" :data="filteredContacts">
+                            <template #name-cell="{ row }">
                                 <div class="flex items-center gap-3">
-                                    <UAvatar :alt="`${((row as unknown) as Contact).firstName} ${((row as unknown) as Contact).lastName}`" size="sm" />
+                                    <UAvatar :alt="`${row.original.firstName} ${row.original.lastName}`" size="sm" />
                                     <div>
-                                        <p class="font-medium">{{ ((row as unknown) as Contact).firstName }} {{ ((row as unknown) as Contact).lastName }}</p>
+                                        <p class="font-medium">{{ row.original.firstName }} {{ row.original.lastName }}</p>
                                     </div>
                                 </div>
                             </template>
 
-                            <template #category-data="{ row }">
+                            <template #category-cell="{ row }">
                                 <UBadge 
-                                    :color="getCategoryConfig(((row as unknown) as Contact).category).color as any" 
+                                    :color="getCategoryConfig(row.original.category).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    <UIcon :name="getCategoryConfig(((row as unknown) as Contact).category).icon" class="w-3 h-3 mr-1" />
-                                    {{ getCategoryConfig(((row as unknown) as Contact).category).label }}
+                                    <UIcon :name="getCategoryConfig(row.original.category).icon" class="w-3 h-3 mr-1" />
+                                    {{ getCategoryConfig(row.original.category).label }}
                                 </UBadge>
                             </template>
 
-                            <template #contact-data="{ row }">
+                            <template #contact-cell="{ row }">
                                 <div class="text-sm space-y-1">
                                     <div class="flex items-center gap-1">
                                         <UIcon name="i-lucide-mail" class="w-3 h-3 text-gray-400" />
-                                        <span>{{ ((row as unknown) as Contact).email }}</span>
+                                        <span>{{ row.original.email }}</span>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <UIcon name="i-lucide-phone" class="w-3 h-3 text-gray-400" />
-                                        <span>{{ ((row as unknown) as Contact).phone }}</span>
+                                        <span>{{ row.original.phone }}</span>
                                     </div>
                                 </div>
                             </template>
 
-                            <template #tags-data="{ row }">
+                            <template #tags-cell="{ row }">
                                 <div class="flex flex-wrap gap-1">
                                     <UBadge 
-                                        v-for="tag in ((row as unknown) as Contact).tags" 
+                                        v-for="tag in row.original.tags" 
                                         :key="tag"
                                         color="neutral" 
                                         variant="subtle"
@@ -311,21 +313,21 @@ const columns = [
                                 </div>
                             </template>
 
-                            <template #lastContact-data="{ row }">
-                                <span class="text-sm">{{ formatDate(((row as unknown) as Contact).lastContact) }}</span>
+                            <template #lastContact-cell="{ row }">
+                                <span class="text-sm">{{ formatDate(row.original.lastContact) }}</span>
                             </template>
 
-                            <template #status-data="{ row }">
+                            <template #status-cell="{ row }">
                                 <UBadge 
-                                    :color="getStatusConfig(((row as unknown) as Contact).status).color as any" 
+                                    :color="getStatusConfig(row.original.status).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ getStatusConfig(((row as unknown) as Contact).status).label }}
+                                    {{ getStatusConfig(row.original.status).label }}
                                 </UBadge>
                             </template>
 
-                            <template #actions-data="{ row }">
+                            <template #actions-cell="{ row }">
                                 <UDropdown
                                     :items="[
                                         [{ label: 'Details anzeigen', icon: 'i-lucide-eye' }],
