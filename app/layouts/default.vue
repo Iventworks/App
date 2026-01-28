@@ -12,12 +12,12 @@ const isAdmin = computed(() => user.value?.role === "admin");
 const sidebarItems = computed(() => {
     const basicItems: NavigationMenuItem[] = [
         {
-            label: "Overview",
+            label: "Übersicht",
             icon: "i-lucide-layout-dashboard",
             to: "/",
         },
 		{
-			label: "Emails",
+			label: "E-Mails",
 			icon: "i-lucide-mail",
 			to: "/emails/inbox",
 		},
@@ -30,6 +30,11 @@ const sidebarItems = computed(() => {
             label: "Meine Aufgaben",
             icon: "i-lucide-list-checks",
             to: "/tasks",
+        },
+        {
+            label: "Kalender",
+            icon: "i-lucide-calendar",
+            to: "/calendar",
         },
         {
             label: "Infobox",
