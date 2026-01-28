@@ -65,11 +65,21 @@ export default defineNuxtConfig({
             start_url: '/',
             description: 'Crossover Management Portal',
 
+			icons: [
+				{
+					src: "/static/logo/crossover-favicon.png",
+					sizes: "256x256",
+					type: "image/png"
+				}
+			],
+
             display: 'standalone',
             orientation: 'portrait',
 
+			lang: 'de',
+
             theme_color: '#ffffff',
-            background_color: '#18181a',
+            background_color: '#000000',
         }
     }
 });
