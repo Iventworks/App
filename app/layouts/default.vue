@@ -82,25 +82,6 @@ const sidebarItems = computed(() => {
         }
 	];
 
-    const settings: NavigationMenuItem[] = [
-        {
-            label: "Einstellungen",
-            icon: "i-lucide-settings-2",
-            type: "label"
-        },
-        {
-            label: "Allgemein",
-            icon: "i-lucide-sliders",
-            to: "/settings",
-            exact: true,
-        },
-        {
-            label: "Sicherheit",
-            icon: "i-lucide-shield",
-            to: "/settings/security",
-        }
-    ];
-
     const coreTeamItems: NavigationMenuItem[] = [
         {
             label: "Kernteam Management",
@@ -167,6 +148,26 @@ const sidebarItems = computed(() => {
         //     icon: "i-lucide-package-search",
         //     to: "/admin/packages",
         // }
+    ];
+
+
+    const settings: NavigationMenuItem[] = [
+        {
+            label: "Einstellungen",
+            icon: "i-lucide-settings-2",
+            type: "label"
+        },
+        {
+            label: "Allgemein",
+            icon: "i-lucide-user",
+            to: "/settings",
+            exact: true,
+        },
+        {
+            label: "Sicherheit",
+            icon: "i-lucide-shield",
+            to: "/settings/security",
+        }
     ];
 
     const footerItems: NavigationMenuItem[] = [
