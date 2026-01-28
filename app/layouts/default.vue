@@ -167,6 +167,11 @@ const sidebarItems = computed(() => {
             label: "Sicherheit",
             icon: "i-lucide-shield",
             to: "/settings/security",
+        },
+        {
+            label: "Downloads",
+            icon: "i-lucide-download",
+            to: "/settings/downloads",
         }
     ];
 
