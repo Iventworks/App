@@ -94,6 +94,11 @@ export default defineNuxtConfig({
 					src: "/static/logo/crossover-favicon-512x512.png",
 					sizes: "512x512",
 					type: "image/png"
+				},
+				{
+					src: "/static/logo/crossover-favicon.png",
+					sizes: "1067x1067",
+					type: "image/png"
 				}
 			],
 
