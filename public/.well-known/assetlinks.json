@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "info.crossover.cmp.app",
+        "sha256_cert_fingerprints": ["F9:ED:15:D0:68:7B:3C:C9:79:75:1C:84:E2:8A:F2:F0:D4:3A:18:91:64:64:66:F1:25:77:50:03:E0:BC:AA:27"]
+      }
+    }]
