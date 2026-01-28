@@ -8,6 +8,14 @@ defineProps<{
 
 const teams = ref([
 	{
+		id: 3,
+		label: 'young+free Crottendorf 2025',
+		avatar: {
+			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
+			alt: 'young+free Crottendorf 2025'
+		}
+	},
+	{
 		id: 1,
 		label: 'SkiWelt Wilder Kaiser 2025',
 		avatar: {
@@ -21,14 +29,6 @@ const teams = ref([
 		avatar: {
 			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
 			alt: 'Orchesterfreizeit im Kloster 2025'
-		}
-	},
-	{
-		id: 3,
-		label: 'young+free Crottendorf 2025',
-		avatar: {
-			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
-			alt: 'young+free Crottendorf 2025'
 		}
 	}
 ])

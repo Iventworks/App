@@ -14,11 +14,11 @@ const campData = ref({
     description: 'Die young+free Winterfreizeit findet vom 15. bis 21. Februar 2026 in Crottendorf im Erzgebirge statt. Eine Woche voller Action, Gemeinschaft und geistlichem Input.',
     maxParticipants: 80,
     currentParticipants: 45,
-    ageRange: '13-18 Jahre',
+    ageRange: '15-18 Jahre',
     price: '189 €',
     registrationDeadline: new Date('2026-02-01'),
-    teamLeader: 'Lukas Pohl',
-    teamLeaderEmail: 'l.pohl@crossover.info'
+    teamLeader: 'Jesko Bahlcke',
+    teamLeaderEmail: 'j.bahlcke@crossoverskul.info'
 })
 
 const stats = computed(() => [
