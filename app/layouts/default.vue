@@ -39,7 +39,11 @@ const sidebarItems = computed(() => {
         {
             label: "Infobox",
             icon: "i-lucide-info",
-            to: "/management/infobox",
+            to: "/infobox",
+            badge: {
+                label: "Konzept",
+                color: "warning"
+            }
         },
     ];
 
