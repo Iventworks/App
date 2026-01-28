@@ -8,18 +8,23 @@ defineProps<{
 
 const teams = ref([
 	{
+		id: 1,
 		label: 'SkiWelt Wilder Kaiser 2025',
 		avatar: {
 			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
 			alt: 'SkiWelt Wilder Kaiser 2025'
 		}
-	}, {
+	},
+	{
+		id: 2,
 		label: 'Orchesterfreizeit im Kloster 2025',
 		avatar: {
 			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
 			alt: 'Orchesterfreizeit im Kloster 2025'
 		}
-	}, {
+	},
+	{
+		id: 3,
 		label: 'young+free Crottendorf 2025',
 		avatar: {
 			src: `${useRuntimeAppConfigs().appUrl}/static/logo/crossover-favicon.png`,
@@ -27,13 +32,16 @@ const teams = ref([
 		}
 	}
 ])
-const selectedTeam = ref(teams.value[0])
+const selectedCampOrEvent = useSelectedCampOrEvent();
+if (!selectedCampOrEvent.value) {
+	selectedCampOrEvent.value = teams.value[0] || null;
+}
 
 const items = computed<DropdownMenuItem[][]>(() => {
 	return [teams.value.map(team => ({
 		...team,
 		onSelect() {
-			selectedTeam.value = team
+			selectedCampOrEvent.value = team
 		}
 	})), [{
 		label: 'Freizeit Erstellen',
@@ -59,8 +67,8 @@ const items = computed<DropdownMenuItem[][]>(() => {
 	>
 		<UButton
 			v-bind="{
-				...selectedTeam,
-				label: collapsed ? undefined : selectedTeam?.label,
+				...selectedCampOrEvent,
+				label: collapsed ? undefined : selectedCampOrEvent?.label,
 				trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
 			}"
 			color="neutral" variant="ghost" block :square="collapsed" class="data-[state=open]:bg-elevated"
