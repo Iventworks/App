@@ -14,13 +14,13 @@ const downloads = [
 			{
 				name: 'Android App Bundle (.aab)',
 				description: 'Für Google Play Store',
-				url: '/static/mobile-apps/cmp_1.0.0.aab',
+				url: '/static/mobile-apps/cmp_1.0.1.aab',
 				icon: 'i-lucide-package'
 			},
 			{
 				name: 'Android APK (.apk)',
 				description: 'Für direkte Installation',
-				url: '/static/mobile-apps/cmp_1.0.0.apk',
+				url: '/static/mobile-apps/cmp_1.0.1.apk',
 				icon: 'i-lucide-download'
 			}
 		]
