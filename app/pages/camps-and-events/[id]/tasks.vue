@@ -340,7 +340,7 @@ function getDaysUntil(date: Date) {
                                             <UButton 
                                                 icon="i-lucide-more-horizontal" 
                                                 variant="ghost" 
-                                                color="gray"
+                                                color="neutral"
                                                 size="xs"
                                             />
                                         </UDropdown>

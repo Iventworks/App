@@ -219,43 +219,55 @@ function formatDate(date: Date) {
                     </div>
 
                     <!-- Filters -->
-                    <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex flex-col gap-4">
                         <UInput
                             v-model="searchQuery"
                             icon="i-lucide-search"
                             placeholder="Ressourcen durchsuchen..."
-                            class="w-64"
+                            size="lg"
                         />
                         
-                        <USelectMenu
-                            v-model="selectedCategory"
-                            :options="categories"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedCategory === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ selectedCategory }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ option }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedCategory === 'all' ? 'solid' : 'soft'"
+                                :color="selectedCategory === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedCategory = 'all'"
+                            >
+                                Alle Kategorien
+                            </UButton>
+                            <UButton
+                                v-for="cat in categories.filter(c => c !== 'all')"
+                                :key="cat"
+                                :variant="selectedCategory === cat ? 'solid' : 'soft'"
+                                color="neutral"
+                                size="sm"
+                                @click="selectedCategory = cat"
+                            >
+                                {{ cat }}
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedType"
-                            :options="['all', 'template', 'form', 'guide', 'document', 'image', 'other']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedType === 'all'">Alle Typen</span>
-                                <span v-else>{{ getTypeConfig(selectedType as Resource['type']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Typen</span>
-                                <span v-else>{{ getTypeConfig(option as Resource['type']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedType === 'all' ? 'solid' : 'soft'"
+                                :color="selectedType === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedType = 'all'"
+                            >
+                                Alle Typen
+                            </UButton>
+                            <UButton
+                                v-for="type in (['template', 'form', 'guide', 'document', 'image', 'other'] as const)"
+                                :key="type"
+                                :variant="selectedType === type ? 'solid' : 'soft'"
+                                color="neutral"
+                                size="sm"
+                                @click="selectedType = type"
+                            >
+                                {{ getTypeConfig(type).label }}
+                            </UButton>
+                        </div>
                     </div>
 
                     <!-- Resources Grid -->
@@ -292,7 +304,7 @@ function formatDate(date: Date) {
                                         <UButton 
                                             icon="i-lucide-more-horizontal" 
                                             variant="ghost" 
-                                            color="gray"
+                                            color="neutral"
                                             size="xs"
                                         />
                                     </UDropdown>
@@ -305,10 +317,10 @@ function formatDate(date: Date) {
                                         <UBadge color="neutral" variant="subtle" size="xs">
                                             {{ resource.category }}
                                         </UBadge>
-                                        <UBadge :color="getTypeConfig(resource.type).color" variant="subtle" size="xs">
+                                        <UBadge :color="getTypeConfig(resource.type).color as any" variant="subtle" size="xs">
                                             {{ getTypeConfig(resource.type).label }}
                                         </UBadge>
-                                        <UBadge v-if="resource.shared" color="green" variant="subtle" size="xs">
+                                        <UBadge v-if="resource.shared" color="success" variant="subtle" size="xs">
                                             <UIcon name="i-lucide-share-2" class="w-3 h-3 mr-1" />
                                             Geteilt
                                         </UBadge>

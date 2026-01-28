@@ -103,16 +103,16 @@ const stats = computed(() => {
 })
 
 const categoryConfig = {
-    teilnehmer: { label: 'Teilnehmer', color: 'blue', icon: 'i-lucide-user' },
-    mitarbeiter: { label: 'Mitarbeiter', color: 'purple', icon: 'i-lucide-user-check' },
-    eltern: { label: 'Eltern', color: 'green', icon: 'i-lucide-users' },
-    externe: { label: 'Externe', color: 'orange', icon: 'i-lucide-user-plus' },
-    andere: { label: 'Andere', color: 'gray', icon: 'i-lucide-user-circle' }
+    teilnehmer: { label: 'Teilnehmer', color: 'primary', icon: 'i-lucide-user' },
+    mitarbeiter: { label: 'Mitarbeiter', color: 'info', icon: 'i-lucide-user-check' },
+    eltern: { label: 'Eltern', color: 'success', icon: 'i-lucide-users' },
+    externe: { label: 'Externe', color: 'warning', icon: 'i-lucide-user-plus' },
+    andere: { label: 'Andere', color: 'neutral', icon: 'i-lucide-user-circle' }
 }
 
 const statusConfig = {
-    aktiv: { label: 'Aktiv', color: 'green' },
-    inaktiv: { label: 'Inaktiv', color: 'gray' },
+    aktiv: { label: 'Aktiv', color: 'success' },
+    inaktiv: { label: 'Inaktiv', color: 'neutral' },
     archiviert: { label: 'Archiviert', color: 'neutral' }
 }
 
@@ -136,7 +136,7 @@ const columns = [
     { key: 'lastContact', label: 'Letzter Kontakt' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: '' }
-]
+] as any
 </script>
 
 <template>
@@ -218,35 +218,47 @@ const columns = [
                             class="w-64"
                         />
                         
-                        <USelectMenu
-                            v-model="selectedCategory"
-                            :options="['all', 'teilnehmer', 'mitarbeiter', 'eltern', 'externe', 'andere']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedCategory === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ getCategoryConfig(selectedCategory as Contact['category']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ getCategoryConfig(option as Contact['category']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedCategory === 'all' ? 'solid' : 'soft'"
+                                :color="selectedCategory === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedCategory = 'all'"
+                            >
+                                Alle
+                            </UButton>
+                            <UButton
+                                v-for="cat in (['teilnehmer', 'mitarbeiter', 'eltern', 'externe', 'andere'] as const)"
+                                :key="cat"
+                                :variant="selectedCategory === cat ? 'solid' : 'soft'"
+                                :color="selectedCategory === cat ? getCategoryConfig(cat).color as any : 'neutral'"
+                                size="sm"
+                                @click="selectedCategory = cat"
+                            >
+                                {{ getCategoryConfig(cat).label }}
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedStatus"
-                            :options="['all', 'aktiv', 'inaktiv', 'archiviert']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedStatus === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(selectedStatus as Contact['status']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(option as Contact['status']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedStatus === 'all' ? 'solid' : 'soft'"
+                                :color="selectedStatus === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = 'all'"
+                            >
+                                Alle
+                            </UButton>
+                            <UButton
+                                v-for="status in (['aktiv', 'inaktiv', 'archiviert'] as const)"
+                                :key="status"
+                                :variant="selectedStatus === status ? 'solid' : 'soft'"
+                                :color="selectedStatus === status ? getStatusConfig(status).color as any : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = status"
+                            >
+                                {{ getStatusConfig(status).label }}
+                            </UButton>
+                        </div>
                     </div>
 
                     <!-- Contacts Table -->
@@ -254,21 +266,21 @@ const columns = [
                         <UTable :columns="columns" :rows="filteredContacts">
                             <template #name-data="{ row }">
                                 <div class="flex items-center gap-3">
-                                    <UAvatar :alt="`${row.firstName} ${row.lastName}`" size="sm" />
+                                    <UAvatar :alt="`${((row as unknown) as Contact).firstName} ${((row as unknown) as Contact).lastName}`" size="sm" />
                                     <div>
-                                        <p class="font-medium">{{ row.firstName }} {{ row.lastName }}</p>
+                                        <p class="font-medium">{{ ((row as unknown) as Contact).firstName }} {{ ((row as unknown) as Contact).lastName }}</p>
                                     </div>
                                 </div>
                             </template>
 
                             <template #category-data="{ row }">
                                 <UBadge 
-                                    :color="getCategoryConfig(row.category).color" 
+                                    :color="getCategoryConfig(((row as unknown) as Contact).category).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    <UIcon :name="getCategoryConfig(row.category).icon" class="w-3 h-3 mr-1" />
-                                    {{ getCategoryConfig(row.category).label }}
+                                    <UIcon :name="getCategoryConfig(((row as unknown) as Contact).category).icon" class="w-3 h-3 mr-1" />
+                                    {{ getCategoryConfig(((row as unknown) as Contact).category).label }}
                                 </UBadge>
                             </template>
 
@@ -276,11 +288,11 @@ const columns = [
                                 <div class="text-sm space-y-1">
                                     <div class="flex items-center gap-1">
                                         <UIcon name="i-lucide-mail" class="w-3 h-3 text-gray-400" />
-                                        <span>{{ row.email }}</span>
+                                        <span>{{ ((row as unknown) as Contact).email }}</span>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         <UIcon name="i-lucide-phone" class="w-3 h-3 text-gray-400" />
-                                        <span>{{ row.phone }}</span>
+                                        <span>{{ ((row as unknown) as Contact).phone }}</span>
                                     </div>
                                 </div>
                             </template>
@@ -288,7 +300,7 @@ const columns = [
                             <template #tags-data="{ row }">
                                 <div class="flex flex-wrap gap-1">
                                     <UBadge 
-                                        v-for="tag in row.tags" 
+                                        v-for="tag in ((row as unknown) as Contact).tags" 
                                         :key="tag"
                                         color="neutral" 
                                         variant="subtle"
@@ -300,16 +312,16 @@ const columns = [
                             </template>
 
                             <template #lastContact-data="{ row }">
-                                <span class="text-sm">{{ formatDate(row.lastContact) }}</span>
+                                <span class="text-sm">{{ formatDate(((row as unknown) as Contact).lastContact) }}</span>
                             </template>
 
                             <template #status-data="{ row }">
                                 <UBadge 
-                                    :color="getStatusConfig(row.status).color" 
+                                    :color="getStatusConfig(((row as unknown) as Contact).status).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ getStatusConfig(row.status).label }}
+                                    {{ getStatusConfig(((row as unknown) as Contact).status).label }}
                                 </UBadge>
                             </template>
 
@@ -326,7 +338,7 @@ const columns = [
                                     <UButton 
                                         icon="i-lucide-more-horizontal" 
                                         variant="ghost" 
-                                        color="gray"
+                                        color="neutral"
                                         size="xs"
                                     />
                                 </UDropdown>

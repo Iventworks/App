@@ -219,35 +219,47 @@ const stats = computed(() => {
                             class="w-64"
                         />
                         
-                        <USelectMenu
-                            v-model="selectedCategory"
-                            :options="categories"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedCategory === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ selectedCategory }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ option }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedCategory === 'all' ? 'solid' : 'soft'"
+                                :color="selectedCategory === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedCategory = 'all'"
+                            >
+                                Alle Kategorien
+                            </UButton>
+                            <UButton
+                                v-for="cat in categories.filter(c => c !== 'all')"
+                                :key="cat"
+                                :variant="selectedCategory === cat ? 'solid' : 'soft'"
+                                color="neutral"
+                                size="sm"
+                                @click="selectedCategory = cat"
+                            >
+                                {{ cat }}
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedType"
-                            :options="['all', 'document', 'image', 'video', 'other']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedType === 'all'">Alle Typen</span>
-                                <span v-else>{{ getTypeConfig(selectedType as Resource['type']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Typen</span>
-                                <span v-else>{{ getTypeConfig(option as Resource['type']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedType === 'all' ? 'solid' : 'soft'"
+                                :color="selectedType === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedType = 'all'"
+                            >
+                                Alle Typen
+                            </UButton>
+                            <UButton
+                                v-for="type in (['document', 'image', 'video', 'other'] as const)"
+                                :key="type"
+                                :variant="selectedType === type ? 'solid' : 'soft'"
+                                color="neutral"
+                                size="sm"
+                                @click="selectedType = type"
+                            >
+                                {{ getTypeConfig(type).label }}
+                            </UButton>
+                        </div>
                     </div>
 
                     <!-- Resources Grid -->
@@ -283,7 +295,7 @@ const stats = computed(() => {
                                         <UButton 
                                             icon="i-lucide-more-horizontal" 
                                             variant="ghost" 
-                                            color="gray"
+                                            color="neutral"
                                             size="xs"
                                         />
                                     </UDropdown>
@@ -296,7 +308,7 @@ const stats = computed(() => {
                                         <UBadge color="neutral" variant="subtle" size="xs">
                                             {{ resource.category }}
                                         </UBadge>
-                                        <UBadge :color="getTypeConfig(resource.type).color" variant="subtle" size="xs">
+                                        <UBadge :color="getTypeConfig(resource.type).color as any" variant="subtle" size="xs">
                                             {{ getTypeConfig(resource.type).label }}
                                         </UBadge>
                                     </div>

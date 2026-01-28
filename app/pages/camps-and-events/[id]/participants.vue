@@ -154,7 +154,7 @@ const columns: TableColumn<Participant>[] = [
     { key: 'status', label: 'Status' },
     { key: 'payment', label: 'Zahlung' },
     { key: 'actions', label: '' }
-]
+] as any
 </script>
 
 <template>

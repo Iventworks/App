@@ -138,17 +138,17 @@ const stats = computed(() => {
 })
 
 const roleConfig = {
-    leader: { label: 'Leitung', color: 'purple', icon: 'i-lucide-crown' },
-    teamer: { label: 'Teamer', color: 'blue', icon: 'i-lucide-users' },
-    tech: { label: 'Technik', color: 'green', icon: 'i-lucide-settings' },
-    kitchen: { label: 'Küche', color: 'orange', icon: 'i-lucide-chef-hat' },
-    other: { label: 'Sonstiges', color: 'gray', icon: 'i-lucide-user' }
+    leader: { label: 'Leitung', color: 'info', icon: 'i-lucide-crown' },
+    teamer: { label: 'Teamer', color: 'primary', icon: 'i-lucide-users' },
+    tech: { label: 'Technik', color: 'success', icon: 'i-lucide-settings' },
+    kitchen: { label: 'Küche', color: 'warning', icon: 'i-lucide-chef-hat' },
+    other: { label: 'Sonstiges', color: 'neutral', icon: 'i-lucide-user' }
 }
 
 const statusConfig = {
-    confirmed: { label: 'Bestätigt', color: 'green' },
-    pending: { label: 'Ausstehend', color: 'orange' },
-    declined: { label: 'Abgesagt', color: 'red' }
+    confirmed: { label: 'Bestätigt', color: 'success' },
+    pending: { label: 'Ausstehend', color: 'warning' },
+    declined: { label: 'Abgesagt', color: 'error' }
 }
 
 function getRoleConfig(role: StaffMember['role']) {
@@ -229,35 +229,47 @@ function formatDate(date: Date) {
                             class="w-64"
                         />
                         
-                        <USelectMenu
-                            v-model="selectedRole"
-                            :options="['all', 'leader', 'teamer', 'tech', 'kitchen', 'other']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedRole === 'all'">Alle Rollen</span>
-                                <span v-else>{{ getRoleConfig(selectedRole as StaffMember['role']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Rollen</span>
-                                <span v-else>{{ getRoleConfig(option as StaffMember['role']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedRole === 'all' ? 'solid' : 'soft'"
+                                :color="selectedRole === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedRole = 'all'"
+                            >
+                                Alle Rollen
+                            </UButton>
+                            <UButton
+                                v-for="role in (['leader', 'teamer', 'tech', 'kitchen', 'other'] as const)"
+                                :key="role"
+                                :variant="selectedRole === role ? 'solid' : 'soft'"
+                                :color="selectedRole === role ? getRoleConfig(role).color as any : 'neutral'"
+                                size="sm"
+                                @click="selectedRole = role"
+                            >
+                                {{ getRoleConfig(role).label }}
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedStatus"
-                            :options="['all', 'confirmed', 'pending', 'declined']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedStatus === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(selectedStatus as StaffMember['status']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(option as StaffMember['status']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedStatus === 'all' ? 'solid' : 'soft'"
+                                :color="selectedStatus === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = 'all'"
+                            >
+                                Alle Status
+                            </UButton>
+                            <UButton
+                                v-for="status in (['confirmed', 'pending', 'declined'] as const)"
+                                :key="status"
+                                :variant="selectedStatus === status ? 'solid' : 'soft'"
+                                :color="selectedStatus === status ? getStatusConfig(status).color as any : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = status"
+                            >
+                                {{ getStatusConfig(status).label }}
+                            </UButton>
+                        </div>
                     </div>
 
                     <!-- Staff Cards -->
@@ -291,7 +303,7 @@ function formatDate(date: Date) {
                                         <UButton 
                                             icon="i-lucide-more-horizontal" 
                                             variant="ghost" 
-                                            color="gray"
+                                            color="neutral"
                                             size="xs"
                                         />
                                     </UDropdown>
@@ -302,7 +314,7 @@ function formatDate(date: Date) {
                                 <div class="space-y-2">
                                     <div class="flex items-center gap-2">
                                         <UBadge 
-                                            :color="getRoleConfig(member.role).color" 
+                                            :color="getRoleConfig(member.role).color as any" 
                                             variant="subtle"
                                             size="xs"
                                         >
@@ -310,7 +322,7 @@ function formatDate(date: Date) {
                                             {{ getRoleConfig(member.role).label }}
                                         </UBadge>
                                         <UBadge 
-                                            :color="getStatusConfig(member.status).color" 
+                                            :color="getStatusConfig(member.status).color as any" 
                                             variant="subtle"
                                             size="xs"
                                         >

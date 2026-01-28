@@ -156,7 +156,7 @@ function getDaysUntil(date: Date) {
                 :description="`${campData.type} • ${formatDate(campData.startDate)} - ${formatDate(campData.endDate)}`"
             >
                 <template #actions>
-                    <UBadge :color="getStatusColor(campData.status)" variant="subtle" size="md">
+                    <UBadge :color="getStatusColor(campData.status) as any" variant="subtle" size="md">
                         {{ getStatusLabel(campData.status) }}
                     </UBadge>
                 </template>

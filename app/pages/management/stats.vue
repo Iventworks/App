@@ -206,7 +206,7 @@ function getTrendColor(trend: string) {
                                         </div>
                                     </div>
                                     <UBadge 
-                                        :color="event.status === 'abgeschlossen' ? 'green' : 'blue'" 
+                                        :color="event.status === 'abgeschlossen' ? 'success' : 'primary'" 
                                         variant="subtle"
                                         size="xs"
                                     >

@@ -221,100 +221,122 @@ const columns = [
                             v-model="searchQuery"
                             icon="i-lucide-search"
                             placeholder="Transaktionen durchsuchen..."
-                            class="w-64"
+                            size="lg"
                         />
                         
-                        <USelectMenu
-                            v-model="selectedType"
-                            :options="['all', 'income', 'expense']"
-                            class="w-40"
-                        >
-                            <template #label>
-                                <span v-if="selectedType === 'all'">Alle Typen</span>
-                                <span v-else-if="selectedType === 'income'">Einnahmen</span>
-                                <span v-else>Ausgaben</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Typen</span>
-                                <span v-else-if="option === 'income'">Einnahmen</span>
-                                <span v-else>Ausgaben</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedType === 'all' ? 'solid' : 'soft'"
+                                :color="selectedType === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedType = 'all'"
+                            >
+                                Alle
+                            </UButton>
+                            <UButton
+                                :variant="selectedType === 'income' ? 'solid' : 'soft'"
+                                :color="selectedType === 'income' ? 'success' : 'neutral'"
+                                size="sm"
+                                @click="selectedType = 'income'"
+                            >
+                                Einnahmen
+                            </UButton>
+                            <UButton
+                                :variant="selectedType === 'expense' ? 'solid' : 'soft'"
+                                :color="selectedType === 'expense' ? 'error' : 'neutral'"
+                                size="sm"
+                                @click="selectedType = 'expense'"
+                            >
+                                Ausgaben
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedCategory"
-                            :options="categories"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedCategory === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ selectedCategory }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Kategorien</span>
-                                <span v-else>{{ option }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedCategory === 'all' ? 'solid' : 'soft'"
+                                :color="selectedCategory === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedCategory = 'all'"
+                            >
+                                Alle Kategorien
+                            </UButton>
+                            <UButton
+                                v-for="cat in categories.filter(c => c !== 'all')"
+                                :key="cat"
+                                :variant="selectedCategory === cat ? 'solid' : 'soft'"
+                                color="neutral"
+                                size="sm"
+                                @click="selectedCategory = cat"
+                            >
+                                {{ cat }}
+                            </UButton>
+                        </div>
 
-                        <USelectMenu
-                            v-model="selectedStatus"
-                            :options="['all', 'pending', 'completed', 'cancelled']"
-                            class="w-48"
-                        >
-                            <template #label>
-                                <span v-if="selectedStatus === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(selectedStatus as Transaction['status']).label }}</span>
-                            </template>
-                            <template #option="{ option }">
-                                <span v-if="option === 'all'">Alle Status</span>
-                                <span v-else>{{ getStatusConfig(option as Transaction['status']).label }}</span>
-                            </template>
-                        </USelectMenu>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton
+                                :variant="selectedStatus === 'all' ? 'solid' : 'soft'"
+                                :color="selectedStatus === 'all' ? 'primary' : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = 'all'"
+                            >
+                                Alle
+                            </UButton>
+                            <UButton
+                                v-for="status in (['pending', 'completed', 'cancelled'] as const)"
+                                :key="status"
+                                :variant="selectedStatus === status ? 'solid' : 'soft'"
+                                :color="selectedStatus === status ? getStatusConfig(status).color as any : 'neutral'"
+                                size="sm"
+                                @click="selectedStatus = status"
+                            >
+                                {{ getStatusConfig(status).label }}
+                            </UButton>
+                        </div>
                     </div>
 
                     <!-- Transactions Table -->
                     <UCard>
-                        <UTable :columns="columns" :rows="filteredTransactions">
+                        <UTable :columns="columns as any" :rows="filteredTransactions">
                             <template #date-data="{ row }">
-                                <span class="text-sm">{{ formatDate(row.date) }}</span>
+                                <span class="text-sm">{{ formatDate(((row as unknown) as Transaction).date) }}</span>
                             </template>
 
                             <template #description-data="{ row }">
                                 <div>
-                                    <p class="font-medium">{{ row.description }}</p>
-                                    <p v-if="row.relatedTo" class="text-xs text-gray-500">{{ row.relatedTo }}</p>
+                                    <p class="font-medium">{{ ((row as unknown) as Transaction).description }}</p>
+                                    <p v-if="((row as unknown) as Transaction).relatedTo" class="text-xs text-gray-500">{{ ((row as unknown) as Transaction).relatedTo }}</p>
                                 </div>
                             </template>
 
                             <template #category-data="{ row }">
                                 <UBadge color="neutral" variant="subtle" size="xs">
-                                    {{ row.category }}
+                                    {{ ((row as unknown) as Transaction).category }}
                                 </UBadge>
                             </template>
 
                             <template #amount-data="{ row }">
                                 <div class="flex items-center gap-2">
                                     <UIcon 
-                                        :name="row.type === 'income' ? 'i-lucide-arrow-down-left' : 'i-lucide-arrow-up-right'" 
-                                        :class="row.type === 'income' ? 'text-green-500' : 'text-red-500'"
+                                        :name="((row as unknown) as Transaction).type === 'income' ? 'i-lucide-arrow-down-left' : 'i-lucide-arrow-up-right'" 
+                                        :class="((row as unknown) as Transaction).type === 'income' ? 'text-green-500' : 'text-red-500'"
                                         class="w-4 h-4"
                                     />
                                     <span 
                                         class="font-medium"
-                                        :class="row.type === 'income' ? 'text-green-600' : 'text-red-600'"
+                                        :class="((row as unknown) as Transaction).type === 'income' ? 'text-green-600' : 'text-red-600'"
                                     >
-                                        {{ row.type === 'income' ? '+' : '-' }}{{ formatCurrency(row.amount) }}
+                                        {{ ((row as unknown) as Transaction).type === 'income' ? '+' : '-' }}{{ formatCurrency(((row as unknown) as Transaction).amount) }}
                                     </span>
                                 </div>
                             </template>
 
                             <template #status-data="{ row }">
                                 <UBadge 
-                                    :color="getStatusConfig(row.status).color" 
+                                    :color="getStatusConfig(((row as unknown) as Transaction).status).color as any" 
                                     variant="subtle"
                                     size="xs"
                                 >
-                                    {{ getStatusConfig(row.status).label }}
+                                    {{ getStatusConfig(((row as unknown) as Transaction).status).label }}
                                 </UBadge>
                             </template>
 
@@ -330,7 +352,7 @@ const columns = [
                                     <UButton 
                                         icon="i-lucide-more-horizontal" 
                                         variant="ghost" 
-                                        color="gray"
+                                        color="neutral"
                                         size="xs"
                                     />
                                 </UDropdown>
