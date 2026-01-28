@@ -276,7 +276,17 @@ function getDaysUntil(date: Date) {
                                                 </span>
                                                 <span class="font-medium">{{ getParticipantsPercentage(camp) }}%</span>
                                             </div>
-                                            <UProgress :value="getParticipantsPercentage(camp)" :color="getStatusConfig(camp.status).color as any" />
+                                            <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                <div 
+                                                    class="h-full rounded-full transition-all duration-300"
+                                                    :class="{
+                                                        'bg-warning-500': getStatusConfig(camp.status).color === 'warning',
+                                                        'bg-success-500': getStatusConfig(camp.status).color === 'success',
+                                                        'bg-neutral-500': getStatusConfig(camp.status).color === 'neutral'
+                                                    }"
+                                                    :style="{ width: `${getParticipantsPercentage(camp)}%` }"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </UCard>

@@ -171,16 +171,15 @@ function getTrendColor(trend: string) {
                                 <h3 class="text-lg font-semibold">Teilnehmer pro Monat</h3>
                             </template>
                             <div class="space-y-3">
-                                <div v-for="item in monthlyParticipants" :key="item.month" class="space-y-1">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="font-medium">{{ item.month }}</span>
-                                        <span class="text-gray-500">{{ item.count }}</span>
+                                <div v-for="item in monthlyParticipants" :key="item.month" class="flex items-center gap-3">
+                                    <span class="font-medium text-sm w-8">{{ item.month }}</span>
+                                    <div class="flex-1 h-8 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
+                                        <div 
+                                            class="h-full bg-primary-500 rounded-md transition-all duration-300"
+                                            :style="{ width: `${(item.count / 85) * 100}%` }"
+                                        />
                                     </div>
-                                    <UProgress 
-                                        :value="(item.count / 85) * 100" 
-                                        color="primary"
-                                        size="sm"
-                                    />
+                                    <span class="text-sm text-gray-500 w-8 text-right">{{ item.count }}</span>
                                 </div>
                             </div>
                         </UCard>
@@ -222,16 +221,15 @@ function getTrendColor(trend: string) {
                                 <h3 class="text-lg font-semibold">Altersverteilung</h3>
                             </template>
                             <div class="space-y-3">
-                                <div v-for="item in ageDistribution" :key="item.range" class="space-y-1">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="font-medium">{{ item.range }} Jahre</span>
-                                        <span class="text-gray-500">{{ item.count }} ({{ Math.round((item.count / 287) * 100) }}%)</span>
+                                <div v-for="item in ageDistribution" :key="item.range" class="flex items-center gap-3">
+                                    <span class="font-medium text-sm w-16">{{ item.range }}</span>
+                                    <div class="flex-1 h-8 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
+                                        <div 
+                                            class="h-full bg-primary-500 rounded-md transition-all duration-300"
+                                            :style="{ width: `${(item.count / 287) * 100}%` }"
+                                        />
                                     </div>
-                                    <UProgress 
-                                        :value="(item.count / 287) * 100" 
-                                        color="primary"
-                                        size="sm"
-                                    />
+                                    <span class="text-sm text-gray-500 w-24 text-right">{{ item.count }} ({{ Math.round((item.count / 287) * 100) }}%)</span>
                                 </div>
                             </div>
                         </UCard>
@@ -242,16 +240,15 @@ function getTrendColor(trend: string) {
                                 <h3 class="text-lg font-semibold">Veranstaltungstypen</h3>
                             </template>
                             <div class="space-y-3">
-                                <div v-for="item in categoryDistribution" :key="item.category" class="space-y-1">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="font-medium">{{ item.category }}</span>
-                                        <span class="text-gray-500">{{ item.count }} ({{ item.percentage }}%)</span>
+                                <div v-for="item in categoryDistribution" :key="item.category" class="flex items-center gap-3">
+                                    <span class="font-medium text-sm w-24">{{ item.category }}</span>
+                                    <div class="flex-1 h-8 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
+                                        <div 
+                                            class="h-full bg-primary-500 rounded-md transition-all duration-300"
+                                            :style="{ width: `${item.percentage}%` }"
+                                        />
                                     </div>
-                                    <UProgress 
-                                        :value="item.percentage" 
-                                        color="primary"
-                                        size="sm"
-                                    />
+                                    <span class="text-sm text-gray-500 w-16 text-right">{{ item.count }} ({{ item.percentage }}%)</span>
                                 </div>
                             </div>
                         </UCard>

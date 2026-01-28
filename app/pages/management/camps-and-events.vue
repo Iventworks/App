@@ -355,11 +355,13 @@ function getParticipantPercentage(current: number, max: number) {
                                             <span class="text-gray-600 dark:text-gray-400">Teilnehmer</span>
                                             <span class="font-medium">{{ camp.participants }} / {{ camp.maxParticipants }}</span>
                                         </div>
-                                        <UProgress 
-                                            :value="getParticipantPercentage(camp.participants, camp.maxParticipants)" 
-                                            :color="getParticipantPercentage(camp.participants, camp.maxParticipants) > 80 ? 'success' : 'primary'"
-                                            size="sm"
-                                        />
+                                        <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                            <div 
+                                                class="h-full rounded-full transition-all duration-300"
+                                                :class="getParticipantPercentage(camp.participants, camp.maxParticipants) > 80 ? 'bg-success-500' : 'bg-primary-500'"
+                                                :style="{ width: `${getParticipantPercentage(camp.participants, camp.maxParticipants)}%` }"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
