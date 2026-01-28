@@ -45,6 +45,12 @@ export default defineNuxtConfig({
 	},
 
 	routeRules: {
+		'/': {
+			      headers: {
+				          'Service-Worker-Allowed': '/',
+						          'Cache-Control': 'no-cache'
+								        }
+		},
 		"/**": { ssr: false }
 	},
 
