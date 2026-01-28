@@ -188,6 +188,14 @@ const searchGroups = computed(() => [{
 
 <template>
 	<UDashboardGroup class="main-bg-color">
+
+        <UDashboardSearch
+            :groups="searchGroups"
+            placeholder="Suchen..."
+            title="Suchen"
+            description="Suchen"
+        />
+
 		<UDashboardSidebar id="default"
 			collapsible
 			resizable
@@ -223,6 +231,7 @@ const searchGroups = computed(() => [{
 				<UDashboardSearchButton
 					:collapsed="collapsed"
 					class="bg-transparent ring-default"
+                    label="Suchen..."
 				/>
 
 				<UNavigationMenu
@@ -280,8 +289,6 @@ const searchGroups = computed(() => [{
 			</template>
 
 		</UDashboardSidebar>
-
-		<UDashboardSearch :groups="searchGroups" />
 
 		<slot />
 
