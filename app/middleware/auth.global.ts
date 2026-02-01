@@ -4,7 +4,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     const token = useCookie("cmp_session_token").value;
 
-    if (to.path.startsWith('/auth')) {
+    if (to.path.startsWith('/auth') || to.path.startsWith('/static') || to.path.startsWith('/.well-known') || to.path.startsWith('/favicon.ico') || to.path.startsWith('/robots.txt')) {
         if (!token) {
             return;
         }
