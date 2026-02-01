@@ -2,7 +2,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 export default defineNuxtRouteMiddleware(async (to) => {
 
-    const token = useCookie("cmp_session_token").value;
+    const token = useAppCookies().sessionToken.get().value;
 
     if (to.path.startsWith('/auth') || to.path.startsWith('/static') || to.path.startsWith('/.well-known') || to.path.startsWith('/favicon.ico') || to.path.startsWith('/robots.txt')) {
         if (!token) {
