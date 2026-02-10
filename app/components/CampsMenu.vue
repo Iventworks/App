@@ -71,7 +71,11 @@ const items = computed<DropdownMenuItem[][]>(() => {
 				label: collapsed ? undefined : selectedCampOrEvent?.label,
 				trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
 			}"
-			color="neutral" variant="ghost" block :square="collapsed" class="data-[state=open]:bg-elevated"
+			color="neutral"
+			variant="ghost"
+			block
+			:square="collapsed"
+			class="data-[state=open]:bg-elevated"
 			:class="[!collapsed && 'py-2']"
 			:ui="{
 				trailingIcon: 'text-dimmed'
