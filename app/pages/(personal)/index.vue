@@ -378,7 +378,7 @@ function getDaysUntil(date: Date) {
                             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Schnellzugriff</h2>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <UButton
-                                    to="/(personal)/tasks"
+                                    to="/tasks"
                                     block
                                     variant="soft"
                                     color="primary"
@@ -387,7 +387,7 @@ function getDaysUntil(date: Date) {
                                     Meine Aufgaben
                                 </UButton>
                                 <UButton
-                                    to="/(personal)/chats"
+                                    to="/chats"
                                     block
                                     variant="soft"
                                     color="primary"
