@@ -292,14 +292,23 @@ onMounted(() => {
                     <div class="w-80 shrink-0">
                         <UCard class="h-full">
                             <div class="space-y-1">
-                                <div v-for="chat in chats" :key="chat.id"
+                                <div
+                                    v-for="chat in chats" :key="chat.id"
                                     class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                                     :class="{ 'bg-gray-100 dark:bg-gray-800': selectedChatId === chat.id }"
-                                    @click="selectChat(chat.id)">
+                                    @click="selectChat(chat.id)"
+                                >
                                     <div class="relative">
-                                        <UAvatar :src="chat.avatar" :alt="chat.name" size="md" />
-                                        <span v-if="chat.online"
-                                            class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                                        <UAvatar
+                                            :src="chat.avatar"
+                                            :alt="chat.name"
+                                            size="md"
+                                        />
+                                        <span
+                                            v-if="chat.online"
+                                            class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"
+                                        >
+                                        </span>
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between">
@@ -308,7 +317,12 @@ onMounted(() => {
                                         </div>
                                         <div class="flex items-center justify-between">
                                             <p class="text-sm text-gray-500 truncate">{{ chat.lastMessage }}</p>
-                                            <UBadge v-if="chat.unreadCount > 0" color="primary" size="xs" class="ml-2">
+                                            <UBadge
+                                                v-if="chat.unreadCount > 0"
+                                                color="primary"
+                                                size="xs"
+                                                class="ml-2"
+                                            >
                                                 {{ chat.unreadCount }}
                                             </UBadge>
                                         </div>
