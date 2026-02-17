@@ -334,7 +334,9 @@ onMounted(() => {
 
                     <!-- Chat Messages -->
                     <div class="flex-1">
-                        <UCard class="h-full flex flex-col">
+                        <UCard class="h-full flex flex-col" :ui="{
+                            body: "h-full flex flex-col"
+                        }">
                             <!-- Chat Header -->
                             <div v-if="selectedChat"
                                 class="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -351,7 +353,7 @@ onMounted(() => {
                             </div>
 
                             <!-- Messages -->
-                            <div ref="messagesContainer" class="flex-1 overflow-y-auto py-4 space-y-4">
+                            <div ref="messagesContainer" class="flex-1 overflow-y-auto py-4 space-y-4 grow">
                                 <div v-for="message in currentMessages" :key="message.id" class="flex"
                                     :class="message.isMe ? 'justify-end' : 'justify-start'">
                                     <div class="max-w-[70%] rounded-lg px-4 py-2" :class="message.isMe
