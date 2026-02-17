@@ -286,8 +286,8 @@ onMounted(() => {
         </template>
 
         <template #body>
-            <DashboardPageBody>
-                <div class="flex h-[calc(100vh-16rem)] gap-4">
+            <DashboardPageBody class="grow">
+                <div class="flex h-full gap-4">
                     <!-- Chat List -->
                     <div class="w-80 shrink-0">
                         <UCard class="h-full">
