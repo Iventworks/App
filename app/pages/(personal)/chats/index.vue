@@ -336,7 +336,7 @@ onMounted(() => {
                     <div class="flex-1">
                         <UCard class="h-full flex flex-col" :ui='{
                             body: "h-full flex flex-col"
-                        }''>
+                        }'>
                             <!-- Chat Header -->
                             <div v-if="selectedChat"
                                 class="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
