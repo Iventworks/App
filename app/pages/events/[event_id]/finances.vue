@@ -1054,7 +1054,7 @@ const BUDGET_KIND_OPTIONS = [
 					</UInput>
 				</UFormField>
 				<UFormField label="Datum" name="spent_on" required>
-					<UInput v-model="expenseForm.spent_on" type="date" class="w-full" />
+					<FormDatePicker v-model="expenseForm.spent_on" :max="toDayString()" />
 				</UFormField>
 			</div>
 

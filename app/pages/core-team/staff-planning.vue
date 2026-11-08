@@ -204,9 +204,12 @@ async function submitAssign() {
 
 			<UDashboardToolbar>
 				<div class="flex flex-wrap items-center gap-2">
-					<UInput v-model="range.from" type="date" class="w-40" @change="applyRange" />
-					<span class="text-slate-500">–</span>
-					<UInput v-model="range.to" type="date" :min="range.from" class="w-40" @change="applyRange" />
+					<FormDayRangePicker
+						v-model:start="range.from"
+						v-model:end="range.to"
+						class="w-full sm:w-72"
+						@change="applyRange"
+					/>
 					<UFieldGroup>
 						<UButton label="3 Monate" color="neutral" variant="subtle" size="sm" @click="setPreset(90)" />
 						<UButton label="6 Monate" color="neutral" variant="subtle" size="sm" @click="setPreset(180)" />

@@ -514,10 +514,21 @@ function onSelectDay(value: unknown) {
 
 			<div class="grid gap-4 sm:grid-cols-2">
 				<UFormField label="Beginn" name="start" required>
-					<UInput v-model="form.start" :type="form.all_day ? 'date' : 'datetime-local'" class="w-full" />
+					<FormDatePicker v-if="form.all_day" v-model="form.start" />
+					<FormDateTimePicker v-else v-model="form.start" default-time="18:00" />
 				</UFormField>
 				<UFormField label="Ende" name="end" required>
-					<UInput v-model="form.end" :type="form.all_day ? 'date' : 'datetime-local'" class="w-full" />
+					<FormDatePicker
+						v-if="form.all_day"
+						v-model="form.end"
+						:min="form.start ? form.start.slice(0, 10) : undefined"
+					/>
+					<FormDateTimePicker
+						v-else
+						v-model="form.end"
+						:min="form.start ? form.start.slice(0, 10) : undefined"
+						default-time="19:00"
+					/>
 				</UFormField>
 			</div>
 

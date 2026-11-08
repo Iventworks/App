@@ -342,10 +342,10 @@ function rowActions(event: EventRow) {
 					<USelect v-model="createForm.status" :items="EVENT_STATUS_OPTIONS" class="w-full" />
 				</UFormField>
 				<UFormField label="Beginn" name="start_date" required>
-					<UInput v-model="createForm.start_date" type="date" class="w-full" />
+					<FormDatePicker v-model="createForm.start_date" />
 				</UFormField>
 				<UFormField label="Ende" name="end_date" required>
-					<UInput v-model="createForm.end_date" type="date" :min="createForm.start_date" class="w-full" />
+					<FormDatePicker v-model="createForm.end_date" :min="createForm.start_date || undefined" />
 				</UFormField>
 			</div>
 

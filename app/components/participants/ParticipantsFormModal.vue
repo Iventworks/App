@@ -261,7 +261,7 @@ async function submit() {
 							<UInput v-model="form.last_name" class="w-full" />
 						</UFormField>
 						<UFormField label="Geburtsdatum" name="birth_date">
-							<UInput v-model="form.birth_date" type="date" class="w-full" />
+							<FormDatePicker v-model="form.birth_date" :max="toDayString()" clearable />
 						</UFormField>
 						<UFormField label="Geschlecht" name="gender">
 							<USelectMenu

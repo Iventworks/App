@@ -65,7 +65,7 @@ const resetRange = () => {
 
         <template #content>
             <div class="flex flex-col gap-2">
-                <UCalendar v-model="calendarRange" class="p-2" :number-of-months="2" range />
+                <UCalendar v-model="calendarRange" class="p-2" :number-of-months="2" :week-starts-on="1" range />
                 <div class="px-2 pb-2">
                     <UButton variant="ghost" color="primary" @click="resetRange" block>
                         Zurücksetzen

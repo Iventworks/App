@@ -267,10 +267,10 @@ function fileLink(file: FileItem) {
 
 			<div class="grid gap-4 sm:grid-cols-2">
 				<UFormField label="Beginn" name="start" required>
-					<UInput v-model="form.start" type="datetime-local" class="w-full" />
+					<FormDateTimePicker v-model="form.start" />
 				</UFormField>
 				<UFormField label="Ende" name="end" required>
-					<UInput v-model="form.end" type="datetime-local" class="w-full" />
+					<FormDateTimePicker v-model="form.end" :min="form.start ? form.start.slice(0, 10) : undefined" />
 				</UFormField>
 				<UFormField label="Ort" name="location">
 					<UInput v-model="form.location" icon="i-lucide-map-pin" class="w-full" placeholder="z. B. Saal" />
@@ -373,7 +373,7 @@ function fileLink(file: FileItem) {
 				class="flex flex-col gap-2 rounded-lg border border-slate-800 p-3 sm:flex-row sm:items-end"
 			>
 				<UFormField label="Duplizieren nach" class="flex-1">
-					<UInput v-model="duplicateStart" type="datetime-local" class="w-full" />
+					<FormDateTimePicker v-model="duplicateStart" />
 				</UFormField>
 				<UButton
 					label="Duplizieren"

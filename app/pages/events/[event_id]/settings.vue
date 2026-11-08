@@ -180,11 +180,11 @@ async function deleteEvent() {
 							</UFormField>
 
 							<UFormField name="start_date" label="Beginn" required :class="fieldClass" :ui="fieldUi">
-								<UInput v-model="form.start_date" type="date" class="w-full sm:w-80" />
+								<FormDatePicker v-model="form.start_date" class="w-full sm:w-80" />
 							</UFormField>
 
 							<UFormField name="end_date" label="Ende" required :class="fieldClass" :ui="fieldUi">
-								<UInput v-model="form.end_date" type="date" class="w-full sm:w-80" />
+								<FormDatePicker v-model="form.end_date" :min="form.start_date || undefined" class="w-full sm:w-80" />
 							</UFormField>
 
 							<UFormField name="location" label="Ort" :class="fieldClass" :ui="fieldUi">

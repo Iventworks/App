@@ -377,7 +377,7 @@ async function confirmDelete() {
 					<USelect v-model="form.status" :items="TASK_STATUS_OPTIONS" class="w-full" />
 				</UFormField>
 				<UFormField label="Fällig am" name="due_at" class="sm:col-span-2">
-					<UInput v-model="form.due_at" type="datetime-local" class="w-full" />
+					<FormDateTimePicker v-model="form.due_at" default-time="18:00" clearable />
 				</UFormField>
 			</div>
 			<div class="flex justify-end gap-2 pt-2">
