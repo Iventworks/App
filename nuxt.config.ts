@@ -55,12 +55,6 @@ export default defineNuxtConfig({
 		},
 	},
 
-	vite: {
-		server: {
-			allowedHosts: ["cmp-website-test.tun.is-on.net"],
-		},
-	},
-
 	// The whole portal is behind login and renders client-side.
 	routeRules: {
 		"/**": { ssr: false },
