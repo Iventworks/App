@@ -13,7 +13,9 @@ export namespace AccountModel.GetInfo {
 export namespace AccountModel.UpdateInfo {
 	export const Body = createUpdateSchema(DB.Tables.users, {
 		username: UserDataPolicies.Username,
+		display_name: z.string().trim().min(1).max(64),
 		email: z.email("Invalid email"),
+		phone: z.string().trim().max(40).nullable(),
 	})
 		.omit({
 			id: true,
@@ -24,7 +26,15 @@ export namespace AccountModel.UpdateInfo {
 		.partial()
 		.refine((data) => Object.values(data).some((value) => value !== undefined), {
 			message: "At least one field must be provided",
-		});
+		})
+		.and(
+			z.object({
+				current_password: z
+					.string()
+					.min(1)
+					.describe("Current password — required to confirm account changes"),
+			}),
+		);
 
 	export type Body = z.infer<typeof Body>;
 }

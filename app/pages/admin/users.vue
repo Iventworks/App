@@ -1,475 +1,468 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from "@nuxt/ui";
+import type { DropdownMenuItem, FormError, FormSubmitEvent, TableColumn } from "@nuxt/ui";
 import * as z from "zod";
-import type { DropdownMenuItem, TableColumn } from "#ui/types";
-import type { GetAdminUsersResponses } from "@/api-client/types.gen";
+import type { GetAdminUsersResponses } from "~/api-client";
+import {
+	zPutAdminUsersByUserIdBody,
+	zPutAdminUsersByUserIdPasswordBody,
+} from "~/api-client/zod.gen";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
-import { Utils } from "~/utils";
 
-type AdminUser = GetAdminUsersResponses[200]["data"][number];
+type AdminUser = GetAdminUsersResponses["200"]["data"][number];
+
+definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Benutzerverwaltung | Admin | CMP",
-	description: "Benutzer verwalten",
+	title: "Benutzer | Administration | CMP",
+	description: "Benutzerkonten und Rollen verwalten",
 });
 
 const toast = useToast();
-
-// Check admin access
-const userInfoStore = useUserInfoStore();
-const currentUser = await userInfoStore.use();
-if (!userInfoStore.isValid(currentUser)) {
-	throw new Error("User not authenticated but trying to access Admin Users");
-}
-
-if (!currentUser || currentUser.value.role !== "admin") {
-	navigateTo("/dashboard");
-}
-
-const userColumns: TableColumn<AdminUser>[] = [
-	{ accessorKey: "id", header: "ID" },
-	{ accessorKey: "username", header: "Benutzername" },
-	{ accessorKey: "display_name", header: "Anzeigename" },
-	{ accessorKey: "email", header: "E-Mail-Adresse" },
-	{ id: "role", header: "Rolle" },
-	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
-];
-
-const roleOptions = [
-	{ label: "Admin", value: "admin" },
-	{ label: "Kernteam", value: "core_team" },
-	{ label: "Freiwilliger", value: "volunteer" },
-	{ label: "Unverifiziert", value: "unverified" },
-];
+const currentUser = await useUserInfoStore().use();
 
 const {
 	data: users,
 	loading,
 	refresh,
-} = await useAPIAsyncData<AdminUser[]>("admin-users-list", async () => {
-	const res = await useAPI((api) => api.getAdminUsers({}));
-	if (!res.success) {
+} = await useAPIAsyncData("admin-users", async () => {
+	const result = await useAPI((api) => api.getAdminUsers({}));
+	if (!result.success) {
 		toast.add({
 			title: "Benutzer konnten nicht geladen werden",
-			description: res.message,
+			description: result.message,
 			color: "error",
 		});
-		return [];
+		return [] as AdminUser[];
 	}
-	return res.data;
+	return result.data;
 });
 
-function getUserOptionsDropdownItems(row: { original: AdminUser }): DropdownMenuItem[][] {
+const pendingUsers = computed(() => (users.value ?? []).filter((u) => u.role === "unverified"));
+const isSelf = (user: AdminUser) => user.id === currentUser.value?.id;
+
+// --- table ----------------------------------------------------------------------------------
+
+const columns: TableColumn<AdminUser>[] = [
+	{ accessorKey: "display_name", header: "Name" },
+	{ accessorKey: "email", header: "E-Mail" },
+	{ accessorKey: "phone", header: "Telefon" },
+	{ accessorKey: "role", header: "Rolle" },
+	{ accessorKey: "created_at", header: "Dabei seit" },
+	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
+];
+
+const filters = [
+	{
+		column: "display_name" as const,
+		type: "text" as const,
+		placeholder: "Name, Benutzername oder E-Mail",
+		// Search across name, username and email in one field.
+		filterFn: (row: { original: AdminUser }, _columnId: string, value: string) => {
+			const term = String(value ?? "")
+				.trim()
+				.toLowerCase();
+			if (!term) return true;
+			const { display_name, username, email } = row.original;
+			return [display_name, username, email].some((field) => field.toLowerCase().includes(term));
+		},
+	},
+	{
+		column: "role" as const,
+		type: "select" as const,
+		placeholder: "Alle Rollen",
+		icon: "i-lucide-shield",
+		options: ORG_ROLE_OPTIONS,
+	},
+];
+
+function rowActions(user: AdminUser): DropdownMenuItem[][] {
 	return [
 		[
-			{
-				label: "Bearbeiten",
-				icon: "i-lucide-pencil",
-				onSelect: () => openEdit(row.original),
-			},
-			{
-				label: "Passwort zurücksetzen",
-				icon: "i-lucide-key",
-				onSelect: () => openPassword(row.original),
-			},
+			...(user.role === "unverified"
+				? [
+						{
+							label: "Freischalten",
+							icon: "i-lucide-user-check",
+							onSelect: () => activate(user),
+						},
+					]
+				: []),
+			{ label: "Bearbeiten", icon: "i-lucide-pencil", onSelect: () => openEdit(user) },
+			{ label: "Passwort setzen", icon: "i-lucide-key-round", onSelect: () => openPassword(user) },
 		],
 		[
 			{
 				label: "Löschen",
 				icon: "i-lucide-trash-2",
-				color: "error",
-				onSelect: () => openDelete(row.original),
+				color: "error" as const,
+				disabled: isSelf(user),
+				onSelect: () => openDelete(user),
 			},
 		],
 	];
 }
 
-const showCreateModal = ref(false);
-const showEditModal = ref(false);
-const showPasswordModal = ref(false);
-const selectedUser = ref<AdminUser | null>(null);
+async function activate(user: AdminUser) {
+	const result = await useAPI((api) =>
+		api.putAdminUsersByUserId({ path: { userId: user.id }, body: { role: "volunteer" } }),
+	);
+	if (!result.success) {
+		toast.add({ title: "Freischalten fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	toast.add({
+		title: `${user.display_name} freigeschaltet`,
+		description: "Das Konto hat jetzt die Rolle Mitarbeiter:in.",
+		icon: "i-lucide-user-check",
+		color: "success",
+	});
+	await refresh();
+}
 
-const createSchema = z.object({
-	username: z.string().min(1, "Benutzername ist erforderlich"),
-	display_name: z.string().min(1, "Anzeigename ist erforderlich"),
-	email: z.email("Muss eine gültige E-Mail-Adresse sein"),
-	password: z.string().min(8, "Passwort muss mindestens 8 Zeichen lang sein"),
-	role: z.enum(["admin", "core_team", "volunteer", "unverified"]),
+// --- edit -----------------------------------------------------------------------------------
+
+const editSchema = zPutAdminUsersByUserIdBody.extend({
+	username: z.string().trim().min(5, "Mindestens 5 Zeichen").max(40),
+	display_name: z.string().trim().min(1, "Anzeigename ist erforderlich").max(64),
+	email: z.email("Ungültige E-Mail-Adresse"),
+	phone: z.string().max(40),
 });
+type EditSchema = z.output<typeof editSchema>;
 
-type CreateSchema = z.output<typeof createSchema>;
-
-const createState = ref<CreateSchema>({
+const editOpen = ref(false);
+const editTarget = ref<AdminUser | null>(null);
+const editSaving = ref(false);
+const editState = reactive({
 	username: "",
 	display_name: "",
 	email: "",
-	password: "",
-	role: "unverified" as AdminUser["role"],
+	phone: "",
+	role: "volunteer" as AdminUser["role"],
 });
-
-const editForm = reactive({
-	display_name: "",
-	email: "",
-	role: "unverified" as AdminUser["role"],
-});
-
-const passwordForm = reactive({
-	password: "",
-});
-
-async function handleCreate() {
-	const res = await useAPI((api) =>
-		api.postAdminUsers({
-			body: createState.value,
-		}),
-	);
-	if (res.success) {
-		toast.add({ title: "User created", color: "success" });
-		showCreateModal.value = false;
-		await refresh();
-	} else {
-		toast.add({
-			title: "Benutzererstellung fehlgeschlagen",
-			description: res.message,
-			color: "error",
-		});
-	}
-	createState.value = {
-		username: "",
-		display_name: "",
-		email: "",
-		password: "",
-		role: "unverified" as AdminUser["role"],
-	};
-}
 
 function openEdit(user: AdminUser) {
-	selectedUser.value = user;
-	editForm.display_name = user.display_name;
-	editForm.email = user.email;
-	editForm.role = user.role;
-	showEditModal.value = true;
+	editTarget.value = user;
+	Object.assign(editState, {
+		username: user.username,
+		display_name: user.display_name,
+		email: user.email,
+		phone: user.phone ?? "",
+		role: user.role,
+	});
+	editOpen.value = true;
 }
 
-async function submitEdit() {
-	if (!selectedUser.value) return;
-
-	const res = await useAPI((api) =>
+async function submitEdit(event: FormSubmitEvent<EditSchema>) {
+	const target = editTarget.value;
+	if (!target) return;
+	editSaving.value = true;
+	const result = await useAPI((api) =>
 		api.putAdminUsersByUserId({
-			path: { userId: selectedUser.value!.id },
+			path: { userId: target.id },
 			body: {
-				display_name: editForm.display_name,
-				email: editForm.email,
-				role: editForm.role,
+				username: event.data.username,
+				display_name: event.data.display_name,
+				email: event.data.email,
+				phone: event.data.phone.trim() || null,
+				// Admins cannot change their own role (the API rejects removing your admin role).
+				...(isSelf(target) ? {} : { role: event.data.role }),
 			},
 		}),
 	);
+	editSaving.value = false;
 
-	if (res.success) {
+	if (!result.success) {
 		toast.add({
-			title: "Benutzer aktualisiert",
-			description: "Die Benutzerdaten wurden erfolgreich aktualisiert.",
-			color: "success",
-		});
-		showEditModal.value = false;
-		await refresh();
-	} else {
-		toast.add({
-			title: "Aktualisierung fehlgeschlagen",
-			description: res.message,
+			title: "Speichern fehlgeschlagen",
+			description:
+				(result.code as number) === 409
+					? "Benutzername oder E-Mail-Adresse ist bereits vergeben."
+					: result.message,
 			color: "error",
 		});
+		return;
 	}
+	toast.add({ title: "Benutzer gespeichert", icon: "i-lucide-check", color: "success" });
+	editOpen.value = false;
+	await refresh();
+}
+
+// --- password -------------------------------------------------------------------------------
+
+const passwordSchema = zPutAdminUsersByUserIdPasswordBody.extend({
+	password: z
+		.string()
+		.min(8, "Muss mindestens 8 Zeichen lang sein")
+		.max(50, "Darf höchstens 50 Zeichen lang sein")
+		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
+		.regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
+		.regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
+		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
+	confirm_password: z.string().min(1, "Bitte bestätige das Passwort"),
+});
+type PasswordSchema = z.output<typeof passwordSchema>;
+
+const passwordOpen = ref(false);
+const passwordTarget = ref<AdminUser | null>(null);
+const passwordSaving = ref(false);
+const passwordState = reactive({ password: "", confirm_password: "" });
+
+function validatePassword(state: Partial<PasswordSchema>): FormError[] {
+	if (state.password && state.confirm_password && state.password !== state.confirm_password) {
+		return [{ name: "confirm_password", message: "Passwörter stimmen nicht überein" }];
+	}
+	return [];
 }
 
 function openPassword(user: AdminUser) {
-	selectedUser.value = user;
-	passwordForm.password = "";
-	showPasswordModal.value = true;
+	passwordTarget.value = user;
+	passwordState.password = "";
+	passwordState.confirm_password = "";
+	passwordOpen.value = true;
 }
+
+async function submitPassword(event: FormSubmitEvent<PasswordSchema>) {
+	const target = passwordTarget.value;
+	if (!target) return;
+	passwordSaving.value = true;
+	const result = await useAPI((api) =>
+		api.putAdminUsersByUserIdPassword({
+			path: { userId: target.id },
+			body: { password: event.data.password },
+		}),
+	);
+	passwordSaving.value = false;
+
+	if (!result.success) {
+		toast.add({
+			title: "Passwort konnte nicht gesetzt werden",
+			description: result.message,
+			color: "error",
+		});
+		return;
+	}
+	toast.add({
+		title: "Passwort gesetzt",
+		description: `${target.display_name} wurde auf allen Geräten abgemeldet.`,
+		icon: "i-lucide-check",
+		color: "success",
+	});
+	passwordOpen.value = false;
+}
+
+// --- delete ---------------------------------------------------------------------------------
+
+const deleteOpen = ref(false);
+const deleteTarget = ref<AdminUser | null>(null);
 
 function openDelete(user: AdminUser) {
-	deleteUser(user);
+	if (isSelf(user)) return;
+	deleteTarget.value = user;
+	deleteOpen.value = true;
 }
 
-async function submitPassword() {
-	if (!selectedUser.value) return;
-
-	const res = await useAPI((api) =>
-		api.putAdminUsersByUserIdPassword({
-			path: { userId: selectedUser.value!.id },
-			body: { password: passwordForm.password },
-		}),
+async function confirmDelete() {
+	const target = deleteTarget.value;
+	if (!target) return;
+	const result = await useAPI((api) =>
+		api.deleteAdminUsersByUserId({ path: { userId: target.id } }),
 	);
-
-	if (res.success) {
-		toast.add({
-			title: "Passwort aktualisiert",
-			description: "Das Passwort wurde erfolgreich aktualisiert.",
-			color: "success",
-		});
-		showPasswordModal.value = false;
-	} else {
-		toast.add({
-			title: "Passwortaktualisierung fehlgeschlagen",
-			description: res.message,
-			color: "error",
-		});
+	if (!result.success) {
+		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
+		throw new Error(result.message);
 	}
-}
-
-async function deleteUser(user: AdminUser) {
-	if (!confirm(`Are you sure you want to delete user "${user.username}"?`)) return;
-
-	const res = await useAPI((api) =>
-		api.deleteAdminUsersByUserId({
-			path: { userId: user.id },
-		}),
-	);
-
-	if (res.success) {
-		toast.add({
-			title: "Benutzer gelöscht",
-			description: "Der Benutzer wurde erfolgreich gelöscht.",
-			color: "success",
-		});
-		await refresh();
-	} else {
-		toast.add({
-			title: "Benutzerlöschung fehlgeschlagen",
-			description: res.message,
-			color: "error",
-		});
-	}
-}
-
-function getRoleColor(role: AdminUser["role"]) {
-	return Utils.getVisualSettingsForRole(role).color;
+	toast.add({ title: `${target.display_name} gelöscht`, icon: "i-lucide-check", color: "success" });
+	await refresh();
 }
 </script>
 
 <template>
-    <UDashboardPanel>
-        <template #header>
-            <UDashboardNavbar title="Benutzerverwaltung" icon="i-lucide-users">
-                <template #right>
-                    <UButton
-                        label="Neuer Benutzer"
-                        icon="i-lucide-user-plus"
-                        color="primary"
-                        @click="showCreateModal = true"
-                    />
-                </template>
-            </UDashboardNavbar>
-        </template>
+	<UDashboardPanel id="admin-users">
+		<template #header>
+			<DashboardPageHeader
+				title="Benutzer"
+				icon="i-lucide-users"
+				description="Konten, Rollen und Zugänge"
+			>
+				<template #right>
+					<UButton label="Einladen" icon="i-lucide-mail-plus" to="/admin/invitations" />
+				</template>
+			</DashboardPageHeader>
+		</template>
 
-        <template #body>
-            <div class="space-y-6">
-                <div
-                    v-if="loading"
-                    class="flex items-center justify-center py-12"
-                >
-                    <UIcon
-                        name="i-lucide-loader-2"
-                        class="animate-spin text-3xl text-slate-400"
-                    />
-                </div>
+		<template #body>
+			<DashboardPageBody>
+				<UAlert
+					v-if="pendingUsers.length"
+					icon="i-lucide-user-round-search"
+					color="warning"
+					variant="subtle"
+					:title="
+						pendingUsers.length === 1
+							? '1 Konto wartet auf Freischaltung'
+							: `${pendingUsers.length} Konten warten auf Freischaltung`
+					"
+					:description="pendingUsers.map((user) => user.display_name).join(', ')"
+				/>
 
-                <UTable
-                    v-else-if="users?.length"
-                    :data="users"
-                    :columns="userColumns"
-                >
-                    <template #id-cell="{ row }">
-                        <span class="font-mono text-sm"
-                            >#{{ row.original.id }}</span
-                        >
-                    </template>
-                    <template #username-cell="{ row }">
-                        <span class="font-medium">{{
-                            row.original.username
-                        }}</span>
-                    </template>
-                    <template #email-cell="{ row }">
-                        <span class="text-slate-400">{{
-                            row.original.email
-                        }}</span>
-                    </template>
-                    <template #role-cell="{ row }">
-                        <UBadge
-                            v-bind="Utils.getVisualSettingsForRole(row.original.role)"
-                            variant="soft"
-                        />
-                    </template>
-                    <template #actions-cell="{ row }">
-                        <UDropdownMenu
-                            :ui="{ viewport: 'main-bg-color' }"
-                            :items="getUserOptionsDropdownItems(row)"
-                        >
-                            <UButton
-                                icon="i-lucide-more-horizontal"
-                                variant="ghost"
-                                color="neutral"
-                                size="xs"
-                            />
-                        </UDropdownMenu>
-                    </template>
-                </UTable>
+				<DashboardDataTable
+					:data="users ?? []"
+					:columns="columns"
+					:loading="loading"
+					:filters="filters"
+					:default-page-size="25"
+					empty-title="Keine Benutzer"
+					empty-description="Keine Konten passen zu den Filtern."
+					empty-icon="i-lucide-users"
+					@refresh="refresh"
+				>
+					<template #display_name-cell="{ row }">
+						<div class="flex items-center gap-3">
+							<UAvatar :text="initials(row.original.display_name)" size="sm" />
+							<div class="min-w-0">
+								<p class="flex items-center gap-2 font-medium text-white">
+									{{ row.original.display_name }}
+									<UBadge
+										v-if="isSelf(row.original)"
+										label="Du"
+										color="neutral"
+										variant="outline"
+										size="sm"
+									/>
+								</p>
+								<p class="text-xs text-slate-500">@{{ row.original.username }}</p>
+							</div>
+						</div>
+					</template>
 
-                <UEmpty
-                    v-else
-                    icon="i-lucide-users"
-                    title="Keine Benutzer gefunden"
-                    description="Erstellen Sie Ihren ersten Benutzer, um zu beginnen."
-                >
-                    <template #actions>
-                        <UButton
-                            label="Benutzer erstellen"
-                            color="primary"
-                            @click="showCreateModal = true"
-                        />
-                    </template>
-                </UEmpty>
-            </div>
-        </template>
-    </UDashboardPanel>
+					<template #email-cell="{ row }">
+						<span class="text-slate-300">{{ row.original.email }}</span>
+					</template>
 
-    <!-- Create User Modal -->
-    <DashboardModal
-        v-model:open="showCreateModal"
-        title="Benutzer erstellen"
-        icon="i-lucide-user-plus"
-    >
-        <UForm
-            :state="createState"
-            :schema="createSchema"
-            class="space-y-4"
-            @submit="handleCreate"
-        >
-            <UFormField label="Benutzername" name="username" required>
-                <UInput
-                    v-model="createState.username"
-                    placeholder="lukas.pohl"
-                    class="w-full"
-                />
-            </UFormField>
+					<template #phone-cell="{ row }">
+						<span class="text-slate-400">{{ row.original.phone || "–" }}</span>
+					</template>
 
-            <UFormField label="Anzeigename" name="display_name" required>
-                <UInput
-                    v-model="createState.display_name"
-                    placeholder="Lukas Pohl"
-                    class="w-full"
-                />
-            </UFormField>
+					<template #role-cell="{ row }">
+						<UBadge
+							:label="getRoleLabel(row.original.role)"
+							:color="getRoleColor(row.original.role)"
+							variant="subtle"
+						/>
+					</template>
 
-            <UFormField label="E-Mail-Adresse" name="email" required>
-                <UInput
-                    v-model="createState.email"
-                    type="email"
-                    placeholder="l.pohl@crossover.info"
-                    class="w-full"
-                />
-            </UFormField>
+					<template #created_at-cell="{ row }">
+						<span class="text-slate-400">{{ formatDay(row.original.created_at) }}</span>
+					</template>
 
-            <UFormField label="Passwort" name="password" required>
-                <UInput
-                    v-model="createState.password"
-                    type="password"
-                    placeholder="••••••••"
-                    class="w-full"
-                />
-            </UFormField>
+					<template #actions-cell="{ row }">
+						<div class="flex items-center justify-end gap-1">
+							<UButton
+								v-if="row.original.role === 'unverified'"
+								label="Freischalten"
+								icon="i-lucide-user-check"
+								size="xs"
+								variant="subtle"
+								class="hidden sm:inline-flex"
+								@click="activate(row.original)"
+							/>
+							<UDropdownMenu :items="rowActions(row.original)" :ui="{ viewport: 'main-bg-color' }">
+								<UButton
+									icon="i-lucide-ellipsis-vertical"
+									color="neutral"
+									variant="ghost"
+									size="xs"
+									aria-label="Aktionen"
+								/>
+							</UDropdownMenu>
+						</div>
+					</template>
+				</DashboardDataTable>
+			</DashboardPageBody>
+		</template>
+	</UDashboardPanel>
 
-            <UFormField label="Rolle" name="role" required>
-                <USelect
-                    v-model="createState.role"
-                    :items="roleOptions"
-                    placeholder="Rolle auswählen"
-                    class="w-full"
-                />
-            </UFormField>
+	<DashboardModal
+		v-model:open="editOpen"
+		:title="`${editTarget?.display_name ?? 'Benutzer'} bearbeiten`"
+		icon="i-lucide-pencil"
+	>
+		<UForm :schema="editSchema" :state="editState" class="space-y-4" @submit="submitEdit">
+			<div class="grid gap-4 sm:grid-cols-2">
+				<UFormField label="Anzeigename" name="display_name" required>
+					<UInput v-model="editState.display_name" class="w-full" />
+				</UFormField>
+				<UFormField label="Benutzername" name="username" required>
+					<UInput v-model="editState.username" class="w-full" />
+				</UFormField>
+				<UFormField label="E-Mail" name="email" required>
+					<UInput v-model="editState.email" type="email" class="w-full" />
+				</UFormField>
+				<UFormField label="Telefon" name="phone">
+					<UInput v-model="editState.phone" type="tel" class="w-full" />
+				</UFormField>
+				<UFormField
+					label="Rolle"
+					name="role"
+					class="sm:col-span-2"
+					:help="editTarget && isSelf(editTarget) ? 'Deine eigene Rolle kannst du nicht ändern.' : undefined"
+				>
+					<USelect
+						v-model="editState.role"
+						:items="ORG_ROLE_OPTIONS"
+						:disabled="!!editTarget && isSelf(editTarget)"
+						class="w-full"
+					/>
+				</UFormField>
+			</div>
+			<div class="flex justify-end gap-2 pt-2">
+				<UButton label="Abbrechen" color="neutral" variant="ghost" @click="editOpen = false" />
+				<UButton type="submit" label="Speichern" :loading="editSaving" />
+			</div>
+		</UForm>
+	</DashboardModal>
 
-            <div class="flex justify-end gap-2 pt-4">
-                <UButton
-                    label="Abbrechen"
-                    color="neutral"
-                    variant="ghost"
-                    @click="showCreateModal = false"
-                />
-                <UButton
-                    type="submit"
-                    label="Erstellen"
-                    color="primary"
-                />
-            </div>
-        </UForm>
-    </DashboardModal>
+	<DashboardModal
+		v-model:open="passwordOpen"
+		:title="`Passwort für ${passwordTarget?.display_name ?? ''} setzen`"
+		icon="i-lucide-key-round"
+		icon-color="amber"
+		description="Die Person wird auf allen Geräten abgemeldet."
+	>
+		<UForm
+			:schema="passwordSchema"
+			:state="passwordState"
+			:validate="validatePassword"
+			class="space-y-4"
+			@submit="submitPassword"
+		>
+			<UFormField
+				label="Neues Passwort"
+				name="password"
+				description="8–50 Zeichen mit Groß- und Kleinbuchstaben, Zahl und Sonderzeichen."
+				required
+			>
+				<UInput v-model="passwordState.password" type="password" autocomplete="new-password" class="w-full" />
+			</UFormField>
+			<UFormField label="Passwort bestätigen" name="confirm_password" required>
+				<UInput
+					v-model="passwordState.confirm_password"
+					type="password"
+					autocomplete="new-password"
+					class="w-full"
+				/>
+			</UFormField>
+			<div class="flex justify-end gap-2 pt-2">
+				<UButton label="Abbrechen" color="neutral" variant="ghost" @click="passwordOpen = false" />
+				<UButton type="submit" label="Passwort setzen" :loading="passwordSaving" />
+			</div>
+		</UForm>
+	</DashboardModal>
 
-    <!-- Edit User Modal -->
-    <DashboardModal
-        v-model:open="showEditModal"
-        :title="`Benutzer bearbeiten: ${selectedUser?.username}`"
-        icon="i-lucide-pencil"
-    >
-        <div class="space-y-4">
-            <UFormField label="Anzeigename">
-                <UInput v-model="editForm.display_name" class="w-full" />
-            </UFormField>
-
-            <UFormField label="E-Mail-Adresse">
-                <UInput v-model="editForm.email" type="email" class="w-full" />
-            </UFormField>
-
-            <UFormField label="Rolle">
-                <USelect v-model="editForm.role" :items="roleOptions" class="w-full" />
-            </UFormField>
-
-            <div class="flex justify-end gap-2 pt-4">
-                <UButton
-                    label="Abbrechen"
-                    color="neutral"
-                    variant="ghost"
-                    @click="showEditModal = false"
-                />
-                <UButton
-                    label="Speichern"
-                    color="primary"
-                    @click="submitEdit"
-                />
-            </div>
-        </div>
-    </DashboardModal>
-
-    <!-- Password Modal -->
-    <DashboardModal
-        v-model:open="showPasswordModal"
-        :title="`Passwort zurücksetzen: ${selectedUser?.username}`"
-        icon="i-lucide-key"
-        icon-color="amber"
-    >
-        <div class="space-y-4">
-            <UFormField label="Neues Passwort">
-                <UInput
-                    v-model="passwordForm.password"
-                    type="password"
-                    placeholder="••••••••"
-                    class="w-full"
-                />
-            </UFormField>
-
-            <div class="flex justify-end gap-2 pt-4">
-                <UButton
-                    label="Abbrechen"
-                    color="neutral"
-                    variant="ghost"
-                    @click="showPasswordModal = false"
-                />
-                <UButton
-                    label="Passwort aktualisieren"
-                    color="primary"
-                    @click="submitPassword"
-                />
-            </div>
-        </div>
-    </DashboardModal>
+	<DashboardDeleteModal
+		v-model:open="deleteOpen"
+		title="Benutzer löschen"
+		:warning-text="`Das Konto von ${deleteTarget?.display_name} wird mit allen persönlichen Daten gelöscht. Einträge in Events bleiben ohne Namen erhalten.`"
+		:on-delete="confirmDelete"
+	/>
 </template>

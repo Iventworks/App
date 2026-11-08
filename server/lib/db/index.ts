@@ -7,7 +7,7 @@ import { AppConstants } from "../utils/constants";
 import { LCrypt } from "../utils/crypto/lcrypt";
 import { Logger } from "../utils/logger";
 import * as TableSchema from "./schema";
-import { type DrizzleDB } from "./utils";
+import type { DrizzleDB } from "./utils";
 
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
@@ -22,6 +22,12 @@ export class DB {
 		await fs_mkdir(configBaseDir, { recursive: true });
 
 		this.db = drizzle(path);
+
+		// SQLite ignores FOREIGN KEY clauses (and their ON DELETE actions) unless enabled per
+		// connection. WAL keeps readers from blocking the writer.
+		this.db.$client.exec("PRAGMA foreign_keys = ON;");
+		this.db.$client.exec("PRAGMA journal_mode = WAL;");
+
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
 
@@ -127,8 +133,46 @@ export namespace DB.Tables {
 	export const sessions = TableSchema.sessions;
 	export const passwordResets = TableSchema.passwordResets;
 	export const apiKeys = TableSchema.apiKeys;
+	export const invitations = TableSchema.invitations;
 
 	export const userPreferences = TableSchema.userPreferences;
+
+	export const events = TableSchema.events;
+	export const eventMembers = TableSchema.eventMembers;
+	export const eventGroups = TableSchema.eventGroups;
+	export const eventGroupMembers = TableSchema.eventGroupMembers;
+	export const rooms = TableSchema.rooms;
+
+	export const participants = TableSchema.participants;
+	export const participantEmergencyContacts = TableSchema.participantEmergencyContacts;
+	export const participantNotes = TableSchema.participantNotes;
+
+	export const files = TableSchema.files;
+
+	export const programItems = TableSchema.programItems;
+	export const programItemResponsibles = TableSchema.programItemResponsibles;
+	export const programItemFiles = TableSchema.programItemFiles;
+	export const responsibilities = TableSchema.responsibilities;
+	export const responsibilityAssignees = TableSchema.responsibilityAssignees;
+
+	export const tasks = TableSchema.tasks;
+	export const notes = TableSchema.notes;
+	export const announcements = TableSchema.announcements;
+
+	export const expenses = TableSchema.expenses;
+	export const budgetItems = TableSchema.budgetItems;
+
+	export const orgResources = TableSchema.orgResources;
+	export const resourceBookings = TableSchema.resourceBookings;
+
+	export const conversations = TableSchema.conversations;
+	export const conversationMembers = TableSchema.conversationMembers;
+	export const messages = TableSchema.messages;
+
+	export const calendarEntries = TableSchema.calendarEntries;
+	export const notifications = TableSchema.notifications;
+
+	export const auditLogs = TableSchema.auditLogs;
 
 	export const scheduled_tasks = TableSchema.scheduled_tasks;
 	export const scheduled_tasks_paused_state = TableSchema.scheduled_tasks_paused_state;
@@ -141,8 +185,44 @@ export namespace DB.Models {
 	export type Session = typeof DB.Tables.sessions.$inferSelect;
 	export type PasswordReset = typeof DB.Tables.passwordResets.$inferSelect;
 	export type ApiKey = typeof DB.Tables.apiKeys.$inferSelect;
+	export type Invitation = typeof DB.Tables.invitations.$inferSelect;
 
 	export type UserPreference = typeof DB.Tables.userPreferences.$inferSelect;
+
+	export type Event = typeof DB.Tables.events.$inferSelect;
+	export type EventMember = typeof DB.Tables.eventMembers.$inferSelect;
+	export type EventGroup = typeof DB.Tables.eventGroups.$inferSelect;
+	export type EventGroupMember = typeof DB.Tables.eventGroupMembers.$inferSelect;
+	export type Room = typeof DB.Tables.rooms.$inferSelect;
+
+	export type Participant = typeof DB.Tables.participants.$inferSelect;
+	export type ParticipantEmergencyContact =
+		typeof DB.Tables.participantEmergencyContacts.$inferSelect;
+	export type ParticipantNote = typeof DB.Tables.participantNotes.$inferSelect;
+
+	export type File = typeof DB.Tables.files.$inferSelect;
+
+	export type ProgramItem = typeof DB.Tables.programItems.$inferSelect;
+	export type Responsibility = typeof DB.Tables.responsibilities.$inferSelect;
+
+	export type Task = typeof DB.Tables.tasks.$inferSelect;
+	export type Note = typeof DB.Tables.notes.$inferSelect;
+	export type Announcement = typeof DB.Tables.announcements.$inferSelect;
+
+	export type Expense = typeof DB.Tables.expenses.$inferSelect;
+	export type BudgetItem = typeof DB.Tables.budgetItems.$inferSelect;
+
+	export type OrgResource = typeof DB.Tables.orgResources.$inferSelect;
+	export type ResourceBooking = typeof DB.Tables.resourceBookings.$inferSelect;
+
+	export type Conversation = typeof DB.Tables.conversations.$inferSelect;
+	export type ConversationMember = typeof DB.Tables.conversationMembers.$inferSelect;
+	export type Message = typeof DB.Tables.messages.$inferSelect;
+
+	export type CalendarEntry = typeof DB.Tables.calendarEntries.$inferSelect;
+	export type Notification = typeof DB.Tables.notifications.$inferSelect;
+
+	export type AuditLog = typeof DB.Tables.auditLogs.$inferSelect;
 
 	export type ScheduledTask = typeof DB.Tables.scheduled_tasks.$inferSelect;
 	export type ScheduledTaskPausedState = typeof DB.Tables.scheduled_tasks_paused_state.$inferSelect;

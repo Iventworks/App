@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import z from "zod";
 import { DB } from "../../../../../../db";
-import { type DrizzleDB } from "../../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../../db/utils";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import {

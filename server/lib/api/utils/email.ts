@@ -139,4 +139,80 @@ export class EmailService {
 			Logger.error(`Failed to send password reset email to ${to}: ${err}`);
 		}
 	}
+	/**
+	 * Send an invitation to join the portal (accounts are invite-only).
+	 *
+	 * Fire-and-forget like `sendPasswordResetEmail`: errors are logged and reported as `false`,
+	 * never thrown. Returns whether the mail was handed to the transport.
+	 */
+	static async sendInvitationEmail(
+		to: string,
+		inviteUrl: string,
+		expiresAt: number,
+		options: { displayName?: string | null; inviterName?: string | null } = {},
+	): Promise<boolean> {
+		if (!this.transporter) {
+			Logger.warn("Email service not available — cannot send invitation email");
+			return false;
+		}
+
+		const escapeHtml = (value: string) =>
+			value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+		const greeting = options.displayName ? `Hallo ${escapeHtml(options.displayName)},` : "Hallo,";
+		const inviter = options.inviterName
+			? `${escapeHtml(options.inviterName)} hat dich`
+			: "Du wurdest";
+		const expiry = new Date(expiresAt).toLocaleDateString("de-DE", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
+
+		const html = [
+			"<!DOCTYPE html>",
+			'<html><head><meta charset="utf-8"></head><body>',
+			"<div style=\"max-width:560px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif\">",
+			"",
+			`  <h2 style="color:#1a1a2e">Einladung zum ${AppConstants.APP_NAME}</h2>`,
+			"",
+			`  <p>${greeting}</p>`,
+			`  <p>${inviter} zum Crossover Management Portal (${AppConstants.APP_NAME}) eingeladen.`,
+			"  Über den folgenden Button kannst du dein Konto anlegen.</p>",
+			"",
+			`  <a href="${escapeHtml(inviteUrl)}" style="display:inline-block;padding:12px 28px;margin:20px 0;background:#f97316;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Konto anlegen</a>`,
+			"",
+			`  <p style="color:#666;font-size:14px">Die Einladung ist gültig bis <strong>${expiry}</strong>.</p>`,
+			"",
+			'  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">',
+			"",
+			'  <p style="color:#999;font-size:13px">',
+			"  Wenn du mit dieser Einladung nichts anfangen kannst, kannst du diese E-Mail ignorieren.</p>",
+			"",
+			"</div>",
+			"</body></html>",
+		].join("\n");
+
+		const text = [
+			greeting.replace(/&[a-z]+;/g, ""),
+			"",
+			`Du wurdest zum ${AppConstants.APP_NAME} eingeladen. Konto anlegen: ${inviteUrl}`,
+			`Die Einladung ist gültig bis ${expiry}.`,
+		].join("\n");
+
+		try {
+			const info = await this.transporter.sendMail({
+				from: this._from,
+				to,
+				subject: `Einladung zum ${AppConstants.APP_NAME}`,
+				html,
+				text,
+			});
+			Logger.log(`Invitation email sent to ${to} (message-id: ${info.messageId})`);
+			return true;
+		} catch (err) {
+			Logger.error(`Failed to send invitation email to ${to}: ${err}`);
+			return false;
+		}
+	}
 }

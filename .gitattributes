@@ -1,0 +1,14 @@
+# Always check out text files with LF, regardless of `core.autocrlf`.
+# Biome formats with LF; CRLF working copies (Windows default) make `bun run check` fail.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.apk binary
+*.aab binary
+*.sqlite binary

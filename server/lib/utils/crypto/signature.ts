@@ -1,4 +1,4 @@
-import elliptic from "elliptic";
+import type elliptic from "elliptic";
 import { FixedUint, Uint8, Uint64 } from "low-level";
 
 export interface EllipticBinarySignature extends elliptic.ec.Signature {

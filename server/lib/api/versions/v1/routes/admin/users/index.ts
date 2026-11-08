@@ -2,9 +2,11 @@ import { and, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
-import { type DrizzleDB } from "../../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../../db/utils";
 import { APIResponse } from "../../../../../utils/api-res";
+import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
+import { getAuthUserId } from "../../../../../utils/guards";
 import { UserPreferencesHandler } from "../../../../../utils/preferences";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -111,6 +113,14 @@ router.post(
 			.returning()
 			.get();
 
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "create",
+			entityType: "user",
+			entityId: createdUser.id,
+			summary: `Benutzer „${createdUser.username}“ (${createdUser.role}) angelegt`,
+		});
+
 		return APIResponse.created(c, "User created successfully", sanitizeUser(createdUser));
 	},
 );
@@ -170,8 +180,11 @@ router.put(
 		description: "Modify profile fields or role for a user account.",
 		tags: [DOCS_TAGS.ADMIN_API.USERS],
 
-		responses: APIResponseSpec.describeWithWrongInputs(
+		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("User updated successfully", AdminUsersModel.Create.Response),
+			APIResponseSpec.badRequest(
+				"You cannot remove your own admin role / Provide at least one field to update / Syntax or validation error in request",
+			),
 			APIResponseSpec.notFound("User not found"),
 			APIResponseSpec.conflict("Conflict: Username or email already exists"),
 		),
@@ -190,6 +203,11 @@ router.put(
 
 		if (Object.keys(updates).length === 0) {
 			return APIResponse.badRequest(c, "Provide at least one field to update");
+		}
+
+		// Keep at least the acting admin in charge: no locking yourself out by accident.
+		if (user.id === getAuthUserId(c) && updates.role && updates.role !== "admin") {
+			return APIResponse.badRequest(c, "You cannot remove your own admin role");
 		}
 
 		if (updates.username && updates.username !== user.username) {
@@ -227,6 +245,18 @@ router.put(
 		if (roleChanged && updates.role) {
 			await AuthHandler.changeUserRoleInAuthContexts(user.id, updates.role);
 		}
+
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "update",
+			entityType: "user",
+			entityId: user.id,
+			summary:
+				roleChanged && updates.role
+					? `Rolle von „${user.username}“ von „${user.role}“ auf „${updates.role}“ geändert`
+					: `Benutzer „${user.username}“ bearbeitet`,
+			metadata: { fields: Object.keys(updates) },
+		});
 
 		const refreshed = DB.instance()
 			.select()
@@ -275,6 +305,14 @@ router.put(
 
 		await SessionHandler.inValidateAllSessionsForUser(user.id);
 
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "update",
+			entityType: "user",
+			entityId: user.id,
+			summary: `Passwort von „${user.username}“ zurückgesetzt`,
+		});
+
 		return APIResponse.successNoData(c, "Password reset successfully");
 	},
 );
@@ -289,6 +327,7 @@ router.delete(
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("User deleted successfully"),
+			APIResponseSpec.badRequest("You cannot delete your own account here"),
 			APIResponseSpec.notFound("User not found"),
 		),
 	}),
@@ -296,6 +335,10 @@ router.delete(
 	async (c) => {
 		// @ts-ignore
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
+
+		if (user.id === getAuthUserId(c)) {
+			return APIResponse.badRequest(c, "You cannot delete your own account here");
+		}
 
 		await DB.instance().transaction(async (tx: DrizzleDB) => {
 			await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);
@@ -308,6 +351,14 @@ router.delete(
 			await UserPreferencesHandler.deleteAllForUser(user.id, tx);
 
 			await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, user.id)).run();
+		});
+
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "delete",
+			entityType: "user",
+			entityId: user.id,
+			summary: `Benutzer „${user.username}“ gelöscht`,
 		});
 
 		return APIResponse.successNoData(c, "User deleted successfully");

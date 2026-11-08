@@ -1,5 +1,5 @@
 import { expect } from "bun:test";
-import { ZodType, z } from "zod";
+import { type ZodType, z } from "zod";
 import { API } from "../../server/lib/api";
 import { Logger } from "../../server/lib/utils/logger";
 

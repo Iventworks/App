@@ -86,7 +86,17 @@ class ConfigSchema<T extends ConfigSchemaSettings> {
 		const result: ConfigLike<T> = {} as ConfigLike<T>;
 
 		for (const [key, settings] of Object.entries(this.schema)) {
-			const value = process.env[`${AppConstants.APP_ENV_PREFIX}_${key}`];
+			let value = process.env[`${AppConstants.APP_ENV_PREFIX}_${key}`];
+
+			// Pre-merge CMP-API deployments used `CMP_API_*`. Accept those names as a fallback so an
+			// existing env file keeps working; `CMP_*` wins when both are set.
+			const legacyName = `${AppConstants.LEGACY_API_ENV_PREFIX}_${key}`;
+			if (value === undefined && process.env[legacyName] !== undefined) {
+				value = process.env[legacyName];
+				Logger.warn(
+					`Using legacy environment variable ${legacyName}; rename it to ${AppConstants.APP_ENV_PREFIX}_${key}.`,
+				);
+			}
 
 			const parseResult = settings.parse(value);
 			if (!parseResult.success) {
@@ -130,7 +140,17 @@ export class ConfigHandler {
 		LOG_DIR: CS.string().default("./data/logs"),
 		CONFIG_BASE_DIR: CS.string().default("./config"),
 
+		// Uploaded documents and receipts (blobs on disk; metadata in the `files` table).
+		UPLOAD_DIR: CS.string().default("./data/uploads"),
+		MAX_UPLOAD_SIZE_MB: CS.number().default(25),
+
+		// Behind a reverse proxy: take the client IP (login rate limiting) from X-Forwarded-For.
+		TRUST_PROXY: CS.boolean().default(false),
+
 		APP_URL: CS.string(),
+
+		// IANA time zone the organisation works in: decides what "today" means for dashboards.
+		TIMEZONE: CS.string().default("Europe/Berlin"),
 
 		SMTP_HOST: CS.string().optional(),
 		SMTP_PORT: CS.number().optional(),

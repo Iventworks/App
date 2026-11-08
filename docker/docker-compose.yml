@@ -16,6 +16,12 @@ services:
 
       CMP_APP_URL: https://cmp.crossover.is-on.net
 
+      # Set to true only when the container is reachable exclusively through ONE reverse proxy
+      # that appends the client address to X-Forwarded-For (login rate limiting uses the last entry).
+      CMP_TRUST_PROXY: false
+      CMP_TIMEZONE: Europe/Berlin
+      CMP_MAX_UPLOAD_SIZE_MB: 25
+
       # SMTP credentials come from a `.env` file next to this compose file (gitignored), e.g.
       #   CMP_SMTP_HOST=mail.example.com
       #   CMP_SMTP_USERNAME=…

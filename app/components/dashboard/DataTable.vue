@@ -83,8 +83,8 @@ const props = withDefaults(defineProps<Props>(), {
 	showRefresh: true,
 	showPagination: true,
 	showPageSizeSelector: true,
-	emptyTitle: "No data",
-	emptyDescription: "No items found.",
+	emptyTitle: "Keine Daten",
+	emptyDescription: "Keine Einträge gefunden.",
 	emptyIcon: "i-lucide-database",
 });
 
@@ -293,7 +293,7 @@ defineExpose({
                             :model-value="getFilterValue(filter.column as string) as string"
                             :class="filter.class || 'w-full sm:w-auto sm:max-w-sm sm:min-w-48'"
                             :icon="filter.icon || 'i-lucide-search'"
-                            :placeholder="filter.placeholder || 'Search...'"
+                            :placeholder="filter.placeholder || 'Suchen …'"
                             @update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
                         />
 
@@ -304,7 +304,7 @@ defineExpose({
                             :model-value="getFilterValue(filter.column as string) as string"
                             :class="filter.class || 'w-full sm:w-auto sm:max-w-32 sm:min-w-24'"
                             :icon="filter.icon || 'i-lucide-calendar'"
-                            :placeholder="filter.placeholder || 'Number...'"
+                            :placeholder="filter.placeholder || 'Zahl …'"
                             @update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
                         />
 
@@ -324,7 +324,7 @@ defineExpose({
                             :items="getSelectItems(filter)"
                             value-key="value"
                             :class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
-                            :placeholder="filter.placeholder || 'All'"
+                            :placeholder="filter.placeholder || 'Alle'"
                             @update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
                         >
                             <template #leading>
@@ -340,7 +340,7 @@ defineExpose({
                             value-key="value"
                             multiple
                             :class="filter.class || 'w-full sm:w-auto sm:min-w-48'"
-                            :placeholder="filter.placeholder || 'Select...'"
+                            :placeholder="filter.placeholder || 'Auswählen …'"
                             @update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
                         >
                             <template #leading>
@@ -358,11 +358,12 @@ defineExpose({
                         color="neutral"
                         variant="subtle"
                         class="sm:hidden"
+                        aria-label="Aktualisieren"
                         @click="handleRefresh"
                     />
                     <UButton
                         v-if="showRefresh"
-                        label="Refresh"
+                        label="Aktualisieren"
                         icon="i-lucide-refresh-cw"
                         color="neutral"
                         variant="subtle"
@@ -371,7 +372,7 @@ defineExpose({
                     />
                     <!-- <UButton
                         v-if="showRefresh"
-                        label="Refresh"
+                        label="Aktualisieren"
                         icon="i-lucide-refresh-cw"
                         color="neutral"
                         variant="subtle"

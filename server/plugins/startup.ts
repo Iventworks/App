@@ -7,6 +7,7 @@ import { Utils } from "../lib/utils";
 import { ConfigHandler } from "../lib/utils/config";
 import { AppConstants } from "../lib/utils/constants";
 import { CronJobHandler } from "../lib/utils/cron";
+import { FileStorage } from "../lib/utils/fileStorage";
 import { Logger } from "../lib/utils/logger";
 
 // Runs once at Nitro boot — replaces Main.main() from the standalone backend shape.
@@ -81,6 +82,8 @@ export default defineNitroPlugin(async (nitroApp) => {
 	);
 
 	await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
+
+	await FileStorage.init(config.UPLOAD_DIR, config.MAX_UPLOAD_SIZE_MB);
 
 	await EmailService.init();
 

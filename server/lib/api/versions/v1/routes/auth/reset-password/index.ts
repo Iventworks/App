@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
-import { type DrizzleDB } from "../../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../../db/utils";
 import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -100,7 +100,7 @@ router.post(
 				return APIResponse.badRequest(c, "Invalid reset token");
 			}
 
-			let checkToken = DB.instance()
+			const checkToken = DB.instance()
 				.select()
 				.from(DB.Tables.passwordResets)
 				.where(eq(DB.Tables.passwordResets.token, hashedResetToken))

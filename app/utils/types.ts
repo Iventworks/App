@@ -1,4 +1,17 @@
-import type { GetAccountResponses } from "~/api-client";
+/**
+ * API-derived types shared across pages. Derive from the generated client
+ * (`app/api-client/types.gen.ts`) instead of redeclaring shapes; add a page-local alias when a
+ * type is only used in one page.
+ */
+import type {
+	GetAccountResponses,
+	GetEventsByEventIdFilesResponses,
+	GetEventsByEventIdMembersResponses,
+	GetEventsByEventIdTasksResponses,
+	GetEventsResponses,
+	GetNotificationsResponses,
+	GetUsersResponses,
+} from "~/api-client";
 
 export namespace UtilityTypes {
 	export type SomePartial<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>;
@@ -6,61 +19,18 @@ export namespace UtilityTypes {
 
 export type UserInfo = GetAccountResponses["200"]["data"];
 
-import type { AvatarProps } from "@nuxt/ui";
+/** A user as shown in lists, assignee pickers and chat (`UserSummary` on the server). */
+export type UserSummary = GetUsersResponses["200"]["data"][number];
 
-export type UserStatus = "subscribed" | "unsubscribed" | "bounced";
-export type SaleStatus = "paid" | "failed" | "refunded";
+export type EventWithAccess = GetEventsResponses["200"]["data"][number];
+export type EventPermission = EventWithAccess["permissions"][number];
+export type EventMember = GetEventsByEventIdMembersResponses["200"]["data"][number];
 
-export interface User {
-	id: number;
-	name: string;
-	email: string;
-	avatar?: AvatarProps;
-}
+export type EventTask = GetEventsByEventIdTasksResponses["200"]["data"][number];
+export type TaskStatus = EventTask["status"];
+export type TaskPriority = EventTask["priority"];
 
-export interface Mail {
-	id: number;
-	unread?: boolean;
-	from: User;
-	subject: string;
-	body: string;
-	date: string;
-}
+export type NotificationItem = GetNotificationsResponses["200"]["data"]["items"][number];
 
-export interface Member {
-	name: string;
-	username: string;
-	role: "member" | "owner";
-	avatar: AvatarProps;
-}
-
-export interface Stat {
-	title: string;
-	icon: string;
-	value: number | string;
-	variation: number;
-	formatter?: (value: number) => string;
-}
-
-export interface Sale {
-	id: string;
-	date: string;
-	status: SaleStatus;
-	email: string;
-	amount: number;
-}
-
-export interface Notification {
-	id: number;
-	unread?: boolean;
-	sender: User;
-	body: string;
-	date: string;
-}
-
-export type Period = "daily" | "weekly" | "monthly";
-
-export interface Range {
-	start: Date;
-	end: Date;
-}
+export type FolderListing = GetEventsByEventIdFilesResponses["200"]["data"];
+export type FileItem = FolderListing["items"][number];

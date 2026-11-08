@@ -1,6 +1,16 @@
-import { defineEventHandler, getMethod, getRequestURL, readRawBody, setResponseStatus } from "h3";
+import {
+	defineEventHandler,
+	getMethod,
+	getRequestIP,
+	getRequestURL,
+	type H3Event,
+	readRawBody,
+	setResponseStatus,
+} from "h3";
 import { Hono } from "hono";
 import { API } from "../../lib/api";
+import type { APIBindings } from "../../lib/api/utils/clientInfo";
+import { ConfigHandler } from "../../lib/utils/config";
 
 // Catch-all: forward every /api/** request to the Hono app (mounted at /api).
 // Hono then handles /api/v1/**, /api/health, /api/docs/v1. See docs/04-backend-hono.md.
@@ -20,6 +30,19 @@ function getWrapper(): Hono | null {
 	}
 }
 
+/**
+ * The socket address, or — with `CMP_TRUST_PROXY=true` — the LAST `X-Forwarded-For` entry: the
+ * address our (single) reverse proxy saw. Earlier entries are client-controlled and spoofable.
+ */
+function getClientIP(event: H3Event): string | null {
+	if (ConfigHandler.getConfig()?.TRUST_PROXY === true) {
+		const forwarded = event.headers.get("x-forwarded-for");
+		const last = forwarded?.split(",").at(-1)?.trim();
+		if (last) return last;
+	}
+	return getRequestIP(event) ?? null;
+}
+
 export default defineEventHandler(async (event) => {
 	const app = getWrapper();
 	if (!app) {
@@ -37,8 +60,15 @@ export default defineEventHandler(async (event) => {
 	const request = new Request(url, {
 		method,
 		headers: event.headers,
-		body: method !== "GET" && method !== "HEAD" ? await readRawBody(event) : undefined,
+		// Raw bytes (not a string): multipart uploads must reach Hono unchanged.
+		body:
+			method !== "GET" && method !== "HEAD"
+				? ((await readRawBody(event, false)) as BodyInit | undefined)
+				: undefined,
 	});
 
-	return app.fetch(request);
+	// Hono never sees the socket behind Nitro; hand it the client IP for rate limiting.
+	const bindings: APIBindings = { clientIP: getClientIP(event) };
+
+	return app.fetch(request, bindings);
 });

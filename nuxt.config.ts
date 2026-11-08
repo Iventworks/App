@@ -19,7 +19,7 @@ export default defineNuxtConfig({
 			external: ["bun:sqlite"],
 
 			output: {
-				banner: (function () {
+				banner: (() => {
 					const mappings = {
 						CMP_APP_URL: "APP_URL",
 						CMP_ENABLE_SIGNUP: "IS_SIGNUP_ENABLED",
@@ -53,8 +53,6 @@ export default defineNuxtConfig({
 		public: {
 			//@ts-ignore
 			appUrl: process.env.CMP_APP_URL || "http://localhost:31316",
-			//@ts-ignore
-			isSignupEnabled: process.env.CMP_ENABLE_SIGNUP === "true",
 		},
 	},
 
@@ -71,7 +69,11 @@ export default defineNuxtConfig({
 
 	app: {
 		head: {
-			link: [{ rel: "manifest", href: "/manifest.webmanifest" }],
+			htmlAttrs: { lang: "de" },
+			link: [
+				{ rel: "manifest", href: "/manifest.webmanifest" },
+				{ rel: "icon", href: "/favicon.ico" },
+			],
 			script: [
 				{
 					innerHTML: `
@@ -122,8 +124,8 @@ export default defineNuxtConfig({
 
 			lang: "de",
 
-			theme_color: "#ffffff",
-			background_color: "#000000",
+			theme_color: "#020617",
+			background_color: "#020617",
 		},
 		// The API lives under /api on the same origin: never let the service worker answer those
 		// requests from its navigation fallback.

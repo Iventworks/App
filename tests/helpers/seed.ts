@@ -31,3 +31,15 @@ export async function seedSession(user_id: number): Promise<SeededSession> {
 	const session = await SessionHandler.createSession(user_id);
 	return session satisfies SeededSession;
 }
+
+export async function addEventMember(
+	event_id: number,
+	user_id: number,
+	role: DB.Models.EventMember["role"] = "staff",
+) {
+	return DB.instance()
+		.insert(DB.Tables.eventMembers)
+		.values({ event_id, user_id, role })
+		.returning()
+		.get();
+}

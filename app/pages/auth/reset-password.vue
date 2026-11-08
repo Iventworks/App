@@ -8,7 +8,7 @@ definePageMeta({
 
 useSeoMeta({
 	title: "Passwort zurücksetzen | CMP",
-	description: "Setzen Sie Ihr Passwort zurück",
+	description: "Setze dein Passwort zurück",
 });
 
 const route = useRoute();
@@ -22,14 +22,14 @@ const fields: AuthFormField[] = [
 		name: "password",
 		label: "Neues Passwort",
 		type: "password",
-		placeholder: "Geben Sie ein neues Passwort ein",
+		placeholder: "Dein neues Passwort",
 		required: true,
 	},
 	{
 		name: "confirm_password",
 		label: "Neues Passwort bestätigen",
 		type: "password",
-		placeholder: "Geben Sie Ihr neues Passwort erneut ein",
+		placeholder: "Neues Passwort wiederholen",
 		required: true,
 	},
 ];
@@ -82,7 +82,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 	if (result.success) {
 		toast.add({
 			title: "Passwort zurückgesetzt",
-			description: "Ihr Passwort wurde zurückgesetzt. Sie können sich jetzt einloggen.",
+			description: "Dein Passwort wurde zurückgesetzt. Du kannst dich jetzt anmelden.",
 			icon: "i-lucide-check",
 			color: "success",
 		});
@@ -104,7 +104,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		:schema="schema"
 		:validate="validate"
 		title="Passwort zurücksetzen"
-		description="Geben Sie unten Ihr neues Passwort ein."
+		description="Gib unten dein neues Passwort ein."
 		icon="i-lucide-key-round"
 		:fields="fields"
 		:submit="{ label: 'Passwort zurücksetzen', loading, disabled: loading }"
@@ -113,15 +113,15 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		<template #footer>
 			<div class="text-center text-sm">
 				Passwort wieder eingefallen?
-				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier einloggen</NuxtLink>
+				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier anmelden</NuxtLink>
 			</div>
 		</template>
 	</UAuthForm>
 
 	<div v-else class="space-y-4 text-center">
 		<p>
-			Ungültiger oder fehlender Link. Bitte prüfen Sie den Link aus der E-Mail oder fordern Sie
-			einen neuen an.
+			Ungültiger oder fehlender Link. Bitte prüfe den Link aus der E-Mail oder fordere einen
+			neuen an.
 		</p>
 		<NuxtLink to="/auth/forgot-password" class="text-primary hover:underline">
 			Neuen Link anfordern

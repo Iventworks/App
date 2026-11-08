@@ -417,10 +417,26 @@ describe("Account routes", async () => {
 			email: "updated@example.com",
 		};
 
+		// Without (or with a wrong) current password the change is rejected (docs/10).
+		await makeAPIRequest(
+			"/v1/account",
+			{ method: "PUT", authToken: session_token, body: newUserData },
+			400,
+		);
+		await makeAPIRequest(
+			"/v1/account",
+			{
+				method: "PUT",
+				authToken: session_token,
+				body: { ...newUserData, current_password: "WrongP@ss1" },
+			},
+			401,
+		);
+
 		await makeAPIRequest("/v1/account", {
 			method: "PUT",
 			authToken: session_token,
-			body: newUserData,
+			body: { ...newUserData, current_password: testUser.password },
 		});
 
 		testUser.display_name = newUserData.display_name;

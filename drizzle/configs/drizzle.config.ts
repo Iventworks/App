@@ -5,7 +5,7 @@ export default defineConfig({
 	schema: "./server/lib/db/schema.ts",
 	dialect: "sqlite",
 	dbCredentials: {
-		//@ts-ignore
+		//@ts-expect-error
 		url: process.env.CMP_DB_PATH || "./data/db.sqlite",
 	},
 	verbose: true,

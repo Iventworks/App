@@ -220,6 +220,141 @@ export type PostAuthResetPasswordRequestResponses = {
 
 export type PostAuthResetPasswordRequestResponse = PostAuthResetPasswordRequestResponses[keyof PostAuthResetPasswordRequestResponses];
 
+export type PostAuthInvitationsInspectData = {
+    body: {
+        /**
+         * The invitation token from the invite link
+         */
+        token: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/invitations/inspect';
+};
+
+export type PostAuthInvitationsInspectErrors = {
+    /**
+     * Invalid or expired invitation / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Invalid or expired invitation / Syntax or validation error in request';
+    };
+    /**
+     * You are already authenticated
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are already authenticated';
+    };
+    /**
+     * Too many attempts. Try again later.
+     */
+    429: {
+        success: false;
+        code: 429;
+        message: 'Too many attempts. Try again later.';
+    };
+};
+
+export type PostAuthInvitationsInspectError = PostAuthInvitationsInspectErrors[keyof PostAuthInvitationsInspectErrors];
+
+export type PostAuthInvitationsInspectResponses = {
+    /**
+     * Invitation is valid
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Invitation is valid';
+        data: {
+            email: string;
+            display_name: string | null;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            expires_at: number;
+        };
+    };
+};
+
+export type PostAuthInvitationsInspectResponse = PostAuthInvitationsInspectResponses[keyof PostAuthInvitationsInspectResponses];
+
+export type PostAuthInvitationsAcceptData = {
+    body: {
+        /**
+         * The invitation token from the invite link
+         */
+        token: string;
+        username: string;
+        display_name: string;
+        /**
+         * New password for the account
+         */
+        password: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/invitations/accept';
+};
+
+export type PostAuthInvitationsAcceptErrors = {
+    /**
+     * Invalid or expired invitation / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Invalid or expired invitation / Syntax or validation error in request';
+    };
+    /**
+     * You are already authenticated
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are already authenticated';
+    };
+    /**
+     * Username or email already in use
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Username or email already in use';
+    };
+    /**
+     * Too many attempts. Try again later.
+     */
+    429: {
+        success: false;
+        code: 429;
+        message: 'Too many attempts. Try again later.';
+    };
+};
+
+export type PostAuthInvitationsAcceptError = PostAuthInvitationsAcceptErrors[keyof PostAuthInvitationsAcceptErrors];
+
+export type PostAuthInvitationsAcceptResponses = {
+    /**
+     * Invitation accepted successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Invitation accepted successfully';
+        data: {
+            user_id: number;
+            user_role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            created_at: number;
+            expires_at: number;
+            token: string;
+        };
+    };
+};
+
+export type PostAuthInvitationsAcceptResponse = PostAuthInvitationsAcceptResponses[keyof PostAuthInvitationsAcceptResponses];
+
 export type DeleteAccountData = {
     body?: never;
     path?: never;
@@ -288,6 +423,7 @@ export type GetAccountResponses = {
             display_name: string;
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
             created_at: number;
         };
     };
@@ -296,10 +432,15 @@ export type GetAccountResponses = {
 export type GetAccountResponse = GetAccountResponses[keyof GetAccountResponses];
 
 export type PutAccountData = {
-    body?: {
+    body: {
         username?: string;
         display_name?: string;
         email?: string;
+        phone?: string | null;
+        /**
+         * Current password — required to confirm account changes
+         */
+        current_password: string;
     };
     path?: never;
     query?: never;
@@ -316,12 +457,12 @@ export type PutAccountErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * Your Auth Context is not a session
+     * Your Auth Context is not a session / Current password is incorrect
      */
     401: {
         success: false;
         code: 401;
-        message: 'Your Auth Context is not a session';
+        message: 'Your Auth Context is not a session / Current password is incorrect';
     };
     /**
      * Username or email already in use
@@ -643,6 +784,133 @@ export type PutAccountPreferencesOnboardingResponses = {
 
 export type PutAccountPreferencesOnboardingResponse = PutAccountPreferencesOnboardingResponses[keyof PutAccountPreferencesOnboardingResponses];
 
+export type DeleteAccountSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/account/sessions';
+};
+
+export type DeleteAccountSessionsErrors = {
+    /**
+     * Your Auth Context is not a session
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Your Auth Context is not a session';
+    };
+};
+
+export type DeleteAccountSessionsError = DeleteAccountSessionsErrors[keyof DeleteAccountSessionsErrors];
+
+export type DeleteAccountSessionsResponses = {
+    /**
+     * Other sessions revoked successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Other sessions revoked successfully';
+        data: {
+            revoked: number;
+        };
+    };
+};
+
+export type DeleteAccountSessionsResponse = DeleteAccountSessionsResponses[keyof DeleteAccountSessionsResponses];
+
+export type GetAccountSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/account/sessions';
+};
+
+export type GetAccountSessionsErrors = {
+    /**
+     * Your Auth Context is not a session
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Your Auth Context is not a session';
+    };
+};
+
+export type GetAccountSessionsError = GetAccountSessionsErrors[keyof GetAccountSessionsErrors];
+
+export type GetAccountSessionsResponses = {
+    /**
+     * Sessions retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Sessions retrieved successfully';
+        data: Array<{
+            id: string;
+            created_at: number;
+            expires_at: number;
+            is_current: boolean;
+        }>;
+    };
+};
+
+export type GetAccountSessionsResponse = GetAccountSessionsResponses[keyof GetAccountSessionsResponses];
+
+export type DeleteAccountSessionsBySessionIdData = {
+    body?: never;
+    path: {
+        sessionId: string;
+    };
+    query?: never;
+    url: '/account/sessions/{sessionId}';
+};
+
+export type DeleteAccountSessionsBySessionIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Your Auth Context is not a session
+     */
+    401: {
+        success: false;
+        code: 401;
+        message: 'Your Auth Context is not a session';
+    };
+    /**
+     * Session not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Session not found';
+    };
+};
+
+export type DeleteAccountSessionsBySessionIdError = DeleteAccountSessionsBySessionIdErrors[keyof DeleteAccountSessionsBySessionIdErrors];
+
+export type DeleteAccountSessionsBySessionIdResponses = {
+    /**
+     * Session revoked successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Session revoked successfully';
+        data: null;
+    };
+};
+
+export type DeleteAccountSessionsBySessionIdResponse = DeleteAccountSessionsBySessionIdResponses[keyof DeleteAccountSessionsBySessionIdResponses];
+
 export type GetAdminUsersData = {
     body?: never;
     path?: never;
@@ -682,6 +950,7 @@ export type GetAdminUsersResponses = {
             display_name: string;
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
             created_at: number;
         }>;
     };
@@ -695,6 +964,7 @@ export type PostAdminUsersData = {
         display_name: string;
         email: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+        phone?: string | null;
         password: string;
     };
     path?: never;
@@ -737,6 +1007,7 @@ export type PostAdminUsersResponses = {
             display_name: string;
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
             created_at: number;
         };
     };
@@ -755,12 +1026,12 @@ export type DeleteAdminUsersByUserIdData = {
 
 export type DeleteAdminUsersByUserIdErrors = {
     /**
-     * Validation Error
+     * You cannot delete your own account here
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'You cannot delete your own account here';
     };
     /**
      * User not found
@@ -832,6 +1103,7 @@ export type GetAdminUsersByUserIdResponses = {
             display_name: string;
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
             created_at: number;
         };
     };
@@ -845,6 +1117,7 @@ export type PutAdminUsersByUserIdData = {
         display_name?: string;
         email?: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+        phone?: string | null;
     };
     path: {
         userId: number;
@@ -855,12 +1128,12 @@ export type PutAdminUsersByUserIdData = {
 
 export type PutAdminUsersByUserIdErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * You cannot remove your own admin role / Provide at least one field to update / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'You cannot remove your own admin role / Provide at least one field to update / Syntax or validation error in request';
     };
     /**
      * User not found
@@ -896,6 +1169,7 @@ export type PutAdminUsersByUserIdResponses = {
             display_name: string;
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
             created_at: number;
         };
     };
@@ -951,3 +1225,9076 @@ export type PutAdminUsersByUserIdPasswordResponses = {
 };
 
 export type PutAdminUsersByUserIdPasswordResponse = PutAdminUsersByUserIdPasswordResponses[keyof PutAdminUsersByUserIdPasswordResponses];
+
+export type GetAdminInvitationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/invitations';
+};
+
+export type GetAdminInvitationsResponses = {
+    /**
+     * Invitations retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Invitations retrieved successfully';
+        data: Array<{
+            id: number;
+            email: string;
+            display_name: string | null;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            status: 'pending' | 'accepted' | 'expired';
+            created_at: number;
+            expires_at: number;
+            accepted_at: number | null;
+            invited_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            accepted_user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        }>;
+    };
+};
+
+export type GetAdminInvitationsResponse = GetAdminInvitationsResponses[keyof GetAdminInvitationsResponses];
+
+export type PostAdminInvitationsData = {
+    body: {
+        email: string;
+        display_name?: string;
+        role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+        expires_in_days?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/invitations';
+};
+
+export type PostAdminInvitationsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * A user with this email already exists / A pending invitation for this email already exists
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'A user with this email already exists / A pending invitation for this email already exists';
+    };
+};
+
+export type PostAdminInvitationsError = PostAdminInvitationsErrors[keyof PostAdminInvitationsErrors];
+
+export type PostAdminInvitationsResponses = {
+    /**
+     * Invitation created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Invitation created successfully';
+        data: {
+            invitation: {
+                id: number;
+                email: string;
+                display_name: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                status: 'pending' | 'accepted' | 'expired';
+                created_at: number;
+                expires_at: number;
+                accepted_at: number | null;
+                invited_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                accepted_user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+            };
+            invite_url: string;
+            email_sent: boolean;
+        };
+    };
+};
+
+export type PostAdminInvitationsResponse = PostAdminInvitationsResponses[keyof PostAdminInvitationsResponses];
+
+export type PostAdminInvitationsByInvitationIdResendData = {
+    body?: never;
+    path: {
+        invitationId: number;
+    };
+    query?: never;
+    url: '/admin/invitations/{invitationId}/resend';
+};
+
+export type PostAdminInvitationsByInvitationIdResendErrors = {
+    /**
+     * The invitation has already been accepted
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The invitation has already been accepted';
+    };
+    /**
+     * Invitation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Invitation not found';
+    };
+};
+
+export type PostAdminInvitationsByInvitationIdResendError = PostAdminInvitationsByInvitationIdResendErrors[keyof PostAdminInvitationsByInvitationIdResendErrors];
+
+export type PostAdminInvitationsByInvitationIdResendResponses = {
+    /**
+     * Invitation resent successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Invitation resent successfully';
+        data: {
+            invitation: {
+                id: number;
+                email: string;
+                display_name: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                status: 'pending' | 'accepted' | 'expired';
+                created_at: number;
+                expires_at: number;
+                accepted_at: number | null;
+                invited_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                accepted_user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+            };
+            invite_url: string;
+            email_sent: boolean;
+        };
+    };
+};
+
+export type PostAdminInvitationsByInvitationIdResendResponse = PostAdminInvitationsByInvitationIdResendResponses[keyof PostAdminInvitationsByInvitationIdResendResponses];
+
+export type DeleteAdminInvitationsByInvitationIdData = {
+    body?: never;
+    path: {
+        invitationId: number;
+    };
+    query?: never;
+    url: '/admin/invitations/{invitationId}';
+};
+
+export type DeleteAdminInvitationsByInvitationIdErrors = {
+    /**
+     * The invitation has already been accepted
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The invitation has already been accepted';
+    };
+    /**
+     * Invitation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Invitation not found';
+    };
+};
+
+export type DeleteAdminInvitationsByInvitationIdError = DeleteAdminInvitationsByInvitationIdErrors[keyof DeleteAdminInvitationsByInvitationIdErrors];
+
+export type DeleteAdminInvitationsByInvitationIdResponses = {
+    /**
+     * Invitation revoked successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Invitation revoked successfully';
+        data: null;
+    };
+};
+
+export type DeleteAdminInvitationsByInvitationIdResponse = DeleteAdminInvitationsByInvitationIdResponses[keyof DeleteAdminInvitationsByInvitationIdResponses];
+
+export type GetAdminAuditLogData = {
+    body?: never;
+    path?: never;
+    query?: {
+        event_id?: number;
+        user_id?: number;
+        entity_type?: string;
+        action?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/admin/audit-log';
+};
+
+export type GetAdminAuditLogErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetAdminAuditLogError = GetAdminAuditLogErrors[keyof GetAdminAuditLogErrors];
+
+export type GetAdminAuditLogResponses = {
+    /**
+     * Audit log retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Audit log retrieved successfully';
+        data: {
+            total: number;
+            entries: Array<{
+                id: number;
+                user_id: number | null;
+                event_id: number | null;
+                action: string;
+                entity_type: string;
+                entity_id: number | null;
+                summary: string;
+                metadata: {
+                    [key: string]: unknown;
+                } | null;
+                created_at: number;
+                user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                event: {
+                    id: number;
+                    name: string;
+                } | null;
+            }>;
+        };
+    };
+};
+
+export type GetAdminAuditLogResponse = GetAdminAuditLogResponses[keyof GetAdminAuditLogResponses];
+
+export type GetDashboardData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/dashboard';
+};
+
+export type GetDashboardResponses = {
+    /**
+     * Dashboard retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Dashboard retrieved successfully';
+        data: {
+            today: string;
+            current_events: Array<{
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                location: string | null;
+                start_date: string;
+                end_date: string;
+                color: string | null;
+                my_role: 'leader' | 'staff';
+                day_number: number;
+                total_days: number;
+                today_program: Array<{
+                    id: number;
+                    title: string;
+                    location: string | null;
+                    start_at: number;
+                    end_at: number;
+                    color: string | null;
+                    is_mine: boolean;
+                }>;
+                latest_announcements: Array<{
+                    id: number;
+                    title: string;
+                    priority: 'normal' | 'important';
+                    created_at: number;
+                }>;
+            }>;
+            upcoming_events: Array<{
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                start_date: string;
+                end_date: string;
+                location: string | null;
+                color: string | null;
+                my_role: 'leader' | 'staff';
+                days_until: number;
+            }>;
+            tasks: {
+                overdue: Array<{
+                    id: number;
+                    title: string;
+                    status: 'open' | 'in_progress' | 'done';
+                    priority: 'low' | 'normal' | 'high' | 'urgent';
+                    due_at: number | null;
+                    event: {
+                        id: number;
+                        name: string;
+                    } | null;
+                }>;
+                due_soon: Array<{
+                    id: number;
+                    title: string;
+                    status: 'open' | 'in_progress' | 'done';
+                    priority: 'low' | 'normal' | 'high' | 'urgent';
+                    due_at: number | null;
+                    event: {
+                        id: number;
+                        name: string;
+                    } | null;
+                }>;
+                open_count: number;
+            };
+            my_next_program_items: Array<{
+                id: number;
+                title: string;
+                location: string | null;
+                start_at: number;
+                end_at: number;
+                color: string | null;
+                is_mine: boolean;
+                event: {
+                    id: number;
+                    name: string;
+                };
+            }>;
+            unread_messages: number;
+            recent_conversations: Array<{
+                id: number;
+                title: string;
+                type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+                unread_count: number;
+                last_message_preview: string | null;
+                last_message_at: number | null;
+            }>;
+            unread_notifications: number;
+            org_announcements: Array<{
+                id: number;
+                title: string;
+                content: string;
+                priority: 'normal' | 'important';
+                pinned: boolean;
+                created_at: number;
+                created_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+            }>;
+            calendar_today: Array<{
+                id: number;
+                title: string;
+                location: string | null;
+                start_at: number;
+                end_at: number;
+                all_day: boolean;
+                color: string | null;
+            }>;
+        };
+    };
+};
+
+export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardResponses];
+
+export type GetTasksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        scope?: 'all' | 'personal' | 'assigned';
+        include_done?: 'true' | 'false';
+    };
+    url: '/tasks';
+};
+
+export type GetTasksErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetTasksError = GetTasksErrors[keyof GetTasksErrors];
+
+export type GetTasksResponses = {
+    /**
+     * Tasks retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Tasks retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            source: 'personal' | 'event';
+            is_overdue: boolean;
+        }>;
+    };
+};
+
+export type GetTasksResponse = GetTasksResponses[keyof GetTasksResponses];
+
+export type PostTasksData = {
+    body: {
+        title: string;
+        description?: string;
+        status?: 'open' | 'in_progress' | 'done';
+        priority?: 'low' | 'normal' | 'high' | 'urgent';
+        due_at?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/tasks';
+};
+
+export type PostTasksErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type PostTasksError = PostTasksErrors[keyof PostTasksErrors];
+
+export type PostTasksResponses = {
+    /**
+     * Task created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Task created successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            source: 'personal' | 'event';
+            is_overdue: boolean;
+        };
+    };
+};
+
+export type PostTasksResponse = PostTasksResponses[keyof PostTasksResponses];
+
+export type DeleteTasksByTaskIdData = {
+    body?: never;
+    path: {
+        taskId: number;
+    };
+    query?: never;
+    url: '/tasks/{taskId}';
+};
+
+export type DeleteTasksByTaskIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Task not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Task not found';
+    };
+};
+
+export type DeleteTasksByTaskIdError = DeleteTasksByTaskIdErrors[keyof DeleteTasksByTaskIdErrors];
+
+export type DeleteTasksByTaskIdResponses = {
+    /**
+     * Task deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Task deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteTasksByTaskIdResponse = DeleteTasksByTaskIdResponses[keyof DeleteTasksByTaskIdResponses];
+
+export type PutTasksByTaskIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        status?: 'open' | 'in_progress' | 'done';
+        priority?: 'low' | 'normal' | 'high' | 'urgent';
+        due_at?: number | null;
+    };
+    path: {
+        taskId: number;
+    };
+    query?: never;
+    url: '/tasks/{taskId}';
+};
+
+export type PutTasksByTaskIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Task not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Task not found';
+    };
+};
+
+export type PutTasksByTaskIdError = PutTasksByTaskIdErrors[keyof PutTasksByTaskIdErrors];
+
+export type PutTasksByTaskIdResponses = {
+    /**
+     * Task updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Task updated successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            source: 'personal' | 'event';
+            is_overdue: boolean;
+        };
+    };
+};
+
+export type PutTasksByTaskIdResponse = PutTasksByTaskIdResponses[keyof PutTasksByTaskIdResponses];
+
+export type GetNotesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+    };
+    url: '/notes';
+};
+
+export type GetNotesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetNotesError = GetNotesErrors[keyof GetNotesErrors];
+
+export type GetNotesResponses = {
+    /**
+     * Notes retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notes retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+        }>;
+    };
+};
+
+export type GetNotesResponse = GetNotesResponses[keyof GetNotesResponses];
+
+export type PostNotesData = {
+    body: {
+        title: string;
+        content?: string;
+        pinned?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/notes';
+};
+
+export type PostNotesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type PostNotesError = PostNotesErrors[keyof PostNotesErrors];
+
+export type PostNotesResponses = {
+    /**
+     * Note created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Note created successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+        };
+    };
+};
+
+export type PostNotesResponse = PostNotesResponses[keyof PostNotesResponses];
+
+export type DeleteNotesByNoteIdData = {
+    body?: never;
+    path: {
+        noteId: number;
+    };
+    query?: never;
+    url: '/notes/{noteId}';
+};
+
+export type DeleteNotesByNoteIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type DeleteNotesByNoteIdError = DeleteNotesByNoteIdErrors[keyof DeleteNotesByNoteIdErrors];
+
+export type DeleteNotesByNoteIdResponses = {
+    /**
+     * Note deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteNotesByNoteIdResponse = DeleteNotesByNoteIdResponses[keyof DeleteNotesByNoteIdResponses];
+
+export type GetNotesByNoteIdData = {
+    body?: never;
+    path: {
+        noteId: number;
+    };
+    query?: never;
+    url: '/notes/{noteId}';
+};
+
+export type GetNotesByNoteIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type GetNotesByNoteIdError = GetNotesByNoteIdErrors[keyof GetNotesByNoteIdErrors];
+
+export type GetNotesByNoteIdResponses = {
+    /**
+     * Note retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note retrieved successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+        };
+    };
+};
+
+export type GetNotesByNoteIdResponse = GetNotesByNoteIdResponses[keyof GetNotesByNoteIdResponses];
+
+export type PutNotesByNoteIdData = {
+    body?: {
+        title?: string;
+        content?: string;
+        pinned?: boolean;
+    };
+    path: {
+        noteId: number;
+    };
+    query?: never;
+    url: '/notes/{noteId}';
+};
+
+export type PutNotesByNoteIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type PutNotesByNoteIdError = PutNotesByNoteIdErrors[keyof PutNotesByNoteIdErrors];
+
+export type PutNotesByNoteIdResponses = {
+    /**
+     * Note updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note updated successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+        };
+    };
+};
+
+export type PutNotesByNoteIdResponse = PutNotesByNoteIdResponses[keyof PutNotesByNoteIdResponses];
+
+export type GetCalendarFeedData = {
+    body?: never;
+    path?: never;
+    query: {
+        from: number;
+        to: number;
+    };
+    url: '/calendar/feed';
+};
+
+export type GetCalendarFeedErrors = {
+    /**
+     * The range must be at most 120 days long and end after it starts / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The range must be at most 120 days long and end after it starts / Syntax or validation error in request';
+    };
+};
+
+export type GetCalendarFeedError = GetCalendarFeedErrors[keyof GetCalendarFeedErrors];
+
+export type GetCalendarFeedResponses = {
+    /**
+     * Calendar feed retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Calendar feed retrieved successfully';
+        data: Array<{
+            id: string;
+            source: 'entry' | 'program' | 'event' | 'task';
+            source_id: number;
+            title: string;
+            start_at: number;
+            end_at: number;
+            all_day: boolean;
+            color: string | null;
+            location: string | null;
+            link: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            is_mine: boolean;
+        }>;
+    };
+};
+
+export type GetCalendarFeedResponse = GetCalendarFeedResponses[keyof GetCalendarFeedResponses];
+
+export type GetCalendarEntriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        from?: number;
+        to?: number;
+    };
+    url: '/calendar/entries';
+};
+
+export type GetCalendarEntriesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetCalendarEntriesError = GetCalendarEntriesErrors[keyof GetCalendarEntriesErrors];
+
+export type GetCalendarEntriesResponses = {
+    /**
+     * Calendar entries retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Calendar entries retrieved successfully';
+        data: Array<{
+            id: number;
+            user_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            start_at: number;
+            end_at: number;
+            all_day: boolean;
+            color: string | null;
+            created_at: number;
+        }>;
+    };
+};
+
+export type GetCalendarEntriesResponse = GetCalendarEntriesResponses[keyof GetCalendarEntriesResponses];
+
+export type PostCalendarEntriesData = {
+    body: {
+        title: string;
+        description?: string;
+        location?: string | null;
+        start_at: number;
+        end_at: number;
+        all_day?: boolean;
+        color?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/calendar/entries';
+};
+
+export type PostCalendarEntriesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type PostCalendarEntriesError = PostCalendarEntriesErrors[keyof PostCalendarEntriesErrors];
+
+export type PostCalendarEntriesResponses = {
+    /**
+     * Calendar entry created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Calendar entry created successfully';
+        data: {
+            id: number;
+            user_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            start_at: number;
+            end_at: number;
+            all_day: boolean;
+            color: string | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PostCalendarEntriesResponse = PostCalendarEntriesResponses[keyof PostCalendarEntriesResponses];
+
+export type DeleteCalendarEntriesByEntryIdData = {
+    body?: never;
+    path: {
+        entryId: number;
+    };
+    query?: never;
+    url: '/calendar/entries/{entryId}';
+};
+
+export type DeleteCalendarEntriesByEntryIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Calendar entry not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Calendar entry not found';
+    };
+};
+
+export type DeleteCalendarEntriesByEntryIdError = DeleteCalendarEntriesByEntryIdErrors[keyof DeleteCalendarEntriesByEntryIdErrors];
+
+export type DeleteCalendarEntriesByEntryIdResponses = {
+    /**
+     * Calendar entry deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Calendar entry deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteCalendarEntriesByEntryIdResponse = DeleteCalendarEntriesByEntryIdResponses[keyof DeleteCalendarEntriesByEntryIdResponses];
+
+export type PutCalendarEntriesByEntryIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        location?: string | null;
+        start_at?: number;
+        end_at?: number;
+        all_day?: boolean;
+        color?: string | null;
+    };
+    path: {
+        entryId: number;
+    };
+    query?: never;
+    url: '/calendar/entries/{entryId}';
+};
+
+export type PutCalendarEntriesByEntryIdErrors = {
+    /**
+     * end_at must not be before start_at / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'end_at must not be before start_at / Syntax or validation error in request';
+    };
+    /**
+     * Calendar entry not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Calendar entry not found';
+    };
+};
+
+export type PutCalendarEntriesByEntryIdError = PutCalendarEntriesByEntryIdErrors[keyof PutCalendarEntriesByEntryIdErrors];
+
+export type PutCalendarEntriesByEntryIdResponses = {
+    /**
+     * Calendar entry updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Calendar entry updated successfully';
+        data: {
+            id: number;
+            user_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            start_at: number;
+            end_at: number;
+            all_day: boolean;
+            color: string | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PutCalendarEntriesByEntryIdResponse = PutCalendarEntriesByEntryIdResponses[keyof PutCalendarEntriesByEntryIdResponses];
+
+export type GetNotificationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        unread_only?: 'true' | 'false';
+        limit?: number;
+    };
+    url: '/notifications';
+};
+
+export type GetNotificationsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetNotificationsError = GetNotificationsErrors[keyof GetNotificationsErrors];
+
+export type GetNotificationsResponses = {
+    /**
+     * Notifications retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notifications retrieved successfully';
+        data: {
+            unread_count: number;
+            items: Array<{
+                id: number;
+                user_id: number;
+                type: string;
+                title: string;
+                body: string;
+                link: string | null;
+                read_at: number | null;
+                created_at: number;
+            }>;
+        };
+    };
+};
+
+export type GetNotificationsResponse = GetNotificationsResponses[keyof GetNotificationsResponses];
+
+export type PostNotificationsReadAllData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/notifications/read-all';
+};
+
+export type PostNotificationsReadAllResponses = {
+    /**
+     * All notifications marked as read
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'All notifications marked as read';
+        data: null;
+    };
+};
+
+export type PostNotificationsReadAllResponse = PostNotificationsReadAllResponses[keyof PostNotificationsReadAllResponses];
+
+export type PutNotificationsByNotificationIdReadData = {
+    body?: never;
+    path: {
+        notificationId: number;
+    };
+    query?: never;
+    url: '/notifications/{notificationId}/read';
+};
+
+export type PutNotificationsByNotificationIdReadErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Notification not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Notification not found';
+    };
+};
+
+export type PutNotificationsByNotificationIdReadError = PutNotificationsByNotificationIdReadErrors[keyof PutNotificationsByNotificationIdReadErrors];
+
+export type PutNotificationsByNotificationIdReadResponses = {
+    /**
+     * Notification marked as read
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notification marked as read';
+        data: {
+            id: number;
+            user_id: number;
+            type: string;
+            title: string;
+            body: string;
+            link: string | null;
+            read_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PutNotificationsByNotificationIdReadResponse = PutNotificationsByNotificationIdReadResponses[keyof PutNotificationsByNotificationIdReadResponses];
+
+export type DeleteNotificationsByNotificationIdData = {
+    body?: never;
+    path: {
+        notificationId: number;
+    };
+    query?: never;
+    url: '/notifications/{notificationId}';
+};
+
+export type DeleteNotificationsByNotificationIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Notification not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Notification not found';
+    };
+};
+
+export type DeleteNotificationsByNotificationIdError = DeleteNotificationsByNotificationIdErrors[keyof DeleteNotificationsByNotificationIdErrors];
+
+export type DeleteNotificationsByNotificationIdResponses = {
+    /**
+     * Notification deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notification deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteNotificationsByNotificationIdResponse = DeleteNotificationsByNotificationIdResponses[keyof DeleteNotificationsByNotificationIdResponses];
+
+export type GetConversationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/conversations';
+};
+
+export type GetConversationsResponses = {
+    /**
+     * Conversations retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Conversations retrieved successfully';
+        data: Array<{
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                created_at: number;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+        }>;
+    };
+};
+
+export type GetConversationsResponse = GetConversationsResponses[keyof GetConversationsResponses];
+
+export type PostConversationsData = {
+    body: {
+        type: 'direct' | 'group';
+        user_ids: Array<number>;
+        name?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/conversations';
+};
+
+export type PostConversationsErrors = {
+    /**
+     * A direct chat needs exactly one other user / A group chat needs a name / Unknown or inactive users / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'A direct chat needs exactly one other user / A group chat needs a name / Unknown or inactive users / Syntax or validation error in request';
+    };
+};
+
+export type PostConversationsError = PostConversationsErrors[keyof PostConversationsErrors];
+
+export type PostConversationsResponses = {
+    /**
+     * Conversation retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Conversation retrieved successfully';
+        data: {
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                created_at: number;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+        };
+    };
+    /**
+     * Conversation created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Conversation created successfully';
+        data: {
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                created_at: number;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PostConversationsResponse = PostConversationsResponses[keyof PostConversationsResponses];
+
+export type GetConversationsUnreadData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/conversations/unread';
+};
+
+export type GetConversationsUnreadResponses = {
+    /**
+     * Unread count retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Unread count retrieved successfully';
+        data: {
+            total: number;
+        };
+    };
+};
+
+export type GetConversationsUnreadResponse = GetConversationsUnreadResponses[keyof GetConversationsUnreadResponses];
+
+export type GetConversationsByConversationIdData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}';
+};
+
+export type GetConversationsByConversationIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdError = GetConversationsByConversationIdErrors[keyof GetConversationsByConversationIdErrors];
+
+export type GetConversationsByConversationIdResponses = {
+    /**
+     * Conversation retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Conversation retrieved successfully';
+        data: {
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                created_at: number;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type GetConversationsByConversationIdResponse = GetConversationsByConversationIdResponses[keyof GetConversationsByConversationIdResponses];
+
+export type PutConversationsByConversationIdData = {
+    body?: {
+        name?: string;
+        add_user_ids?: Array<number>;
+        remove_user_ids?: Array<number>;
+    };
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}';
+};
+
+export type PutConversationsByConversationIdErrors = {
+    /**
+     * Unknown or inactive users / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Unknown or inactive users / Syntax or validation error in request';
+    };
+    /**
+     * Only group chats can be edited
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only group chats can be edited';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type PutConversationsByConversationIdError = PutConversationsByConversationIdErrors[keyof PutConversationsByConversationIdErrors];
+
+export type PutConversationsByConversationIdResponses = {
+    /**
+     * Conversation updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Conversation updated successfully';
+        data: {
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                created_at: number;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PutConversationsByConversationIdResponse = PutConversationsByConversationIdResponses[keyof PutConversationsByConversationIdResponses];
+
+export type DeleteConversationsByConversationIdMembershipData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/membership';
+};
+
+export type DeleteConversationsByConversationIdMembershipErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only group chats can be left
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only group chats can be left';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type DeleteConversationsByConversationIdMembershipError = DeleteConversationsByConversationIdMembershipErrors[keyof DeleteConversationsByConversationIdMembershipErrors];
+
+export type DeleteConversationsByConversationIdMembershipResponses = {
+    /**
+     * You left the conversation
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'You left the conversation';
+        data: null;
+    };
+};
+
+export type DeleteConversationsByConversationIdMembershipResponse = DeleteConversationsByConversationIdMembershipResponses[keyof DeleteConversationsByConversationIdMembershipResponses];
+
+export type PostConversationsByConversationIdReadData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/read';
+};
+
+export type PostConversationsByConversationIdReadErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type PostConversationsByConversationIdReadError = PostConversationsByConversationIdReadErrors[keyof PostConversationsByConversationIdReadErrors];
+
+export type PostConversationsByConversationIdReadResponses = {
+    /**
+     * Conversation marked as read
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Conversation marked as read';
+        data: null;
+    };
+};
+
+export type PostConversationsByConversationIdReadResponse = PostConversationsByConversationIdReadResponses[keyof PostConversationsByConversationIdReadResponses];
+
+export type GetConversationsByConversationIdMessagesData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: {
+        after?: number;
+        before?: number;
+        limit?: number;
+    };
+    url: '/conversations/{conversationId}/messages';
+};
+
+export type GetConversationsByConversationIdMessagesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdMessagesError = GetConversationsByConversationIdMessagesErrors[keyof GetConversationsByConversationIdMessagesErrors];
+
+export type GetConversationsByConversationIdMessagesResponses = {
+    /**
+     * Messages retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Messages retrieved successfully';
+        data: Array<{
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+        }>;
+    };
+};
+
+export type GetConversationsByConversationIdMessagesResponse = GetConversationsByConversationIdMessagesResponses[keyof GetConversationsByConversationIdMessagesResponses];
+
+export type PostConversationsByConversationIdMessagesData = {
+    body: {
+        content: string;
+    };
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages';
+};
+
+export type PostConversationsByConversationIdMessagesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type PostConversationsByConversationIdMessagesError = PostConversationsByConversationIdMessagesErrors[keyof PostConversationsByConversationIdMessagesErrors];
+
+export type PostConversationsByConversationIdMessagesResponses = {
+    /**
+     * Message sent successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Message sent successfully';
+        data: {
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+        };
+    };
+};
+
+export type PostConversationsByConversationIdMessagesResponse = PostConversationsByConversationIdMessagesResponses[keyof PostConversationsByConversationIdMessagesResponses];
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdData = {
+    body?: never;
+    path: {
+        conversationId: number;
+        messageId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/{messageId}';
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You can only change your own messages
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You can only change your own messages';
+    };
+    /**
+     * Message not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Message not found';
+    };
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdError = DeleteConversationsByConversationIdMessagesByMessageIdErrors[keyof DeleteConversationsByConversationIdMessagesByMessageIdErrors];
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdResponses = {
+    /**
+     * Message deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Message deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdResponse = DeleteConversationsByConversationIdMessagesByMessageIdResponses[keyof DeleteConversationsByConversationIdMessagesByMessageIdResponses];
+
+export type PutConversationsByConversationIdMessagesByMessageIdData = {
+    body: {
+        content: string;
+    };
+    path: {
+        conversationId: number;
+        messageId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/{messageId}';
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You can only change your own messages
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You can only change your own messages';
+    };
+    /**
+     * Message not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Message not found';
+    };
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdError = PutConversationsByConversationIdMessagesByMessageIdErrors[keyof PutConversationsByConversationIdMessagesByMessageIdErrors];
+
+export type PutConversationsByConversationIdMessagesByMessageIdResponses = {
+    /**
+     * Message updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Message updated successfully';
+        data: {
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+        };
+    };
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdResponse = PutConversationsByConversationIdMessagesByMessageIdResponses[keyof PutConversationsByConversationIdMessagesByMessageIdResponses];
+
+export type GetUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        role?: 'admin' | 'core_team' | 'volunteer';
+    };
+    url: '/users';
+};
+
+export type GetUsersErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetUsersError = GetUsersErrors[keyof GetUsersErrors];
+
+export type GetUsersResponses = {
+    /**
+     * Users retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Users retrieved successfully';
+        data: Array<{
+            id: number;
+            username: string;
+            display_name: string;
+            email: string;
+            phone: string | null;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+        }>;
+    };
+};
+
+export type GetUsersResponse = GetUsersResponses[keyof GetUsersResponses];
+
+export type GetUsersByUserIdData = {
+    body?: never;
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/users/{userId}';
+};
+
+export type GetUsersByUserIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'User not found';
+    };
+};
+
+export type GetUsersByUserIdError = GetUsersByUserIdErrors[keyof GetUsersByUserIdErrors];
+
+export type GetUsersByUserIdResponses = {
+    /**
+     * User retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'User retrieved successfully';
+        data: {
+            id: number;
+            username: string;
+            display_name: string;
+            email: string;
+            phone: string | null;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            events: Array<{
+                id: number;
+                name: string;
+                start_date: string;
+                end_date: string;
+                role: 'leader' | 'staff';
+            }>;
+        };
+    };
+};
+
+export type GetUsersByUserIdResponse = GetUsersByUserIdResponses[keyof GetUsersByUserIdResponses];
+
+export type GetFilesDownloadByTokenData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/files/download/{token}';
+};
+
+export type GetFilesDownloadByTokenErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * File not found or link expired
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found or link expired';
+    };
+};
+
+export type GetFilesDownloadByTokenError = GetFilesDownloadByTokenErrors[keyof GetFilesDownloadByTokenErrors];
+
+export type GetFilesDownloadByTokenResponses = {
+    /**
+     * The file content
+     */
+    200: Blob | File;
+};
+
+export type GetFilesDownloadByTokenResponse = GetFilesDownloadByTokenResponses[keyof GetFilesDownloadByTokenResponses];
+
+export type DeleteFilesByFileIdData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}';
+};
+
+export type DeleteFilesByFileIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to change this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to change this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type DeleteFilesByFileIdError = DeleteFilesByFileIdErrors[keyof DeleteFilesByFileIdErrors];
+
+export type DeleteFilesByFileIdResponses = {
+    /**
+     * File deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'File deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteFilesByFileIdResponse = DeleteFilesByFileIdResponses[keyof DeleteFilesByFileIdResponses];
+
+export type GetFilesByFileIdData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}';
+};
+
+export type GetFilesByFileIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetFilesByFileIdError = GetFilesByFileIdErrors[keyof GetFilesByFileIdErrors];
+
+export type GetFilesByFileIdResponses = {
+    /**
+     * File retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'File retrieved successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type GetFilesByFileIdResponse = GetFilesByFileIdResponses[keyof GetFilesByFileIdResponses];
+
+export type PutFilesByFileIdData = {
+    body?: {
+        name?: string;
+        parent_id?: number | null;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}';
+};
+
+export type PutFilesByFileIdErrors = {
+    /**
+     * Parent folder not found / A folder cannot be moved into itself / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / A folder cannot be moved into itself / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to change this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to change this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type PutFilesByFileIdError = PutFilesByFileIdErrors[keyof PutFilesByFileIdErrors];
+
+export type PutFilesByFileIdResponses = {
+    /**
+     * File updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'File updated successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
+
+export type GetEventsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        scope?: 'mine' | 'all';
+        include_archived?: 'true' | 'false';
+    };
+    url: '/events';
+};
+
+export type GetEventsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have permission to list all events
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have permission to list all events';
+    };
+};
+
+export type GetEventsError = GetEventsErrors[keyof GetEventsErrors];
+
+export type GetEventsResponses = {
+    /**
+     * Events retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Events retrieved successfully';
+        data: Array<{
+            id: number;
+            name: string;
+            type: 'camp' | 'event';
+            status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+            description: string;
+            location: string | null;
+            start_date: string;
+            end_date: string;
+            color: string | null;
+            max_participants: number | null;
+            participant_fee_cents: number | null;
+            budget_cents: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            my_role: 'leader' | 'staff' | null;
+            is_member: boolean;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            staff_count: number;
+            participant_count: number;
+        }>;
+    };
+};
+
+export type GetEventsResponse = GetEventsResponses[keyof GetEventsResponses];
+
+export type PostEventsData = {
+    body: {
+        name: string;
+        type?: 'camp' | 'event';
+        status?: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+        description?: string;
+        location?: string | null;
+        start_date: string;
+        end_date: string;
+        color?: string | null;
+        max_participants?: number | null;
+        participant_fee_cents?: number | null;
+        budget_cents?: number;
+        leader_ids?: Array<number>;
+    };
+    path?: never;
+    query?: never;
+    url: '/events';
+};
+
+export type PostEventsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can create events
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can create events';
+    };
+};
+
+export type PostEventsError = PostEventsErrors[keyof PostEventsErrors];
+
+export type PostEventsResponses = {
+    /**
+     * Event created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Event created successfully';
+        data: {
+            id: number;
+            name: string;
+            type: 'camp' | 'event';
+            status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+            description: string;
+            location: string | null;
+            start_date: string;
+            end_date: string;
+            color: string | null;
+            max_participants: number | null;
+            participant_fee_cents: number | null;
+            budget_cents: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            my_role: 'leader' | 'staff' | null;
+            is_member: boolean;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            staff_count: number;
+            participant_count: number;
+        };
+    };
+};
+
+export type PostEventsResponse = PostEventsResponses[keyof PostEventsResponses];
+
+export type DeleteEventsByEventIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}';
+};
+
+export type DeleteEventsByEventIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the core team can delete events
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can delete events';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type DeleteEventsByEventIdError = DeleteEventsByEventIdErrors[keyof DeleteEventsByEventIdErrors];
+
+export type DeleteEventsByEventIdResponses = {
+    /**
+     * Event deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Event deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdResponse = DeleteEventsByEventIdResponses[keyof DeleteEventsByEventIdResponses];
+
+export type GetEventsByEventIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}';
+};
+
+export type GetEventsByEventIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdError = GetEventsByEventIdErrors[keyof GetEventsByEventIdErrors];
+
+export type GetEventsByEventIdResponses = {
+    /**
+     * Event retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Event retrieved successfully';
+        data: {
+            id: number;
+            name: string;
+            type: 'camp' | 'event';
+            status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+            description: string;
+            location: string | null;
+            start_date: string;
+            end_date: string;
+            color: string | null;
+            max_participants: number | null;
+            participant_fee_cents: number | null;
+            budget_cents: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            my_role: 'leader' | 'staff' | null;
+            is_member: boolean;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            staff_count: number;
+            participant_count: number;
+        };
+    };
+};
+
+export type GetEventsByEventIdResponse = GetEventsByEventIdResponses[keyof GetEventsByEventIdResponses];
+
+export type PutEventsByEventIdData = {
+    body?: {
+        name?: string;
+        type?: 'camp' | 'event';
+        status?: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+        description?: string;
+        location?: string | null;
+        start_date?: string;
+        end_date?: string;
+        color?: string | null;
+        max_participants?: number | null;
+        participant_fee_cents?: number | null;
+        budget_cents?: number;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}';
+};
+
+export type PutEventsByEventIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PutEventsByEventIdError = PutEventsByEventIdErrors[keyof PutEventsByEventIdErrors];
+
+export type PutEventsByEventIdResponses = {
+    /**
+     * Event updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Event updated successfully';
+        data: {
+            id: number;
+            name: string;
+            type: 'camp' | 'event';
+            status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+            description: string;
+            location: string | null;
+            start_date: string;
+            end_date: string;
+            color: string | null;
+            max_participants: number | null;
+            participant_fee_cents: number | null;
+            budget_cents: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            my_role: 'leader' | 'staff' | null;
+            is_member: boolean;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            staff_count: number;
+            participant_count: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdResponse = PutEventsByEventIdResponses[keyof PutEventsByEventIdResponses];
+
+export type GetEventsByEventIdOverviewData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/overview';
+};
+
+export type GetEventsByEventIdOverviewErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdOverviewError = GetEventsByEventIdOverviewErrors[keyof GetEventsByEventIdOverviewErrors];
+
+export type GetEventsByEventIdOverviewResponses = {
+    /**
+     * Event overview retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Event overview retrieved successfully';
+        data: {
+            event: {
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                description: string;
+                location: string | null;
+                start_date: string;
+                end_date: string;
+                color: string | null;
+                max_participants: number | null;
+                participant_fee_cents: number | null;
+                budget_cents: number;
+                created_by: number | null;
+                created_at: number;
+                updated_at: number;
+                my_role: 'leader' | 'staff' | null;
+                is_member: boolean;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                leaders: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+                staff_count: number;
+                participant_count: number;
+            };
+            today: string;
+            is_running: boolean;
+            today_program: Array<{
+                id: number;
+                title: string;
+                location: string | null;
+                start_at: number;
+                end_at: number;
+                color: string | null;
+                category: string | null;
+                responsible: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+                is_mine: boolean;
+            }>;
+            next_program: Array<{
+                id: number;
+                title: string;
+                location: string | null;
+                start_at: number;
+                end_at: number;
+                color: string | null;
+                category: string | null;
+                responsible: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+                is_mine: boolean;
+            }>;
+            announcements: Array<{
+                id: number;
+                title: string;
+                content: string;
+                priority: 'normal' | 'important';
+                pinned: boolean;
+                created_at: number;
+                created_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+            }>;
+            my_tasks: Array<{
+                id: number;
+                title: string;
+                status: 'open' | 'in_progress' | 'done';
+                priority: 'low' | 'normal' | 'high' | 'urgent';
+                due_at: number | null;
+            }>;
+            my_responsibilities: Array<{
+                id: number;
+                title: string;
+                location: string | null;
+            }>;
+            my_room: {
+                id: number;
+                name: string;
+            } | null;
+            my_groups: Array<{
+                id: number;
+                name: string;
+                color: string | null;
+            }>;
+            counts: {
+                participants: number;
+                staff: number;
+                open_tasks: number;
+                pending_expenses: number | null;
+            };
+        };
+    };
+};
+
+export type GetEventsByEventIdOverviewResponse = GetEventsByEventIdOverviewResponses[keyof GetEventsByEventIdOverviewResponses];
+
+export type GetEventsByEventIdMembersData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/members';
+};
+
+export type GetEventsByEventIdMembersErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdMembersError = GetEventsByEventIdMembersErrors[keyof GetEventsByEventIdMembersErrors];
+
+export type GetEventsByEventIdMembersResponses = {
+    /**
+     * Members retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Members retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            user_id: number;
+            role: 'leader' | 'staff';
+            position: string | null;
+            room_id: number | null;
+            leader_notes: string;
+            created_at: number;
+            user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            };
+            groups: Array<{
+                id: number;
+                name: string;
+                color: string | null;
+            }>;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdMembersResponse = GetEventsByEventIdMembersResponses[keyof GetEventsByEventIdMembersResponses];
+
+export type PostEventsByEventIdMembersData = {
+    body: {
+        user_id: number;
+        role?: 'leader' | 'staff';
+        position?: string | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/members';
+};
+
+export type PostEventsByEventIdMembersErrors = {
+    /**
+     * The user's account has not been activated yet / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The user\'s account has not been activated yet / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the staff of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the staff of this event';
+    };
+    /**
+     * Event not found / User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found / User not found';
+    };
+    /**
+     * The user is already a member of this event
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The user is already a member of this event';
+    };
+};
+
+export type PostEventsByEventIdMembersError = PostEventsByEventIdMembersErrors[keyof PostEventsByEventIdMembersErrors];
+
+export type PostEventsByEventIdMembersResponses = {
+    /**
+     * Member added successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Member added successfully';
+        data: {
+            id: number;
+            event_id: number;
+            user_id: number;
+            role: 'leader' | 'staff';
+            position: string | null;
+            room_id: number | null;
+            leader_notes: string;
+            created_at: number;
+            user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            };
+            groups: Array<{
+                id: number;
+                name: string;
+                color: string | null;
+            }>;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdMembersResponse = PostEventsByEventIdMembersResponses[keyof PostEventsByEventIdMembersResponses];
+
+export type DeleteEventsByEventIdMembersByMemberIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        memberId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/members/{memberId}';
+};
+
+export type DeleteEventsByEventIdMembersByMemberIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the staff of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the staff of this event';
+    };
+    /**
+     * Member not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Member not found';
+    };
+};
+
+export type DeleteEventsByEventIdMembersByMemberIdError = DeleteEventsByEventIdMembersByMemberIdErrors[keyof DeleteEventsByEventIdMembersByMemberIdErrors];
+
+export type DeleteEventsByEventIdMembersByMemberIdResponses = {
+    /**
+     * Member removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Member removed successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdMembersByMemberIdResponse = DeleteEventsByEventIdMembersByMemberIdResponses[keyof DeleteEventsByEventIdMembersByMemberIdResponses];
+
+export type PutEventsByEventIdMembersByMemberIdData = {
+    body?: {
+        role?: 'leader' | 'staff';
+        position?: string | null;
+        room_id?: number | null;
+        leader_notes?: string;
+    };
+    path: {
+        eventId: number;
+        memberId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/members/{memberId}';
+};
+
+export type PutEventsByEventIdMembersByMemberIdErrors = {
+    /**
+     * The room does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The room does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the staff of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the staff of this event';
+    };
+    /**
+     * Member not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Member not found';
+    };
+};
+
+export type PutEventsByEventIdMembersByMemberIdError = PutEventsByEventIdMembersByMemberIdErrors[keyof PutEventsByEventIdMembersByMemberIdErrors];
+
+export type PutEventsByEventIdMembersByMemberIdResponses = {
+    /**
+     * Member updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Member updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            user_id: number;
+            role: 'leader' | 'staff';
+            position: string | null;
+            room_id: number | null;
+            leader_notes: string;
+            created_at: number;
+            user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            };
+            groups: Array<{
+                id: number;
+                name: string;
+                color: string | null;
+            }>;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+        };
+    };
+};
+
+export type PutEventsByEventIdMembersByMemberIdResponse = PutEventsByEventIdMembersByMemberIdResponses[keyof PutEventsByEventIdMembersByMemberIdResponses];
+
+export type GetEventsByEventIdGroupsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/groups';
+};
+
+export type GetEventsByEventIdGroupsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdGroupsError = GetEventsByEventIdGroupsErrors[keyof GetEventsByEventIdGroupsErrors];
+
+export type GetEventsByEventIdGroupsResponses = {
+    /**
+     * Groups retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Groups retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdGroupsResponse = GetEventsByEventIdGroupsResponses[keyof GetEventsByEventIdGroupsResponses];
+
+export type PostEventsByEventIdGroupsData = {
+    body: {
+        name: string;
+        description?: string;
+        color?: string | null;
+        member_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/groups';
+};
+
+export type PostEventsByEventIdGroupsErrors = {
+    /**
+     * All group members must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All group members must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the groups of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdGroupsError = PostEventsByEventIdGroupsErrors[keyof PostEventsByEventIdGroupsErrors];
+
+export type PostEventsByEventIdGroupsResponses = {
+    /**
+     * Group created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Group created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdGroupsResponse = PostEventsByEventIdGroupsResponses[keyof PostEventsByEventIdGroupsResponses];
+
+export type DeleteEventsByEventIdGroupsByGroupIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        groupId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/groups/{groupId}';
+};
+
+export type DeleteEventsByEventIdGroupsByGroupIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the groups of this event';
+    };
+    /**
+     * Group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Group not found';
+    };
+};
+
+export type DeleteEventsByEventIdGroupsByGroupIdError = DeleteEventsByEventIdGroupsByGroupIdErrors[keyof DeleteEventsByEventIdGroupsByGroupIdErrors];
+
+export type DeleteEventsByEventIdGroupsByGroupIdResponses = {
+    /**
+     * Group deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Group deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdGroupsByGroupIdResponse = DeleteEventsByEventIdGroupsByGroupIdResponses[keyof DeleteEventsByEventIdGroupsByGroupIdResponses];
+
+export type PutEventsByEventIdGroupsByGroupIdData = {
+    body?: {
+        name?: string;
+        description?: string;
+        color?: string | null;
+        member_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+        groupId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/groups/{groupId}';
+};
+
+export type PutEventsByEventIdGroupsByGroupIdErrors = {
+    /**
+     * All group members must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All group members must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the groups of this event';
+    };
+    /**
+     * Group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Group not found';
+    };
+};
+
+export type PutEventsByEventIdGroupsByGroupIdError = PutEventsByEventIdGroupsByGroupIdErrors[keyof PutEventsByEventIdGroupsByGroupIdErrors];
+
+export type PutEventsByEventIdGroupsByGroupIdResponses = {
+    /**
+     * Group updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Group updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdGroupsByGroupIdResponse = PutEventsByEventIdGroupsByGroupIdResponses[keyof PutEventsByEventIdGroupsByGroupIdResponses];
+
+export type GetEventsByEventIdRoomsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/rooms';
+};
+
+export type GetEventsByEventIdRoomsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdRoomsError = GetEventsByEventIdRoomsErrors[keyof GetEventsByEventIdRoomsErrors];
+
+export type GetEventsByEventIdRoomsResponses = {
+    /**
+     * Rooms retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Rooms retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            name: string;
+            capacity: number | null;
+            notes: string;
+            created_at: number;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+            }>;
+            staff: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            occupancy: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdRoomsResponse = GetEventsByEventIdRoomsResponses[keyof GetEventsByEventIdRoomsResponses];
+
+export type PostEventsByEventIdRoomsData = {
+    body: {
+        name: string;
+        capacity?: number | null;
+        notes?: string;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/rooms';
+};
+
+export type PostEventsByEventIdRoomsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the rooms of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the rooms of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdRoomsError = PostEventsByEventIdRoomsErrors[keyof PostEventsByEventIdRoomsErrors];
+
+export type PostEventsByEventIdRoomsResponses = {
+    /**
+     * Room created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Room created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            capacity: number | null;
+            notes: string;
+            created_at: number;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+            }>;
+            staff: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            occupancy: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdRoomsResponse = PostEventsByEventIdRoomsResponses[keyof PostEventsByEventIdRoomsResponses];
+
+export type PutEventsByEventIdRoomsAssignmentsData = {
+    body?: {
+        participants?: Array<{
+            participant_id: number;
+            room_id: number | null;
+        }>;
+        staff?: Array<{
+            user_id: number;
+            room_id: number | null;
+        }>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/rooms/assignments';
+};
+
+export type PutEventsByEventIdRoomsAssignmentsErrors = {
+    /**
+     * Unknown room, participant or staff member for this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Unknown room, participant or staff member for this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the rooms of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the rooms of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PutEventsByEventIdRoomsAssignmentsError = PutEventsByEventIdRoomsAssignmentsErrors[keyof PutEventsByEventIdRoomsAssignmentsErrors];
+
+export type PutEventsByEventIdRoomsAssignmentsResponses = {
+    /**
+     * Room assignments updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Room assignments updated successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            name: string;
+            capacity: number | null;
+            notes: string;
+            created_at: number;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+            }>;
+            staff: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            occupancy: number;
+        }>;
+    };
+};
+
+export type PutEventsByEventIdRoomsAssignmentsResponse = PutEventsByEventIdRoomsAssignmentsResponses[keyof PutEventsByEventIdRoomsAssignmentsResponses];
+
+export type DeleteEventsByEventIdRoomsByRoomIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        roomId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/rooms/{roomId}';
+};
+
+export type DeleteEventsByEventIdRoomsByRoomIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the rooms of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the rooms of this event';
+    };
+    /**
+     * Room not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Room not found';
+    };
+};
+
+export type DeleteEventsByEventIdRoomsByRoomIdError = DeleteEventsByEventIdRoomsByRoomIdErrors[keyof DeleteEventsByEventIdRoomsByRoomIdErrors];
+
+export type DeleteEventsByEventIdRoomsByRoomIdResponses = {
+    /**
+     * Room deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Room deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdRoomsByRoomIdResponse = DeleteEventsByEventIdRoomsByRoomIdResponses[keyof DeleteEventsByEventIdRoomsByRoomIdResponses];
+
+export type PutEventsByEventIdRoomsByRoomIdData = {
+    body?: {
+        name?: string;
+        capacity?: number | null;
+        notes?: string;
+    };
+    path: {
+        eventId: number;
+        roomId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/rooms/{roomId}';
+};
+
+export type PutEventsByEventIdRoomsByRoomIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the rooms of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the rooms of this event';
+    };
+    /**
+     * Room not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Room not found';
+    };
+};
+
+export type PutEventsByEventIdRoomsByRoomIdError = PutEventsByEventIdRoomsByRoomIdErrors[keyof PutEventsByEventIdRoomsByRoomIdErrors];
+
+export type PutEventsByEventIdRoomsByRoomIdResponses = {
+    /**
+     * Room updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Room updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            capacity: number | null;
+            notes: string;
+            created_at: number;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+            }>;
+            staff: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            occupancy: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdRoomsByRoomIdResponse = PutEventsByEventIdRoomsByRoomIdResponses[keyof PutEventsByEventIdRoomsByRoomIdResponses];
+
+export type GetEventsByEventIdParticipantsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        search?: string;
+        status?: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+    };
+    url: '/events/{eventId}/participants';
+};
+
+export type GetEventsByEventIdParticipantsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view participants';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdParticipantsError = GetEventsByEventIdParticipantsErrors[keyof GetEventsByEventIdParticipantsErrors];
+
+export type GetEventsByEventIdParticipantsResponses = {
+    /**
+     * Participants retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Participants retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            first_name: string;
+            last_name: string;
+            birth_date: string | null;
+            gender: 'female' | 'male' | 'diverse' | null;
+            email: string | null;
+            phone: string | null;
+            address: string | null;
+            guardian_name: string | null;
+            guardian_phone: string | null;
+            allergies: string;
+            medications: string;
+            dietary_requirements: string;
+            medical_notes: string;
+            can_swim: boolean | null;
+            photo_consent: boolean;
+            notes: string;
+            room_id: number | null;
+            status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            fee_paid: boolean;
+            created_at: number;
+            updated_at: number;
+            age: number | null;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+            emergency_contacts: Array<{
+                id: number;
+                participant_id: number;
+                name: string;
+                relation: string | null;
+                phone: string;
+                created_at: number;
+            }>;
+            note_count: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdParticipantsResponse = GetEventsByEventIdParticipantsResponses[keyof GetEventsByEventIdParticipantsResponses];
+
+export type PostEventsByEventIdParticipantsData = {
+    body: {
+        first_name: string;
+        last_name: string;
+        birth_date?: string | null;
+        gender?: 'female' | 'male' | 'diverse' | null;
+        email?: string | null;
+        phone?: string | null;
+        address?: string | null;
+        guardian_name?: string | null;
+        guardian_phone?: string | null;
+        allergies?: string;
+        medications?: string;
+        dietary_requirements?: string;
+        medical_notes?: string;
+        can_swim?: boolean | null;
+        photo_consent?: boolean;
+        notes?: string;
+        room_id?: number | null;
+        status?: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+        fee_paid?: boolean;
+        emergency_contacts?: Array<{
+            name: string;
+            relation?: string | null;
+            phone: string;
+        }>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants';
+};
+
+export type PostEventsByEventIdParticipantsErrors = {
+    /**
+     * The room does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The room does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage participants';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdParticipantsError = PostEventsByEventIdParticipantsErrors[keyof PostEventsByEventIdParticipantsErrors];
+
+export type PostEventsByEventIdParticipantsResponses = {
+    /**
+     * Participant created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Participant created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            first_name: string;
+            last_name: string;
+            birth_date: string | null;
+            gender: 'female' | 'male' | 'diverse' | null;
+            email: string | null;
+            phone: string | null;
+            address: string | null;
+            guardian_name: string | null;
+            guardian_phone: string | null;
+            allergies: string;
+            medications: string;
+            dietary_requirements: string;
+            medical_notes: string;
+            can_swim: boolean | null;
+            photo_consent: boolean;
+            notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
+            room_id: number | null;
+            status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            fee_paid: boolean;
+            created_at: number;
+            updated_at: number;
+            age: number | null;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+            emergency_contacts: Array<{
+                id: number;
+                participant_id: number;
+                name: string;
+                relation: string | null;
+                phone: string;
+                created_at: number;
+            }>;
+            note_count: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdParticipantsResponse = PostEventsByEventIdParticipantsResponses[keyof PostEventsByEventIdParticipantsResponses];
+
+export type GetEventsByEventIdParticipantsExportData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/export';
+};
+
+export type GetEventsByEventIdParticipantsExportErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view participants';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdParticipantsExportError = GetEventsByEventIdParticipantsExportErrors[keyof GetEventsByEventIdParticipantsExportErrors];
+
+export type GetEventsByEventIdParticipantsExportResponses = {
+    /**
+     * CSV file with one row per participant
+     */
+    200: string;
+};
+
+export type GetEventsByEventIdParticipantsExportResponse = GetEventsByEventIdParticipantsExportResponses[keyof GetEventsByEventIdParticipantsExportResponses];
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        participantId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/{participantId}';
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage participants';
+    };
+    /**
+     * Participant not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Participant not found';
+    };
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdError = DeleteEventsByEventIdParticipantsByParticipantIdErrors[keyof DeleteEventsByEventIdParticipantsByParticipantIdErrors];
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdResponses = {
+    /**
+     * Participant deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Participant deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdResponse = DeleteEventsByEventIdParticipantsByParticipantIdResponses[keyof DeleteEventsByEventIdParticipantsByParticipantIdResponses];
+
+export type GetEventsByEventIdParticipantsByParticipantIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        participantId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/{participantId}';
+};
+
+export type GetEventsByEventIdParticipantsByParticipantIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view participants';
+    };
+    /**
+     * Participant not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Participant not found';
+    };
+};
+
+export type GetEventsByEventIdParticipantsByParticipantIdError = GetEventsByEventIdParticipantsByParticipantIdErrors[keyof GetEventsByEventIdParticipantsByParticipantIdErrors];
+
+export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
+    /**
+     * Participant retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Participant retrieved successfully';
+        data: {
+            id: number;
+            event_id: number;
+            first_name: string;
+            last_name: string;
+            birth_date: string | null;
+            gender: 'female' | 'male' | 'diverse' | null;
+            email: string | null;
+            phone: string | null;
+            address: string | null;
+            guardian_name: string | null;
+            guardian_phone: string | null;
+            allergies: string;
+            medications: string;
+            dietary_requirements: string;
+            medical_notes: string;
+            can_swim: boolean | null;
+            photo_consent: boolean;
+            notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
+            room_id: number | null;
+            status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            fee_paid: boolean;
+            created_at: number;
+            updated_at: number;
+            age: number | null;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+            emergency_contacts: Array<{
+                id: number;
+                participant_id: number;
+                name: string;
+                relation: string | null;
+                phone: string;
+                created_at: number;
+            }>;
+            note_count: number;
+        };
+    };
+};
+
+export type GetEventsByEventIdParticipantsByParticipantIdResponse = GetEventsByEventIdParticipantsByParticipantIdResponses[keyof GetEventsByEventIdParticipantsByParticipantIdResponses];
+
+export type PutEventsByEventIdParticipantsByParticipantIdData = {
+    body?: {
+        first_name?: string;
+        last_name?: string;
+        birth_date?: string | null;
+        gender?: 'female' | 'male' | 'diverse' | null;
+        email?: string | null;
+        phone?: string | null;
+        address?: string | null;
+        guardian_name?: string | null;
+        guardian_phone?: string | null;
+        allergies?: string;
+        medications?: string;
+        dietary_requirements?: string;
+        medical_notes?: string;
+        can_swim?: boolean | null;
+        photo_consent?: boolean;
+        notes?: string;
+        room_id?: number | null;
+        status?: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+        fee_paid?: boolean;
+        emergency_contacts?: Array<{
+            name: string;
+            relation?: string | null;
+            phone: string;
+        }>;
+    };
+    path: {
+        eventId: number;
+        participantId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/{participantId}';
+};
+
+export type PutEventsByEventIdParticipantsByParticipantIdErrors = {
+    /**
+     * The room does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The room does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage participants';
+    };
+    /**
+     * Participant not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Participant not found';
+    };
+};
+
+export type PutEventsByEventIdParticipantsByParticipantIdError = PutEventsByEventIdParticipantsByParticipantIdErrors[keyof PutEventsByEventIdParticipantsByParticipantIdErrors];
+
+export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
+    /**
+     * Participant updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Participant updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            first_name: string;
+            last_name: string;
+            birth_date: string | null;
+            gender: 'female' | 'male' | 'diverse' | null;
+            email: string | null;
+            phone: string | null;
+            address: string | null;
+            guardian_name: string | null;
+            guardian_phone: string | null;
+            allergies: string;
+            medications: string;
+            dietary_requirements: string;
+            medical_notes: string;
+            can_swim: boolean | null;
+            photo_consent: boolean;
+            notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
+            room_id: number | null;
+            status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            fee_paid: boolean;
+            created_at: number;
+            updated_at: number;
+            age: number | null;
+            room: {
+                id: number;
+                name: string;
+            } | null;
+            emergency_contacts: Array<{
+                id: number;
+                participant_id: number;
+                name: string;
+                relation: string | null;
+                phone: string;
+                created_at: number;
+            }>;
+            note_count: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdParticipantsByParticipantIdResponse = PutEventsByEventIdParticipantsByParticipantIdResponses[keyof PutEventsByEventIdParticipantsByParticipantIdResponses];
+
+export type PostEventsByEventIdParticipantsByParticipantIdNotesData = {
+    body: {
+        content: string;
+    };
+    path: {
+        eventId: number;
+        participantId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/{participantId}/notes';
+};
+
+export type PostEventsByEventIdParticipantsByParticipantIdNotesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add notes to participants
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add notes to participants';
+    };
+    /**
+     * Participant not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Participant not found';
+    };
+};
+
+export type PostEventsByEventIdParticipantsByParticipantIdNotesError = PostEventsByEventIdParticipantsByParticipantIdNotesErrors[keyof PostEventsByEventIdParticipantsByParticipantIdNotesErrors];
+
+export type PostEventsByEventIdParticipantsByParticipantIdNotesResponses = {
+    /**
+     * Note created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Note created successfully';
+        data: {
+            id: number;
+            content: string;
+            created_at: number;
+            author: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdParticipantsByParticipantIdNotesResponse = PostEventsByEventIdParticipantsByParticipantIdNotesResponses[keyof PostEventsByEventIdParticipantsByParticipantIdNotesResponses];
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        participantId: number;
+        noteId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/participants/{participantId}/notes/{noteId}';
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to delete this note
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to delete this note';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdError = DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdErrors[keyof DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdErrors];
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdResponses = {
+    /**
+     * Note deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdResponse = DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdResponses[keyof DeleteEventsByEventIdParticipantsByParticipantIdNotesByNoteIdResponses];
+
+export type GetEventsByEventIdProgramData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        from?: number;
+        to?: number;
+    };
+    url: '/events/{eventId}/program';
+};
+
+export type GetEventsByEventIdProgramErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view the program
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view the program';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdProgramError = GetEventsByEventIdProgramErrors[keyof GetEventsByEventIdProgramErrors];
+
+export type GetEventsByEventIdProgramResponses = {
+    /**
+     * Program items retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Program items retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            category: string | null;
+            color: string | null;
+            start_at: number;
+            end_at: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            responsible: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            files: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            is_mine: boolean;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdProgramResponse = GetEventsByEventIdProgramResponses[keyof GetEventsByEventIdProgramResponses];
+
+export type PostEventsByEventIdProgramData = {
+    body: {
+        title: string;
+        description?: string;
+        location?: string | null;
+        category?: string | null;
+        color?: string | null;
+        start_at: number;
+        end_at: number;
+        responsible_user_ids?: Array<number>;
+        file_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/program';
+};
+
+export type PostEventsByEventIdProgramErrors = {
+    /**
+     * end_at must be after start_at / A responsible person is not a staff member of this event / A linked file does not belong to this event or the organisation library / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'end_at must be after start_at / A responsible person is not a staff member of this event / A linked file does not belong to this event or the organisation library / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the program
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the program';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdProgramError = PostEventsByEventIdProgramErrors[keyof PostEventsByEventIdProgramErrors];
+
+export type PostEventsByEventIdProgramResponses = {
+    /**
+     * Program item created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Program item created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            category: string | null;
+            color: string | null;
+            start_at: number;
+            end_at: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            responsible: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            files: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdProgramResponse = PostEventsByEventIdProgramResponses[keyof PostEventsByEventIdProgramResponses];
+
+export type DeleteEventsByEventIdProgramByProgramItemIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        programItemId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/program/{programItemId}';
+};
+
+export type DeleteEventsByEventIdProgramByProgramItemIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the program
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the program';
+    };
+    /**
+     * Program item not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Program item not found';
+    };
+};
+
+export type DeleteEventsByEventIdProgramByProgramItemIdError = DeleteEventsByEventIdProgramByProgramItemIdErrors[keyof DeleteEventsByEventIdProgramByProgramItemIdErrors];
+
+export type DeleteEventsByEventIdProgramByProgramItemIdResponses = {
+    /**
+     * Program item deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Program item deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdProgramByProgramItemIdResponse = DeleteEventsByEventIdProgramByProgramItemIdResponses[keyof DeleteEventsByEventIdProgramByProgramItemIdResponses];
+
+export type PutEventsByEventIdProgramByProgramItemIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        location?: string | null;
+        category?: string | null;
+        color?: string | null;
+        start_at?: number;
+        end_at?: number;
+        responsible_user_ids?: Array<number>;
+        file_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+        programItemId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/program/{programItemId}';
+};
+
+export type PutEventsByEventIdProgramByProgramItemIdErrors = {
+    /**
+     * end_at must be after start_at / A responsible person is not a staff member of this event / A linked file does not belong to this event or the organisation library / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'end_at must be after start_at / A responsible person is not a staff member of this event / A linked file does not belong to this event or the organisation library / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the program
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the program';
+    };
+    /**
+     * Program item not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Program item not found';
+    };
+};
+
+export type PutEventsByEventIdProgramByProgramItemIdError = PutEventsByEventIdProgramByProgramItemIdErrors[keyof PutEventsByEventIdProgramByProgramItemIdErrors];
+
+export type PutEventsByEventIdProgramByProgramItemIdResponses = {
+    /**
+     * Program item updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Program item updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            category: string | null;
+            color: string | null;
+            start_at: number;
+            end_at: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            responsible: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            files: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdProgramByProgramItemIdResponse = PutEventsByEventIdProgramByProgramItemIdResponses[keyof PutEventsByEventIdProgramByProgramItemIdResponses];
+
+export type PostEventsByEventIdProgramByProgramItemIdDuplicateData = {
+    body: {
+        start_at: number;
+    };
+    path: {
+        eventId: number;
+        programItemId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/program/{programItemId}/duplicate';
+};
+
+export type PostEventsByEventIdProgramByProgramItemIdDuplicateErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the program
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the program';
+    };
+    /**
+     * Program item not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Program item not found';
+    };
+};
+
+export type PostEventsByEventIdProgramByProgramItemIdDuplicateError = PostEventsByEventIdProgramByProgramItemIdDuplicateErrors[keyof PostEventsByEventIdProgramByProgramItemIdDuplicateErrors];
+
+export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
+    /**
+     * Program item duplicated successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Program item duplicated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            category: string | null;
+            color: string | null;
+            start_at: number;
+            end_at: number;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            responsible: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            files: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponse = PostEventsByEventIdProgramByProgramItemIdDuplicateResponses[keyof PostEventsByEventIdProgramByProgramItemIdDuplicateResponses];
+
+export type GetEventsByEventIdResponsibilitiesData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/responsibilities';
+};
+
+export type GetEventsByEventIdResponsibilitiesErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdResponsibilitiesError = GetEventsByEventIdResponsibilitiesErrors[keyof GetEventsByEventIdResponsibilitiesErrors];
+
+export type GetEventsByEventIdResponsibilitiesResponses = {
+    /**
+     * Responsibilities retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Responsibilities retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            created_at: number;
+            assignees: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdResponsibilitiesResponse = GetEventsByEventIdResponsibilitiesResponses[keyof GetEventsByEventIdResponsibilitiesResponses];
+
+export type PostEventsByEventIdResponsibilitiesData = {
+    body: {
+        title: string;
+        description?: string;
+        location?: string | null;
+        assignee_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/responsibilities';
+};
+
+export type PostEventsByEventIdResponsibilitiesErrors = {
+    /**
+     * All assignees must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All assignees must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the responsibilities of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the responsibilities of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdResponsibilitiesError = PostEventsByEventIdResponsibilitiesErrors[keyof PostEventsByEventIdResponsibilitiesErrors];
+
+export type PostEventsByEventIdResponsibilitiesResponses = {
+    /**
+     * Responsibility created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Responsibility created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            created_at: number;
+            assignees: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+        };
+    };
+};
+
+export type PostEventsByEventIdResponsibilitiesResponse = PostEventsByEventIdResponsibilitiesResponses[keyof PostEventsByEventIdResponsibilitiesResponses];
+
+export type DeleteEventsByEventIdResponsibilitiesByResponsibilityIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        responsibilityId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/responsibilities/{responsibilityId}';
+};
+
+export type DeleteEventsByEventIdResponsibilitiesByResponsibilityIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the responsibilities of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the responsibilities of this event';
+    };
+    /**
+     * Responsibility not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Responsibility not found';
+    };
+};
+
+export type DeleteEventsByEventIdResponsibilitiesByResponsibilityIdError = DeleteEventsByEventIdResponsibilitiesByResponsibilityIdErrors[keyof DeleteEventsByEventIdResponsibilitiesByResponsibilityIdErrors];
+
+export type DeleteEventsByEventIdResponsibilitiesByResponsibilityIdResponses = {
+    /**
+     * Responsibility deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Responsibility deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdResponsibilitiesByResponsibilityIdResponse = DeleteEventsByEventIdResponsibilitiesByResponsibilityIdResponses[keyof DeleteEventsByEventIdResponsibilitiesByResponsibilityIdResponses];
+
+export type PutEventsByEventIdResponsibilitiesByResponsibilityIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        location?: string | null;
+        assignee_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+        responsibilityId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/responsibilities/{responsibilityId}';
+};
+
+export type PutEventsByEventIdResponsibilitiesByResponsibilityIdErrors = {
+    /**
+     * All assignees must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All assignees must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the responsibilities of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the responsibilities of this event';
+    };
+    /**
+     * Responsibility not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Responsibility not found';
+    };
+};
+
+export type PutEventsByEventIdResponsibilitiesByResponsibilityIdError = PutEventsByEventIdResponsibilitiesByResponsibilityIdErrors[keyof PutEventsByEventIdResponsibilitiesByResponsibilityIdErrors];
+
+export type PutEventsByEventIdResponsibilitiesByResponsibilityIdResponses = {
+    /**
+     * Responsibility updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Responsibility updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            title: string;
+            description: string;
+            location: string | null;
+            created_at: number;
+            assignees: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+        };
+    };
+};
+
+export type PutEventsByEventIdResponsibilitiesByResponsibilityIdResponse = PutEventsByEventIdResponsibilitiesByResponsibilityIdResponses[keyof PutEventsByEventIdResponsibilitiesByResponsibilityIdResponses];
+
+export type GetEventsByEventIdTasksData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        filter?: 'all' | 'mine' | 'open';
+    };
+    url: '/events/{eventId}/tasks';
+};
+
+export type GetEventsByEventIdTasksErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdTasksError = GetEventsByEventIdTasksErrors[keyof GetEventsByEventIdTasksErrors];
+
+export type GetEventsByEventIdTasksResponses = {
+    /**
+     * Tasks retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Tasks retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            assignee: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdTasksResponse = GetEventsByEventIdTasksResponses[keyof GetEventsByEventIdTasksResponses];
+
+export type PostEventsByEventIdTasksData = {
+    body: {
+        title: string;
+        description?: string;
+        status?: 'open' | 'in_progress' | 'done';
+        priority?: 'low' | 'normal' | 'high' | 'urgent';
+        due_at?: number | null;
+        assignee_id?: number | null;
+        group_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/tasks';
+};
+
+export type PostEventsByEventIdTasksErrors = {
+    /**
+     * The assignee is not a staff member of this event / The group does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The assignee is not a staff member of this event / The group does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to create tasks in this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to create tasks in this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdTasksError = PostEventsByEventIdTasksErrors[keyof PostEventsByEventIdTasksErrors];
+
+export type PostEventsByEventIdTasksResponses = {
+    /**
+     * Task created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Task created successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            assignee: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdTasksResponse = PostEventsByEventIdTasksResponses[keyof PostEventsByEventIdTasksResponses];
+
+export type DeleteEventsByEventIdTasksByTaskIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        taskId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/tasks/{taskId}';
+};
+
+export type DeleteEventsByEventIdTasksByTaskIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to delete this task
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to delete this task';
+    };
+    /**
+     * Task not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Task not found';
+    };
+};
+
+export type DeleteEventsByEventIdTasksByTaskIdError = DeleteEventsByEventIdTasksByTaskIdErrors[keyof DeleteEventsByEventIdTasksByTaskIdErrors];
+
+export type DeleteEventsByEventIdTasksByTaskIdResponses = {
+    /**
+     * Task deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Task deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdTasksByTaskIdResponse = DeleteEventsByEventIdTasksByTaskIdResponses[keyof DeleteEventsByEventIdTasksByTaskIdResponses];
+
+export type PutEventsByEventIdTasksByTaskIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        status?: 'open' | 'in_progress' | 'done';
+        priority?: 'low' | 'normal' | 'high' | 'urgent';
+        due_at?: number | null;
+        assignee_id?: number | null;
+        group_id?: number | null;
+    };
+    path: {
+        eventId: number;
+        taskId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/tasks/{taskId}';
+};
+
+export type PutEventsByEventIdTasksByTaskIdErrors = {
+    /**
+     * The assignee is not a staff member of this event / The group does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The assignee is not a staff member of this event / The group does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this task
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this task';
+    };
+    /**
+     * Task not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Task not found';
+    };
+};
+
+export type PutEventsByEventIdTasksByTaskIdError = PutEventsByEventIdTasksByTaskIdErrors[keyof PutEventsByEventIdTasksByTaskIdErrors];
+
+export type PutEventsByEventIdTasksByTaskIdResponses = {
+    /**
+     * Task updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Task updated successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            user_id: number | null;
+            group_id: number | null;
+            assignee_id: number | null;
+            title: string;
+            description: string;
+            status: 'open' | 'in_progress' | 'done';
+            priority: 'low' | 'normal' | 'high' | 'urgent';
+            due_at: number | null;
+            completed_at: number | null;
+            created_by: number | null;
+            created_at: number;
+            updated_at: number;
+            assignee: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdTasksByTaskIdResponse = PutEventsByEventIdTasksByTaskIdResponses[keyof PutEventsByEventIdTasksByTaskIdResponses];
+
+export type GetEventsByEventIdNotesData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        group_id?: number;
+    };
+    url: '/events/{eventId}/notes';
+};
+
+export type GetEventsByEventIdNotesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view these notes
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view these notes';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdNotesError = GetEventsByEventIdNotesErrors[keyof GetEventsByEventIdNotesErrors];
+
+export type GetEventsByEventIdNotesResponses = {
+    /**
+     * Notes retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notes retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdNotesResponse = GetEventsByEventIdNotesResponses[keyof GetEventsByEventIdNotesResponses];
+
+export type PostEventsByEventIdNotesData = {
+    body: {
+        title: string;
+        content?: string;
+        pinned?: boolean;
+        group_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/notes';
+};
+
+export type PostEventsByEventIdNotesErrors = {
+    /**
+     * The group does not belong to this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'The group does not belong to this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to create notes here
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to create notes here';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdNotesError = PostEventsByEventIdNotesErrors[keyof PostEventsByEventIdNotesErrors];
+
+export type PostEventsByEventIdNotesResponses = {
+    /**
+     * Note created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Note created successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdNotesResponse = PostEventsByEventIdNotesResponses[keyof PostEventsByEventIdNotesResponses];
+
+export type DeleteEventsByEventIdNotesByNoteIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        noteId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/notes/{noteId}';
+};
+
+export type DeleteEventsByEventIdNotesByNoteIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to delete this note
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to delete this note';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type DeleteEventsByEventIdNotesByNoteIdError = DeleteEventsByEventIdNotesByNoteIdErrors[keyof DeleteEventsByEventIdNotesByNoteIdErrors];
+
+export type DeleteEventsByEventIdNotesByNoteIdResponses = {
+    /**
+     * Note deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdNotesByNoteIdResponse = DeleteEventsByEventIdNotesByNoteIdResponses[keyof DeleteEventsByEventIdNotesByNoteIdResponses];
+
+export type PutEventsByEventIdNotesByNoteIdData = {
+    body?: {
+        title?: string;
+        content?: string;
+        pinned?: boolean;
+    };
+    path: {
+        eventId: number;
+        noteId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/notes/{noteId}';
+};
+
+export type PutEventsByEventIdNotesByNoteIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this note
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this note';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type PutEventsByEventIdNotesByNoteIdError = PutEventsByEventIdNotesByNoteIdErrors[keyof PutEventsByEventIdNotesByNoteIdErrors];
+
+export type PutEventsByEventIdNotesByNoteIdResponses = {
+    /**
+     * Note updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note updated successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdNotesByNoteIdResponse = PutEventsByEventIdNotesByNoteIdResponses[keyof PutEventsByEventIdNotesByNoteIdResponses];
+
+export type GetEventsByEventIdAnnouncementsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/announcements';
+};
+
+export type GetEventsByEventIdAnnouncementsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view announcements';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdAnnouncementsError = GetEventsByEventIdAnnouncementsErrors[keyof GetEventsByEventIdAnnouncementsErrors];
+
+export type GetEventsByEventIdAnnouncementsResponses = {
+    /**
+     * Announcements retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcements retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdAnnouncementsResponse = GetEventsByEventIdAnnouncementsResponses[keyof GetEventsByEventIdAnnouncementsResponses];
+
+export type PostEventsByEventIdAnnouncementsData = {
+    body: {
+        title: string;
+        content?: string;
+        priority?: 'normal' | 'important';
+        pinned?: boolean;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/announcements';
+};
+
+export type PostEventsByEventIdAnnouncementsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage announcements';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdAnnouncementsError = PostEventsByEventIdAnnouncementsErrors[keyof PostEventsByEventIdAnnouncementsErrors];
+
+export type PostEventsByEventIdAnnouncementsResponses = {
+    /**
+     * Announcement created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Announcement created successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdAnnouncementsResponse = PostEventsByEventIdAnnouncementsResponses[keyof PostEventsByEventIdAnnouncementsResponses];
+
+export type DeleteEventsByEventIdAnnouncementsByAnnouncementIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        announcementId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/announcements/{announcementId}';
+};
+
+export type DeleteEventsByEventIdAnnouncementsByAnnouncementIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage announcements';
+    };
+    /**
+     * Announcement not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Announcement not found';
+    };
+};
+
+export type DeleteEventsByEventIdAnnouncementsByAnnouncementIdError = DeleteEventsByEventIdAnnouncementsByAnnouncementIdErrors[keyof DeleteEventsByEventIdAnnouncementsByAnnouncementIdErrors];
+
+export type DeleteEventsByEventIdAnnouncementsByAnnouncementIdResponses = {
+    /**
+     * Announcement deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcement deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdAnnouncementsByAnnouncementIdResponse = DeleteEventsByEventIdAnnouncementsByAnnouncementIdResponses[keyof DeleteEventsByEventIdAnnouncementsByAnnouncementIdResponses];
+
+export type PutEventsByEventIdAnnouncementsByAnnouncementIdData = {
+    body?: {
+        title?: string;
+        content?: string;
+        priority?: 'normal' | 'important';
+        pinned?: boolean;
+    };
+    path: {
+        eventId: number;
+        announcementId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/announcements/{announcementId}';
+};
+
+export type PutEventsByEventIdAnnouncementsByAnnouncementIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage announcements';
+    };
+    /**
+     * Announcement not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Announcement not found';
+    };
+};
+
+export type PutEventsByEventIdAnnouncementsByAnnouncementIdError = PutEventsByEventIdAnnouncementsByAnnouncementIdErrors[keyof PutEventsByEventIdAnnouncementsByAnnouncementIdErrors];
+
+export type PutEventsByEventIdAnnouncementsByAnnouncementIdResponses = {
+    /**
+     * Announcement updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcement updated successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PutEventsByEventIdAnnouncementsByAnnouncementIdResponse = PutEventsByEventIdAnnouncementsByAnnouncementIdResponses[keyof PutEventsByEventIdAnnouncementsByAnnouncementIdResponses];
+
+export type GetEventsByEventIdFilesData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        parent_id?: number;
+    };
+    url: '/events/{eventId}/files';
+};
+
+export type GetEventsByEventIdFilesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view documents';
+    };
+    /**
+     * Folder not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Folder not found';
+    };
+};
+
+export type GetEventsByEventIdFilesError = GetEventsByEventIdFilesErrors[keyof GetEventsByEventIdFilesErrors];
+
+export type GetEventsByEventIdFilesResponses = {
+    /**
+     * Documents retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Documents retrieved successfully';
+        data: {
+            folder: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            path: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            items: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+        };
+    };
+};
+
+export type GetEventsByEventIdFilesResponse = GetEventsByEventIdFilesResponses[keyof GetEventsByEventIdFilesResponses];
+
+export type PostEventsByEventIdFilesData = {
+    body: {
+        /**
+         * The file to upload
+         */
+        file: Blob | File;
+        parent_id?: number;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files';
+};
+
+export type PostEventsByEventIdFilesErrors = {
+    /**
+     * File is too large / Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'File is too large / Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to upload documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to upload documents';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdFilesError = PostEventsByEventIdFilesErrors[keyof PostEventsByEventIdFilesErrors];
+
+export type PostEventsByEventIdFilesResponses = {
+    /**
+     * Document uploaded successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document uploaded successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFilesResponse = PostEventsByEventIdFilesResponses[keyof PostEventsByEventIdFilesResponses];
+
+export type PostEventsByEventIdFilesFoldersData = {
+    body: {
+        name: string;
+        parent_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/folders';
+};
+
+export type PostEventsByEventIdFilesFoldersErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to upload documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to upload documents';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdFilesFoldersError = PostEventsByEventIdFilesFoldersErrors[keyof PostEventsByEventIdFilesFoldersErrors];
+
+export type PostEventsByEventIdFilesFoldersResponses = {
+    /**
+     * Folder created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Folder created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFilesFoldersResponse = PostEventsByEventIdFilesFoldersResponses[keyof PostEventsByEventIdFilesFoldersResponses];
+
+export type GetEventsByEventIdExpensesData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        status?: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+    };
+    url: '/events/{eventId}/expenses';
+};
+
+export type GetEventsByEventIdExpensesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view expenses
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view expenses';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdExpensesError = GetEventsByEventIdExpensesErrors[keyof GetEventsByEventIdExpensesErrors];
+
+export type GetEventsByEventIdExpensesResponses = {
+    /**
+     * Expenses retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Expenses retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            submitted_by: number | null;
+            title: string;
+            description: string;
+            category: string;
+            amount_cents: number;
+            spent_on: string;
+            receipt_file_id: number | null;
+            status: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+            reviewed_by: number | null;
+            reviewed_at: number | null;
+            review_note: string | null;
+            created_at: number;
+            updated_at: number;
+            submitter: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            reviewer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            receipt: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdExpensesResponse = GetEventsByEventIdExpensesResponses[keyof GetEventsByEventIdExpensesResponses];
+
+export type PostEventsByEventIdExpensesData = {
+    body: {
+        title: string;
+        description?: string;
+        category?: string;
+        amount_cents: number;
+        spent_on: string;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses';
+};
+
+export type PostEventsByEventIdExpensesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to submit expenses
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to submit expenses';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdExpensesError = PostEventsByEventIdExpensesErrors[keyof PostEventsByEventIdExpensesErrors];
+
+export type PostEventsByEventIdExpensesResponses = {
+    /**
+     * Expense submitted successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Expense submitted successfully';
+        data: {
+            id: number;
+            event_id: number;
+            submitted_by: number | null;
+            title: string;
+            description: string;
+            category: string;
+            amount_cents: number;
+            spent_on: string;
+            receipt_file_id: number | null;
+            status: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+            reviewed_by: number | null;
+            reviewed_at: number | null;
+            review_note: string | null;
+            created_at: number;
+            updated_at: number;
+            submitter: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            reviewer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            receipt: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdExpensesResponse = PostEventsByEventIdExpensesResponses[keyof PostEventsByEventIdExpensesResponses];
+
+export type GetEventsByEventIdExpensesSummaryData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses/summary';
+};
+
+export type GetEventsByEventIdExpensesSummaryErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view all expenses
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view all expenses';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdExpensesSummaryError = GetEventsByEventIdExpensesSummaryErrors[keyof GetEventsByEventIdExpensesSummaryErrors];
+
+export type GetEventsByEventIdExpensesSummaryResponses = {
+    /**
+     * Expense summary retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Expense summary retrieved successfully';
+        data: {
+            totals_by_status: {
+                submitted: number;
+                approved: number;
+                rejected: number;
+                reimbursed: number;
+            };
+            by_category: Array<{
+                category: string;
+                amount_cents: number;
+                count: number;
+            }>;
+            by_submitter: Array<{
+                user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                amount_cents: number;
+                open_reimbursement_cents: number;
+            }>;
+        };
+    };
+};
+
+export type GetEventsByEventIdExpensesSummaryResponse = GetEventsByEventIdExpensesSummaryResponses[keyof GetEventsByEventIdExpensesSummaryResponses];
+
+export type DeleteEventsByEventIdExpensesByExpenseIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        expenseId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses/{expenseId}';
+};
+
+export type DeleteEventsByEventIdExpensesByExpenseIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to delete this expense
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to delete this expense';
+    };
+    /**
+     * Expense not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Expense not found';
+    };
+};
+
+export type DeleteEventsByEventIdExpensesByExpenseIdError = DeleteEventsByEventIdExpensesByExpenseIdErrors[keyof DeleteEventsByEventIdExpensesByExpenseIdErrors];
+
+export type DeleteEventsByEventIdExpensesByExpenseIdResponses = {
+    /**
+     * Expense deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Expense deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdExpensesByExpenseIdResponse = DeleteEventsByEventIdExpensesByExpenseIdResponses[keyof DeleteEventsByEventIdExpensesByExpenseIdResponses];
+
+export type PutEventsByEventIdExpensesByExpenseIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        category?: string;
+        amount_cents?: number;
+        spent_on?: string;
+    };
+    path: {
+        eventId: number;
+        expenseId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses/{expenseId}';
+};
+
+export type PutEventsByEventIdExpensesByExpenseIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this expense
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this expense';
+    };
+    /**
+     * Expense not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Expense not found';
+    };
+};
+
+export type PutEventsByEventIdExpensesByExpenseIdError = PutEventsByEventIdExpensesByExpenseIdErrors[keyof PutEventsByEventIdExpensesByExpenseIdErrors];
+
+export type PutEventsByEventIdExpensesByExpenseIdResponses = {
+    /**
+     * Expense updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Expense updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            submitted_by: number | null;
+            title: string;
+            description: string;
+            category: string;
+            amount_cents: number;
+            spent_on: string;
+            receipt_file_id: number | null;
+            status: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+            reviewed_by: number | null;
+            reviewed_at: number | null;
+            review_note: string | null;
+            created_at: number;
+            updated_at: number;
+            submitter: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            reviewer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            receipt: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdExpensesByExpenseIdResponse = PutEventsByEventIdExpensesByExpenseIdResponses[keyof PutEventsByEventIdExpensesByExpenseIdResponses];
+
+export type PostEventsByEventIdExpensesByExpenseIdReceiptData = {
+    body: {
+        /**
+         * Receipt image or PDF
+         */
+        file: Blob | File;
+    };
+    path: {
+        eventId: number;
+        expenseId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses/{expenseId}/receipt';
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReceiptErrors = {
+    /**
+     * Only images and PDF files are accepted / File is too large / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only images and PDF files are accepted / File is too large / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this expense
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this expense';
+    };
+    /**
+     * Expense not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Expense not found';
+    };
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReceiptError = PostEventsByEventIdExpensesByExpenseIdReceiptErrors[keyof PostEventsByEventIdExpensesByExpenseIdReceiptErrors];
+
+export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
+    /**
+     * Receipt uploaded successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Receipt uploaded successfully';
+        data: {
+            id: number;
+            event_id: number;
+            submitted_by: number | null;
+            title: string;
+            description: string;
+            category: string;
+            amount_cents: number;
+            spent_on: string;
+            receipt_file_id: number | null;
+            status: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+            reviewed_by: number | null;
+            reviewed_at: number | null;
+            review_note: string | null;
+            created_at: number;
+            updated_at: number;
+            submitter: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            reviewer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            receipt: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReceiptResponse = PostEventsByEventIdExpensesByExpenseIdReceiptResponses[keyof PostEventsByEventIdExpensesByExpenseIdReceiptResponses];
+
+export type PostEventsByEventIdExpensesByExpenseIdReviewData = {
+    body: {
+        status: 'approved' | 'rejected' | 'reimbursed';
+        note?: string | null;
+    };
+    path: {
+        eventId: number;
+        expenseId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/expenses/{expenseId}/review';
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReviewErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to review expenses
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to review expenses';
+    };
+    /**
+     * Expense not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Expense not found';
+    };
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReviewError = PostEventsByEventIdExpensesByExpenseIdReviewErrors[keyof PostEventsByEventIdExpensesByExpenseIdReviewErrors];
+
+export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
+    /**
+     * Expense reviewed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Expense reviewed successfully';
+        data: {
+            id: number;
+            event_id: number;
+            submitted_by: number | null;
+            title: string;
+            description: string;
+            category: string;
+            amount_cents: number;
+            spent_on: string;
+            receipt_file_id: number | null;
+            status: 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+            reviewed_by: number | null;
+            reviewed_at: number | null;
+            review_note: string | null;
+            created_at: number;
+            updated_at: number;
+            submitter: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            reviewer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            receipt: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdExpensesByExpenseIdReviewResponse = PostEventsByEventIdExpensesByExpenseIdReviewResponses[keyof PostEventsByEventIdExpensesByExpenseIdReviewResponses];
+
+export type GetEventsByEventIdBudgetData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/budget';
+};
+
+export type GetEventsByEventIdBudgetErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view the budget
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view the budget';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdBudgetError = GetEventsByEventIdBudgetErrors[keyof GetEventsByEventIdBudgetErrors];
+
+export type GetEventsByEventIdBudgetResponses = {
+    /**
+     * Budget retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Budget retrieved successfully';
+        data: {
+            budget_cents: number;
+            items: Array<{
+                id: number;
+                event_id: number;
+                kind: 'expense' | 'income';
+                category: string;
+                description: string;
+                planned_cents: number;
+                created_at: number;
+            }>;
+            planned_expense_cents: number;
+            planned_income_cents: number;
+            actual_expense_cents: number;
+            pending_expense_cents: number;
+            by_category: Array<{
+                category: string;
+                planned_cents: number;
+                actual_cents: number;
+            }>;
+            remaining_cents: number;
+        };
+    };
+};
+
+export type GetEventsByEventIdBudgetResponse = GetEventsByEventIdBudgetResponses[keyof GetEventsByEventIdBudgetResponses];
+
+export type PostEventsByEventIdBudgetData = {
+    body: {
+        kind?: 'expense' | 'income';
+        category: string;
+        description?: string;
+        planned_cents: number;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/budget';
+};
+
+export type PostEventsByEventIdBudgetErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the budget
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the budget';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdBudgetError = PostEventsByEventIdBudgetErrors[keyof PostEventsByEventIdBudgetErrors];
+
+export type PostEventsByEventIdBudgetResponses = {
+    /**
+     * Budget item created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Budget item created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            kind: 'expense' | 'income';
+            category: string;
+            description: string;
+            planned_cents: number;
+            created_at: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdBudgetResponse = PostEventsByEventIdBudgetResponses[keyof PostEventsByEventIdBudgetResponses];
+
+export type DeleteEventsByEventIdBudgetByBudgetItemIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        budgetItemId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/budget/{budgetItemId}';
+};
+
+export type DeleteEventsByEventIdBudgetByBudgetItemIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the budget
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the budget';
+    };
+    /**
+     * Budget item not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Budget item not found';
+    };
+};
+
+export type DeleteEventsByEventIdBudgetByBudgetItemIdError = DeleteEventsByEventIdBudgetByBudgetItemIdErrors[keyof DeleteEventsByEventIdBudgetByBudgetItemIdErrors];
+
+export type DeleteEventsByEventIdBudgetByBudgetItemIdResponses = {
+    /**
+     * Budget item deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Budget item deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdBudgetByBudgetItemIdResponse = DeleteEventsByEventIdBudgetByBudgetItemIdResponses[keyof DeleteEventsByEventIdBudgetByBudgetItemIdResponses];
+
+export type PutEventsByEventIdBudgetByBudgetItemIdData = {
+    body?: {
+        kind?: 'expense' | 'income';
+        category?: string;
+        description?: string;
+        planned_cents?: number;
+    };
+    path: {
+        eventId: number;
+        budgetItemId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/budget/{budgetItemId}';
+};
+
+export type PutEventsByEventIdBudgetByBudgetItemIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the budget
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the budget';
+    };
+    /**
+     * Budget item not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Budget item not found';
+    };
+};
+
+export type PutEventsByEventIdBudgetByBudgetItemIdError = PutEventsByEventIdBudgetByBudgetItemIdErrors[keyof PutEventsByEventIdBudgetByBudgetItemIdErrors];
+
+export type PutEventsByEventIdBudgetByBudgetItemIdResponses = {
+    /**
+     * Budget item updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Budget item updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            kind: 'expense' | 'income';
+            category: string;
+            description: string;
+            planned_cents: number;
+            created_at: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdBudgetByBudgetItemIdResponse = PutEventsByEventIdBudgetByBudgetItemIdResponses[keyof PutEventsByEventIdBudgetByBudgetItemIdResponses];
+
+export type GetEventsByEventIdStatsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/stats';
+};
+
+export type GetEventsByEventIdStatsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view the statistics of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view the statistics of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdStatsError = GetEventsByEventIdStatsErrors[keyof GetEventsByEventIdStatsErrors];
+
+export type GetEventsByEventIdStatsResponses = {
+    /**
+     * Statistics retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Statistics retrieved successfully';
+        data: {
+            participants: {
+                total: number;
+                by_status: {
+                    registered: number;
+                    confirmed: number;
+                    waitlist: number;
+                    cancelled: number;
+                };
+                by_gender: {
+                    [key: string]: number;
+                };
+                age_buckets: Array<{
+                    label: string;
+                    count: number;
+                }>;
+                fee_paid: number;
+                fee_open: number;
+                with_allergies: number;
+                with_medications: number;
+                photo_consent: number;
+            };
+            staff: {
+                total: number;
+                leaders: number;
+                by_group: Array<{
+                    group_id: number;
+                    name: string;
+                    count: number;
+                }>;
+            };
+            rooms: {
+                total: number;
+                capacity: number;
+                assigned_participants: number;
+                unassigned_participants: number;
+            };
+            tasks: {
+                open: number;
+                in_progress: number;
+                done: number;
+                overdue: number;
+            };
+            finances: {
+                budget_cents: number;
+                planned_expenses_cents: number;
+                planned_income_cents: number;
+                expenses_by_status: {
+                    submitted: number;
+                    approved: number;
+                    rejected: number;
+                    reimbursed: number;
+                };
+                expenses_by_category: Array<{
+                    category: string;
+                    amount_cents: number;
+                }>;
+                expected_fees_cents: number;
+            };
+            program: {
+                items: number;
+                hours_scheduled: number;
+            };
+        };
+    };
+};
+
+export type GetEventsByEventIdStatsResponse = GetEventsByEventIdStatsResponses[keyof GetEventsByEventIdStatsResponses];
+
+export type GetEventsByEventIdAuditLogData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        limit?: number;
+        offset?: number;
+        entity_type?: string;
+    };
+    url: '/events/{eventId}/audit-log';
+};
+
+export type GetEventsByEventIdAuditLogErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view the audit log of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view the audit log of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdAuditLogError = GetEventsByEventIdAuditLogErrors[keyof GetEventsByEventIdAuditLogErrors];
+
+export type GetEventsByEventIdAuditLogResponses = {
+    /**
+     * Audit log retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Audit log retrieved successfully';
+        data: {
+            total: number;
+            entries: Array<{
+                id: number;
+                user_id: number | null;
+                event_id: number | null;
+                action: string;
+                entity_type: string;
+                entity_id: number | null;
+                summary: string;
+                metadata: {
+                    [key: string]: unknown;
+                } | null;
+                created_at: number;
+                user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+            }>;
+        };
+    };
+};
+
+export type GetEventsByEventIdAuditLogResponse = GetEventsByEventIdAuditLogResponses[keyof GetEventsByEventIdAuditLogResponses];
+
+export type GetOrgAnnouncementsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/org/announcements';
+};
+
+export type GetOrgAnnouncementsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetOrgAnnouncementsError = GetOrgAnnouncementsErrors[keyof GetOrgAnnouncementsErrors];
+
+export type GetOrgAnnouncementsResponses = {
+    /**
+     * Announcements retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcements retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        }>;
+    };
+};
+
+export type GetOrgAnnouncementsResponse = GetOrgAnnouncementsResponses[keyof GetOrgAnnouncementsResponses];
+
+export type PostOrgAnnouncementsData = {
+    body: {
+        title: string;
+        content?: string;
+        priority?: 'normal' | 'important';
+        pinned?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/announcements';
+};
+
+export type PostOrgAnnouncementsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can publish organisation announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can publish organisation announcements';
+    };
+};
+
+export type PostOrgAnnouncementsError = PostOrgAnnouncementsErrors[keyof PostOrgAnnouncementsErrors];
+
+export type PostOrgAnnouncementsResponses = {
+    /**
+     * Announcement created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Announcement created successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostOrgAnnouncementsResponse = PostOrgAnnouncementsResponses[keyof PostOrgAnnouncementsResponses];
+
+export type DeleteOrgAnnouncementsByAnnouncementIdData = {
+    body?: never;
+    path: {
+        announcementId: number;
+    };
+    query?: never;
+    url: '/org/announcements/{announcementId}';
+};
+
+export type DeleteOrgAnnouncementsByAnnouncementIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the core team can delete organisation announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can delete organisation announcements';
+    };
+    /**
+     * Announcement not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Announcement not found';
+    };
+};
+
+export type DeleteOrgAnnouncementsByAnnouncementIdError = DeleteOrgAnnouncementsByAnnouncementIdErrors[keyof DeleteOrgAnnouncementsByAnnouncementIdErrors];
+
+export type DeleteOrgAnnouncementsByAnnouncementIdResponses = {
+    /**
+     * Announcement deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcement deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgAnnouncementsByAnnouncementIdResponse = DeleteOrgAnnouncementsByAnnouncementIdResponses[keyof DeleteOrgAnnouncementsByAnnouncementIdResponses];
+
+export type PutOrgAnnouncementsByAnnouncementIdData = {
+    body?: {
+        title?: string;
+        content?: string;
+        priority?: 'normal' | 'important';
+        pinned?: boolean;
+    };
+    path: {
+        announcementId: number;
+    };
+    query?: never;
+    url: '/org/announcements/{announcementId}';
+};
+
+export type PutOrgAnnouncementsByAnnouncementIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can edit organisation announcements
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can edit organisation announcements';
+    };
+    /**
+     * Announcement not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Announcement not found';
+    };
+};
+
+export type PutOrgAnnouncementsByAnnouncementIdError = PutOrgAnnouncementsByAnnouncementIdErrors[keyof PutOrgAnnouncementsByAnnouncementIdErrors];
+
+export type PutOrgAnnouncementsByAnnouncementIdResponses = {
+    /**
+     * Announcement updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Announcement updated successfully';
+        data: {
+            id: number;
+            event_id: number | null;
+            title: string;
+            content: string;
+            priority: 'normal' | 'important';
+            pinned: boolean;
+            created_by: number | null;
+            created_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PutOrgAnnouncementsByAnnouncementIdResponse = PutOrgAnnouncementsByAnnouncementIdResponses[keyof PutOrgAnnouncementsByAnnouncementIdResponses];
+
+export type GetOrgDocumentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        parent_id?: number;
+    };
+    url: '/org/documents';
+};
+
+export type GetOrgDocumentsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have permission to access this resource
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have permission to access this resource';
+    };
+    /**
+     * Folder not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Folder not found';
+    };
+};
+
+export type GetOrgDocumentsError = GetOrgDocumentsErrors[keyof GetOrgDocumentsErrors];
+
+export type GetOrgDocumentsResponses = {
+    /**
+     * Documents retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Documents retrieved successfully';
+        data: {
+            folder: {
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            } | null;
+            path: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+            items: Array<{
+                id: number;
+                scope: 'org' | 'event' | 'receipt';
+                event_id: number | null;
+                parent_id: number | null;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                uploaded_by: number | null;
+                created_at: number;
+                updated_at: number;
+                download_token: string | null;
+            }>;
+        };
+    };
+};
+
+export type GetOrgDocumentsResponse = GetOrgDocumentsResponses[keyof GetOrgDocumentsResponses];
+
+export type PostOrgDocumentsData = {
+    body: {
+        /**
+         * The file to upload
+         */
+        file: Blob | File;
+        parent_id?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/documents';
+};
+
+export type PostOrgDocumentsErrors = {
+    /**
+     * Parent folder not found / File is too large / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / File is too large / Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage organisation documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage organisation documents';
+    };
+};
+
+export type PostOrgDocumentsError = PostOrgDocumentsErrors[keyof PostOrgDocumentsErrors];
+
+export type PostOrgDocumentsResponses = {
+    /**
+     * Document uploaded successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document uploaded successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type PostOrgDocumentsResponse = PostOrgDocumentsResponses[keyof PostOrgDocumentsResponses];
+
+export type PostOrgDocumentsFoldersData = {
+    body: {
+        name: string;
+        parent_id?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/documents/folders';
+};
+
+export type PostOrgDocumentsFoldersErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage organisation documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage organisation documents';
+    };
+};
+
+export type PostOrgDocumentsFoldersError = PostOrgDocumentsFoldersErrors[keyof PostOrgDocumentsFoldersErrors];
+
+export type PostOrgDocumentsFoldersResponses = {
+    /**
+     * Folder created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Folder created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            download_token: string | null;
+        };
+    };
+};
+
+export type PostOrgDocumentsFoldersResponse = PostOrgDocumentsFoldersResponses[keyof PostOrgDocumentsFoldersResponses];
+
+export type GetOrgResourcesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/resources';
+};
+
+export type GetOrgResourcesErrors = {
+    /**
+     * You do not have permission to access this resource
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have permission to access this resource';
+    };
+};
+
+export type GetOrgResourcesError = GetOrgResourcesErrors[keyof GetOrgResourcesErrors];
+
+export type GetOrgResourcesResponses = {
+    /**
+     * Resources retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Resources retrieved successfully';
+        data: Array<{
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    start_date: string;
+                    end_date: string;
+                };
+            }>;
+            booked_now: number;
+        }>;
+    };
+};
+
+export type GetOrgResourcesResponse = GetOrgResourcesResponses[keyof GetOrgResourcesResponses];
+
+export type PostOrgResourcesData = {
+    body: {
+        name: string;
+        category?: string;
+        quantity?: number;
+        location?: string | null;
+        notes?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/resources';
+};
+
+export type PostOrgResourcesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+};
+
+export type PostOrgResourcesError = PostOrgResourcesErrors[keyof PostOrgResourcesErrors];
+
+export type PostOrgResourcesResponses = {
+    /**
+     * Resource created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Resource created successfully';
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    start_date: string;
+                    end_date: string;
+                };
+            }>;
+            booked_now: number;
+        };
+    };
+};
+
+export type PostOrgResourcesResponse = PostOrgResourcesResponses[keyof PostOrgResourcesResponses];
+
+export type GetOrgResourcesBookingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        event_id?: number;
+    };
+    url: '/org/resources/bookings';
+};
+
+export type GetOrgResourcesBookingsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have permission to access this resource
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have permission to access this resource';
+    };
+};
+
+export type GetOrgResourcesBookingsError = GetOrgResourcesBookingsErrors[keyof GetOrgResourcesBookingsErrors];
+
+export type GetOrgResourcesBookingsResponses = {
+    /**
+     * Bookings retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Bookings retrieved successfully';
+        data: Array<{
+            id: number;
+            quantity: number;
+            notes: string;
+            created_at: number;
+            event: {
+                id: number;
+                name: string;
+                start_date: string;
+                end_date: string;
+            };
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                quantity: number;
+            };
+        }>;
+    };
+};
+
+export type GetOrgResourcesBookingsResponse = GetOrgResourcesBookingsResponses[keyof GetOrgResourcesBookingsResponses];
+
+export type DeleteOrgResourcesBookingsByBookingIdData = {
+    body?: never;
+    path: {
+        bookingId: number;
+    };
+    query?: never;
+    url: '/org/resources/bookings/{bookingId}';
+};
+
+export type DeleteOrgResourcesBookingsByBookingIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Booking not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Booking not found';
+    };
+};
+
+export type DeleteOrgResourcesBookingsByBookingIdError = DeleteOrgResourcesBookingsByBookingIdErrors[keyof DeleteOrgResourcesBookingsByBookingIdErrors];
+
+export type DeleteOrgResourcesBookingsByBookingIdResponses = {
+    /**
+     * Booking deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Booking deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgResourcesBookingsByBookingIdResponse = DeleteOrgResourcesBookingsByBookingIdResponses[keyof DeleteOrgResourcesBookingsByBookingIdResponses];
+
+export type DeleteOrgResourcesByResourceIdData = {
+    body?: never;
+    path: {
+        resourceId: number;
+    };
+    query?: never;
+    url: '/org/resources/{resourceId}';
+};
+
+export type DeleteOrgResourcesByResourceIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Resource not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Resource not found';
+    };
+};
+
+export type DeleteOrgResourcesByResourceIdError = DeleteOrgResourcesByResourceIdErrors[keyof DeleteOrgResourcesByResourceIdErrors];
+
+export type DeleteOrgResourcesByResourceIdResponses = {
+    /**
+     * Resource deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Resource deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgResourcesByResourceIdResponse = DeleteOrgResourcesByResourceIdResponses[keyof DeleteOrgResourcesByResourceIdResponses];
+
+export type PutOrgResourcesByResourceIdData = {
+    body?: {
+        name?: string;
+        category?: string;
+        quantity?: number;
+        location?: string | null;
+        notes?: string;
+    };
+    path: {
+        resourceId: number;
+    };
+    query?: never;
+    url: '/org/resources/{resourceId}';
+};
+
+export type PutOrgResourcesByResourceIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Resource not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Resource not found';
+    };
+};
+
+export type PutOrgResourcesByResourceIdError = PutOrgResourcesByResourceIdErrors[keyof PutOrgResourcesByResourceIdErrors];
+
+export type PutOrgResourcesByResourceIdResponses = {
+    /**
+     * Resource updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Resource updated successfully';
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    start_date: string;
+                    end_date: string;
+                };
+            }>;
+            booked_now: number;
+        };
+    };
+};
+
+export type PutOrgResourcesByResourceIdResponse = PutOrgResourcesByResourceIdResponses[keyof PutOrgResourcesByResourceIdResponses];
+
+export type PostOrgResourcesByResourceIdBookingsData = {
+    body: {
+        event_id: number;
+        quantity?: number;
+        notes?: string;
+    };
+    path: {
+        resourceId: number;
+    };
+    query?: never;
+    url: '/org/resources/{resourceId}/bookings';
+};
+
+export type PostOrgResourcesByResourceIdBookingsErrors = {
+    /**
+     * Event not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Event not found / Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Resource not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Resource not found';
+    };
+    /**
+     * Not enough units available
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Not enough units available';
+    };
+};
+
+export type PostOrgResourcesByResourceIdBookingsError = PostOrgResourcesByResourceIdBookingsErrors[keyof PostOrgResourcesByResourceIdBookingsErrors];
+
+export type PostOrgResourcesByResourceIdBookingsResponses = {
+    /**
+     * Booking created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Booking created successfully';
+        data: {
+            id: number;
+            quantity: number;
+            notes: string;
+            created_at: number;
+            event: {
+                id: number;
+                name: string;
+                start_date: string;
+                end_date: string;
+            };
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                quantity: number;
+            };
+        };
+    };
+};
+
+export type PostOrgResourcesByResourceIdBookingsResponse = PostOrgResourcesByResourceIdBookingsResponses[keyof PostOrgResourcesByResourceIdBookingsResponses];
+
+export type GetOrgCoreTeamOverviewData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/core-team/overview';
+};
+
+export type GetOrgCoreTeamOverviewErrors = {
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type GetOrgCoreTeamOverviewError = GetOrgCoreTeamOverviewErrors[keyof GetOrgCoreTeamOverviewErrors];
+
+export type GetOrgCoreTeamOverviewResponses = {
+    /**
+     * Overview retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Overview retrieved successfully';
+        data: {
+            events_by_status: {
+                planning: number;
+                confirmed: number;
+                cancelled: number;
+                archived: number;
+            };
+            running_events: Array<{
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                start_date: string;
+                end_date: string;
+                color: string | null;
+                staff_count: number;
+                participant_count: number;
+            }>;
+            upcoming_events: Array<{
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                start_date: string;
+                end_date: string;
+                color: string | null;
+                staff_count: number;
+                participant_count: number;
+                leaders: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+                unstaffed: boolean;
+            }>;
+            totals: {
+                events: number;
+                participants: number;
+                volunteers: number;
+            };
+            pending_expenses: {
+                count: number;
+                amount_cents: number;
+            };
+            unverified_users: number;
+        };
+    };
+};
+
+export type GetOrgCoreTeamOverviewResponse = GetOrgCoreTeamOverviewResponses[keyof GetOrgCoreTeamOverviewResponses];
+
+export type GetOrgCoreTeamFinancesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        year?: number;
+    };
+    url: '/org/core-team/finances';
+};
+
+export type GetOrgCoreTeamFinancesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type GetOrgCoreTeamFinancesError = GetOrgCoreTeamFinancesErrors[keyof GetOrgCoreTeamFinancesErrors];
+
+export type GetOrgCoreTeamFinancesResponses = {
+    /**
+     * Finances retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Finances retrieved successfully';
+        data: {
+            per_event: Array<{
+                event: {
+                    id: number;
+                    name: string;
+                    start_date: string;
+                    status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                };
+                budget_cents: number;
+                planned_expense_cents: number;
+                planned_income_cents: number;
+                expected_fees_cents: number;
+                actual_expense_cents: number;
+                pending_expense_cents: number;
+                reimbursed_cents: number;
+            }>;
+            totals: {
+                budget_cents: number;
+                planned_expense_cents: number;
+                planned_income_cents: number;
+                expected_fees_cents: number;
+                actual_expense_cents: number;
+                pending_expense_cents: number;
+                reimbursed_cents: number;
+            };
+            by_category: Array<{
+                category: string;
+                actual_cents: number;
+            }>;
+        };
+    };
+};
+
+export type GetOrgCoreTeamFinancesResponse = GetOrgCoreTeamFinancesResponses[keyof GetOrgCoreTeamFinancesResponses];
+
+export type GetOrgCoreTeamStatsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        year?: number;
+    };
+    url: '/org/core-team/stats';
+};
+
+export type GetOrgCoreTeamStatsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type GetOrgCoreTeamStatsError = GetOrgCoreTeamStatsErrors[keyof GetOrgCoreTeamStatsErrors];
+
+export type GetOrgCoreTeamStatsResponses = {
+    /**
+     * Statistics retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Statistics retrieved successfully';
+        data: {
+            events_count: number;
+            participants_total: number;
+            participants_by_event: Array<{
+                event_id: number;
+                name: string;
+                start_date: string;
+                count: number;
+            }>;
+            age_buckets: Array<{
+                label: string;
+                count: number;
+            }>;
+            gender: {
+                female: number;
+                male: number;
+                diverse: number;
+                unknown: number;
+            };
+            staff_engagement: Array<{
+                user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                };
+                events_count: number;
+                leader_count: number;
+            }>;
+            returning_participants: number;
+        };
+    };
+};
+
+export type GetOrgCoreTeamStatsResponse = GetOrgCoreTeamStatsResponses[keyof GetOrgCoreTeamStatsResponses];
+
+export type GetOrgCoreTeamStaffPlanningData = {
+    body?: never;
+    path?: never;
+    query?: {
+        from?: string;
+        to?: string;
+    };
+    url: '/org/core-team/staff-planning';
+};
+
+export type GetOrgCoreTeamStaffPlanningErrors = {
+    /**
+     * `from` must not be after `to` / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: '`from` must not be after `to` / Syntax or validation error in request';
+    };
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type GetOrgCoreTeamStaffPlanningError = GetOrgCoreTeamStaffPlanningErrors[keyof GetOrgCoreTeamStaffPlanningErrors];
+
+export type GetOrgCoreTeamStaffPlanningResponses = {
+    /**
+     * Staff planning retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Staff planning retrieved successfully';
+        data: {
+            from: string;
+            to: string;
+            events: Array<{
+                id: number;
+                name: string;
+                start_date: string;
+                end_date: string;
+                color: string | null;
+            }>;
+            users: Array<{
+                user: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                };
+                assignments: Array<{
+                    event_id: number;
+                    role: 'leader' | 'staff';
+                }>;
+                conflicts: Array<[
+                    number,
+                    number
+                ]>;
+            }>;
+            unassigned_users: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+        };
+    };
+};
+
+export type GetOrgCoreTeamStaffPlanningResponse = GetOrgCoreTeamStaffPlanningResponses[keyof GetOrgCoreTeamStaffPlanningResponses];
+
+export type GetOrgCoreTeamNotesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/core-team/notes';
+};
+
+export type GetOrgCoreTeamNotesErrors = {
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type GetOrgCoreTeamNotesError = GetOrgCoreTeamNotesErrors[keyof GetOrgCoreTeamNotesErrors];
+
+export type GetOrgCoreTeamNotesResponses = {
+    /**
+     * Notes retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notes retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            can_delete: boolean;
+        }>;
+    };
+};
+
+export type GetOrgCoreTeamNotesResponse = GetOrgCoreTeamNotesResponses[keyof GetOrgCoreTeamNotesResponses];
+
+export type PostOrgCoreTeamNotesData = {
+    body: {
+        title: string;
+        content?: string;
+        pinned?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/core-team/notes';
+};
+
+export type PostOrgCoreTeamNotesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+};
+
+export type PostOrgCoreTeamNotesError = PostOrgCoreTeamNotesErrors[keyof PostOrgCoreTeamNotesErrors];
+
+export type PostOrgCoreTeamNotesResponses = {
+    /**
+     * Note created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Note created successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostOrgCoreTeamNotesResponse = PostOrgCoreTeamNotesResponses[keyof PostOrgCoreTeamNotesResponses];
+
+export type DeleteOrgCoreTeamNotesByNoteIdData = {
+    body?: never;
+    path: {
+        noteId: number;
+    };
+    query?: never;
+    url: '/org/core-team/notes/{noteId}';
+};
+
+export type DeleteOrgCoreTeamNotesByNoteIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the creator or an admin can delete this note
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the creator or an admin can delete this note';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type DeleteOrgCoreTeamNotesByNoteIdError = DeleteOrgCoreTeamNotesByNoteIdErrors[keyof DeleteOrgCoreTeamNotesByNoteIdErrors];
+
+export type DeleteOrgCoreTeamNotesByNoteIdResponses = {
+    /**
+     * Note deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgCoreTeamNotesByNoteIdResponse = DeleteOrgCoreTeamNotesByNoteIdResponses[keyof DeleteOrgCoreTeamNotesByNoteIdResponses];
+
+export type PutOrgCoreTeamNotesByNoteIdData = {
+    body?: {
+        title?: string;
+        content?: string;
+        pinned?: boolean;
+    };
+    path: {
+        noteId: number;
+    };
+    query?: never;
+    url: '/org/core-team/notes/{noteId}';
+};
+
+export type PutOrgCoreTeamNotesByNoteIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This area is restricted to the core team
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This area is restricted to the core team';
+    };
+    /**
+     * Note not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Note not found';
+    };
+};
+
+export type PutOrgCoreTeamNotesByNoteIdError = PutOrgCoreTeamNotesByNoteIdErrors[keyof PutOrgCoreTeamNotesByNoteIdErrors];
+
+export type PutOrgCoreTeamNotesByNoteIdResponses = {
+    /**
+     * Note updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Note updated successfully';
+        data: {
+            id: number;
+            scope: 'personal' | 'event' | 'group' | 'core_team';
+            user_id: number | null;
+            event_id: number | null;
+            group_id: number | null;
+            title: string;
+            content: string;
+            pinned: boolean;
+            created_by: number | null;
+            updated_by: number | null;
+            created_at: number;
+            updated_at: number;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            updater: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PutOrgCoreTeamNotesByNoteIdResponse = PutOrgCoreTeamNotesByNoteIdResponses[keyof PutOrgCoreTeamNotesByNoteIdResponses];

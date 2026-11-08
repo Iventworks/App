@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 import { UserPreferences } from "../../../../../utils/preferences";
 
 export namespace AccountPreferencesModel.GetAll {

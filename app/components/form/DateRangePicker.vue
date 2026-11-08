@@ -15,7 +15,7 @@ withDefaults(defineProps<Props>(), {
 	icon: "i-lucide-calendar",
 });
 
-const df = new DateFormatter("en-US", {
+const df = new DateFormatter("de-DE", {
 	dateStyle: "medium",
 });
 
@@ -41,7 +41,7 @@ const calendarRange = computed({
 const inputValue = computed(() => {
 	const { start, end } = selected.value;
 
-	if (!start) return "Pick a date";
+	if (!start) return "Zeitraum wählen";
 	if (!end) return df.format(start);
 
 	return `${df.format(start)} - ${df.format(end)}`;
@@ -68,7 +68,7 @@ const resetRange = () => {
                 <UCalendar v-model="calendarRange" class="p-2" :number-of-months="2" range />
                 <div class="px-2 pb-2">
                     <UButton variant="ghost" color="primary" @click="resetRange" block>
-                        Reset
+                        Zurücksetzen
                     </UButton>
                 </div>
             </div>

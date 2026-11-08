@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import { DB } from "../../../../../db";
-import { type DrizzleDB } from "../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
@@ -70,7 +70,9 @@ router.put(
 
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.successNoData("Account information updated successfully"),
-			APIResponseSpec.unauthorized("Your Auth Context is not a session"),
+			APIResponseSpec.unauthorized(
+				"Your Auth Context is not a session / Current password is incorrect",
+			),
 			APIResponseSpec.conflict("Username or email already in use"),
 		),
 	}),
@@ -80,7 +82,7 @@ router.put(
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.getAsSession(c);
 
-		const updates = c.req.valid("json") as AccountModel.UpdateInfo.Body;
+		const { current_password, ...updates } = c.req.valid("json") as AccountModel.UpdateInfo.Body;
 
 		const user = await DB.instance()
 			.select()
@@ -90,6 +92,12 @@ router.put(
 
 		if (!user) {
 			throw new Error("User not found but session exists");
+		}
+
+		// A stolen session token alone must not be enough to change the login email/username
+		// (and then take the account over via password reset). See docs/10-auth.md.
+		if (!(await Bun.password.verify(current_password, user.password_hash))) {
+			return APIResponse.unauthorized(c, "Current password is incorrect");
 		}
 
 		// Check for conflicts if changing username or email
@@ -231,3 +239,4 @@ router.delete(
 
 router.route("/", (await import("./apikeys")).router);
 router.route("/", (await import("./preferences")).router);
+router.route("/", (await import("./sessions")).router);

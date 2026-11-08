@@ -29,6 +29,8 @@ ENV CMP_DB_MIGRATION_DIR=/opt/crossover/cmp/app/drizzle/migrations
 
 ENV CMP_LOG_DIR=/opt/crossover/cmp/data/logs
 ENV CMP_CONFIG_BASE_DIR=/opt/crossover/cmp/config
+# Uploaded documents and receipts — part of the data volume, back it up together with db.sqlite.
+ENV CMP_UPLOAD_DIR=/opt/crossover/cmp/data/uploads
 
 
 VOLUME /opt/crossover/cmp/data

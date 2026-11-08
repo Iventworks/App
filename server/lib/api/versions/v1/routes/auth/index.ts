@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm";
-import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
-import { type DrizzleDB } from "../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
+import { getClientIP } from "../../../../utils/clientInfo";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { AuthModel } from "./model";
@@ -15,74 +15,51 @@ import { AuthModel } from "./model";
 // Generated once at module load so it's a valid, cost-equivalent hash
 const DUMMY_PASSWORD_HASH = await Bun.password.hash("dummy-timing-constant");
 
-// Simple in-memory rate limiter for login to reduce brute-force risk
+// In-memory login rate limiting (5-minute window):
+// - per client IP + username: blocks password guessing against one account from one client
+// - per client IP (failures only): blocks spraying many usernames from one client
+// There is deliberately NO hard per-username lock across all clients: that would let anyone keep
+// a known account (e.g. `admin`) locked out. Instead, repeated failures for a username from many
+// clients only slow responses down (argon2 hashing already makes guessing expensive).
 const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const LOGIN_MAX_ATTEMPTS = 5;
-const LOGIN_MAX_GLOBAL_ATTEMPTS = 15; // Per-username limit across all IPs
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const globalLoginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_MAX_ATTEMPTS_PER_CLIENT_AND_USER = 5;
+const LOGIN_MAX_ATTEMPTS_PER_CLIENT = 30;
+const LOGIN_SLOWDOWN_AFTER_USER_FAILURES = 15;
+const LOGIN_SLOWDOWN_MS = 1500;
+
+type AttemptEntry = { count: number; resetAt: number };
+const clientUserAttempts = new Map<string, AttemptEntry>();
+const clientAttempts = new Map<string, AttemptEntry>();
+const userFailures = new Map<string, AttemptEntry>();
 
 // Periodic cleanup to prevent unbounded memory growth — runs every 5 minutes
 const LOGIN_CLEANUP_INTERVAL = setInterval(() => {
 	const now = Date.now();
-	for (const [key, entry] of loginAttempts) {
-		if (entry.resetAt <= now) loginAttempts.delete(key);
-	}
-	for (const [key, entry] of globalLoginAttempts) {
-		if (entry.resetAt <= now) globalLoginAttempts.delete(key);
+	for (const map of [clientUserAttempts, clientAttempts, userFailures]) {
+		for (const [key, entry] of map) {
+			if (entry.resetAt <= now) map.delete(key);
+		}
 	}
 }, LOGIN_WINDOW_MS);
 // Allow the process to exit without waiting for this interval
 LOGIN_CLEANUP_INTERVAL.unref();
 
-function getClientId(c: Context) {
-	// @ts-ignore bun/hono provides a native request with connection info
-	const remote = (c.req.raw as any)?.remoteAddr?.hostname;
-	return remote || "unknown";
-}
-
-function getLoginAttemptKey(clientId: string, username: string) {
-	return `${clientId}:${username.toLowerCase()}`;
-}
-
-function getGlobalLoginAttemptKey(username: string) {
-	return username.toLowerCase();
-}
-
-/**
- * Register a failed attempt, incrementing the counter atomically.
- * Returns the new count after increment — no await between read and write.
- */
-function registerFailedLoginAttempt(
-	loginAttemptKey: string,
-	globalKey: string,
-): { perIpCount: number; globalCount: number } {
+/** Increment a window counter and return the new count (no await between read and write). */
+function increment(map: Map<string, AttemptEntry>, key: string): number {
 	const now = Date.now();
-
-	// Per-IP-per-username counter
-	let entry = loginAttempts.get(loginAttemptKey);
+	let entry = map.get(key);
 	if (!entry || entry.resetAt <= now) {
 		entry = { count: 1, resetAt: now + LOGIN_WINDOW_MS };
-		loginAttempts.set(loginAttemptKey, entry);
+		map.set(key, entry);
 	} else {
 		entry.count += 1;
 	}
-
-	// Global per-username counter
-	let globalEntry = globalLoginAttempts.get(globalKey);
-	if (!globalEntry || globalEntry.resetAt <= now) {
-		globalEntry = { count: 1, resetAt: now + LOGIN_WINDOW_MS };
-		globalLoginAttempts.set(globalKey, globalEntry);
-	} else {
-		globalEntry.count += 1;
-	}
-
-	return { perIpCount: entry.count, globalCount: globalEntry.count };
+	return entry.count;
 }
 
-function clearFailedLoginAttempts(loginAttemptKey: string, globalKey: string) {
-	loginAttempts.delete(loginAttemptKey);
-	globalLoginAttempts.delete(globalKey);
+function currentCount(map: Map<string, AttemptEntry>, key: string): number {
+	const entry = map.get(key);
+	return entry && entry.resetAt > Date.now() ? entry.count : 0;
 }
 
 export const router = new Hono().basePath("/auth");
@@ -113,17 +90,26 @@ router.post(
 		const { username, password } = c.req.valid("json");
 
 		try {
-			const clientId = getClientId(c);
-			const loginAttemptKey = getLoginAttemptKey(clientId, username);
-			const globalKey = getGlobalLoginAttemptKey(username);
+			const clientIP = getClientIP(c);
+			const usernameKey = username.toLowerCase();
+			const clientUserKey = `${clientIP}:${usernameKey}`;
 
-			// Increment counters FIRST, then check limits — eliminates TOCTOU race
-			const { perIpCount, globalCount } = registerFailedLoginAttempt(loginAttemptKey, globalKey);
+			// Increment the per-account counter FIRST, then check limits — eliminates TOCTOU race.
+			// The per-client counter only counts failures, so many people logging in from one
+			// network (e.g. the camp Wi-Fi) are not throttled.
+			const perClientUser = increment(clientUserAttempts, clientUserKey);
 
-			if (perIpCount > LOGIN_MAX_ATTEMPTS || globalCount > LOGIN_MAX_GLOBAL_ATTEMPTS) {
+			if (
+				perClientUser > LOGIN_MAX_ATTEMPTS_PER_CLIENT_AND_USER ||
+				currentCount(clientAttempts, clientIP) >= LOGIN_MAX_ATTEMPTS_PER_CLIENT
+			) {
 				const retrySeconds = Math.max(1, Math.ceil(LOGIN_WINDOW_MS / 1000));
 				c.header("Retry-After", retrySeconds.toString());
 				return APIResponse.tooManyRequests(c, `Too many login attempts. Try again in ${retrySeconds}s`);
+			}
+
+			if (currentCount(userFailures, usernameKey) >= LOGIN_SLOWDOWN_AFTER_USER_FAILURES) {
+				await Bun.sleep(LOGIN_SLOWDOWN_MS);
 			}
 
 			const user = DB.instance()
@@ -134,16 +120,20 @@ router.post(
 			if (!user) {
 				// Timing-normalized: always run a bcrypt call to prevent username enumeration
 				await Bun.password.verify("dummy-timing-constant", DUMMY_PASSWORD_HASH);
+				increment(userFailures, usernameKey);
+				increment(clientAttempts, clientIP);
 				return APIResponse.unauthorized(c, "Invalid username or password");
 			}
 
 			const passwordMatch = await Bun.password.verify(password, user.password_hash);
 			if (!passwordMatch) {
+				increment(userFailures, usernameKey);
+				increment(clientAttempts, clientIP);
 				return APIResponse.unauthorized(c, "Invalid username or password");
 			}
 
-			// Successful login — clear all counters for this user
-			clearFailedLoginAttempts(loginAttemptKey, globalKey);
+			// Successful login — clear this client's counter for the account
+			clientUserAttempts.delete(clientUserKey);
 
 			const session = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				return await SessionHandler.createSession(user.id, tx);
@@ -218,3 +208,4 @@ router.post(
 );
 
 router.route("/", (await import("./reset-password")).router);
+router.route("/", (await import("./invitations")).router);

@@ -7,6 +7,7 @@ import { API } from "../../server/lib/api";
 import { DB } from "../../server/lib/db";
 import { Utils } from "../../server/lib/utils";
 import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
+import { FileStorage } from "../../server/lib/utils/fileStorage";
 
 function setTestEnv(rootDir: string) {
 	const envVars = {
@@ -21,7 +22,12 @@ function setTestEnv(rootDir: string) {
 		CMP_LOG_DIR: path.join(rootDir, "logs"),
 		CMP_CONFIG_BASE_DIR: rootDir,
 
+		CMP_UPLOAD_DIR: path.join(rootDir, "uploads"),
+		CMP_MAX_UPLOAD_SIZE_MB: 5,
+		CMP_TRUST_PROXY: false,
+
 		CMP_APP_URL: "http://localhost:31316",
+		CMP_TIMEZONE: "Europe/Berlin",
 
 		CMP_SMTP_HOST: "127.0.0.1",
 		CMP_SMTP_PORT: 12587,
@@ -92,6 +98,8 @@ beforeAll(async () => {
 	const config = await ConfigHandler.loadConfig();
 
 	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT, "./drizzle/migrations");
+
+	await FileStorage.init(config.UPLOAD_DIR, config.MAX_UPLOAD_SIZE_MB);
 
 	// EmailService is NOT initialised here — tests that need it call
 	// EmailService.init(mockTransport) in their own beforeAll.

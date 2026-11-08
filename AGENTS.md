@@ -32,14 +32,45 @@ Follow the LeiCraftMC Style Guides: https://github.com/LeiCraftMC/Style-Guides.
 
 ## CMP-specific rules and exceptions
 
+Record every divergence from the style guide here (docs/17: "discuss, record").
+
 - Env prefix `CMP_`, token/cookie prefix `cmp` (`cmp_session_token`), see
-  `server/lib/utils/constants.ts`.
+  `server/lib/utils/constants.ts`. Legacy `CMP_API_*` names (pre-merge CMP-API) are read as a
+  fallback by `ConfigHandler`; `bun run db:import-legacy` imports old user accounts.
 - Port **31316** in dev and prod. This deviates from the guide's 12xxx rule (docs/02 › Ports): it is
   the port the pre-merge CMP web app already used.
-- Roles: `admin`, `core_team`, `volunteer`, `unverified` (new accounts default to `unverified`).
-- `PUT /api/v1/account` deliberately does **not** require `current_password` (unlike the template and
-  docs/10), so the existing profile form keeps working.
-- All pages render client-side (`routeRules: { "/**": { ssr: false } }`); the PWA service worker
-  must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
-- Chat and calendar use Nuxt UI's `UChatMessages` / `UChatPrompt` and `UCalendar`. The `ai`
-  devDependency only provides the `UIMessage` types the chat components need.
+- **Roles / RBAC** (docs/10 › full RBAC): org roles `admin > core_team > volunteer > unverified`,
+  event roles `leader > staff` (`event_members`). `server/lib/api/utils/permissions.ts`
+  (`PermissionHelper`) holds both permission matrices; checks live in handlers
+  (`PermissionHelper.can`, `EventAccess.can(c, "…")`) and turn into `APIResponse.forbidden`.
+  Routers only use the coarse `requireOrgRole(...)` guard. `core_team`/`admin` act as `leader` in
+  every event. `unverified` accounts may only use `/account`.
+- **Event sub-resources** live under `routes/events/<resource>/` with
+  `basePath("/:eventId/<resource>")`; `EventAccess.loader` (mounted once in `routes/events/index.ts`)
+  loads `c.get("event")` / `c.get("eventAccess")`. Follow `routes/events/tasks/` as the reference.
+  Request bodies are explicit `z.object`s — drizzle-zod insert schemas drop optionality when a
+  column gets a refinement. Write German summaries to `AuditLog.record` (never medical details) and
+  use `Notifier.notify` for assignments.
+- **Invite-only**: no signup. Admins create invitations (`/admin/invitations`); the invitee
+  accepts at `/auth/accept-invite?token=…` (`/auth/invitations/*`).
+- `PUT /api/v1/account` requires `current_password` (docs/10), like the template.
+- **Login rate limiting** is per client IP (+ username); there is no per-username lockout across
+  clients (it let anyone lock the admin out). The Nitro bridge passes the client IP as Hono env
+  binding `clientIP` (`server/lib/api/utils/clientInfo.ts`); `CMP_TRUST_PROXY` uses the last
+  `X-Forwarded-For` entry.
+- **Foreign keys are enforced** (`PRAGMA foreign_keys = ON` in `DB.init`) — not in the guide. The
+  schema's `onDelete` actions are relied on (e.g. deleting an event cascades to its rows).
+  `SQLUtils.getCreatedAtColumn` also sets `$defaultFn(Date.now)` for millisecond precision.
+- **File uploads** (not covered by the guide): blobs on disk under `CMP_UPLOAD_DIR` via
+  `FileStorage`, metadata in `files`, all access through `FileService` / `FileAccess`. Upload
+  routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Downloads use
+  signed short-lived tokens (`GET /files/download/{token}`) instead of the bearer header.
+- **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
+  `CMP_TIMEZONE` (`server/lib/utils/time.ts`).
+- **Messaging** is REST + polling (`?after=<id>`), no WebSocket yet.
+- All pages render client-side (`routeRules: { "/**": { ssr: false } }`) — the guide's
+  "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
+  use `definePageMeta({ layout: "dashboard" })` (or `auth`).
+- **PWA** (`@vite-pwa/nuxt`) is kept (the guide ships none): the Android TWA wraps the web app.
+  The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
+- UI language is German, informal ("du").

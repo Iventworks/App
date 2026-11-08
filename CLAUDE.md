@@ -29,7 +29,8 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 - Route access rules live in `app/middleware/auth.global.ts`. The template is deliberately rich;
   delete unused parts instead of working around them.
 - Reference components by their Nuxt auto-import names (`DashboardDataTable`,
-  `DashboardPageHeader`, `FormDateRangePicker`, `CampsStatsCard`, …). Don't add explicit imports that only the
+  `DashboardPageHeader`, `DashboardSectionCard`, `DashboardStatCard`, `ImgAppLogo`,
+  `FormMarkdownEditor`, `FilesBrowser`, …). Don't add explicit imports that only the
   `<template>` uses: Biome can't see template usage, reports them as unused, and an `--unsafe` fix
   would delete them.
 - If a `<script>` binding is used as a type there and as a value in the `<template>` (e.g. a Zod
@@ -38,8 +39,16 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
   into `import type` and breaks the page at runtime.
 - In `.vue` files, Biome *warnings* about unused variables/imports are expected (template usage).
   Biome *errors* are not.
-- Per-user stores live in `app/composables/stores/` (`useUserInfoStore`).
-  Clear them on logout; the login page refreshes them for the new session.
+- Biome ≥ 2.6's safe fix rewrites `// @ts-ignore` to `// @ts-expect-error`. Keep the template's
+  `@ts-ignore` where `nuxt typecheck` and the server `tsc` pass disagree (e.g. `c.get(...)` in
+  `authHandler.ts`, `Bun?.isStandaloneExecutable`), otherwise one of the two reports an unused
+  directive. Re-run `bun run typecheck` after `biome check --write`.
+- Per-user stores live in `app/composables/stores/` (`useUserInfoStore`, `useMyEventsStore`) plus
+  the event details cache (`clearEventDetails()` in `useCurrentEvent.ts`). Clear them on logout;
+  the login page refreshes them for the new session.
+- Event pages start with `const { event, can } = await useCurrentEvent();` and hide controls with
+  `can("participants:manage")` etc. — the API enforces the same permissions.
+- Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
 
 ## CMP-specific notes
 

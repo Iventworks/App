@@ -1,51 +1,52 @@
 <script setup lang="ts">
 import type { BreadcrumbItem } from "@nuxt/ui";
 
-interface Props {
-	title?: string;
-	icon?: string;
-	description?: string;
-	breadcrumbItems?: BreadcrumbItem[];
-}
-
-const props = withDefaults(defineProps<Props>(), {
-	title: "",
-	icon: undefined,
-});
+const props = withDefaults(
+	defineProps<{
+		title?: string;
+		icon?: string;
+		description?: string;
+		breadcrumbItems?: BreadcrumbItem[];
+	}>(),
+	{
+		title: "",
+		icon: undefined,
+	},
+);
 </script>
 
 <template>
-    <UDashboardNavbar :title="props.title" :icon="props.icon">
-        <template #leading>
-            <slot name="leading"></slot>
-        </template>
+	<UDashboardNavbar :title="props.title" :icon="props.icon">
+		<!-- Only override `#leading` when a page provides it: the navbar's default leading content is
+		     the sidebar toggle, which is the only way to open the sidebar on phones. -->
+		<template v-if="$slots.leading" #leading>
+			<slot name="leading"></slot>
+		</template>
 
-        <template #title v-if="breadcrumbItems?.length">
-            <slot name="title">
-                <UBreadcrumb :items="breadcrumbItems" :ui='{
-                    link: "text-md"
-                }' />
-            </slot>
-        </template>
+		<template v-if="breadcrumbItems?.length" #title>
+			<slot name="title">
+				<UBreadcrumb :items="breadcrumbItems" :ui="{ link: 'text-md' }" />
+			</slot>
+		</template>
 
-        <template #trailing v-if="description">
-            <slot name="trailing">
-                <span class="text-slate-400 hidden sm:inline">
-                    {{ description }}
-                </span>
-            </slot>
-        </template>
+		<template v-if="description" #trailing>
+			<slot name="trailing">
+				<span class="hidden text-slate-400 sm:inline">
+					{{ description }}
+				</span>
+			</slot>
+		</template>
 
-        <template #left>
-            <slot name="left"></slot>
-        </template>
+		<template #left>
+			<slot name="left"></slot>
+		</template>
 
-        <template #default>
-            <slot></slot>
-        </template>
+		<template #default>
+			<slot></slot>
+		</template>
 
-        <template #right>
-            <slot name="right"></slot>
-        </template>
-    </UDashboardNavbar>
+		<template #right>
+			<slot name="right"></slot>
+		</template>
+	</UDashboardNavbar>
 </template>

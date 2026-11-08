@@ -8,7 +8,7 @@ definePageMeta({
 
 useSeoMeta({
 	title: "Passwort vergessen | CMP",
-	description: "Setzen Sie Ihr Passwort zurück",
+	description: "Setze dein Passwort zurück",
 });
 
 const toast = useToast();
@@ -18,7 +18,7 @@ const fields: AuthFormField[] = [
 		name: "email",
 		type: "email",
 		label: "E-Mail-Adresse",
-		placeholder: "Geben Sie Ihre E-Mail-Adresse ein",
+		placeholder: "Deine E-Mail-Adresse",
 		required: true,
 	},
 ];
@@ -49,8 +49,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 	} else {
 		toast.add({
 			title: "Anfrage fehlgeschlagen",
-			description:
-				result.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
+			description: result.message || "Ein Fehler ist aufgetreten. Bitte versuche es später erneut.",
 			icon: "i-lucide-alert-circle",
 			color: "error",
 		});
@@ -63,7 +62,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		v-if="!submitted"
 		:schema="schema"
 		title="Passwort vergessen"
-		description="Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts."
+		description="Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts."
 		icon="i-lucide-mail"
 		:fields="fields"
 		:submit="{ label: 'Link senden', loading, disabled: loading }"
@@ -72,7 +71,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		<template #footer>
 			<div class="text-center text-sm">
 				Passwort wieder eingefallen?
-				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier einloggen</NuxtLink>
+				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier anmelden</NuxtLink>
 			</div>
 		</template>
 	</UAuthForm>
@@ -83,10 +82,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 				<UIcon name="i-lucide-mail-check" class="size-8 text-primary" />
 			</div>
 		</div>
-		<h2 class="text-xl font-semibold">Prüfen Sie Ihr Postfach</h2>
+		<h2 class="text-xl font-semibold">Prüfe dein Postfach</h2>
 		<p class="mx-auto max-w-sm text-sm text-slate-400">
-			Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum
-			Zurücksetzen Ihres Passworts gesendet.
+			Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir einen Link zum
+			Zurücksetzen deines Passworts gesendet.
 		</p>
 		<p class="text-xs text-slate-400">
 			Keine E-Mail erhalten?
@@ -95,7 +94,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 			</button>
 		</p>
 		<div class="pt-4">
-			<NuxtLink to="/auth/login" class="text-sm text-primary hover:underline">Zurück zum Login</NuxtLink>
+			<NuxtLink to="/auth/login" class="text-sm text-primary hover:underline">Zurück zur Anmeldung</NuxtLink>
 		</div>
 	</div>
 </template>

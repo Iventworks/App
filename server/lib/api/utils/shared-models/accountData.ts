@@ -27,6 +27,14 @@ export namespace UserDataPolicies {
 }
 
 export namespace UserAccountSettings {
+	/**
+	 * Organisation-wide roles, highest first:
+	 * - `admin`: technical administration (users, invitations, full audit log) + everything below
+	 * - `core_team` ("Kernteam"): runs the organisation — creates events, assigns leaders, org
+	 *   documents, finances and statistics across all events; implicit leader of every event
+	 * - `volunteer`: regular staff member; sees the events they are assigned to
+	 * - `unverified`: account exists but has no access beyond their own account settings
+	 */
 	export const Roles = ["admin", "core_team", "volunteer", "unverified"] as const;
 	export const Role = z.enum(Roles);
 	export type Role = z.infer<typeof Role>;
