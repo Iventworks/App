@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
-import { DB } from "../../../../../db";
+import { DB } from "../../db";
 
 /**
  * Personal scope helpers shared by `/tasks`, `/dashboard` and `/calendar`: the caller's events,

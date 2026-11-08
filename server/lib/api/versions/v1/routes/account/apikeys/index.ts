@@ -6,12 +6,7 @@ import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
-import {
-	APIKeyHandler,
-	AuthHandler,
-	AuthUtils,
-	SessionHandler,
-} from "../../../../../utils/authHandler";
+import { APIKeyHandler, AuthHandler, AuthUtils } from "../../../../../utils/authHandler";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
 import { AccountAPIKeysModel } from "./model";

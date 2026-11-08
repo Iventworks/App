@@ -5,9 +5,9 @@ import { DB } from "../../../../../db";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
+import { PersonalScope } from "../../../../utils/personalScope";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
-import { PersonalScope } from "../tasks/aggregate";
 import { CalendarModel } from "./model";
 
 type CalendarEnv = { Variables: { entry: DB.Models.CalendarEntry } };

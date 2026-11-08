@@ -15,6 +15,11 @@ export namespace EventParticipantsModel {
 	export type RoomRef = z.infer<typeof RoomRef>;
 
 	export const Participant = createSelectSchema(DB.Tables.participants).extend({
+		/**
+		 * False for callers outside the event's team (e.g. core team): health fields are blanked and
+		 * staff notes withheld (`participants:view_medical`).
+		 */
+		medical_visible: z.boolean(),
 		/** Age in full years on the event's start date (null without birth date). */
 		age: z.number().nullable(),
 		room: RoomRef.nullable(),

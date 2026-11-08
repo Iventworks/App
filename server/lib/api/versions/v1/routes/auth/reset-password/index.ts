@@ -7,7 +7,7 @@ import type { DrizzleDB } from "../../../../../../db/utils";
 import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
-import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
+import { AuthHandler } from "../../../../../utils/authHandler";
 import { EmailService } from "../../../../../utils/email";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";

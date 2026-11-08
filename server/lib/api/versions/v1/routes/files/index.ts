@@ -19,12 +19,8 @@ type FilesEnv = {
 
 export const router = new Hono<FilesEnv>().basePath("/files");
 
-/** MIME types a browser may render inline; everything else is forced to download. */
-function isInlineType(mimeType: string) {
-	return (
-		mimeType.startsWith("image/") || mimeType === "application/pdf" || mimeType === "text/plain"
-	);
-}
+/** Locks down inline responses: no script, no plugins, no requests to anywhere. */
+const INLINE_CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
 
 /** `Content-Disposition` with an ASCII fallback and the RFC 5987 UTF-8 file name. */
 function contentDisposition(type: "inline" | "attachment", name: string) {
@@ -85,19 +81,26 @@ router.get(
 			return APIResponse.notFound(c, "File not found or link expired");
 		}
 
-		const mimeType = file.mime_type || "application/octet-stream";
-		const disposition = download !== "1" && isInlineType(mimeType) ? "inline" : "attachment";
+		// Only allow-listed types are rendered by the browser; anything else (SVG, HTML, …) is
+		// downloaded as opaque bytes so it can never run script on the app origin.
+		const inline = download !== "1" && FileService.isInlineSafe(file.mime_type);
+		const safeType = FileService.isInlineSafe(file.mime_type)
+			? (file.mime_type as string)
+			: "application/octet-stream";
 
-		return new Response(blob, {
-			status: 200,
-			headers: {
-				"Content-Type": mimeType,
-				"Content-Length": String(blob.size),
-				"Content-Disposition": contentDisposition(disposition, file.name),
-				"X-Content-Type-Options": "nosniff",
-				"Cache-Control": "private, max-age=300",
-			},
-		});
+		const headers: Record<string, string> = {
+			"Content-Type": safeType,
+			"Content-Length": String(blob.size),
+			"Content-Disposition": contentDisposition(inline ? "inline" : "attachment", file.name),
+			"X-Content-Type-Options": "nosniff",
+			"Cache-Control": "private, max-age=300",
+		};
+		// Chrome refuses to render PDFs in sandboxed documents; PDFs cannot run page script anyway.
+		if (inline && safeType !== "application/pdf") {
+			headers["Content-Security-Policy"] = INLINE_CSP;
+		}
+
+		return new Response(blob, { status: 200, headers });
 	},
 );
 

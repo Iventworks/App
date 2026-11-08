@@ -7,7 +7,7 @@ import type {
 
 type Participant = GetEventsByEventIdParticipantsResponses["200"]["data"][number];
 type StaffNote =
-	GetEventsByEventIdParticipantsByParticipantIdResponses["200"]["data"]["notes"][number];
+	GetEventsByEventIdParticipantsByParticipantIdResponses["200"]["data"]["staff_notes"][number];
 type Room = GetEventsByEventIdRoomsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
@@ -20,9 +20,8 @@ const participantId = computed(() => Number(route.params.participant_id));
 
 // --- data ---------------------------------------------------------------------------------
 
-// The participant record comes from the list endpoint (shared cache with the list page): the
-// detail endpoint returns the staff notes in `notes`, which shadows the participant's own
-// `notes` text field.
+// The participant record comes from the list endpoint (shared cache with the list page, so edits
+// there show up here); the detail endpoint adds the staff notes (`staff_notes`).
 const { data: participants, refresh: refreshParticipants } = await useAPIAsyncData(
 	`event-${eventId.value}-participants`,
 	async () => {
@@ -43,7 +42,7 @@ const {
 			path: { eventId: eventId.value, participantId: participantId.value },
 		}),
 	);
-	return result.success ? result.data.notes : ([] as StaffNote[]);
+	return result.success ? result.data.staff_notes : ([] as StaffNote[]);
 });
 
 const participant = computed(

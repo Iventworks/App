@@ -113,6 +113,70 @@ describe("Event participants", () => {
 		expect(JSON.stringify(entry)).not.toContain("Erdnüsse");
 	});
 
+	test("health data and staff notes are only visible to the event's own team", async () => {
+		await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}/notes`, {
+			method: "POST",
+			authToken: staffSession.token,
+			body: { content: "Braucht abends sein Inhalationsspray." },
+		});
+
+		// Staff of the event see everything.
+		const forStaff = await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}`, {
+			authToken: staffSession.token,
+			expectedBodySchema: EventParticipantsModel.ParticipantDetail,
+		});
+		expect(forStaff.medical_visible).toBe(true);
+		expect(forStaff.allergies).toBe("Erdnüsse");
+		expect(forStaff.staff_notes.length).toBeGreaterThan(0);
+
+		// Core team manage the event (implicit leader) but are not on its team: no health data.
+		const forCore = await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}`, {
+			authToken: coreSession.token,
+			expectedBodySchema: EventParticipantsModel.ParticipantDetail,
+		});
+		expect(forCore.medical_visible).toBe(false);
+		expect(forCore.allergies).toBe("");
+		expect(forCore.staff_notes).toEqual([]);
+		expect(forCore.first_name).toBe("Max");
+
+		const list = await makeAPIRequest(`/v1/events/${eventId}/participants`, {
+			authToken: coreSession.token,
+		});
+		expect(list.every((p: any) => p.medical_visible === false && p.allergies === "")).toBe(true);
+
+		const csv = await (
+			await API.getApp().request(`/v1/events/${eventId}/participants/export`, {
+				headers: { Authorization: `Bearer ${coreSession.token}` },
+			})
+		).text();
+		expect(csv).not.toContain("Erdnüsse");
+
+		// Saving the (blanked) form as core team must not wipe the hidden values.
+		await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}`, {
+			method: "PUT",
+			authToken: coreSession.token,
+			body: { first_name: "Max", allergies: "", medical_notes: "" },
+		});
+		const after = await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}`, {
+			authToken: staffSession.token,
+		});
+		expect(after.allergies).toBe("Erdnüsse");
+
+		// The event permissions tell the frontend which case applies.
+		const coreEvent = await makeAPIRequest(`/v1/events/${eventId}`, { authToken: coreSession.token });
+		expect(coreEvent.permissions).not.toContain("participants:view_medical");
+		expect(coreEvent.permissions).toContain("participants:manage");
+		const staffEvent = await makeAPIRequest(`/v1/events/${eventId}`, { authToken: staffSession.token });
+		expect(staffEvent.permissions).toContain("participants:view_medical");
+
+		// Leave the note list as the following tests expect it.
+		const ownNote = forStaff.staff_notes.find((note) => note.content.includes("Inhalationsspray"));
+		await makeAPIRequest(
+			`/v1/events/${eventId}/participants/${participantId}/notes/${ownNote!.id}`,
+			{ method: "DELETE", authToken: staffSession.token },
+		);
+	});
+
 	test("rejects rooms of other events, invalid dates and missing names", async () => {
 		await makeAPIRequest(
 			`/v1/events/${eventId}/participants`,

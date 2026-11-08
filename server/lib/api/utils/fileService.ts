@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
@@ -14,6 +14,38 @@ import { FileStorage } from "../../utils/fileStorage";
  * `download_token`, the frontend builds `<appUrl>/api/v1/files/download/<token>`.
  */
 export class FileService {
+	/**
+	 * MIME types the browser may render inline from our origin. Everything else — notably
+	 * `image/svg+xml`, HTML and XML, which can carry script — is only ever served as a download
+	 * (`application/octet-stream`, `Content-Disposition: attachment`). Uploaded `type`s are
+	 * client-controlled, so this allow-list is what keeps uploads from becoming stored XSS.
+	 */
+	static readonly INLINE_MIME_TYPES: ReadonlySet<string> = new Set([
+		"image/png",
+		"image/jpeg",
+		"image/gif",
+		"image/webp",
+		"image/avif",
+		"application/pdf",
+		"text/plain",
+	]);
+
+	/** Receipt uploads: photos and PDFs only. */
+	static readonly RECEIPT_MIME_TYPES: ReadonlySet<string> = new Set([
+		"image/png",
+		"image/jpeg",
+		"image/gif",
+		"image/webp",
+		"image/avif",
+		"image/heic",
+		"image/heif",
+		"application/pdf",
+	]);
+
+	static isInlineSafe(mimeType: string | null | undefined) {
+		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
+	}
+
 	/** Per-process HMAC key; links simply expire on restart. */
 	protected static readonly SIGNING_KEY = LCrypt.randomBytes(32);
 	static readonly DOWNLOAD_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -75,7 +107,8 @@ export class FileService {
 						: eq(DB.Tables.files.parent_id, parentId),
 				),
 			)
-			.orderBy(asc(DB.Tables.files.kind), asc(DB.Tables.files.name))
+			// Folders first ("folder" > "file"), then by name.
+			.orderBy(desc(DB.Tables.files.kind), asc(DB.Tables.files.name))
 			.all();
 	}
 

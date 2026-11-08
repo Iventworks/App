@@ -371,7 +371,7 @@ function announcementActions(announcement: Announcement) {
 							label="Team"
 							:value="overview.counts.staff"
 							icon="i-lucide-contact"
-							icon-color="sky"
+							icon-color="info"
 							:to="can('members:view') ? `${base}/staff` : undefined"
 						/>
 						<DashboardStatCard

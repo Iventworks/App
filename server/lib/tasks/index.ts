@@ -3,7 +3,6 @@ import { and, asc, eq, or } from "drizzle-orm";
 import fs from "fs";
 import { dirname } from "path";
 import { DB } from "../db";
-import { ConfigHandler } from "../utils/config";
 import { Logger } from "../utils/logger";
 import { SampleTask } from "./sampleTask";
 import { TaskUtils } from "./utils";

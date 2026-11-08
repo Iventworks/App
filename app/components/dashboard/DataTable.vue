@@ -9,7 +9,6 @@ import type {
 	Row,
 } from "@tanstack/vue-table";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
-import DateRangePicker from "../form/DateRangePicker.vue";
 
 // Cell slot props type (matches UTable's slot props)
 type CellSlotProps = {
@@ -309,7 +308,7 @@ defineExpose({
                         />
 
                         <!-- Date Picker Filter -->
-                        <DateRangePicker
+                        <FormDateRangePicker
                             v-else-if="filter.type === 'date'"
                             :model-value="getFilterValue(filter.column as string) as any"
                             :class="filter.class || 'w-full sm:w-auto sm:min-w-40'"

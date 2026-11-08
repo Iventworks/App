@@ -55,6 +55,10 @@ const loading = ref(false);
 const loadingOlder = ref(false);
 const hasOlder = ref(false);
 const bottomAnchor = ref<HTMLElement | null>(null);
+// Message editing state — declared before `loadInitial`, which an immediate watcher runs during setup.
+const editingId = ref<number | null>(null);
+const editDraft = ref("");
+const savingEdit = ref(false);
 
 // --- scrolling ------------------------------------------------------------------------------
 
@@ -289,10 +293,6 @@ function onComposerKeydown(event: KeyboardEvent) {
 }
 
 // --- edit / delete own messages ------------------------------------------------------------
-
-const editingId = ref<number | null>(null);
-const editDraft = ref("");
-const savingEdit = ref(false);
 
 function startEdit(message: Message) {
 	editingId.value = message.id;

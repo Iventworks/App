@@ -6,10 +6,10 @@ import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { ConversationAccess } from "../../../../utils/conversations";
 import { requireOrgRole } from "../../../../utils/guards";
+import { PersonalScope } from "../../../../utils/personalScope";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
-import { PersonalScope } from "../tasks/aggregate";
 import { DashboardModel } from "./model";
 
 export const router = new Hono().basePath("/dashboard");

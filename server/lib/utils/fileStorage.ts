@@ -1,5 +1,10 @@
 import { mkdir as fs_mkdir, rm as fs_rm } from "fs/promises";
-import { dirname as path_dirname, join as path_join, resolve as path_resolve } from "path";
+import {
+	dirname as path_dirname,
+	join as path_join,
+	resolve as path_resolve,
+	sep as path_sep,
+} from "path";
 import { LCrypt } from "./crypto/lcrypt";
 import { Logger } from "./logger";
 
@@ -33,7 +38,7 @@ export class FileStorage {
 	protected static resolveKey(storageKey: string) {
 		const base = this.getBaseDir();
 		const fullPath = path_resolve(path_join(base, storageKey));
-		if (!fullPath.startsWith(base)) {
+		if (!fullPath.startsWith(base + path_sep)) {
 			throw new Error("Invalid storage key");
 		}
 		return fullPath;

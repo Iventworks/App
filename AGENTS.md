@@ -60,11 +60,15 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   `X-Forwarded-For` entry.
 - **Foreign keys are enforced** (`PRAGMA foreign_keys = ON` in `DB.init`) — not in the guide. The
   schema's `onDelete` actions are relied on (e.g. deleting an event cascades to its rows).
-  `SQLUtils.getCreatedAtColumn` also sets `$defaultFn(Date.now)` for millisecond precision.
+  The `created_at` SQL default has second precision — set `created_at: Date.now()` explicitly
+  where millisecond ordering matters (chat messages vs. read markers do this).
 - **File uploads** (not covered by the guide): blobs on disk under `CMP_UPLOAD_DIR` via
   `FileStorage`, metadata in `files`, all access through `FileService` / `FileAccess`. Upload
   routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Downloads use
-  signed short-lived tokens (`GET /files/download/{token}`) instead of the bearer header.
+  signed short-lived tokens (`GET /files/download/{token}`) instead of the bearer header. Uploaded
+  MIME types are client-controlled: only `FileService.INLINE_MIME_TYPES` (raster images, PDF, plain
+  text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as an
+  `application/octet-stream` attachment so it can never run script on the app origin.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `CMP_TIMEZONE` (`server/lib/utils/time.ts`).
 - **Messaging** is REST + polling (`?after=<id>`), no WebSocket yet.

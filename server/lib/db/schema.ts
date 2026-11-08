@@ -696,6 +696,8 @@ export const messages = sqliteTable(
 		content: text().notNull(),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		edited_at: integer(),
+		// Soft delete: a tombstone (content cleared) so polling clients learn about deletions.
+		deleted_at: integer(),
 	},
 	(table) => [
 		index("messages_conversation_created_idx").on(table.conversation_id, table.created_at),

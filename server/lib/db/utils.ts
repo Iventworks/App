@@ -20,15 +20,12 @@ export namespace DrizzleDB {
 
 export class SQLUtils {
 	/**
-	 * `created_at` column: unix-epoch milliseconds, non-null, defaulted to now. Drizzle inserts use
-	 * `Date.now()` (millisecond precision — the SQL default only has second precision, which breaks
-	 * "newer than" comparisons such as chat read markers); the SQL default covers raw inserts.
+	 * `created_at` column: unix-epoch milliseconds, non-null, defaulted to now. The SQL default only
+	 * has second precision (and Drizzle prefers it over `$defaultFn`): set the value explicitly
+	 * (`Date.now()`) where millisecond ordering matters, e.g. chat messages vs. read markers.
 	 */
 	static getCreatedAtColumn(name: string = "created_at") {
-		return integer(name, { mode: "number" })
-			.notNull()
-			.default(sql`(unixepoch() * 1000)`)
-			.$defaultFn(() => Date.now());
+		return integer(name, { mode: "number" }).notNull().default(sql`(unixepoch() * 1000)`);
 	}
 
 	/** Auto-incrementing integer primary key. */

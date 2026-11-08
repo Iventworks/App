@@ -77,9 +77,30 @@ async function replaceEmergencyContacts(
 }
 
 /** Enrich participant rows with age, room, emergency contacts and note counts. */
+/** Health fields only the event's own team may see (`participants:view_medical`). */
+const MEDICAL_FIELDS = [
+	"allergies",
+	"medications",
+	"dietary_requirements",
+	"medical_notes",
+	"can_swim",
+] as const satisfies readonly (keyof DB.Models.Participant)[];
+
+function maskMedical(participant: DB.Models.Participant): DB.Models.Participant {
+	return {
+		...participant,
+		allergies: "",
+		medications: "",
+		dietary_requirements: "",
+		medical_notes: "",
+		can_swim: null,
+	};
+}
+
 async function toResponse(
 	event: DB.Models.Event,
 	participants: DB.Models.Participant[],
+	medicalVisible: boolean,
 ): Promise<EventParticipantsModel.Participant[]> {
 	if (participants.length === 0) return [];
 	const ids = participants.map((participant) => participant.id);
@@ -112,11 +133,14 @@ async function toResponse(
 		.all();
 
 	return participants.map((participant) => ({
-		...participant,
+		...(medicalVisible ? participant : maskMedical(participant)),
+		medical_visible: medicalVisible,
 		age: TimeUtils.ageOn(participant.birth_date, event.start_date),
 		room: rooms.find((room) => room.id === participant.room_id) ?? null,
 		emergency_contacts: contacts.filter((contact) => contact.participant_id === participant.id),
-		note_count: noteCounts.find((entry) => entry.participant_id === participant.id)?.value ?? 0,
+		note_count: medicalVisible
+			? (noteCounts.find((entry) => entry.participant_id === participant.id)?.value ?? 0)
+			: 0,
 	}));
 }
 
@@ -142,7 +166,10 @@ async function toDetailResponse(
 	c: Context<ParticipantsEnv>,
 	participant: DB.Models.Participant,
 ): Promise<EventParticipantsModel.ParticipantDetail> {
-	const [base] = await toResponse(c.get("event"), [participant]);
+	const medicalVisible = EventAccess.can(c, "participants:view_medical");
+	const [base] = await toResponse(c.get("event"), [participant], medicalVisible);
+	if (!medicalVisible) return { ...base!, staff_notes: [] };
+
 	const staffNotes = await DB.instance()
 		.select()
 		.from(DB.Tables.participantNotes)
@@ -220,7 +247,7 @@ router.get(
 		return APIResponse.success(
 			c,
 			"Participants retrieved successfully",
-			await toResponse(event, participants),
+			await toResponse(event, participants, EventAccess.can(c, "participants:view_medical")),
 		);
 	},
 );
@@ -351,6 +378,8 @@ router.get(
 				.where(eq(DB.Tables.participants.event_id, event.id))
 				.orderBy(asc(DB.Tables.participants.last_name), asc(DB.Tables.participants.first_name))
 				.all(),
+			// Health columns stay empty for callers outside the event's team.
+			EventAccess.can(c, "participants:view_medical"),
 		);
 
 		const header = [
@@ -512,7 +541,13 @@ router.put(
 
 		const event = c.get("event");
 		const participant = c.get("participant");
-		const { emergency_contacts, ...body } = c.req.valid("json") as EventParticipantsModel.Update.Body;
+		const { emergency_contacts, ...input } = c.req.valid("json") as EventParticipantsModel.Update.Body;
+		// Callers who cannot see health data (core team outside the team) must not overwrite it
+		// with the blanks they were shown.
+		const body: Omit<EventParticipantsModel.Update.Body, "emergency_contacts"> = { ...input };
+		if (!EventAccess.can(c, "participants:view_medical")) {
+			for (const field of MEDICAL_FIELDS) delete body[field];
+		}
 
 		const roomError = await validateRoom(event.id, body.room_id);
 		if (roomError) return APIResponse.badRequest(c, roomError);

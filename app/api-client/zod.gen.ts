@@ -3356,25 +3356,7 @@ export const zPostEventsByEventIdParticipantsResponse = z.object({
         medical_notes: z.string(),
         can_swim: z.boolean().nullable(),
         photo_consent: z.boolean(),
-        notes: z.array(z.object({
-            id: z.number(),
-            content: z.string(),
-            created_at: z.number(),
-            author: z.object({
-                id: z.number(),
-                username: z.string(),
-                display_name: z.string(),
-                email: z.string(),
-                phone: z.string().nullable(),
-                role: z.enum([
-                    'admin',
-                    'core_team',
-                    'volunteer',
-                    'unverified'
-                ])
-            }).nullable(),
-            can_delete: z.boolean()
-        })),
+        notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
@@ -3398,7 +3380,26 @@ export const zPostEventsByEventIdParticipantsResponse = z.object({
             phone: z.string(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
         })),
-        note_count: z.number()
+        note_count: z.number(),
+        staff_notes: z.array(z.object({
+            id: z.number(),
+            content: z.string(),
+            created_at: z.number(),
+            author: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            can_delete: z.boolean()
+        }))
     })
 });
 
@@ -3460,25 +3461,7 @@ export const zGetEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         medical_notes: z.string(),
         can_swim: z.boolean().nullable(),
         photo_consent: z.boolean(),
-        notes: z.array(z.object({
-            id: z.number(),
-            content: z.string(),
-            created_at: z.number(),
-            author: z.object({
-                id: z.number(),
-                username: z.string(),
-                display_name: z.string(),
-                email: z.string(),
-                phone: z.string().nullable(),
-                role: z.enum([
-                    'admin',
-                    'core_team',
-                    'volunteer',
-                    'unverified'
-                ])
-            }).nullable(),
-            can_delete: z.boolean()
-        })),
+        notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
@@ -3502,7 +3485,26 @@ export const zGetEventsByEventIdParticipantsByParticipantIdResponse = z.object({
             phone: z.string(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
         })),
-        note_count: z.number()
+        note_count: z.number(),
+        staff_notes: z.array(z.object({
+            id: z.number(),
+            content: z.string(),
+            created_at: z.number(),
+            author: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            can_delete: z.boolean()
+        }))
     })
 });
 
@@ -3576,25 +3578,7 @@ export const zPutEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         medical_notes: z.string(),
         can_swim: z.boolean().nullable(),
         photo_consent: z.boolean(),
-        notes: z.array(z.object({
-            id: z.number(),
-            content: z.string(),
-            created_at: z.number(),
-            author: z.object({
-                id: z.number(),
-                username: z.string(),
-                display_name: z.string(),
-                email: z.string(),
-                phone: z.string().nullable(),
-                role: z.enum([
-                    'admin',
-                    'core_team',
-                    'volunteer',
-                    'unverified'
-                ])
-            }).nullable(),
-            can_delete: z.boolean()
-        })),
+        notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
@@ -3618,7 +3602,26 @@ export const zPutEventsByEventIdParticipantsByParticipantIdResponse = z.object({
             phone: z.string(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
         })),
-        note_count: z.number()
+        note_count: z.number(),
+        staff_notes: z.array(z.object({
+            id: z.number(),
+            content: z.string(),
+            created_at: z.number(),
+            author: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            can_delete: z.boolean()
+        }))
     })
 });
 

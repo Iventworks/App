@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { type curve, ec as ellipticCurve } from "elliptic";
 import { Uint, Uint256 } from "low-level";
-import { KeyPair, PrivateKey, PublicKey, PublicKeyPair, SharedSecret } from "./cryptoKeys";
+import { KeyPair, PrivateKey, PublicKey, PublicKeyPair } from "./cryptoKeys";
 import { Signature } from "./signature";
 
 export class LCrypt {

@@ -276,7 +276,8 @@ describe("Event documents and /files", () => {
 			expectedBodySchema: EventFilesModel.GetAll.Response,
 		});
 		expect(root.folder).toBeNull();
-		expect(root.items.map((item) => item.kind)).toEqual(["file", "folder"]);
+		// Folders are listed before files.
+		expect(root.items.map((item) => item.kind)).toEqual(["folder", "file"]);
 
 		const inFolder = await makeAPIRequest(`/v1/events/${eventId}/files?parent_id=${folderId}`, {
 			authToken: helperSession.token,
@@ -311,6 +312,36 @@ describe("Event documents and /files", () => {
 
 		const expired = FileService.createDownloadToken(fileId, -1000);
 		expect((await API.getApp().request(`/v1/files/download/${expired}`)).status).toBe(404);
+	});
+
+	test("only safe types render inline; SVG and HTML are always downloaded as opaque bytes", async () => {
+		const png = await API.getApp().request(
+			`/v1/files/download/${FileService.createDownloadToken(fileId)}`,
+		);
+		expect(png.headers.get("content-security-policy")).toContain("sandbox");
+		expect(png.headers.get("x-content-type-options")).toBe("nosniff");
+
+		for (const [name, type, body] of [
+			[
+				"bild.svg",
+				"image/svg+xml",
+				'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+			],
+			["seite.html", "text/html", "<script>alert(1)</script>"],
+		] as const) {
+			const uploaded = EventFilesModel.Upload.Response.parse(
+				await upload(
+					`/v1/events/${eventId}/files`,
+					helperSession.token,
+					uploadForm(new File([body], name, { type })),
+					201,
+				),
+			);
+			const res = await API.getApp().request(`/v1/files/download/${uploaded.download_token}`);
+			expect(res.status).toBe(200);
+			expect(res.headers.get("content-type")).toBe("application/octet-stream");
+			expect(res.headers.get("content-disposition")).toStartWith("attachment;");
+		}
 	});
 
 	test("outsiders cannot access files; only uploader or leaders change them", async () => {
@@ -384,6 +415,12 @@ describe("Expenses", () => {
 			`/v1/events/${eventId}/expenses/${expenseId}/receipt`,
 			cookSession.token,
 			uploadForm(new File(["hi"], "beleg.txt", { type: "text/plain" })),
+			400,
+		);
+		await upload(
+			`/v1/events/${eventId}/expenses/${expenseId}/receipt`,
+			cookSession.token,
+			uploadForm(new File(["<svg/>"], "beleg.svg", { type: "image/svg+xml" })),
 			400,
 		);
 

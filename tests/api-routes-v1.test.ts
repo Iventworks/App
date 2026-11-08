@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { API } from "../server/lib/api";
 import { AuthHandler, AuthUtils, SessionHandler } from "../server/lib/api/utils/authHandler";
 import { AccountModel } from "../server/lib/api/versions/v1/routes/account/model";
@@ -10,7 +10,7 @@ import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-
 import { DB } from "../server/lib/db";
 import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
-import { type SeededSession, type SeededUser, seedSession, seedUser } from "./helpers/seed";
+import { type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
 let testUser: SeededUser;
 let testAdmin: SeededUser;

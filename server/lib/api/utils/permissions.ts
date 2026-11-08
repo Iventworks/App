@@ -64,6 +64,8 @@ export class PermissionHelper {
 		"groups:manage": "leader",
 
 		"participants:view": "staff",
+		/** Health data and staff notes — additionally needs real staff membership, see below. */
+		"participants:view_medical": "staff",
 		"participants:manage": "leader",
 		"participants:add_note": "staff",
 
@@ -100,6 +102,15 @@ export class PermissionHelper {
 		"stats:view": "leader",
 		"audit_log:view": "leader",
 	} as const satisfies Record<string, PermissionHelper.EventRole>;
+
+	/**
+	 * Event permissions that need actual staff membership of the event. The implicit `leader` role
+	 * core team and admins get in every event is not enough: participants' health data and the
+	 * staff's notes about them are special-category data (GDPR Art. 9), so only the people on the
+	 * event's team see them (data minimisation). Core team can add themselves to the team.
+	 */
+	static readonly MEMBER_ONLY_EVENT_PERMISSIONS: ReadonlySet<PermissionHelper.EventPermission> =
+		new Set(["participants:view_medical"]);
 
 	static hasOrgRole(role: UserAccountSettings.Role, minimum: UserAccountSettings.Role) {
 		return PermissionHelper.ORG_ROLE_RANK[role] >= PermissionHelper.ORG_ROLE_RANK[minimum];
@@ -138,10 +149,14 @@ export class PermissionHelper {
 		access,
 		permission,
 	}: {
-		access: Pick<PermissionHelper.EventAccess, "role">;
+		/** `membership`: the caller's own staff row, or null (only its presence matters). */
+		access: { role: PermissionHelper.EventRole | null; membership: object | null };
 		permission: PermissionHelper.EventPermission;
 	}): boolean {
 		if (!access.role) return false;
+		if (PermissionHelper.MEMBER_ONLY_EVENT_PERMISSIONS.has(permission) && !access.membership) {
+			return false;
+		}
 		return (
 			PermissionHelper.EVENT_ROLE_RANK[access.role] >=
 			PermissionHelper.EVENT_ROLE_RANK[PermissionHelper.EVENT_PERMISSIONS[permission]]
@@ -149,10 +164,10 @@ export class PermissionHelper {
 	}
 
 	/** All event permissions a role has — sent to the frontend so it can hide controls. */
-	static listEventPermissions(role: PermissionHelper.EventRole | null) {
+	static listEventPermissions(role: PermissionHelper.EventRole | null, membership: object | null) {
 		return (
 			Object.keys(PermissionHelper.EVENT_PERMISSIONS) as PermissionHelper.EventPermission[]
-		).filter((permission) => PermissionHelper.canInEvent({ access: { role }, permission }));
+		).filter((permission) => PermissionHelper.canInEvent({ access: { role, membership }, permission }));
 	}
 }
 

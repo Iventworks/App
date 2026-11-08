@@ -30,6 +30,7 @@ export namespace AdminInvitationsModel {
 	export type IssuedInvitation = z.infer<typeof IssuedInvitation>;
 
 	export const ExpiresInDays = z.number().int().min(1).max(30);
+	export type ExpiresInDays = z.infer<typeof ExpiresInDays>;
 
 	export const Params = z.object({
 		invitationId: z.coerce.number().int().positive(),

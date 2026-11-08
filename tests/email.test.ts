@@ -63,7 +63,7 @@ describe("Password reset email integration", () => {
 
 		expect(capturedEmails).toHaveLength(1);
 		expect(capturedEmails[0]!.to).toBe(resetUser.email);
-		expect(capturedEmails[0]!.subject).toBe(`${AppConstants.APP_NAME} — Password Reset Request`);
+		expect(capturedEmails[0]!.subject).toBe(`${AppConstants.APP_NAME} — Passwort zurücksetzen`);
 	});
 
 	test("Email contains a valid reset link with token", async () => {

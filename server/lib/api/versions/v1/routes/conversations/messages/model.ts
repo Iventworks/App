@@ -21,6 +21,7 @@ export namespace MessagesModel {
 	export type Params = z.infer<typeof Params>;
 
 	export const Content = z.string().trim().min(1).max(4000);
+	export type Content = z.infer<typeof Content>;
 }
 
 export namespace MessagesModel.GetAll {

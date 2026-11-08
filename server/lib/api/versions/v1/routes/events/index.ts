@@ -63,7 +63,7 @@ async function withAccess(
 			...event,
 			my_role: role,
 			is_member: Boolean(membership),
-			permissions: PermissionHelper.listEventPermissions(role),
+			permissions: PermissionHelper.listEventPermissions(role, membership ?? null),
 			leaders: eventMembers
 				.filter((member) => member.role === "leader")
 				.map((member) => users.get(member.user_id))
@@ -167,6 +167,7 @@ router.post(
 		const { leader_ids, ...body } = c.req.valid("json") as EventsModel.Create.Body;
 
 		try {
+			let leaderIds: number[] = [];
 			const event = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.events)
@@ -178,9 +179,10 @@ router.post(
 					? await tx
 							.select({ id: DB.Tables.users.id })
 							.from(DB.Tables.users)
-							.where(inArray(DB.Tables.users.id, leader_ids))
+							.where(and(inArray(DB.Tables.users.id, leader_ids), ne(DB.Tables.users.role, "unverified")))
 							.all()
 					: [];
+				leaderIds = validLeaders.map((leader) => leader.id);
 
 				if (validLeaders.length > 0) {
 					await tx
@@ -208,7 +210,7 @@ router.post(
 			});
 
 			await Notifier.notify(
-				leader_ids,
+				leaderIds,
 				{
 					type: "event_added",
 					title: `Du leitest „${event.name}“`,

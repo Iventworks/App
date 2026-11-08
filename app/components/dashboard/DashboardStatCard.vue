@@ -3,7 +3,7 @@ interface Props {
 	label: string;
 	value: string | number;
 	icon: string;
-	iconColor?: "primary" | "amber" | "emerald" | "error" | "neutral" | "sky";
+	iconColor?: "primary" | "amber" | "emerald" | "error" | "neutral" | "info";
 	hint?: string;
 	loading?: boolean;
 	to?: string;
@@ -22,7 +22,7 @@ const iconColorClasses: Record<NonNullable<Props["iconColor"]>, string> = {
 	emerald: "text-emerald-400",
 	error: "text-red-400",
 	neutral: "text-slate-400",
-	sky: "text-sky-400",
+	info: "text-info",
 };
 </script>
 

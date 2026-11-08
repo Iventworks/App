@@ -413,7 +413,7 @@ router.post(
 		}
 
 		const { file } = c.req.valid("form") as EventExpensesModel.UploadReceipt.Form;
-		if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+		if (!FileService.RECEIPT_MIME_TYPES.has(file.type.toLowerCase())) {
 			return APIResponse.badRequest(c, "Only images and PDF files are accepted");
 		}
 

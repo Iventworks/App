@@ -5,7 +5,7 @@ interface Props extends ModalProps {
 	title: string;
 	description?: string;
 	icon?: string;
-	iconColor?: "primary" | "sky" | "amber" | "emerald" | "error" | "neutral";
+	iconColor?: "primary" | "info" | "amber" | "emerald" | "error" | "neutral";
 	/** Tailwind max-width class for the dialog; wider suits forms with an editor. */
 	width?: string;
 	loading?: boolean;
@@ -17,7 +17,7 @@ const open = defineModel<boolean>("open", { required: true });
 
 const iconColorClasses: Record<NonNullable<Props["iconColor"]>, string> = {
 	primary: "text-primary-400",
-	sky: "text-sky-400",
+	info: "text-info",
 	amber: "text-amber-400",
 	emerald: "text-emerald-400",
 	error: "text-red-400",

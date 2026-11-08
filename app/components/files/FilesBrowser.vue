@@ -8,7 +8,6 @@
  * breadcrumb entry; files can be dropped from the desktop to upload.
  */
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
-import { useDropZone } from "@vueuse/core";
 import { Utils } from "~/utils";
 import type { FileItem, FolderListing } from "~/utils/types";
 
@@ -114,12 +113,46 @@ function onFileInput(event: Event) {
 	input.value = "";
 }
 
-const dropZone = ref<HTMLElement | null>(null);
-const { isOverDropZone } = useDropZone(dropZone, {
-	onDrop: (files) => void uploadFiles(files),
-	// Only react to files from the desktop, not to internal item drags.
-	dataTypes: (types) => types.includes("Files"),
-});
+// Upload by dropping files from the desktop anywhere on the browser. Hand-written instead of
+// VueUse's `useDropZone`: that one rejects internal item drags with `dropEffect = "none"` on
+// `dragenter`, which also cancels moving items into folders.
+const isOverDropZone = ref(false);
+let dropZoneDepth = 0;
+
+function isDesktopFileDrag(event: DragEvent) {
+	return (
+		!draggedItem.value &&
+		Boolean(props.canWrite && props.upload) &&
+		Boolean(event.dataTransfer?.types.includes("Files"))
+	);
+}
+
+function onZoneDragEnter(event: DragEvent) {
+	if (!isDesktopFileDrag(event)) return;
+	event.preventDefault();
+	dropZoneDepth++;
+	isOverDropZone.value = true;
+}
+
+function onZoneDragOver(event: DragEvent) {
+	if (!isDesktopFileDrag(event)) return;
+	event.preventDefault();
+	if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+}
+
+function onZoneDragLeave(event: DragEvent) {
+	if (!isDesktopFileDrag(event)) return;
+	dropZoneDepth = Math.max(0, dropZoneDepth - 1);
+	if (dropZoneDepth === 0) isOverDropZone.value = false;
+}
+
+function onZoneDrop(event: DragEvent) {
+	if (!isDesktopFileDrag(event)) return;
+	event.preventDefault();
+	dropZoneDepth = 0;
+	isOverDropZone.value = false;
+	void uploadFiles(event.dataTransfer?.files ?? null);
+}
 
 // --- new folder / rename ------------------------------------------------------------------
 
@@ -184,16 +217,27 @@ function canDropOn(targetId: number | null) {
 	return Boolean(item && item.id !== targetId && item.parent_id !== targetId);
 }
 
+/** `dragenter` and `dragover` on a folder row or breadcrumb: both must be cancelled to allow a drop. */
 function onDragOver(event: DragEvent, targetId: number | null) {
 	if (!canDropOn(targetId)) return;
 	event.preventDefault();
 	dropTargetId.value = targetId ?? "root";
 }
 
+function onItemDrop(event: DragEvent, item: FileItem) {
+	// Desktop files dropped on a row bubble up to the upload handler on the container.
+	if (!draggedItem.value) return;
+	event.preventDefault();
+	if (item.kind === "folder") void onDropOnFolder(item.id);
+	else onDragEnd();
+}
+
 async function onDropOnFolder(targetId: number | null) {
 	const item = draggedItem.value;
+	// Check before `onDragEnd()`: `canDropOn` reads the dragged item.
+	const allowed = canDropOn(targetId);
 	onDragEnd();
-	if (!item || !canDropOn(targetId)) return;
+	if (!item || !allowed) return;
 
 	const result = await useAPI((api) =>
 		api.putFilesByFileId({ path: { fileId: item.id }, body: { parent_id: targetId } }),
@@ -297,7 +341,13 @@ defineExpose({ refresh });
 </script>
 
 <template>
-	<div ref="dropZone" class="relative space-y-4">
+	<div
+		class="relative space-y-4"
+		@dragenter="onZoneDragEnter"
+		@dragover="onZoneDragOver"
+		@dragleave="onZoneDragLeave"
+		@drop="onZoneDrop"
+	>
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex min-w-0 flex-wrap items-center gap-1">
 				<template v-for="(crumb, index) in breadcrumb" :key="index">
@@ -312,9 +362,10 @@ defineExpose({ refresh });
 								: '',
 						]"
 						@click="crumb.onClick?.($event as any)"
+						@dragenter="onDragOver($event, index === 0 ? null : (listing?.path[index - 1]?.id ?? null))"
 						@dragover="onDragOver($event, index === 0 ? null : (listing?.path[index - 1]?.id ?? null))"
 						@dragleave="dropTargetId = null"
-						@drop.prevent="onDropOnFolder(index === 0 ? null : (listing?.path[index - 1]?.id ?? null))"
+						@drop="draggedItem && ($event.preventDefault(), onDropOnFolder(index === 0 ? null : (listing?.path[index - 1]?.id ?? null)))"
 					>
 						<UIcon v-if="crumb.icon" :name="crumb.icon" class="size-4" />
 						{{ crumb.label }}
@@ -372,9 +423,10 @@ defineExpose({ refresh });
 					@click="onRowClick(item)"
 					@dragstart="onItemDragStart($event, item)"
 					@dragend="onDragEnd"
+					@dragenter="item.kind === 'folder' && onDragOver($event, item.id)"
 					@dragover="item.kind === 'folder' && onDragOver($event, item.id)"
 					@dragleave="dropTargetId = null"
-					@drop.prevent="item.kind === 'folder' && onDropOnFolder(item.id)"
+					@drop="onItemDrop($event, item)"
 				>
 					<UIcon
 						:name="item.kind === 'folder' ? 'i-lucide-folder' : Utils.getFileIcon(item.name, item.mime_type)"

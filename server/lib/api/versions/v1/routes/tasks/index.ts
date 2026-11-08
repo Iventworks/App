@@ -4,9 +4,9 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
+import { PersonalScope } from "../../../../utils/personalScope";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
-import { PersonalScope } from "./aggregate";
 import { PersonalTasksModel } from "./model";
 
 type TasksEnv = { Variables: { task: DB.Models.Task } };

@@ -5329,20 +5329,7 @@ export type PostEventsByEventIdParticipantsResponses = {
             medical_notes: string;
             can_swim: boolean | null;
             photo_consent: boolean;
-            notes: Array<{
-                id: number;
-                content: string;
-                created_at: number;
-                author: {
-                    id: number;
-                    username: string;
-                    display_name: string;
-                    email: string;
-                    phone: string | null;
-                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
-                } | null;
-                can_delete: boolean;
-            }>;
+            notes: string;
             room_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
@@ -5362,6 +5349,20 @@ export type PostEventsByEventIdParticipantsResponses = {
                 created_at: number;
             }>;
             note_count: number;
+            staff_notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
         };
     };
 };
@@ -5533,20 +5534,7 @@ export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
             medical_notes: string;
             can_swim: boolean | null;
             photo_consent: boolean;
-            notes: Array<{
-                id: number;
-                content: string;
-                created_at: number;
-                author: {
-                    id: number;
-                    username: string;
-                    display_name: string;
-                    email: string;
-                    phone: string | null;
-                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
-                } | null;
-                can_delete: boolean;
-            }>;
+            notes: string;
             room_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
@@ -5566,6 +5554,20 @@ export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
                 created_at: number;
             }>;
             note_count: number;
+            staff_notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
         };
     };
 };
@@ -5662,20 +5664,7 @@ export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
             medical_notes: string;
             can_swim: boolean | null;
             photo_consent: boolean;
-            notes: Array<{
-                id: number;
-                content: string;
-                created_at: number;
-                author: {
-                    id: number;
-                    username: string;
-                    display_name: string;
-                    email: string;
-                    phone: string | null;
-                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
-                } | null;
-                can_delete: boolean;
-            }>;
+            notes: string;
             room_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
@@ -5695,6 +5684,20 @@ export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
                 created_at: number;
             }>;
             note_count: number;
+            staff_notes: Array<{
+                id: number;
+                content: string;
+                created_at: number;
+                author: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                can_delete: boolean;
+            }>;
         };
     };
 };

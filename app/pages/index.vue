@@ -197,7 +197,7 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 							label="Ungelesene Nachrichten"
 							:value="dashboard.unread_messages"
 							icon="i-lucide-messages-square"
-							icon-color="sky"
+							icon-color="info"
 							to="/messages"
 						/>
 						<DashboardStatCard

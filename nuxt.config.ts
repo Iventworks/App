@@ -22,7 +22,6 @@ export default defineNuxtConfig({
 				banner: (() => {
 					const mappings = {
 						CMP_APP_URL: "APP_URL",
-						CMP_ENABLE_SIGNUP: "IS_SIGNUP_ENABLED",
 					};
 
 					const bannerCode = `
@@ -80,11 +79,8 @@ export default defineNuxtConfig({
 					if ('serviceWorker' in navigator) {
 					window.addEventListener('load', () => {
 						navigator.serviceWorker.register('/sw.js', { scope: '/' })
-						.then(registration => {
-							console.log('SW registered: ', registration);
-						})
 						.catch(registrationError => {
-							console.log('SW registration failed: ', registrationError);
+							console.error('Service worker registration failed:', registrationError);
 						});
 					});
 					}

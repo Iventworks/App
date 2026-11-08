@@ -43,20 +43,43 @@ function useEventDetailsCache() {
 	return useState<Record<number, EventWithAccess>>("eventDetails", () => ({}));
 }
 
+type EventDetailsResult =
+	| { readonly event: EventWithAccess; readonly code: 200 }
+	| { readonly event: null; readonly code: number };
+
+// Requests in flight, so the layout and the page share one fetch on navigation. Module-level is
+// safe here: every page renders client-side only (`ssr: false`), there is no shared server state.
+const inFlight = new Map<number, Promise<EventDetailsResult>>();
+
 /** Load (or reuse) one event's details. Returns `null` when it is missing or not accessible. */
-export async function loadEventDetails(eventId: number, force = false) {
+export async function loadEventDetails(
+	eventId: number,
+	force = false,
+): Promise<EventDetailsResult> {
 	const cache = useEventDetailsCache();
-	if (!force && cache.value[eventId]) {
-		return { event: cache.value[eventId], code: 200 } as const;
+	const cached = cache.value[eventId];
+	if (!force && cached) {
+		return { event: cached, code: 200 };
 	}
 
-	const result = await useAPI((api) => api.getEventsByEventId({ path: { eventId } }));
-	if (!result.success) {
-		return { event: null, code: result.code as number } as const;
-	}
+	const pending = inFlight.get(eventId);
+	if (pending) return pending;
 
-	cache.value = { ...cache.value, [eventId]: result.data };
-	return { event: result.data, code: 200 } as const;
+	const request = (async (): Promise<EventDetailsResult> => {
+		const result = await useAPI((api) => api.getEventsByEventId({ path: { eventId } }));
+		if (!result.success) {
+			return { event: null, code: result.code as number };
+		}
+		cache.value = { ...cache.value, [eventId]: result.data };
+		return { event: result.data, code: 200 };
+	})();
+
+	inFlight.set(eventId, request);
+	try {
+		return await request;
+	} finally {
+		inFlight.delete(eventId);
+	}
 }
 
 /** Drop cached event details (after edits, membership changes or logout). */
