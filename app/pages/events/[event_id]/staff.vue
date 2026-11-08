@@ -57,7 +57,6 @@ const { data: rooms } = await useAPIAsyncData(`event-${eventId.value}-rooms`, as
 });
 
 const search = ref("");
-const roleFilter = ref<"all" | EventRole>("all");
 
 const sortedMembers = computed(() =>
 	[...(members.value ?? [])].sort((a, b) => {
@@ -89,10 +88,10 @@ const counts = computed(() => ({
 	staff: members.value?.filter((member) => member.role === "staff").length ?? 0,
 }));
 
-const roleTabs = computed(() => [
-	{ label: `Alle (${counts.value.all})`, value: "all" },
-	{ label: `Leitung (${counts.value.leader})`, value: "leader" },
-	{ label: `Mitarbeitende (${counts.value.staff})`, value: "staff" },
+const { active: roleFilter, links: roleLinks } = useQueryTabs<"all" | EventRole>("role", () => [
+	{ value: "all", label: "Alle", icon: "i-lucide-users", badge: counts.value.all },
+	{ value: "leader", label: "Leitung", icon: "i-lucide-crown", badge: counts.value.leader },
+	{ value: "staff", label: "Mitarbeitende", icon: "i-lucide-user", badge: counts.value.staff },
 ]);
 
 const roomOptions = computed(() => [
@@ -265,7 +264,9 @@ function memberMenu(member: Member) {
 			</DashboardPageHeader>
 
 			<UDashboardToolbar>
-				<UTabs v-model="roleFilter" :items="roleTabs" :content="false" size="sm" variant="link" />
+				<template #left>
+					<UNavigationMenu :items="roleLinks" highlight class="-mx-1 flex-1" />
+				</template>
 				<template #right>
 					<UInput v-model="search" icon="i-lucide-search" placeholder="Name, Gruppe, Funktion …" size="sm" class="w-full sm:w-64" />
 				</template>

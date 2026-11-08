@@ -20,7 +20,11 @@ useSeoMeta({ title: `Aufgaben | ${event.value.name} | CMP` });
 
 // --- data ---------------------------------------------------------------------------------
 
-const filter = ref<"all" | "mine" | "open">("open");
+const { active: filter, links: filterLinks } = useQueryTabs("filter", [
+	{ value: "open", label: "Offen", icon: "i-lucide-circle-dashed" },
+	{ value: "mine", label: "Meine", icon: "i-lucide-user-check" },
+	{ value: "all", label: "Alle", icon: "i-lucide-list-checks" },
+]);
 
 const {
 	data: tasks,
@@ -233,17 +237,7 @@ async function confirmDelete() {
 			</DashboardPageHeader>
 
 			<UDashboardToolbar>
-				<UTabs
-					v-model="filter"
-					:items="[
-						{ label: 'Offen', value: 'open' },
-						{ label: 'Meine', value: 'mine' },
-						{ label: 'Alle', value: 'all' },
-					]"
-					:content="false"
-					size="sm"
-					variant="link"
-				/>
+				<UNavigationMenu :items="filterLinks" highlight class="-mx-1 flex-1" />
 			</UDashboardToolbar>
 		</template>
 

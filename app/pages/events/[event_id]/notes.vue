@@ -61,21 +61,6 @@ const visibleGroups = computed(() =>
 
 // --- selection (kept in the URL) ----------------------------------------------------------
 
-const activeTab = computed<string>({
-	get: () => {
-		const group = Number(route.query.group);
-		return visibleGroups.value.some((entry) => entry.id === group) ? String(group) : "event";
-	},
-	set: (value) => {
-		if (!confirmDiscard()) return;
-		const query = { ...route.query };
-		delete query.note;
-		if (value === "event") delete query.group;
-		else query.group = value;
-		void router.replace({ query });
-	},
-});
-
 const activeGroupId = computed(() =>
 	activeTab.value === "event" ? null : Number(activeTab.value),
 );
@@ -88,6 +73,13 @@ const tabs = computed(() => [
 		icon: "i-lucide-users-round",
 	})),
 ]);
+
+// The group tab lives in `?group=`; switching it drops the open note (`?note=`).
+const { active: activeTab, links: tabLinks } = useQueryTabs("group", tabs, { resetKeys: ["note"] });
+
+onBeforeRouteUpdate((to, from) => {
+	if (to.query.group !== from.query.group && !confirmDiscard()) return false;
+});
 
 const tabNotes = computed(() =>
 	(notes.value ?? [])
@@ -249,7 +241,7 @@ const activeGroup = computed(() =>
 			</DashboardPageHeader>
 
 			<UDashboardToolbar v-if="tabs.length > 1">
-				<UTabs v-model="activeTab" :items="tabs" :content="false" size="sm" variant="link" class="-mx-1 overflow-x-auto" />
+				<UNavigationMenu :items="tabLinks" highlight class="-mx-1 flex-1" />
 			</UDashboardToolbar>
 		</template>
 

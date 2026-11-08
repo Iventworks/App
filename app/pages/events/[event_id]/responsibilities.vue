@@ -24,7 +24,10 @@ const userInfo = await useUserInfoStore().use();
 
 useSeoMeta({ title: `Zuständigkeiten | ${event.value.name} | CMP` });
 
-const view = ref<"area" | "person">("area");
+const { active: view, links: viewLinks } = useQueryTabs("view", [
+	{ value: "area", label: "Nach Bereich", icon: "i-lucide-layout-grid" },
+	{ value: "person", label: "Nach Person", icon: "i-lucide-users" },
+]);
 const search = ref("");
 const onlyMine = ref(false);
 
@@ -248,16 +251,9 @@ function entryMenu(entry: Responsibility) {
 			</DashboardPageHeader>
 
 			<UDashboardToolbar>
-				<UTabs
-					v-model="view"
-					:items="[
-						{ label: 'Nach Bereich', value: 'area', icon: 'i-lucide-layout-grid' },
-						{ label: 'Nach Person', value: 'person', icon: 'i-lucide-users' },
-					]"
-					:content="false"
-					size="sm"
-					variant="link"
-				/>
+				<template #left>
+					<UNavigationMenu :items="viewLinks" highlight class="-mx-1 flex-1" />
+				</template>
 				<template #right>
 					<USwitch v-model="onlyMine" label="Nur meine" size="sm" />
 					<UInput v-model="search" icon="i-lucide-search" placeholder="Suchen …" size="sm" class="w-40 sm:w-56" />

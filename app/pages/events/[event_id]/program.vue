@@ -63,7 +63,10 @@ const days = computed(() => {
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNarrow = breakpoints.smaller("md");
 
-const view = ref<"grid" | "list">("grid");
+const { active: view, links: viewLinks } = useQueryTabs("view", [
+	{ value: "grid", label: "Wochenplan", icon: "i-lucide-calendar-range" },
+	{ value: "list", label: "Liste", icon: "i-lucide-list" },
+]);
 const onlyMine = ref(false);
 const listDay = ref<string>(days.value.includes(toDayString()) ? toDayString() : "all");
 
@@ -186,17 +189,7 @@ function print() {
 
 			<UDashboardToolbar>
 				<template #left>
-					<UTabs
-						v-if="!isNarrow"
-						v-model="view"
-						:items="[
-							{ label: 'Wochenplan', value: 'grid', icon: 'i-lucide-calendar-range' },
-							{ label: 'Liste', value: 'list', icon: 'i-lucide-list' },
-						]"
-						:content="false"
-						size="sm"
-						variant="link"
-					/>
+					<UNavigationMenu v-if="!isNarrow" :items="viewLinks" highlight class="-mx-1 flex-1" />
 					<div v-else class="-mx-1 flex gap-1 overflow-x-auto pb-1">
 						<UButton
 							v-for="tab in dayTabs"

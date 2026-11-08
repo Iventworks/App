@@ -48,17 +48,7 @@ const tabs = computed(() => [
 		: []),
 ]);
 
-const tab = computed<string>({
-	get: () => {
-		const requested = route.query.tab?.toString();
-		return tabs.value.some((t) => t.value === requested)
-			? requested!
-			: (tabs.value[0]?.value ?? "mine");
-	},
-	set: (value) => {
-		void router.replace({ query: { ...route.query, tab: value } });
-	},
-});
+const { active: tab, links: tabLinks } = useQueryTabs("tab", tabs);
 
 // --- data -----------------------------------------------------------------------------------
 
@@ -571,7 +561,7 @@ const BUDGET_KIND_OPTIONS = [
 			</DashboardPageHeader>
 
 			<UDashboardToolbar v-if="tabs.length > 1">
-				<UTabs v-model="tab" :items="tabs" :content="false" size="sm" variant="link" />
+				<UNavigationMenu :items="tabLinks" highlight class="-mx-1 flex-1" />
 			</UDashboardToolbar>
 		</template>
 

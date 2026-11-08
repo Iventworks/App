@@ -10,7 +10,10 @@ const toast = useToast();
 const user = await useUserInfoStore().use();
 const isCoreTeam = computed(() => hasOrgRole(user.value?.role, "core_team"));
 
-const scope = ref<"mine" | "all">("mine");
+const { active: scope, links: scopeLinks } = useQueryTabs("scope", [
+	{ value: "mine", label: "Meine Events", icon: "i-lucide-user-check" },
+	{ value: "all", label: "Alle Events", icon: "i-lucide-tent" },
+]);
 const showArchived = ref(false);
 
 const {
@@ -87,17 +90,7 @@ const sections = computed(() => {
 
 			<UDashboardToolbar>
 				<template #left>
-					<UTabs
-						v-if="isCoreTeam"
-						v-model="scope"
-						:items="[
-							{ label: 'Meine Events', value: 'mine' },
-							{ label: 'Alle Events', value: 'all' },
-						]"
-						:content="false"
-						size="sm"
-						variant="link"
-					/>
+					<UNavigationMenu v-if="isCoreTeam" :items="scopeLinks" highlight class="-mx-1 flex-1" />
 					<span v-else class="text-sm text-slate-400">Events, in denen du mitarbeitest</span>
 				</template>
 				<template #right>

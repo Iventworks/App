@@ -18,7 +18,11 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-const scope = ref<"all" | "personal" | "assigned">("all");
+const { active: scope, links: scopeLinks } = useQueryTabs("scope", [
+	{ value: "all", label: "Alle", icon: "i-lucide-list-checks" },
+	{ value: "personal", label: "Persönlich", icon: "i-lucide-user" },
+	{ value: "assigned", label: "Aus Events", icon: "i-lucide-tent" },
+]);
 const showDone = ref(false);
 
 const {
@@ -262,17 +266,9 @@ function taskActions(task: MyTask) {
 			</DashboardPageHeader>
 
 			<UDashboardToolbar>
-				<UTabs
-					v-model="scope"
-					:items="[
-						{ label: 'Alle', value: 'all' },
-						{ label: 'Persönlich', value: 'personal' },
-						{ label: 'Aus Events', value: 'assigned' },
-					]"
-					:content="false"
-					size="sm"
-					variant="link"
-				/>
+				<template #left>
+					<UNavigationMenu :items="scopeLinks" highlight class="-mx-1 flex-1" />
+				</template>
 				<template #right>
 					<USwitch v-model="showDone" label="Erledigte anzeigen" size="sm" />
 				</template>
