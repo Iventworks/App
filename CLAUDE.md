@@ -26,11 +26,10 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 
 ## Frontend conventions
 
-- Route map and access rules: see the header of `app/middleware/auth.global.ts` and the Frontend
-  section of `README.md`. The template is deliberately rich; delete unused parts instead of
-  working around them.
-- Reference components by their Nuxt auto-import names (`LayoutHeader`, `ImgAppLogo`,
-  `DashboardDataTable`, `FormDateRangePicker`, …). Don't add explicit imports that only the
+- Route access rules live in `app/middleware/auth.global.ts`. The template is deliberately rich;
+  delete unused parts instead of working around them.
+- Reference components by their Nuxt auto-import names (`DashboardDataTable`,
+  `DashboardPageHeader`, `FormDateRangePicker`, `CampsStatsCard`, …). Don't add explicit imports that only the
   `<template>` uses: Biome can't see template usage, reports them as unused, and an `--unsafe` fix
   would delete them.
 - If a `<script>` binding is used as a type there and as a value in the `<template>` (e.g. a Zod
@@ -44,11 +43,5 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 
 ## CMP-specific notes
 
-- Env prefix `CMP_`, token/cookie prefix `cmp` (`cmp_session_token`), port 31316 (dev = prod).
-- Roles: `admin`, `core_team`, `volunteer`, `unverified` (new accounts default to `unverified`).
-- `PUT /api/v1/account` deliberately does **not** require `current_password` (unlike the template),
-  so the existing profile form keeps working.
-- All pages render client-side (`routeRules: { "/**": { ssr: false } }`); the PWA service worker
-  must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
-- Chat and calendar use Nuxt UI's `UChatMessages` / `UChatPrompt` and `UCalendar`. The `ai`
-  devDependency only provides the `UIMessage` types the chat components need.
+Project-wide rules and deviations from the style guide (prefixes, port, roles, SSR/PWA) live in
+the "CMP-specific rules and exceptions" section of `AGENTS.md`.

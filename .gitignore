@@ -48,6 +48,8 @@ data/
 !app/data/
 config/*
 !config/*.example.json
+# Compose bind mounts, if run with relative paths (holds the initial admin reset token)
+docker/config/
 
 .claude/settings.local.json
 

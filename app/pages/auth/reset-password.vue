@@ -12,9 +12,10 @@ useSeoMeta({
 });
 
 const route = useRoute();
-const reset_token = (route.query.token as string) || "";
-
 const toast = useToast();
+
+// The emailed link is `{APP_URL}/auth/reset-password?token=…` (see docs/10-auth.md).
+const resetToken = route.query.token?.toString() ?? "";
 
 const fields: AuthFormField[] = [
 	{
@@ -33,10 +34,10 @@ const fields: AuthFormField[] = [
 	},
 ];
 
+// Mirrors the backend's `UserDataPolicies.Password`. No `.trim()`: it would silently change the password.
 const schema = z.object({
 	password: z
 		.string("Passwort ist erforderlich")
-		.trim()
 		.min(8, "Muss mindestens 8 Zeichen lang sein")
 		.max(50, "Darf höchstens 50 Zeichen lang sein")
 		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
@@ -45,90 +46,85 @@ const schema = z.object({
 		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
 	confirm_password: z
 		.string("Passwort bestätigen ist erforderlich")
-		.trim()
 		.min(1, "Passwort bestätigen ist erforderlich"),
 });
 
-type NewPasswordSchema = z.output<typeof schema>;
+type Schema = z.output<typeof schema>;
 
-const formState = reactive<NewPasswordSchema>({
-	password: "",
-	confirm_password: "",
-});
-
-const validate = (state: Partial<NewPasswordSchema>): FormError[] => {
+function validate(state: Partial<Schema>): FormError[] {
 	const errors: FormError[] = [];
 	if (state.password && state.confirm_password && state.password !== state.confirm_password) {
-		errors.push({
-			name: "confirm_password",
-			message: "Passwörter stimmen nicht überein",
-		});
+		errors.push({ name: "confirm_password", message: "Passwörter stimmen nicht überein" });
 	}
 	return errors;
-};
-async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
-	const result = await useAPI((api) => {
-		return api.postAuthResetPassword({
-			body: {
-				reset_token,
-				new_password: payload.data.password,
-			},
-		});
-	});
+}
+
+const loading = ref(false);
+
+async function onSubmit(payload: FormSubmitEvent<Schema>) {
+	if (loading.value) return;
+	loading.value = true;
+
+	// `true`: the user is signed out here, so useAPI must not bounce them to the login page.
+	const result = await useAPI(
+		(api) =>
+			api.postAuthResetPassword({
+				body: {
+					reset_token: resetToken,
+					new_password: payload.data.password,
+				},
+			}),
+		true,
+	);
+
+	loading.value = false;
 
 	if (result.success) {
 		toast.add({
-			title: "Passwort erfolgreich zurückgesetzt",
-			description: "Ihr Passwort wurde erfolgreich zurückgesetzt.",
+			title: "Passwort zurückgesetzt",
+			description: "Ihr Passwort wurde zurückgesetzt. Sie können sich jetzt einloggen.",
+			icon: "i-lucide-check",
+			color: "success",
 		});
-
 		await navigateTo("/auth/login");
-		return;
 	} else {
 		toast.add({
-			title: "Passwort zurücksetzen fehlgeschlagen",
-			description: "Beim Zurücksetzen des Passworts ist ein Fehler aufgetreten.",
+			title: "Zurücksetzen fehlgeschlagen",
+			description: result.message || "Der Link ist möglicherweise ungültig oder abgelaufen.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
 		});
 	}
 }
 </script>
 
 <template>
-    <template v-if="reset_token">
-        <UAuthForm
-            :schema="schema"
-            title="Passwort zurücksetzen"
-            description="Setzen Sie Ihr Passwort zurück, indem Sie unten Ihre E-Mail-Adresse eingeben."
-            icon="i-lucide-mail"
-            :fields="fields"
-            @submit="onSubmit"
-            :submit="{
-                label: 'Passwort zurücksetzen',
-            }"
-        >
-            <template #footer>
-                <div class="text-center text-sm">
-                    Haben Sie Ihr Passwort erinnert?
-                    <NuxtLink
-                        to="/auth/login"
-                        class="text-sky-400 hover:underline"
-                    >
-                        Hier einloggen
-                    </NuxtLink>
-                </div>
-            </template>
-        </UAuthForm>
-    </template>
-    <template v-else>
-        <div class="text-center h-12 mb-4">
-            Ungültiges oder fehlendes Zurücksetzungs-Token. Bitte überprüfen Sie Ihren Zurücksetzungslink oder
-            fordern Sie eine neue Passwortzurücksetzung an.
-        </div>
-        <NuxtLink
-            to="/auth/forgot-password"
-            class="text-sky-400 hover:underline text-center"
-        >
-            Fordern Sie eine neue Passwortzurücksetzung an
-        </NuxtLink>
-    </template>
+	<UAuthForm
+		v-if="resetToken"
+		:schema="schema"
+		:validate="validate"
+		title="Passwort zurücksetzen"
+		description="Geben Sie unten Ihr neues Passwort ein."
+		icon="i-lucide-key-round"
+		:fields="fields"
+		:submit="{ label: 'Passwort zurücksetzen', loading, disabled: loading }"
+		@submit="onSubmit"
+	>
+		<template #footer>
+			<div class="text-center text-sm">
+				Passwort wieder eingefallen?
+				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier einloggen</NuxtLink>
+			</div>
+		</template>
+	</UAuthForm>
+
+	<div v-else class="space-y-4 text-center">
+		<p>
+			Ungültiger oder fehlender Link. Bitte prüfen Sie den Link aus der E-Mail oder fordern Sie
+			einen neuen an.
+		</p>
+		<NuxtLink to="/auth/forgot-password" class="text-primary hover:underline">
+			Neuen Link anfordern
+		</NuxtLink>
+	</div>
 </template>

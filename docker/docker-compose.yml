@@ -16,13 +16,18 @@ services:
 
       CMP_APP_URL: https://cmp.crossover.is-on.net
 
-      CMP_SMTP_HOST: "mail.example.com"
+      # SMTP credentials come from a `.env` file next to this compose file (gitignored), e.g.
+      #   CMP_SMTP_HOST=mail.example.com
+      #   CMP_SMTP_USERNAME=…
+      #   CMP_SMTP_PASSWORD=…
+      # Without CMP_SMTP_HOST, email (password-reset links) is disabled.
+      CMP_SMTP_HOST: ${CMP_SMTP_HOST:-}
       CMP_SMTP_PORT: 465
-      CMP_SMTP_USERNAME: "YourSMTPUsernameHere"
-      CMP_SMTP_PASSWORD: "YourSMTPPasswordHere"
+      CMP_SMTP_USERNAME: ${CMP_SMTP_USERNAME:-}
+      CMP_SMTP_PASSWORD: ${CMP_SMTP_PASSWORD:-}
       CMP_SMTP_FROM: '"CMP" <noreply@crossover.info>'
       CMP_SMTP_SECURE: true
 
     volumes:
-      - ./data:/opt/crossover/cmp/data
-      - ./config:/opt/crossover/cmp/config
+      - /opt/crossover/cmp/data:/opt/crossover/cmp/data
+      - /opt/crossover/cmp/config:/opt/crossover/cmp/config

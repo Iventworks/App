@@ -30,6 +30,16 @@ Follow the LeiCraftMC Style Guides: https://github.com/LeiCraftMC/Style-Guides.
   (`server/routes/ws/`) require `nitro.experimental.websocket = true` (Bun preset).
 - Format with Biome before finishing. Conventional Commits.
 
-Replace `CMP`, the `CMP` env prefix / `cmp` token prefix
-(`server/lib/utils/constants.ts`) and the `<PREFIX>` session-cookie name
-(`app/composables/useAppCookies.ts`) with the real project values.
+## CMP-specific rules and exceptions
+
+- Env prefix `CMP_`, token/cookie prefix `cmp` (`cmp_session_token`), see
+  `server/lib/utils/constants.ts`.
+- Port **31316** in dev and prod. This deviates from the guide's 12xxx rule (docs/02 › Ports): it is
+  the port the pre-merge CMP web app already used.
+- Roles: `admin`, `core_team`, `volunteer`, `unverified` (new accounts default to `unverified`).
+- `PUT /api/v1/account` deliberately does **not** require `current_password` (unlike the template and
+  docs/10), so the existing profile form keeps working.
+- All pages render client-side (`routeRules: { "/**": { ssr: false } }`); the PWA service worker
+  must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
+- Chat and calendar use Nuxt UI's `UChatMessages` / `UChatPrompt` and `UCalendar`. The `ai`
+  devDependency only provides the `UIMessage` types the chat components need.

@@ -2,8 +2,6 @@
 import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
 
-const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
-
 definePageMeta({
 	layout: "auth",
 });
@@ -31,70 +29,73 @@ const schema = z.object({
 
 type Schema = z.output<typeof schema>;
 
+const submitted = ref(false);
+const loading = ref(false);
+
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-	// @TODO: Implement forgot password when backend is implemented
-	toast.add({
-		title: "Funktion nicht implementiert",
-		description: "Die Funktion zum Zurücksetzen des Passworts ist noch nicht implementiert.",
-	});
+	if (loading.value) return;
+	loading.value = true;
 
-	// const result = await useAPI().postAuthLogin({ body: payload.data });
+	// `true`: the user is signed out here, so useAPI must not bounce them to the login page.
+	const result = await useAPI(
+		(api) => api.postAuthResetPasswordRequest({ body: payload.data }),
+		true,
+	);
 
-	// if (result.success) {
+	loading.value = false;
 
-	//     updateAPIClient(result.data.token);
-
-	//     const sessionToken = useCookie("cmp_session_token", {
-	//         path:     '/',
-	//         secure:   true,
-	//         sameSite: 'strict',
-	//         httpOnly: false,
-	//         maxAge:   604800,
-	//     });
-
-	//     sessionToken.value = result.data.token;
-
-	//     await useUserInfoStore().refreshIfNeeded();
-
-	//     toast.add({
-	//         title: 'Login Successful',
-	//         description: 'You have been logged in successfully.'
-	//     });
-
-	//     await navigateTo(redirectUrl.toString());
-	//     return;
-
-	// } else {
-	//     toast.add({
-	//         title: 'Login Failed',
-	//         description: 'An error occurred during login.'
-	//     });
-	// }
+	if (result.success) {
+		submitted.value = true;
+	} else {
+		toast.add({
+			title: "Anfrage fehlgeschlagen",
+			description:
+				result.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
+	}
 }
 </script>
 
 <template>
-    <UAuthForm
-        :schema="schema"
-        title="Passwort vergessen"
-        description="Setzen Sie Ihr Passwort zurück, indem Sie unten Ihre E-Mail-Adresse eingeben."
-        icon="i-lucide-mail"
-        :fields="fields"
-        @submit="onSubmit"
-        :submit="{
-            label: 'Send Reset Link',
-        }"
-    >
-        <template #footer>
-            <div class="text-center text-sm">
-                Passwort erinnert?
-                <NuxtLink
-                    to="/auth/login"
-                    class="text-sky-400 hover:underline"
-                >
-                    Hier einloggen
-                </NuxtLink>
-            </div>
-        </template>
-    </UAuthForm>
+	<UAuthForm
+		v-if="!submitted"
+		:schema="schema"
+		title="Passwort vergessen"
+		description="Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts."
+		icon="i-lucide-mail"
+		:fields="fields"
+		:submit="{ label: 'Link senden', loading, disabled: loading }"
+		@submit="onSubmit"
+	>
+		<template #footer>
+			<div class="text-center text-sm">
+				Passwort wieder eingefallen?
+				<NuxtLink to="/auth/login" class="text-primary hover:underline">Hier einloggen</NuxtLink>
+			</div>
+		</template>
+	</UAuthForm>
+
+	<div v-else class="space-y-4 text-center">
+		<div class="flex justify-center">
+			<div class="rounded-full bg-primary/10 p-3">
+				<UIcon name="i-lucide-mail-check" class="size-8 text-primary" />
+			</div>
+		</div>
+		<h2 class="text-xl font-semibold">Prüfen Sie Ihr Postfach</h2>
+		<p class="mx-auto max-w-sm text-sm text-slate-400">
+			Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum
+			Zurücksetzen Ihres Passworts gesendet.
+		</p>
+		<p class="text-xs text-slate-400">
+			Keine E-Mail erhalten?
+			<button type="button" class="text-primary hover:underline" @click="submitted = false">
+				Erneut versuchen
+			</button>
+		</p>
+		<div class="pt-4">
+			<NuxtLink to="/auth/login" class="text-sm text-primary hover:underline">Zurück zum Login</NuxtLink>
+		</div>
+	</div>
 </template>
