@@ -114,6 +114,12 @@ const searchQuery = ref("");
 const selectedRole = ref("all");
 const selectedStatus = ref("all");
 
+// Built here, not in the template: vue-tsc mis-scopes a template binding whose template
+// literal contains "//" and then reports every later `member` reference as undefined.
+function getAvatarUrl(email: string) {
+	return `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`;
+}
+
 const filteredStaff = computed(() => {
 	return staffMembers.value.filter((s) => {
 		const matchesSearch =
@@ -286,7 +292,7 @@ function formatDate(date: Date) {
                                         <UAvatar 
                                             :alt="`${member.firstName} ${member.lastName}`" 
                                             size="lg"
-                                            :src="`https://i.pravatar.cc/150?u=${member.email}`"
+                                            :src="getAvatarUrl(member.email)"
                                         />
                                         <div class="flex-1 min-w-0">
                                             <h3 class="font-semibold truncate">{{ member.firstName }} {{ member.lastName }}</h3>
