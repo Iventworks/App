@@ -1,153 +1,155 @@
 <script setup lang="ts">
 interface Task {
-    id: number
-    title: string
-    description: string
-    dueDate: Date
-    priority: 'low' | 'medium' | 'high' | 'urgent'
-    status: 'todo' | 'in_progress' | 'done'
-    camp: string
-    category: string
-    assignedBy?: string
+	id: number;
+	title: string;
+	description: string;
+	dueDate: Date;
+	priority: "low" | "medium" | "high" | "urgent";
+	status: "todo" | "in_progress" | "done";
+	camp: string;
+	category: string;
+	assignedBy?: string;
 }
 
 const tasks = ref<Task[]>([
-    {
-        id: 1,
-        title: 'Materialbestellung für Workshop',
-        description: 'Bastelmaterial für Kreativ-Workshops bestellen',
-        dueDate: new Date('2026-02-01'),
-        priority: 'high',
-        status: 'in_progress',
-        camp: 'young+free Crottendorf 2026',
-        category: 'Organisation',
-        assignedBy: 'Lukas Pohl'
-    },
-    {
-        id: 2,
-        title: 'Teammeeting vorbereiten',
-        description: 'Agenda und Unterlagen für nächstes Team-Meeting zusammenstellen',
-        dueDate: new Date('2026-01-30'),
-        priority: 'urgent',
-        status: 'todo',
-        camp: 'young+free Crottendorf 2026',
-        category: 'Team',
-        assignedBy: 'Sarah Müller'
-    },
-    {
-        id: 3,
-        title: 'Teilnehmerliste aktualisieren',
-        description: 'Neue Anmeldungen in Liste eintragen und prüfen',
-        dueDate: new Date('2026-02-03'),
-        priority: 'medium',
-        status: 'in_progress',
-        camp: 'young+free Crottendorf 2026',
-        category: 'Verwaltung'
-    },
-    {
-        id: 4,
-        title: 'Programmpunkt ausarbeiten',
-        description: 'Detaillierte Planung für Gottesdienst am Sonntag',
-        dueDate: new Date('2026-02-05'),
-        priority: 'high',
-        status: 'todo',
-        camp: 'young+free Crottendorf 2026',
-        category: 'Programm',
-        assignedBy: 'Jesko Bahlcke'
-    },
-    {
-        id: 5,
-        title: 'Erste-Hilfe-Kurs erneuern',
-        description: 'Anmeldung für Auffrischungskurs',
-        dueDate: new Date('2026-02-10'),
-        priority: 'medium',
-        status: 'todo',
-        camp: 'Allgemein',
-        category: 'Persönlich'
-    },
-    {
-        id: 6,
-        title: 'Packliste fertigstellen',
-        description: 'Persönliche Packliste für Freizeit vervollständigen',
-        dueDate: new Date('2026-02-12'),
-        priority: 'low',
-        status: 'done',
-        camp: 'young+free Crottendorf 2026',
-        category: 'Vorbereitung'
-    }
-])
+	{
+		id: 1,
+		title: "Materialbestellung für Workshop",
+		description: "Bastelmaterial für Kreativ-Workshops bestellen",
+		dueDate: new Date("2026-02-01"),
+		priority: "high",
+		status: "in_progress",
+		camp: "young+free Crottendorf 2026",
+		category: "Organisation",
+		assignedBy: "Lukas Pohl",
+	},
+	{
+		id: 2,
+		title: "Teammeeting vorbereiten",
+		description: "Agenda und Unterlagen für nächstes Team-Meeting zusammenstellen",
+		dueDate: new Date("2026-01-30"),
+		priority: "urgent",
+		status: "todo",
+		camp: "young+free Crottendorf 2026",
+		category: "Team",
+		assignedBy: "Sarah Müller",
+	},
+	{
+		id: 3,
+		title: "Teilnehmerliste aktualisieren",
+		description: "Neue Anmeldungen in Liste eintragen und prüfen",
+		dueDate: new Date("2026-02-03"),
+		priority: "medium",
+		status: "in_progress",
+		camp: "young+free Crottendorf 2026",
+		category: "Verwaltung",
+	},
+	{
+		id: 4,
+		title: "Programmpunkt ausarbeiten",
+		description: "Detaillierte Planung für Gottesdienst am Sonntag",
+		dueDate: new Date("2026-02-05"),
+		priority: "high",
+		status: "todo",
+		camp: "young+free Crottendorf 2026",
+		category: "Programm",
+		assignedBy: "Jesko Bahlcke",
+	},
+	{
+		id: 5,
+		title: "Erste-Hilfe-Kurs erneuern",
+		description: "Anmeldung für Auffrischungskurs",
+		dueDate: new Date("2026-02-10"),
+		priority: "medium",
+		status: "todo",
+		camp: "Allgemein",
+		category: "Persönlich",
+	},
+	{
+		id: 6,
+		title: "Packliste fertigstellen",
+		description: "Persönliche Packliste für Freizeit vervollständigen",
+		dueDate: new Date("2026-02-12"),
+		priority: "low",
+		status: "done",
+		camp: "young+free Crottendorf 2026",
+		category: "Vorbereitung",
+	},
+]);
 
-const selectedStatus = ref('all')
-const selectedPriority = ref('all')
-const searchQuery = ref('')
+const selectedStatus = ref("all");
+const selectedPriority = ref("all");
+const searchQuery = ref("");
 
 const filteredTasks = computed(() => {
-    return tasks.value.filter(task => {
-        const matchesStatus = selectedStatus.value === 'all' || task.status === selectedStatus.value
-        const matchesPriority = selectedPriority.value === 'all' || task.priority === selectedPriority.value
-        const matchesSearch = !searchQuery.value || 
-            task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            task.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        return matchesStatus && matchesPriority && matchesSearch
-    })
-})
+	return tasks.value.filter((task) => {
+		const matchesStatus = selectedStatus.value === "all" || task.status === selectedStatus.value;
+		const matchesPriority =
+			selectedPriority.value === "all" || task.priority === selectedPriority.value;
+		const matchesSearch =
+			!searchQuery.value ||
+			task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			task.description.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		return matchesStatus && matchesPriority && matchesSearch;
+	});
+});
 
 const taskStats = computed(() => {
-    const total = tasks.value.length
-    const todo = tasks.value.filter(t => t.status === 'todo').length
-    const inProgress = tasks.value.filter(t => t.status === 'in_progress').length
-    const done = tasks.value.filter(t => t.status === 'done').length
-    const urgent = tasks.value.filter(t => t.priority === 'urgent' && t.status !== 'done').length
-    const overdue = tasks.value.filter(t => t.dueDate < new Date() && t.status !== 'done').length
-    
-    return { total, todo, inProgress, done, urgent, overdue }
-})
+	const total = tasks.value.length;
+	const todo = tasks.value.filter((t) => t.status === "todo").length;
+	const inProgress = tasks.value.filter((t) => t.status === "in_progress").length;
+	const done = tasks.value.filter((t) => t.status === "done").length;
+	const urgent = tasks.value.filter((t) => t.priority === "urgent" && t.status !== "done").length;
+	const overdue = tasks.value.filter((t) => t.dueDate < new Date() && t.status !== "done").length;
+
+	return { total, todo, inProgress, done, urgent, overdue };
+});
 
 const priorityConfig = {
-    low: { label: 'Niedrig', color: 'neutral', icon: 'i-lucide-arrow-down' },
-    medium: { label: 'Mittel', color: 'primary', icon: 'i-lucide-minus' },
-    high: { label: 'Hoch', color: 'warning', icon: 'i-lucide-arrow-up' },
-    urgent: { label: 'Dringend', color: 'error', icon: 'i-lucide-alert-circle' }
-}
+	low: { label: "Niedrig", color: "neutral", icon: "i-lucide-arrow-down" },
+	medium: { label: "Mittel", color: "primary", icon: "i-lucide-minus" },
+	high: { label: "Hoch", color: "warning", icon: "i-lucide-arrow-up" },
+	urgent: { label: "Dringend", color: "error", icon: "i-lucide-alert-circle" },
+};
 
 const statusConfig = {
-    todo: { label: 'Zu erledigen', color: 'neutral', icon: 'i-lucide-circle' },
-    in_progress: { label: 'In Bearbeitung', color: 'primary', icon: 'i-lucide-loader' },
-    done: { label: 'Erledigt', color: 'success', icon: 'i-lucide-check-circle' }
+	todo: { label: "Zu erledigen", color: "neutral", icon: "i-lucide-circle" },
+	in_progress: { label: "In Bearbeitung", color: "primary", icon: "i-lucide-loader" },
+	done: { label: "Erledigt", color: "success", icon: "i-lucide-check-circle" },
+};
+
+function getPriorityConfig(priority: Task["priority"]) {
+	return priorityConfig[priority];
 }
 
-function getPriorityConfig(priority: Task['priority']) {
-    return priorityConfig[priority]
-}
-
-function getStatusConfig(status: Task['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: Task["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function isOverdue(task: Task) {
-    return task.status !== 'done' && task.dueDate < new Date()
+	return task.status !== "done" && task.dueDate < new Date();
 }
 
 function getDaysUntil(date: Date) {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
+	const now = new Date();
+	const diff = date.getTime() - now.getTime();
+	const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+	return days;
 }
 
 function toggleTaskStatus(task: Task) {
-    if (task.status === 'done') {
-        task.status = 'todo'
-    } else if (task.status === 'todo') {
-        task.status = 'in_progress'
-    } else {
-        task.status = 'done'
-    }
+	if (task.status === "done") {
+		task.status = "todo";
+	} else if (task.status === "todo") {
+		task.status = "in_progress";
+	} else {
+		task.status = "done";
+	}
 }
 </script>
 

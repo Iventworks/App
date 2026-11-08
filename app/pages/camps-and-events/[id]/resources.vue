@@ -1,146 +1,147 @@
 <script setup lang="ts">
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
 interface Resource {
-    id: number
-    name: string
-    type: 'document' | 'image' | 'video' | 'other'
-    category: string
-    size: string
-    uploadedBy: string
-    uploadedAt: Date
-    url: string
+	id: number;
+	name: string;
+	type: "document" | "image" | "video" | "other";
+	category: string;
+	size: string;
+	uploadedBy: string;
+	uploadedAt: Date;
+	url: string;
 }
 
 const resources = ref<Resource[]>([
-    {
-        id: 1,
-        name: 'Packliste_2026.pdf',
-        type: 'document',
-        category: 'Organisation',
-        size: '245 KB',
-        uploadedBy: 'Lukas Pohl',
-        uploadedAt: new Date('2026-01-15'),
-        url: '#'
-    },
-    {
-        id: 2,
-        name: 'Programmablauf_Woche.pdf',
-        type: 'document',
-        category: 'Programm',
-        size: '512 KB',
-        uploadedBy: 'Sarah Müller',
-        uploadedAt: new Date('2026-01-18'),
-        url: '#'
-    },
-    {
-        id: 3,
-        name: 'Teamleitfaden.pdf',
-        type: 'document',
-        category: 'Team',
-        size: '1.2 MB',
-        uploadedBy: 'Lukas Pohl',
-        uploadedAt: new Date('2026-01-10'),
-        url: '#'
-    },
-    {
-        id: 4,
-        name: 'Anmeldeformular.pdf',
-        type: 'document',
-        category: 'Organisation',
-        size: '156 KB',
-        uploadedBy: 'Miriam Lohrey',
-        uploadedAt: new Date('2026-01-08'),
-        url: '#'
-    },
-    {
-        id: 5,
-        name: 'Notfallplan.pdf',
-        type: 'document',
-        category: 'Sicherheit',
-        size: '328 KB',
-        uploadedBy: 'Jesko Bahlcke',
-        uploadedAt: new Date('2026-01-12'),
-        url: '#'
-    },
-    {
-        id: 6,
-        name: 'Veranstaltungsort_Fotos.zip',
-        type: 'other',
-        category: 'Medien',
-        size: '15.4 MB',
-        uploadedBy: 'Lisa Frischmuth',
-        uploadedAt: new Date('2026-01-20'),
-        url: '#'
-    },
-    {
-        id: 7,
-        name: 'Workshop_Materialien.pdf',
-        type: 'document',
-        category: 'Programm',
-        size: '892 KB',
-        uploadedBy: 'Lisa Frischmuth',
-        uploadedAt: new Date('2026-01-22'),
-        url: '#'
-    },
-    {
-        id: 8,
-        name: 'Teilnehmerliste_Stand_Jan.xlsx',
-        type: 'other',
-        category: 'Organisation',
-        size: '68 KB',
-        uploadedBy: 'Sarah Müller',
-        uploadedAt: new Date('2026-01-25'),
-        url: '#'
-    }
-])
+	{
+		id: 1,
+		name: "Packliste_2026.pdf",
+		type: "document",
+		category: "Organisation",
+		size: "245 KB",
+		uploadedBy: "Lukas Pohl",
+		uploadedAt: new Date("2026-01-15"),
+		url: "#",
+	},
+	{
+		id: 2,
+		name: "Programmablauf_Woche.pdf",
+		type: "document",
+		category: "Programm",
+		size: "512 KB",
+		uploadedBy: "Sarah Müller",
+		uploadedAt: new Date("2026-01-18"),
+		url: "#",
+	},
+	{
+		id: 3,
+		name: "Teamleitfaden.pdf",
+		type: "document",
+		category: "Team",
+		size: "1.2 MB",
+		uploadedBy: "Lukas Pohl",
+		uploadedAt: new Date("2026-01-10"),
+		url: "#",
+	},
+	{
+		id: 4,
+		name: "Anmeldeformular.pdf",
+		type: "document",
+		category: "Organisation",
+		size: "156 KB",
+		uploadedBy: "Miriam Lohrey",
+		uploadedAt: new Date("2026-01-08"),
+		url: "#",
+	},
+	{
+		id: 5,
+		name: "Notfallplan.pdf",
+		type: "document",
+		category: "Sicherheit",
+		size: "328 KB",
+		uploadedBy: "Jesko Bahlcke",
+		uploadedAt: new Date("2026-01-12"),
+		url: "#",
+	},
+	{
+		id: 6,
+		name: "Veranstaltungsort_Fotos.zip",
+		type: "other",
+		category: "Medien",
+		size: "15.4 MB",
+		uploadedBy: "Lisa Frischmuth",
+		uploadedAt: new Date("2026-01-20"),
+		url: "#",
+	},
+	{
+		id: 7,
+		name: "Workshop_Materialien.pdf",
+		type: "document",
+		category: "Programm",
+		size: "892 KB",
+		uploadedBy: "Lisa Frischmuth",
+		uploadedAt: new Date("2026-01-22"),
+		url: "#",
+	},
+	{
+		id: 8,
+		name: "Teilnehmerliste_Stand_Jan.xlsx",
+		type: "other",
+		category: "Organisation",
+		size: "68 KB",
+		uploadedBy: "Sarah Müller",
+		uploadedAt: new Date("2026-01-25"),
+		url: "#",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const selectedType = ref('all')
+const searchQuery = ref("");
+const selectedCategory = ref("all");
+const selectedType = ref("all");
 
 const filteredResources = computed(() => {
-    return resources.value.filter(r => {
-        const matchesSearch = !searchQuery.value || 
-            r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            r.category.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        const matchesCategory = selectedCategory.value === 'all' || r.category === selectedCategory.value
-        const matchesType = selectedType.value === 'all' || r.type === selectedType.value
-        
-        return matchesSearch && matchesCategory && matchesType
-    })
-})
+	return resources.value.filter((r) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			r.category.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		const matchesCategory = selectedCategory.value === "all" || r.category === selectedCategory.value;
+		const matchesType = selectedType.value === "all" || r.type === selectedType.value;
+
+		return matchesSearch && matchesCategory && matchesType;
+	});
+});
 
 const categories = computed(() => {
-    const cats = [...new Set(resources.value.map(r => r.category))]
-    return ['all', ...cats]
-})
+	const cats = [...new Set(resources.value.map((r) => r.category))];
+	return ["all", ...cats];
+});
 
 const typeConfig = {
-    document: { label: 'Dokument', icon: 'i-lucide-file-text', color: 'blue' },
-    image: { label: 'Bild', icon: 'i-lucide-image', color: 'green' },
-    video: { label: 'Video', icon: 'i-lucide-video', color: 'purple' },
-    other: { label: 'Sonstiges', icon: 'i-lucide-file', color: 'gray' }
-}
+	document: { label: "Dokument", icon: "i-lucide-file-text", color: "blue" },
+	image: { label: "Bild", icon: "i-lucide-image", color: "green" },
+	video: { label: "Video", icon: "i-lucide-video", color: "purple" },
+	other: { label: "Sonstiges", icon: "i-lucide-file", color: "gray" },
+};
 
-function getTypeConfig(type: Resource['type']) {
-    return typeConfig[type]
+function getTypeConfig(type: Resource["type"]) {
+	return typeConfig[type];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 const stats = computed(() => {
-    const total = resources.value.length
-    const documents = resources.value.filter(r => r.type === 'document').length
-    const images = resources.value.filter(r => r.type === 'image').length
-    const videos = resources.value.filter(r => r.type === 'video').length
-    
-    return { total, documents, images, videos }
-})
+	const total = resources.value.length;
+	const documents = resources.value.filter((r) => r.type === "document").length;
+	const images = resources.value.filter((r) => r.type === "image").length;
+	const videos = resources.value.filter((r) => r.type === "video").length;
+
+	return { total, documents, images, videos };
+});
 </script>
 
 <template>

@@ -1,153 +1,154 @@
 <script setup lang="ts">
 interface Resource {
-    id: number
-    name: string
-    type: 'template' | 'form' | 'guide' | 'document' | 'image' | 'other'
-    category: string
-    size: string
-    uploadedBy: string
-    uploadedAt: Date
-    downloads: number
-    shared: boolean
+	id: number;
+	name: string;
+	type: "template" | "form" | "guide" | "document" | "image" | "other";
+	category: string;
+	size: string;
+	uploadedBy: string;
+	uploadedAt: Date;
+	downloads: number;
+	shared: boolean;
 }
 
 const resources = ref<Resource[]>([
-    {
-        id: 1,
-        name: 'Freizeitleiter Handbuch 2026',
-        type: 'guide',
-        category: 'Schulung',
-        size: '3.2 MB',
-        uploadedBy: 'Lukas Pohl',
-        uploadedAt: new Date('2025-12-01'),
-        downloads: 45,
-        shared: true
-    },
-    {
-        id: 2,
-        name: 'Anmeldeformular Vorlage',
-        type: 'form',
-        category: 'Organisation',
-        size: '156 KB',
-        uploadedBy: 'Sarah Müller',
-        uploadedAt: new Date('2025-11-15'),
-        downloads: 128,
-        shared: true
-    },
-    {
-        id: 3,
-        name: 'Packlisten-Sammlung',
-        type: 'document',
-        category: 'Organisation',
-        size: '425 KB',
-        uploadedBy: 'Miriam Lohrey',
-        uploadedAt: new Date('2026-01-05'),
-        downloads: 67,
-        shared: true
-    },
-    {
-        id: 4,
-        name: 'Notfallplan Template',
-        type: 'template',
-        category: 'Sicherheit',
-        size: '312 KB',
-        uploadedBy: 'Jesko Bahlcke',
-        uploadedAt: new Date('2025-10-20'),
-        downloads: 34,
-        shared: true
-    },
-    {
-        id: 5,
-        name: 'Spielesammlung Digital',
-        type: 'document',
-        category: 'Programm',
-        size: '2.8 MB',
-        uploadedBy: 'Lisa Frischmuth',
-        uploadedAt: new Date('2025-12-10'),
-        downloads: 92,
-        shared: true
-    },
-    {
-        id: 6,
-        name: 'Crossover Logo Pack',
-        type: 'image',
-        category: 'Branding',
-        size: '5.1 MB',
-        uploadedBy: 'Lukas Pohl',
-        uploadedAt: new Date('2025-09-01'),
-        downloads: 156,
-        shared: true
-    },
-    {
-        id: 7,
-        name: 'Andachten Sammlung',
-        type: 'document',
-        category: 'Inhalt',
-        size: '1.9 MB',
-        uploadedBy: 'Jesko Bahlcke',
-        uploadedAt: new Date('2025-11-28'),
-        downloads: 78,
-        shared: false
-    },
-    {
-        id: 8,
-        name: 'Budget Vorlage',
-        type: 'template',
-        category: 'Finanzen',
-        size: '89 KB',
-        uploadedBy: 'Sarah Müller',
-        uploadedAt: new Date('2025-12-15'),
-        downloads: 41,
-        shared: true
-    }
-])
+	{
+		id: 1,
+		name: "Freizeitleiter Handbuch 2026",
+		type: "guide",
+		category: "Schulung",
+		size: "3.2 MB",
+		uploadedBy: "Lukas Pohl",
+		uploadedAt: new Date("2025-12-01"),
+		downloads: 45,
+		shared: true,
+	},
+	{
+		id: 2,
+		name: "Anmeldeformular Vorlage",
+		type: "form",
+		category: "Organisation",
+		size: "156 KB",
+		uploadedBy: "Sarah Müller",
+		uploadedAt: new Date("2025-11-15"),
+		downloads: 128,
+		shared: true,
+	},
+	{
+		id: 3,
+		name: "Packlisten-Sammlung",
+		type: "document",
+		category: "Organisation",
+		size: "425 KB",
+		uploadedBy: "Miriam Lohrey",
+		uploadedAt: new Date("2026-01-05"),
+		downloads: 67,
+		shared: true,
+	},
+	{
+		id: 4,
+		name: "Notfallplan Template",
+		type: "template",
+		category: "Sicherheit",
+		size: "312 KB",
+		uploadedBy: "Jesko Bahlcke",
+		uploadedAt: new Date("2025-10-20"),
+		downloads: 34,
+		shared: true,
+	},
+	{
+		id: 5,
+		name: "Spielesammlung Digital",
+		type: "document",
+		category: "Programm",
+		size: "2.8 MB",
+		uploadedBy: "Lisa Frischmuth",
+		uploadedAt: new Date("2025-12-10"),
+		downloads: 92,
+		shared: true,
+	},
+	{
+		id: 6,
+		name: "Crossover Logo Pack",
+		type: "image",
+		category: "Branding",
+		size: "5.1 MB",
+		uploadedBy: "Lukas Pohl",
+		uploadedAt: new Date("2025-09-01"),
+		downloads: 156,
+		shared: true,
+	},
+	{
+		id: 7,
+		name: "Andachten Sammlung",
+		type: "document",
+		category: "Inhalt",
+		size: "1.9 MB",
+		uploadedBy: "Jesko Bahlcke",
+		uploadedAt: new Date("2025-11-28"),
+		downloads: 78,
+		shared: false,
+	},
+	{
+		id: 8,
+		name: "Budget Vorlage",
+		type: "template",
+		category: "Finanzen",
+		size: "89 KB",
+		uploadedBy: "Sarah Müller",
+		uploadedAt: new Date("2025-12-15"),
+		downloads: 41,
+		shared: true,
+	},
+]);
 
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const selectedType = ref('all')
+const searchQuery = ref("");
+const selectedCategory = ref("all");
+const selectedType = ref("all");
 
 const filteredResources = computed(() => {
-    return resources.value.filter(r => {
-        const matchesSearch = !searchQuery.value || 
-            r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            r.category.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        const matchesCategory = selectedCategory.value === 'all' || r.category === selectedCategory.value
-        const matchesType = selectedType.value === 'all' || r.type === selectedType.value
-        
-        return matchesSearch && matchesCategory && matchesType
-    })
-})
+	return resources.value.filter((r) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			r.category.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		const matchesCategory = selectedCategory.value === "all" || r.category === selectedCategory.value;
+		const matchesType = selectedType.value === "all" || r.type === selectedType.value;
+
+		return matchesSearch && matchesCategory && matchesType;
+	});
+});
 
 const categories = computed(() => {
-    const cats = [...new Set(resources.value.map(r => r.category))]
-    return ['all', ...cats]
-})
+	const cats = [...new Set(resources.value.map((r) => r.category))];
+	return ["all", ...cats];
+});
 
 const stats = computed(() => {
-    const total = resources.value.length
-    const shared = resources.value.filter(r => r.shared).length
-    const totalDownloads = resources.value.reduce((sum, r) => sum + r.downloads, 0)
-    const templates = resources.value.filter(r => r.type === 'template' || r.type === 'form').length
-    
-    return { total, shared, totalDownloads, templates }
-})
+	const total = resources.value.length;
+	const shared = resources.value.filter((r) => r.shared).length;
+	const totalDownloads = resources.value.reduce((sum, r) => sum + r.downloads, 0);
+	const templates = resources.value.filter((r) => r.type === "template" || r.type === "form").length;
+
+	return { total, shared, totalDownloads, templates };
+});
 
 const typeConfig = {
-    template: { label: 'Vorlage', color: 'purple', icon: 'i-lucide-layout-template' },
-    form: { label: 'Formular', color: 'blue', icon: 'i-lucide-file-text' },
-    guide: { label: 'Leitfaden', color: 'green', icon: 'i-lucide-book-open' },
-    document: { label: 'Dokument', color: 'orange', icon: 'i-lucide-file' },
-    image: { label: 'Bild', color: 'pink', icon: 'i-lucide-image' },
-    other: { label: 'Sonstiges', color: 'gray', icon: 'i-lucide-folder' }
-}
+	template: { label: "Vorlage", color: "purple", icon: "i-lucide-layout-template" },
+	form: { label: "Formular", color: "blue", icon: "i-lucide-file-text" },
+	guide: { label: "Leitfaden", color: "green", icon: "i-lucide-book-open" },
+	document: { label: "Dokument", color: "orange", icon: "i-lucide-file" },
+	image: { label: "Bild", color: "pink", icon: "i-lucide-image" },
+	other: { label: "Sonstiges", color: "gray", icon: "i-lucide-folder" },
+};
 
-function getTypeConfig(type: Resource['type']) {
-    return typeConfig[type]
+function getTypeConfig(type: Resource["type"]) {
+	return typeConfig[type];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 </script>
 

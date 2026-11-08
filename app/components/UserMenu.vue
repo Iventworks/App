@@ -4,7 +4,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import { Utils } from "~/utils";
 
 defineProps<{
-    collapsed?: boolean;
+	collapsed?: boolean;
 }>();
 
 const toast = useToast();
@@ -12,89 +12,87 @@ const toast = useToast();
 const userinfoStore = await useUserInfoStore();
 const userinfo = await userinfoStore.use();
 if (!userinfoStore.isValid(userinfo)) {
-    throw new Error("User not authenticated but should be to access UserMenu");
+	throw new Error("User not authenticated but should be to access UserMenu");
 }
 
 const user = computed(() => {
-    if (!userinfo.value) {
-        return {
-            name: "Unknown User",
-            avatar: {
-                alt: "Unknown User",
-            },
-        };
-    }
-    return {
-        name: userinfo.value.display_name,
-        avatar: {
-            alt: userinfo.value.display_name,
-        },
-    };
+	if (!userinfo.value) {
+		return {
+			name: "Unknown User",
+			avatar: {
+				alt: "Unknown User",
+			},
+		};
+	}
+	return {
+		name: userinfo.value.display_name,
+		avatar: {
+			alt: userinfo.value.display_name,
+		},
+	};
 });
 
 async function logout() {
-    try {
-        const result = await useAPI((api) => {
-            return api.postAuthLogout({});
-        });
+	try {
+		const result = await useAPI((api) => {
+			return api.postAuthLogout({});
+		});
 
-        await userinfoStore.clear();
+		await userinfoStore.clear();
 
-        useAppCookies().sessionToken.get().value = null;
+		useAppCookies().sessionToken.get().value = null;
 
-        if (!result.success) {
-            toast.add({
-                title: "Error",
-                description:
-                    result.message || "An error occurred during logout.",
-                icon: "i-lucide-alert-circle",
-                color: "error",
-            });
-            return;
-        }
+		if (!result.success) {
+			toast.add({
+				title: "Error",
+				description: result.message || "An error occurred during logout.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
+			return;
+		}
 
-        toast.add({
-            title: "Logged out",
-            description: "You have been successfully logged out.",
-            icon: "i-lucide-check",
-            color: "success",
-        });
+		toast.add({
+			title: "Logged out",
+			description: "You have been successfully logged out.",
+			icon: "i-lucide-check",
+			color: "success",
+		});
 
-        await navigateTo("/auth/login");
-    } catch (error) {
-        toast.add({
-            title: "Error",
-            description: "An unexpected error occurred during logout.",
-            icon: "i-lucide-alert-circle",
-            color: "error",
-        });
-    }
+		await navigateTo("/auth/login");
+	} catch (error) {
+		toast.add({
+			title: "Error",
+			description: "An unexpected error occurred during logout.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
+	}
 }
 
 const items = computed<DropdownMenuItem[][]>(() => [
-    [
-        {
-            type: "label",
-            label: user.value.name,
-            avatar: user.value.avatar,
-        },
-    ],
-    [
-        {
-            label: "Settings",
-            icon: "i-lucide-settings",
-            to: "/settings",
-        },
-    ],
-    [
-        {
-            label: "Log out",
-            icon: "i-lucide-log-out",
-            onSelect: logout,
-        },
-    ],
+	[
+		{
+			type: "label",
+			label: user.value.name,
+			avatar: user.value.avatar,
+		},
+	],
+	[
+		{
+			label: "Settings",
+			icon: "i-lucide-settings",
+			to: "/settings",
+		},
+	],
+	[
+		{
+			label: "Log out",
+			icon: "i-lucide-log-out",
+			onSelect: logout,
+		},
+	],
 ]);
-
 </script>
 
 <template>

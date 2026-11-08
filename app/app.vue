@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 // useHead({
 // 	meta: [
 // 		{ charset: 'utf-8' },

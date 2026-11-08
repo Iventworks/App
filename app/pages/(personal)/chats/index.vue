@@ -1,284 +1,289 @@
 <script setup lang="ts">
+import type { UIMessage } from "ai";
+
 interface Message {
-    id: number
-    text: string
-    timestamp: Date
-    senderId: number
-    senderName: string
-    isMe: boolean
+	id: number;
+	text: string;
+	timestamp: Date;
+	senderId: number;
+	senderName: string;
+	isMe: boolean;
 }
 
 interface Chat {
-    id: number
-    name: string
-    avatar: string
-    lastMessage: string
-    timestamp: Date
-    unreadCount: number
-    online: boolean
+	id: number;
+	name: string;
+	avatar: string;
+	lastMessage: string;
+	timestamp: Date;
+	unreadCount: number;
+	online: boolean;
 }
 
 // Mock data für Chats
 const chats = ref<Chat[]>([
-    {
-        id: 1,
-        name: 'Lukas Pohl',
-        avatar: 'https://i.pravatar.cc/150?img=12',
-        lastMessage: 'Können wir das Planungstreffen für young+free auf nächste Woche verschieben?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 5),
-        unreadCount: 2,
-        online: true
-    },
-    {
-        id: 2,
-        name: 'Miriam Lohrey',
-        avatar: 'https://i.pravatar.cc/150?img=5',
-        lastMessage: 'Die Teilnehmerliste für Crottendorf ist fertig',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30),
-        unreadCount: 0,
-        online: true
-    },
-    {
-        id: 3,
-        name: 'Team young+free Crottendorf',
-        avatar: 'https://i.pravatar.cc/150?img=20',
-        lastMessage: 'Neue Aufgabe: Programm für Samstag erstellen',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-        unreadCount: 3,
-        online: false
-    },
-    {
-        id: 4,
-        name: 'Lisa Frischmuth',
-        avatar: 'https://i.pravatar.cc/150?img=1',
-        lastMessage: 'Können wir die Materialbestellung besprechen?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-        unreadCount: 0,
-        online: false
-    },
-    {
-        id: 5,
-        name: 'Jesko Bahlcke',
-        avatar: 'https://i.pravatar.cc/150?img=13',
-        lastMessage: 'Bis morgen beim Treffen!',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        unreadCount: 0,
-        online: false
-    }
-])
+	{
+		id: 1,
+		name: "Lukas Pohl",
+		avatar: "https://i.pravatar.cc/150?img=12",
+		lastMessage: "Können wir das Planungstreffen für young+free auf nächste Woche verschieben?",
+		timestamp: new Date(Date.now() - 1000 * 60 * 5),
+		unreadCount: 2,
+		online: true,
+	},
+	{
+		id: 2,
+		name: "Miriam Lohrey",
+		avatar: "https://i.pravatar.cc/150?img=5",
+		lastMessage: "Die Teilnehmerliste für Crottendorf ist fertig",
+		timestamp: new Date(Date.now() - 1000 * 60 * 30),
+		unreadCount: 0,
+		online: true,
+	},
+	{
+		id: 3,
+		name: "Team young+free Crottendorf",
+		avatar: "https://i.pravatar.cc/150?img=20",
+		lastMessage: "Neue Aufgabe: Programm für Samstag erstellen",
+		timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+		unreadCount: 3,
+		online: false,
+	},
+	{
+		id: 4,
+		name: "Lisa Frischmuth",
+		avatar: "https://i.pravatar.cc/150?img=1",
+		lastMessage: "Können wir die Materialbestellung besprechen?",
+		timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
+		unreadCount: 0,
+		online: false,
+	},
+	{
+		id: 5,
+		name: "Jesko Bahlcke",
+		avatar: "https://i.pravatar.cc/150?img=13",
+		lastMessage: "Bis morgen beim Treffen!",
+		timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
+		unreadCount: 0,
+		online: false,
+	},
+]);
 
 // Mock data für Nachrichten
 const messages = ref<Record<number, Message[]>>({
-    1: [
-        {
-            id: 1,
-            text: 'Hi! Hast du schon die neuesten Updates für das young+free Camp gesehen?',
-            timestamp: new Date(Date.now() - 1000 * 60 * 15),
-            senderId: 1,
-            senderName: 'Lukas Pohl',
-            isMe: false
-        },
-        {
-            id: 2,
-            text: 'Ja, ich habe sie mir angesehen. Sieht sehr gut aus!',
-            timestamp: new Date(Date.now() - 1000 * 60 * 12),
-            senderId: 0,
-            senderName: 'Ich',
-            isMe: true
-        },
-        {
-            id: 3,
-            text: 'Können wir das Planungstreffen für young+free auf nächste Woche verschieben?',
-            timestamp: new Date(Date.now() - 1000 * 60 * 5),
-            senderId: 1,
-            senderName: 'Lukas Pohl',
-            isMe: false
-        }
-    ],
-    2: [
-        {
-            id: 1,
-            text: 'Wann ist das nächste Planungstreffen für Crottendorf?',
-            timestamp: new Date(Date.now() - 1000 * 60 * 45),
-            senderId: 0,
-            senderName: 'Ich',
-            isMe: true
-        },
-        {
-            id: 2,
-            text: 'Am 16. Januar um 18:00 Uhr',
-            timestamp: new Date(Date.now() - 1000 * 60 * 40),
-            senderId: 2,
-            senderName: 'Miriam Lohrey',
-            isMe: false
-        },
-        {
-            id: 3,
-            text: 'Die Teilnehmerliste für Crottendorf ist fertig',
-            timestamp: new Date(Date.now() - 1000 * 60 * 30),
-            senderId: 2,
-            senderName: 'Miriam Lohrey',
-            isMe: false
-        }
-    ],
-    3: [
-        {
-            id: 1,
-            text: '@alle Bitte bis Freitag die Programmpunkte eintragen',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-            senderId: 3,
-            senderName: 'Team young+free Crottendorf',
-            isMe: false
-        },
-        {
-            id: 2,
-            text: 'Erledigt! Ich habe meine Programmideen hochgeladen.',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
-            senderId: 0,
-            senderName: 'Ich',
-            isMe: true
-        },
-        {
-            id: 3,
-            text: 'Neue Aufgabe: Programm für Samstag erstellen',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            senderId: 3,
-            senderName: 'Team young+free Crottendorf',
-            isMe: false
-        }
-    ],
-    4: [
-        {
-            id: 1,
-            text: 'Die Materialliste ist jetzt online verfügbar',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
-            senderId: 4,
-            senderName: 'Lisa Frischmuth',
-            isMe: false
-        },
-        {
-            id: 2,
-            text: 'Super, ich schaue sie mir gleich an!',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5.5),
-            senderId: 0,
-            senderName: 'Ich',
-            isMe: true
-        },
-        {
-            id: 3,
-            text: 'Können wir die Materialbestellung besprechen?',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-            senderId: 4,
-            senderName: 'Lisa Frischmuth',
-            isMe: false
-        }
-    ],
-    5: [
-        {
-            id: 1,
-            text: 'Treffen wir uns morgen um 10 Uhr?',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 25),
-            senderId: 0,
-            senderName: 'Ich',
-            isMe: true
-        },
-        {
-            id: 2,
-            text: 'Perfekt, ich bin dabei!',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24.5),
-            senderId: 5,
-            senderName: 'Jesko Bahlcke',
-            isMe: false
-        },
-        {
-            id: 3,
-            text: 'Bis morgen beim Treffen!',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-            senderId: 5,
-            senderName: 'Jesko Bahlcke',
-            isMe: false
-        }
-    ]
-})
+	1: [
+		{
+			id: 1,
+			text: "Hi! Hast du schon die neuesten Updates für das young+free Camp gesehen?",
+			timestamp: new Date(Date.now() - 1000 * 60 * 15),
+			senderId: 1,
+			senderName: "Lukas Pohl",
+			isMe: false,
+		},
+		{
+			id: 2,
+			text: "Ja, ich habe sie mir angesehen. Sieht sehr gut aus!",
+			timestamp: new Date(Date.now() - 1000 * 60 * 12),
+			senderId: 0,
+			senderName: "Ich",
+			isMe: true,
+		},
+		{
+			id: 3,
+			text: "Können wir das Planungstreffen für young+free auf nächste Woche verschieben?",
+			timestamp: new Date(Date.now() - 1000 * 60 * 5),
+			senderId: 1,
+			senderName: "Lukas Pohl",
+			isMe: false,
+		},
+	],
+	2: [
+		{
+			id: 1,
+			text: "Wann ist das nächste Planungstreffen für Crottendorf?",
+			timestamp: new Date(Date.now() - 1000 * 60 * 45),
+			senderId: 0,
+			senderName: "Ich",
+			isMe: true,
+		},
+		{
+			id: 2,
+			text: "Am 16. Januar um 18:00 Uhr",
+			timestamp: new Date(Date.now() - 1000 * 60 * 40),
+			senderId: 2,
+			senderName: "Miriam Lohrey",
+			isMe: false,
+		},
+		{
+			id: 3,
+			text: "Die Teilnehmerliste für Crottendorf ist fertig",
+			timestamp: new Date(Date.now() - 1000 * 60 * 30),
+			senderId: 2,
+			senderName: "Miriam Lohrey",
+			isMe: false,
+		},
+	],
+	3: [
+		{
+			id: 1,
+			text: "@alle Bitte bis Freitag die Programmpunkte eintragen",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
+			senderId: 3,
+			senderName: "Team young+free Crottendorf",
+			isMe: false,
+		},
+		{
+			id: 2,
+			text: "Erledigt! Ich habe meine Programmideen hochgeladen.",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
+			senderId: 0,
+			senderName: "Ich",
+			isMe: true,
+		},
+		{
+			id: 3,
+			text: "Neue Aufgabe: Programm für Samstag erstellen",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+			senderId: 3,
+			senderName: "Team young+free Crottendorf",
+			isMe: false,
+		},
+	],
+	4: [
+		{
+			id: 1,
+			text: "Die Materialliste ist jetzt online verfügbar",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
+			senderId: 4,
+			senderName: "Lisa Frischmuth",
+			isMe: false,
+		},
+		{
+			id: 2,
+			text: "Super, ich schaue sie mir gleich an!",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5.5),
+			senderId: 0,
+			senderName: "Ich",
+			isMe: true,
+		},
+		{
+			id: 3,
+			text: "Können wir die Materialbestellung besprechen?",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
+			senderId: 4,
+			senderName: "Lisa Frischmuth",
+			isMe: false,
+		},
+	],
+	5: [
+		{
+			id: 1,
+			text: "Treffen wir uns morgen um 10 Uhr?",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 25),
+			senderId: 0,
+			senderName: "Ich",
+			isMe: true,
+		},
+		{
+			id: 2,
+			text: "Perfekt, ich bin dabei!",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24.5),
+			senderId: 5,
+			senderName: "Jesko Bahlcke",
+			isMe: false,
+		},
+		{
+			id: 3,
+			text: "Bis morgen beim Treffen!",
+			timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
+			senderId: 5,
+			senderName: "Jesko Bahlcke",
+			isMe: false,
+		},
+	],
+});
 
-const selectedChatId = ref<number>(1)
-const newMessage = ref('')
-const messagesContainer = ref<HTMLElement>()
+const selectedChatId = ref<number>(1);
+const newMessage = ref("");
 
-const selectedChat = computed(() => chats.value.find(c => c.id === selectedChatId.value))
-const currentMessages = computed(() => messages.value[selectedChatId.value] || [])
+// Below `md` only one pane is visible: the chat list, or the open conversation.
+const showConversationOnMobile = ref(false);
+
+const selectedChat = computed(() => chats.value.find((c) => c.id === selectedChatId.value));
+const currentMessages = computed(() => messages.value[selectedChatId.value] || []);
+
+// UChatMessages renders UIMessage objects: "user" is my side (right), "assistant" the other person (left).
+const chatMessages = computed(() =>
+	currentMessages.value.map(
+		(message) =>
+			({
+				id: String(message.id),
+				role: message.isMe ? ("user" as const) : ("assistant" as const),
+				parts: [{ type: "text" as const, text: message.text }],
+				metadata: { timestamp: message.timestamp, senderName: message.senderName },
+			}) satisfies UIMessage<ChatMessageMetadata>,
+	),
+);
+
+interface ChatMessageMetadata {
+	timestamp: Date;
+	senderName: string;
+}
 
 function selectChat(chatId: number) {
-    selectedChatId.value = chatId
-    // Mark messages as read
-    const chat = chats.value.find(c => c.id === chatId)
-    if (chat) {
-        chat.unreadCount = 0
-    }
-    // Scroll to bottom
-    nextTick(() => {
-        scrollToBottom()
-    })
+	selectedChatId.value = chatId;
+	showConversationOnMobile.value = true;
+	// Mark messages as read
+	const chat = chats.value.find((c) => c.id === chatId);
+	if (chat) {
+		chat.unreadCount = 0;
+	}
 }
 
 function sendMessage() {
-    if (!newMessage.value.trim()) return
+	if (!newMessage.value.trim()) return;
 
-    const message: Message = {
-        id: currentMessages.value.length + 1,
-        text: newMessage.value,
-        timestamp: new Date(),
-        senderId: 0,
-        senderName: 'Ich',
-        isMe: true
-    }
+	const message: Message = {
+		id: currentMessages.value.length + 1,
+		text: newMessage.value,
+		timestamp: new Date(),
+		senderId: 0,
+		senderName: "Ich",
+		isMe: true,
+	};
 
-    if (!messages.value[selectedChatId.value]) {
-        messages.value[selectedChatId.value] = []
-    }
+	if (!messages.value[selectedChatId.value]) {
+		messages.value[selectedChatId.value] = [];
+	}
 
-    (messages.value[selectedChatId.value] as Message[]).push(message)
+	(messages.value[selectedChatId.value] as Message[]).push(message);
 
-    // Update last message in chat list
-    const chat = chats.value.find(c => c.id === selectedChatId.value)
-    if (chat) {
-        chat.lastMessage = newMessage.value
-        chat.timestamp = new Date()
-    }
+	// Update last message in chat list
+	const chat = chats.value.find((c) => c.id === selectedChatId.value);
+	if (chat) {
+		chat.lastMessage = newMessage.value;
+		chat.timestamp = new Date();
+	}
 
-    newMessage.value = ''
-
-    nextTick(() => {
-        scrollToBottom()
-    })
-}
-
-function scrollToBottom() {
-    if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
+	newMessage.value = "";
 }
 
 function formatTime(date: Date) {
-    const now = new Date()
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+	const now = new Date();
+	const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-    if (diffInHours < 24) {
-        return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-    } else if (diffInHours < 48) {
-        return 'Gestern'
-    } else {
-        return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
-    }
+	if (diffInHours < 24) {
+		return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+	} else if (diffInHours < 48) {
+		return "Gestern";
+	} else {
+		return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+	}
 }
-
-onMounted(() => {
-    scrollToBottom()
-})
 </script>
 
 <template>
-    <UDashboardPanel>
+    <UDashboardPanel :ui="{ body: 'overflow-hidden' }">
 
         <template #header>
             <DashboardPageHeader title="Chats" icon="i-lucide-message-circle"
@@ -286,16 +291,20 @@ onMounted(() => {
         </template>
 
         <template #body>
-            <DashboardPageBody class="grow">
-                <div class="flex h-full gap-4">
-                    <!-- Chat List -->
-                    <div class="w-80 shrink-0">
-                        <UCard class="h-full">
+            <DashboardPageBody class="flex min-h-0 flex-1 flex-col">
+                <div class="flex min-h-0 flex-1 gap-4">
+                    <!-- Chat List (full width on phones, fixed column from md) -->
+                    <div
+                        class="min-h-0 w-full md:block md:w-80 md:shrink-0"
+                        :class="showConversationOnMobile ? 'hidden' : 'block'"
+                    >
+                        <UCard class="h-full" :ui="{ body: 'h-full overflow-y-auto' }">
                             <div class="space-y-1">
-                                <div
+                                <button
                                     v-for="chat in chats" :key="chat.id"
-                                    class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-                                    :class="{ 'bg-gray-100 dark:bg-gray-800': selectedChatId === chat.id }"
+                                    type="button"
+                                    class="flex w-full items-center gap-3 p-3 rounded-lg text-left cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    :class="{ 'md:bg-gray-100 md:dark:bg-gray-800': selectedChatId === chat.id }"
                                     @click="selectChat(chat.id)"
                                 >
                                     <div class="relative">
@@ -311,9 +320,9 @@ onMounted(() => {
                                         </span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center justify-between">
+                                        <div class="flex items-center justify-between gap-2">
                                             <p class="font-semibold text-sm truncate">{{ chat.name }}</p>
-                                            <span class="text-xs text-gray-500">{{ formatTime(chat.timestamp) }}</span>
+                                            <span class="shrink-0 text-xs text-gray-500">{{ formatTime(chat.timestamp) }}</span>
                                         </div>
                                         <div class="flex items-center justify-between">
                                             <p class="text-sm text-gray-500 truncate">{{ chat.lastMessage }}</p>
@@ -327,60 +336,95 @@ onMounted(() => {
                                             </UBadge>
                                         </div>
                                     </div>
-                                </div>
+                                </button>
                             </div>
                         </UCard>
                     </div>
 
                     <!-- Chat Messages -->
-                    <div class="flex-1">
+                    <div
+                        class="min-h-0 min-w-0 flex-1 md:flex"
+                        :class="showConversationOnMobile ? 'flex' : 'hidden'"
+                    >
                         <UCard
-                            class="h-full flex flex-col"
-                            :ui='{
-                                body: "h-full flex flex-col"
-                            }'
+                            class="flex h-full w-full flex-col"
+                            :ui="{
+                                body: 'flex min-h-0 flex-1 flex-col'
+                            }"
                         >
                             <!-- Chat Header -->
                             <div v-if="selectedChat"
                                 class="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                <UButton
+                                    icon="i-lucide-arrow-left"
+                                    color="neutral"
+                                    variant="ghost"
+                                    aria-label="Zurück zur Chat-Übersicht"
+                                    class="md:hidden"
+                                    @click="showConversationOnMobile = false"
+                                />
                                 <div class="relative">
                                     <UAvatar :src="selectedChat.avatar" :alt="selectedChat.name" size="md" />
                                     <span v-if="selectedChat.online"
                                         class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
                                 </div>
-                                <div>
-                                    <p class="font-semibold">{{ selectedChat.name }}</p>
+                                <div class="min-w-0">
+                                    <p class="font-semibold truncate">{{ selectedChat.name }}</p>
                                     <p class="text-sm text-gray-500">{{ selectedChat.online ? 'Online' : 'Offline' }}
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- Messages -->
-                            <div ref="messagesContainer" class="flex-1 overflow-y-auto py-4 space-y-4 grow">
-                                <div v-for="message in currentMessages" :key="message.id" class="flex"
-                                    :class="message.isMe ? 'justify-end' : 'justify-start'">
-                                    <div class="max-w-[70%] rounded-lg px-4 py-2" :class="message.isMe
-                                        ? 'bg-primary-500 text-white'
-                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'">
-                                        <p class="text-sm">{{ message.text }}</p>
-                                        <p class="text-xs mt-1"
-                                            :class="message.isMe ? 'text-primary-100' : 'text-gray-500'">
-                                            {{ formatTime(message.timestamp) }}
+                            <!-- Messages: this container is the scroll parent UChatMessages scrolls -->
+                            <div class="min-h-0 flex-1 overflow-y-auto py-4">
+                                <UChatMessages
+                                    :key="selectedChatId"
+                                    :messages="chatMessages"
+                                    should-auto-scroll
+                                    :user="{
+                                        side: 'right',
+                                        variant: 'solid',
+                                        color: 'primary',
+                                        ui: { content: 'space-y-0 py-2 min-h-0 text-white' }
+                                    }"
+                                    :assistant="{
+                                        side: 'left',
+                                        variant: 'soft',
+                                        color: 'neutral',
+                                        ui: { content: 'space-y-0 py-2 min-h-0 bg-gray-800 text-gray-100', container: 'max-w-[75%]' }
+                                    }"
+                                    :ui="{ root: 'gap-4' }"
+                                >
+                                    <template #content="{ message }">
+                                        <p class="text-sm whitespace-pre-wrap">
+                                            {{ message.parts.map(part => part.type === 'text' ? part.text : '').join('') }}
                                         </p>
-                                    </div>
-                                </div>
+                                        <p class="text-xs mt-1"
+                                            :class="message.role === 'user' ? 'text-primary-100' : 'text-gray-500'">
+                                            {{ message.metadata ? formatTime(message.metadata.timestamp) : '' }}
+                                        </p>
+                                    </template>
+                                </UChatMessages>
                             </div>
 
                             <!-- Message Input -->
                             <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <form @submit.prevent="sendMessage" class="flex gap-2">
-                                    <UInput v-model="newMessage" placeholder="Nachricht eingeben..." size="lg"
-                                        class="flex-1" :ui="{ base: 'w-full' }" />
-                                    <UButton type="submit" icon="i-lucide-send" size="lg"
-                                        :disabled="!newMessage.trim()">
-                                        Senden
-                                    </UButton>
-                                </form>
+                                <UChatPrompt
+                                    v-model="newMessage"
+                                    placeholder="Nachricht eingeben..."
+                                    variant="outline"
+                                    :rows="1"
+                                    :maxrows="4"
+                                    autoresize
+                                    @submit="sendMessage"
+                                >
+                                    <UChatPromptSubmit
+                                        icon="i-lucide-send"
+                                        color="primary"
+                                        variant="solid"
+                                        :disabled="!newMessage.trim()"
+                                    />
+                                </UChatPrompt>
                             </div>
                         </UCard>
                     </div>

@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import type { ModalProps } from '@nuxt/ui'
+import type { ModalProps } from "@nuxt/ui";
 
 interface Props extends ModalProps {
-    title: string
-    description?: string
-    icon?: string
-    iconColor?: 'sky' | 'amber' | 'emerald' | 'error' | 'neutral'
-    loading?: boolean
+	title: string;
+	description?: string;
+	icon?: string;
+	iconColor?: "sky" | "amber" | "emerald" | "error" | "neutral";
+	loading?: boolean;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const open = defineModel<boolean>('open', { required: true })
+const open = defineModel<boolean>("open", { required: true });
 
-const iconColorClasses: Record<NonNullable<Props['iconColor']>, string> = {
-    sky: 'text-sky-400',
-    amber: 'text-amber-400',
-    emerald: 'text-emerald-400',
-    error: 'text-red-400',
-    neutral: 'text-slate-400'
-}
+const iconColorClasses: Record<NonNullable<Props["iconColor"]>, string> = {
+	sky: "text-sky-400",
+	amber: "text-amber-400",
+	emerald: "text-emerald-400",
+	error: "text-red-400",
+	neutral: "text-slate-400",
+};
 </script>
 
 <template>

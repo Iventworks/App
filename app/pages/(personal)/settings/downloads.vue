@@ -1,47 +1,47 @@
 <script setup lang="ts">
 useSeoMeta({
-	title: 'Downloads | Kontoeinstellungen | CMP',
-	description: 'Laden Sie die CMP Mobile Apps für Android, iOS und Windows herunter'
-})
+	title: "Downloads | Kontoeinstellungen | CMP",
+	description: "Laden Sie die CMP Mobile Apps für Android, iOS und Windows herunter",
+});
 
 const downloads = [
 	{
-		platform: 'Android',
-		icon: 'i-lucide-smartphone',
-		color: 'success',
-		description: 'Verfügbar für Android-Geräte',
+		platform: "Android",
+		icon: "i-lucide-smartphone",
+		color: "success",
+		description: "Verfügbar für Android-Geräte",
 		files: [
 			{
-				name: 'Android App Bundle (.aab)',
-				description: 'Für Google Play Store',
-				url: '/static/mobile-apps/cmp_1.0.2.aab',
-				icon: 'i-lucide-package'
+				name: "Android App Bundle (.aab)",
+				description: "Für Google Play Store",
+				url: "/static/mobile-apps/cmp_1.0.2.aab",
+				icon: "i-lucide-package",
 			},
 			{
-				name: 'Android APK (.apk)',
-				description: 'Für direkte Installation',
-				url: '/static/mobile-apps/cmp_1.0.2.apk',
-				icon: 'i-lucide-download'
-			}
-		]
+				name: "Android APK (.apk)",
+				description: "Für direkte Installation",
+				url: "/static/mobile-apps/cmp_1.0.2.apk",
+				icon: "i-lucide-download",
+			},
+		],
 	},
 	{
-		platform: 'iOS',
-		icon: 'i-lucide-smartphone',
-		color: 'neutral',
-		description: 'Demnächst verfügbar',
+		platform: "iOS",
+		icon: "i-lucide-smartphone",
+		color: "neutral",
+		description: "Demnächst verfügbar",
 		files: [],
-		comingSoon: true
+		comingSoon: true,
 	},
 	{
-		platform: 'Windows',
-		icon: 'i-lucide-laptop',
-		color: 'neutral',
-		description: 'Demnächst verfügbar',
+		platform: "Windows",
+		icon: "i-lucide-laptop",
+		color: "neutral",
+		description: "Demnächst verfügbar",
 		files: [],
-		comingSoon: true
-	}
-]
+		comingSoon: true,
+	},
+];
 </script>
 
 <template>

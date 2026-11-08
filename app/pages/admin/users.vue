@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import type { FormSubmitEvent } from "@nuxt/ui";
+import * as z from "zod";
 import type { DropdownMenuItem, TableColumn } from "#ui/types";
 import type { GetAdminUsersResponses } from "@/api-client/types.gen";
-import * as z from "zod";
-import type { FormSubmitEvent } from "@nuxt/ui";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import { Utils } from "~/utils";
 
 type AdminUser = GetAdminUsersResponses[200]["data"][number];
 
 useSeoMeta({
-    title: "Benutzerverwaltung | Admin | CMP",
-    description: "Benutzer verwalten",
+	title: "Benutzerverwaltung | Admin | CMP",
+	description: "Benutzer verwalten",
 });
 
 const toast = useToast();
@@ -19,70 +19,69 @@ const toast = useToast();
 const userInfoStore = useUserInfoStore();
 const currentUser = await userInfoStore.use();
 if (!userInfoStore.isValid(currentUser)) {
-    throw new Error('User not authenticated but trying to access Admin Users');
+	throw new Error("User not authenticated but trying to access Admin Users");
 }
 
-
 if (!currentUser || currentUser.value.role !== "admin") {
-    navigateTo("/dashboard");
+	navigateTo("/dashboard");
 }
 
 const userColumns: TableColumn<AdminUser>[] = [
-    { accessorKey: "id", header: "ID" },
-    { accessorKey: "username", header: "Benutzername" },
-    { accessorKey: "display_name", header: "Anzeigename" },
-    { accessorKey: "email", header: "E-Mail-Adresse" },
-    { id: "role", header: "Rolle" },
-    { id: "actions", header: "", enableSorting: false, enableHiding: false },
+	{ accessorKey: "id", header: "ID" },
+	{ accessorKey: "username", header: "Benutzername" },
+	{ accessorKey: "display_name", header: "Anzeigename" },
+	{ accessorKey: "email", header: "E-Mail-Adresse" },
+	{ id: "role", header: "Rolle" },
+	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
 ];
 
 const roleOptions = [
-    { label: "Admin", value: "admin" },
-    { label: "Kernteam", value: "core_team" },
-    { label: "Freiwilliger", value: "volunteer" },
-    { label: "Unverifiziert", value: "unverified" },
+	{ label: "Admin", value: "admin" },
+	{ label: "Kernteam", value: "core_team" },
+	{ label: "Freiwilliger", value: "volunteer" },
+	{ label: "Unverifiziert", value: "unverified" },
 ];
 
 const {
-    data: users,
-    loading,
-    refresh,
+	data: users,
+	loading,
+	refresh,
 } = await useAPIAsyncData<AdminUser[]>("admin-users-list", async () => {
-    const res = await useAPI((api) => api.getAdminUsers({}));
-    if (!res.success) {
-        toast.add({
-            title: "Benutzer konnten nicht geladen werden",
-            description: res.message,
-            color: "error",
-        });
-        return [];
-    }
-    return res.data;
+	const res = await useAPI((api) => api.getAdminUsers({}));
+	if (!res.success) {
+		toast.add({
+			title: "Benutzer konnten nicht geladen werden",
+			description: res.message,
+			color: "error",
+		});
+		return [];
+	}
+	return res.data;
 });
 
 function getUserOptionsDropdownItems(row: { original: AdminUser }): DropdownMenuItem[][] {
-    return [
-        [
-            {
-                label: "Bearbeiten",
-                icon: "i-lucide-pencil",
-                onSelect: () => openEdit(row.original),
-            },
-            {
-                label: "Passwort zurücksetzen",
-                icon: "i-lucide-key",
-                onSelect: () => openPassword(row.original),
-            },
-        ],
-        [
-            {
-                label: "Löschen",
-                icon: "i-lucide-trash-2",
-                color: "error",
-                onSelect: () => openDelete(row.original),
-            },
-        ],
-    ];
+	return [
+		[
+			{
+				label: "Bearbeiten",
+				icon: "i-lucide-pencil",
+				onSelect: () => openEdit(row.original),
+			},
+			{
+				label: "Passwort zurücksetzen",
+				icon: "i-lucide-key",
+				onSelect: () => openPassword(row.original),
+			},
+		],
+		[
+			{
+				label: "Löschen",
+				icon: "i-lucide-trash-2",
+				color: "error",
+				onSelect: () => openDelete(row.original),
+			},
+		],
+	];
 }
 
 const showCreateModal = ref(false);
@@ -91,160 +90,161 @@ const showPasswordModal = ref(false);
 const selectedUser = ref<AdminUser | null>(null);
 
 const createSchema = z.object({
-    username: z.string().min(1, "Benutzername ist erforderlich"),
-    display_name: z.string().min(1, "Anzeigename ist erforderlich"),
-    email: z.email("Muss eine gültige E-Mail-Adresse sein"),
-    password: z.string().min(8, "Passwort muss mindestens 8 Zeichen lang sein"),
-    role: z.enum(["admin", "core_team", "volunteer", "unverified"]),
+	username: z.string().min(1, "Benutzername ist erforderlich"),
+	display_name: z.string().min(1, "Anzeigename ist erforderlich"),
+	email: z.email("Muss eine gültige E-Mail-Adresse sein"),
+	password: z.string().min(8, "Passwort muss mindestens 8 Zeichen lang sein"),
+	role: z.enum(["admin", "core_team", "volunteer", "unverified"]),
 });
 
 type CreateSchema = z.output<typeof createSchema>;
 
 const createState = ref<CreateSchema>({
-    username: "",
-    display_name: "",
-    email: "",
-    password: "",
-    role: "unverified" as AdminUser["role"],
+	username: "",
+	display_name: "",
+	email: "",
+	password: "",
+	role: "unverified" as AdminUser["role"],
 });
 
 const editForm = reactive({
-    display_name: "",
-    email: "",
-    role: "unverified" as AdminUser["role"],
+	display_name: "",
+	email: "",
+	role: "unverified" as AdminUser["role"],
 });
 
 const passwordForm = reactive({
-    password: "",
+	password: "",
 });
 
 async function handleCreate() {
-    const res = await useAPI((api) => api.postAdminUsers({
-        body: createState.value
-    }));
-    if (res.success) {
-        toast.add({ title: "User created", color: "success" });
-        showCreateModal.value = false;
-        await refresh();
-    } else {
-        toast.add({
-            title: "Benutzererstellung fehlgeschlagen",
-            description: res.message,
-            color: "error",
-        });
-    }
-    createState.value = {
-        username: "",
-        display_name: "",
-        email: "",
-        password: "",
-        role: "unverified" as AdminUser["role"],
-    };
+	const res = await useAPI((api) =>
+		api.postAdminUsers({
+			body: createState.value,
+		}),
+	);
+	if (res.success) {
+		toast.add({ title: "User created", color: "success" });
+		showCreateModal.value = false;
+		await refresh();
+	} else {
+		toast.add({
+			title: "Benutzererstellung fehlgeschlagen",
+			description: res.message,
+			color: "error",
+		});
+	}
+	createState.value = {
+		username: "",
+		display_name: "",
+		email: "",
+		password: "",
+		role: "unverified" as AdminUser["role"],
+	};
 }
 
 function openEdit(user: AdminUser) {
-    selectedUser.value = user;
-    editForm.display_name = user.display_name;
-    editForm.email = user.email;
-    editForm.role = user.role;
-    showEditModal.value = true;
+	selectedUser.value = user;
+	editForm.display_name = user.display_name;
+	editForm.email = user.email;
+	editForm.role = user.role;
+	showEditModal.value = true;
 }
 
 async function submitEdit() {
-    if (!selectedUser.value) return;
+	if (!selectedUser.value) return;
 
-    const res = await useAPI((api) =>
-        api.putAdminUsersUserId({
-            path: { userId: selectedUser.value!.id },
-            body: {
-                display_name: editForm.display_name,
-                email: editForm.email,
-                role: editForm.role,
-            },
-        })
-    );
+	const res = await useAPI((api) =>
+		api.putAdminUsersByUserId({
+			path: { userId: selectedUser.value!.id },
+			body: {
+				display_name: editForm.display_name,
+				email: editForm.email,
+				role: editForm.role,
+			},
+		}),
+	);
 
-    if (res.success) {
-        toast.add({
-            title: "Benutzer aktualisiert",
-            description: "Die Benutzerdaten wurden erfolgreich aktualisiert.",
-            color: "success",
-        });
-        showEditModal.value = false;
-        await refresh();
-    } else {
-        toast.add({
-            title: "Aktualisierung fehlgeschlagen",
-            description: res.message,
-            color: "error",
-        });
-    }
+	if (res.success) {
+		toast.add({
+			title: "Benutzer aktualisiert",
+			description: "Die Benutzerdaten wurden erfolgreich aktualisiert.",
+			color: "success",
+		});
+		showEditModal.value = false;
+		await refresh();
+	} else {
+		toast.add({
+			title: "Aktualisierung fehlgeschlagen",
+			description: res.message,
+			color: "error",
+		});
+	}
 }
 
 function openPassword(user: AdminUser) {
-    selectedUser.value = user;
-    passwordForm.password = "";
-    showPasswordModal.value = true;
+	selectedUser.value = user;
+	passwordForm.password = "";
+	showPasswordModal.value = true;
 }
 
 function openDelete(user: AdminUser) {
-    deleteUser(user);
+	deleteUser(user);
 }
 
 async function submitPassword() {
-    if (!selectedUser.value) return;
+	if (!selectedUser.value) return;
 
-    const res = await useAPI((api) =>
-        api.putAdminUsersUserIdPassword({
-            path: { userId: selectedUser.value!.id },
-            body: { password: passwordForm.password },
-        })
-    );
+	const res = await useAPI((api) =>
+		api.putAdminUsersByUserIdPassword({
+			path: { userId: selectedUser.value!.id },
+			body: { password: passwordForm.password },
+		}),
+	);
 
-    if (res.success) {
-        toast.add({
-            title: "Passwort aktualisiert",
-            description: "Das Passwort wurde erfolgreich aktualisiert.",
-            color: "success"
-        });
-        showPasswordModal.value = false;
-    } else {
-        toast.add({
-            title: "Passwortaktualisierung fehlgeschlagen",
-            description: res.message,
-            color: "error",
-        });
-    }
+	if (res.success) {
+		toast.add({
+			title: "Passwort aktualisiert",
+			description: "Das Passwort wurde erfolgreich aktualisiert.",
+			color: "success",
+		});
+		showPasswordModal.value = false;
+	} else {
+		toast.add({
+			title: "Passwortaktualisierung fehlgeschlagen",
+			description: res.message,
+			color: "error",
+		});
+	}
 }
 
 async function deleteUser(user: AdminUser) {
-    if (!confirm(`Are you sure you want to delete user "${user.username}"?`))
-        return;
+	if (!confirm(`Are you sure you want to delete user "${user.username}"?`)) return;
 
-    const res = await useAPI((api) =>
-        api.deleteAdminUsersUserId({
-            path: { userId: user.id },
-        })
-    );
+	const res = await useAPI((api) =>
+		api.deleteAdminUsersByUserId({
+			path: { userId: user.id },
+		}),
+	);
 
-    if (res.success) {
-        toast.add({
-            title: "Benutzer gelöscht",
-            description: "Der Benutzer wurde erfolgreich gelöscht.",
-            color: "success"
-        });
-        await refresh();
-    } else {
-        toast.add({
-            title: "Benutzerlöschung fehlgeschlagen",
-            description: res.message,
-            color: "error",
-        });
-    }
+	if (res.success) {
+		toast.add({
+			title: "Benutzer gelöscht",
+			description: "Der Benutzer wurde erfolgreich gelöscht.",
+			color: "success",
+		});
+		await refresh();
+	} else {
+		toast.add({
+			title: "Benutzerlöschung fehlgeschlagen",
+			description: res.message,
+			color: "error",
+		});
+	}
 }
 
 function getRoleColor(role: AdminUser["role"]) {
-    return Utils.getVisualSettingsForRole(role).color;
+	return Utils.getVisualSettingsForRole(role).color;
 }
 </script>
 

@@ -1,80 +1,81 @@
 <script setup lang="ts">
-import * as z from 'zod'
-import type { FormSubmitEvent } from '@nuxt/ui'
-import { useUserInfoStore } from '~/composables/stores/useUserStore';
+import type { FormSubmitEvent } from "@nuxt/ui";
+import * as z from "zod";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const profileSchema = z.object({
-	username: z.string().trim()
-		.min(5, 'Muss mindestens 5 Zeichen lang sein')
-		.max(30, 'Darf höchstens 30 Zeichen lang sein')
-		.regex(/^[a-zA-Z0-9_]+$/, 'Es sind nur alphanumerische Zeichen und Unterstriche erlaubt'),
-	display_name: z.string().trim()
-		.max(50, 'Darf höchstens 50 Zeichen lang sein')
-		.optional(),
-	email: z.email('Ungültige E-Mail-Adresse').trim(),
-})
+	username: z
+		.string()
+		.trim()
+		.min(5, "Muss mindestens 5 Zeichen lang sein")
+		.max(30, "Darf höchstens 30 Zeichen lang sein")
+		.regex(/^[a-zA-Z0-9_]+$/, "Es sind nur alphanumerische Zeichen und Unterstriche erlaubt"),
+	display_name: z.string().trim().max(50, "Darf höchstens 50 Zeichen lang sein").optional(),
+	email: z.email("Ungültige E-Mail-Adresse").trim(),
+});
 
 const userInfoStore = await useUserInfoStore();
-const userInfo = await userInfoStore.use()
-const loading = ref(false)
+const userInfo = await userInfoStore.use();
+const loading = ref(false);
 
 if (!userInfoStore.isValid(userInfo)) {
-	throw new Error('User not authenticated but trying to access Profile Settings')
+	throw new Error("User not authenticated but trying to access Profile Settings");
 }
 
-type ProfileSchema = z.output<typeof profileSchema>
+type ProfileSchema = z.output<typeof profileSchema>;
 
 const profile = reactive<Partial<ProfileSchema>>({
 	username: userInfo.value.username,
-	display_name: userInfo.value.display_name || '',
+	display_name: userInfo.value.display_name || "",
 	email: userInfo.value.email,
-})
+});
 
-const toast = useToast()
+const toast = useToast();
 
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
-	loading.value = true
-	
+	loading.value = true;
+
 	try {
-		const result = await useAPI((api) => api.putAccount({
-			body: {
-				username: event.data.username,
-				display_name: event.data.display_name || undefined,
-				email: event.data.email
-			}
-		}))
+		const result = await useAPI((api) =>
+			api.putAccount({
+				body: {
+					username: event.data.username,
+					display_name: event.data.display_name || undefined,
+					email: event.data.email,
+				},
+			}),
+		);
 
 		if (result.success) {
 			toast.add({
-				title: 'Profil aktualisiert',
-				description: 'Ihr Profil wurde erfolgreich aktualisiert.',
-				icon: 'i-lucide-check',
-				color: 'success'
+				title: "Profil aktualisiert",
+				description: "Ihr Profil wurde erfolgreich aktualisiert.",
+				icon: "i-lucide-check",
+				color: "success",
 			});
 
 			userInfoStore.update({
 				username: event.data.username,
 				display_name: event.data.display_name || undefined,
-				email: event.data.email
+				email: event.data.email,
 			});
-
 		} else {
 			toast.add({
-				title: 'Fehler',
-				description: result.message || 'Beim Aktualisieren Ihres Profils ist ein Fehler aufgetreten.',
-				icon: 'i-lucide-alert-circle',
-				color: 'error'
-			})
+				title: "Fehler",
+				description: result.message || "Beim Aktualisieren Ihres Profils ist ein Fehler aufgetreten.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
 		}
 	} catch (error) {
 		toast.add({
-			title: 'Fehler',
-			description: 'Ein unerwarteter Fehler ist aufgetreten.',
-			icon: 'i-lucide-alert-circle',
-			color: 'error'
-		})
+			title: "Fehler",
+			description: "Ein unerwarteter Fehler ist aufgetreten.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
 	} finally {
-		loading.value = false
+		loading.value = false;
 	}
 }
 </script>

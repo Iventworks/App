@@ -1,0 +1,37 @@
+default:
+  image: oven/bun
+  interruptible: true
+  cache:
+    key:
+      files:
+        - bun.lock
+    paths:
+      - .bun/install/cache/
+      - node_modules/
+  before_script:
+    - bun install --frozen-lockfile
+
+variables:
+  BUN_INSTALL_CACHE_DIR: .bun/install/cache
+  NUXT_TELEMETRY_DISABLED: "1"
+
+test:lint:
+  stage: test
+  script:
+    - bun run check:ci
+
+test:typecheck:
+  stage: test
+  script:
+    - bun run typecheck
+
+test:unit:
+  stage: test
+  script:
+    - bun run test:ci
+  # The "All files" row of bun's coverage table; the capture group picks the % Lines column.
+  coverage: '/All files\s*\|\s*[\d.]+\s*\|\s*([\d.]+)/'
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml

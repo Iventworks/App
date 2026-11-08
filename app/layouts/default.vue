@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
-import { is } from 'zod/v4/locales';
-import { useUserInfoStore } from '~/composables/stores/useUserStore';
+import type { NavigationMenuItem } from "@nuxt/ui";
+import { is } from "zod/v4/locales";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const userInfoStore = useUserInfoStore();
 const user = await userInfoStore.use();
@@ -10,195 +10,197 @@ const isCoreTeam = computed(() => user.value?.role === "core_team" || user.value
 const isAdmin = computed(() => user.value?.role === "admin");
 
 const sidebarItems = computed(() => {
-    const basicItems: NavigationMenuItem[] = [
-        {
-            label: "Übersicht",
-            icon: "i-lucide-layout-dashboard",
-            to: "/",
-        },
+	const basicItems: NavigationMenuItem[] = [
+		{
+			label: "Übersicht",
+			icon: "i-lucide-layout-dashboard",
+			to: "/",
+		},
 		{
 			label: "E-Mails",
 			icon: "i-lucide-mail",
 			to: "/emails/inbox",
 		},
-        {
-            label: "Chats",
-            icon: "i-lucide-message-circle",
-            to: "/chats",
-        },
-        {
-            label: "Meine Aufgaben",
-            icon: "i-lucide-list-checks",
-            to: "/tasks",
-        },
-        {
-            label: "Kalender",
-            icon: "i-lucide-calendar",
-            to: "/calendar",
-        },
-        {
-            label: "Infobox",
-            icon: "i-lucide-info",
-            to: "/infobox",
-            badge: {
-                label: "Konzept",
-                color: "warning"
-            }
-        },
-    ];
+		{
+			label: "Chats",
+			icon: "i-lucide-message-circle",
+			to: "/chats",
+		},
+		{
+			label: "Meine Aufgaben",
+			icon: "i-lucide-list-checks",
+			to: "/tasks",
+		},
+		{
+			label: "Kalender",
+			icon: "i-lucide-calendar",
+			to: "/calendar",
+		},
+		{
+			label: "Infobox",
+			icon: "i-lucide-info",
+			to: "/infobox",
+			badge: {
+				label: "Konzept",
+				color: "warning",
+			},
+		},
+	];
 
-    const selectedCampOrEvent = useSelectedCampOrEvent();
+	const selectedCampOrEvent = useSelectedCampOrEvent();
 
 	const campItems: NavigationMenuItem[] = [
 		{
-			label: 'Infos & Übersicht',
-			icon: 'i-lucide-users',
-			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/overview`,
+			label: "Infos & Übersicht",
+			icon: "i-lucide-users",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/overview`,
 		},
-        {
-            label: 'Programm',
-            icon: 'i-lucide-calendar',
-            to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/program`,
-        },
-        {
-            label: 'Aufgaben',
-            icon: 'i-lucide-list-checks',
-            to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/tasks`,
-        },
-        {
-            label: 'Teilnehmerverwaltung',
-            icon: 'i-lucide-user-check',
-            to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/participants`,
-        },
-        {
-            label: 'Ressourcen & Dokumente',
-            icon: 'i-lucide-folder',
-            to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/resources`,
-        },
-        {
-            label: 'Mitarbeiterverwaltung',
-            icon: 'i-lucide-user-plus',
-            to: `/camps-and-events/${selectedCampOrEvent.value?.id || ''}/staff`,
-        }
+		{
+			label: "Programm",
+			icon: "i-lucide-calendar",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/program`,
+		},
+		{
+			label: "Aufgaben",
+			icon: "i-lucide-list-checks",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/tasks`,
+		},
+		{
+			label: "Teilnehmerverwaltung",
+			icon: "i-lucide-user-check",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/participants`,
+		},
+		{
+			label: "Ressourcen & Dokumente",
+			icon: "i-lucide-folder",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/resources`,
+		},
+		{
+			label: "Mitarbeiterverwaltung",
+			icon: "i-lucide-user-plus",
+			to: `/camps-and-events/${selectedCampOrEvent.value?.id || ""}/staff`,
+		},
 	];
 
-    const coreTeamItems: NavigationMenuItem[] = [
-        {
-            label: "Kernteam Management",
-            icon: "i-lucide-heart-pulse",
-            type: "label"
-        },
-        {
-            label: "Freizeiten & Events Verwalten",
-            icon: "i-lucide-key",
-            to: "/management/camps-and-events",
-        },
-        {
-            label: "Ressourcen & Dokumente",
-            icon: "i-lucide-folder",
-            to: "/management/resources",
-        },
-        {
-            label: "Datenbank",
-            icon: "i-lucide-database",
-            to: "/management/database",
-        },
-        {
-            label: "Finanzen",
-            icon: "i-lucide-wallet",
-            to: "/management/finances",
-            badge: {
-                label: "Konzept",
-                color: "warning"
-            }
-        },
-        {
-            label: "Statistiken",
-            icon: "i-lucide-chart-bar",
-            to: "/management/stats",
-            badge: {
-                label: "Konzept",
-                color: "warning"
-            }
-        }
-    ];
+	const coreTeamItems: NavigationMenuItem[] = [
+		{
+			label: "Kernteam Management",
+			icon: "i-lucide-heart-pulse",
+			type: "label",
+		},
+		{
+			label: "Freizeiten & Events Verwalten",
+			icon: "i-lucide-key",
+			to: "/management/camps-and-events",
+		},
+		{
+			label: "Ressourcen & Dokumente",
+			icon: "i-lucide-folder",
+			to: "/management/resources",
+		},
+		{
+			label: "Datenbank",
+			icon: "i-lucide-database",
+			to: "/management/database",
+		},
+		{
+			label: "Finanzen",
+			icon: "i-lucide-wallet",
+			to: "/management/finances",
+			badge: {
+				label: "Konzept",
+				color: "warning",
+			},
+		},
+		{
+			label: "Statistiken",
+			icon: "i-lucide-chart-bar",
+			to: "/management/stats",
+			badge: {
+				label: "Konzept",
+				color: "warning",
+			},
+		},
+	];
 
-    const adminItems: NavigationMenuItem[] = [
-        {
-            label: "Admin",
-            icon: "i-lucide-shield",
-            type: "label"
-        },
-        {
-            label: "Benutzerverwaltung",
-            icon: "i-lucide-users",
-            to: "/admin/users",
-        },
-        {
-            label: "Audit Log",
-            icon: "i-lucide-clipboard-list",
-            badge: {
-                label: "Konzept",
-                color: "warning"
-            }
-            // to: "/core-team/audit-log",
-        }
-        // {
-        //     label: "Alle Freizeiten",
-        //     icon: "i-lucide-package-search",
-        //     to: "/admin/packages",
-        // }
-    ];
+	const adminItems: NavigationMenuItem[] = [
+		{
+			label: "Admin",
+			icon: "i-lucide-shield",
+			type: "label",
+		},
+		{
+			label: "Benutzerverwaltung",
+			icon: "i-lucide-users",
+			to: "/admin/users",
+		},
+		{
+			label: "Audit Log",
+			icon: "i-lucide-clipboard-list",
+			badge: {
+				label: "Konzept",
+				color: "warning",
+			},
+			// to: "/core-team/audit-log",
+		},
+		// {
+		//     label: "Alle Freizeiten",
+		//     icon: "i-lucide-package-search",
+		//     to: "/admin/packages",
+		// }
+	];
 
+	const settings: NavigationMenuItem[] = [
+		{
+			label: "Einstellungen",
+			icon: "i-lucide-settings-2",
+			type: "label",
+		},
+		{
+			label: "Allgemein",
+			icon: "i-lucide-user",
+			to: "/settings",
+			exact: true,
+		},
+		{
+			label: "Sicherheit",
+			icon: "i-lucide-shield",
+			to: "/settings/security",
+		},
+		{
+			label: "Downloads",
+			icon: "i-lucide-download",
+			to: "/settings/downloads",
+		},
+	];
 
-    const settings: NavigationMenuItem[] = [
-        {
-            label: "Einstellungen",
-            icon: "i-lucide-settings-2",
-            type: "label"
-        },
-        {
-            label: "Allgemein",
-            icon: "i-lucide-user",
-            to: "/settings",
-            exact: true,
-        },
-        {
-            label: "Sicherheit",
-            icon: "i-lucide-shield",
-            to: "/settings/security",
-        },
-        {
-            label: "Downloads",
-            icon: "i-lucide-download",
-            to: "/settings/downloads",
-        }
-    ];
+	const footerItems: NavigationMenuItem[] = [
+		// {
+		//     label: "Back to Home",
+		//     icon: "i-lucide-home",
+		//     to: "/",
+		// },
+	];
 
-    const footerItems: NavigationMenuItem[] = [
-        // {
-        //     label: "Back to Home",
-        //     icon: "i-lucide-home",
-        //     to: "/",
-        // },
-    ];
-
-    return {
-        basic: basicItems,
-        camps: campItems,
-        coreTeam: coreTeamItems,
-        admin: adminItems,
-        settings: settings
-    }
+	return {
+		basic: basicItems,
+		camps: campItems,
+		coreTeam: coreTeamItems,
+		admin: adminItems,
+		settings: settings,
+	};
 });
 
-const searchGroups = computed(() => [{
-	id: 'links',
-	label: 'Go to',
-	items: Object.values(sidebarItems.value).flat(),
-}])
-
-
+const searchGroups = computed(() => [
+	{
+		id: "links",
+		label: "Go to",
+		// NavigationMenuItem allows `chip: boolean`, CommandPaletteItem does not
+		items: Object.values(sidebarItems.value)
+			.flat()
+			.map(({ chip, ...item }) => item),
+	},
+]);
 </script>
 
 <template>

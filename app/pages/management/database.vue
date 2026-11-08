@@ -1,143 +1,144 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn } from "@nuxt/ui";
 
 interface Contact {
-    id: number
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    category: 'teilnehmer' | 'mitarbeiter' | 'eltern' | 'externe' | 'andere'
-    tags: string[]
-    lastContact: Date
-    notes: string
-    status: 'aktiv' | 'inaktiv' | 'archiviert'
+	id: number;
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string;
+	category: "teilnehmer" | "mitarbeiter" | "eltern" | "externe" | "andere";
+	tags: string[];
+	lastContact: Date;
+	notes: string;
+	status: "aktiv" | "inaktiv" | "archiviert";
 }
 
 const contacts = ref<Contact[]>([
-    {
-        id: 1,
-        firstName: 'Anna',
-        lastName: 'Schmidt',
-        email: 'anna.schmidt@example.com',
-        phone: '+49 151 12345678',
-        category: 'teilnehmer',
-        tags: ['young+free', 'Crottendorf 2026'],
-        lastContact: new Date('2026-01-25'),
-        notes: 'Vegetarisch, war bereits 2x dabei',
-        status: 'aktiv'
-    },
-    {
-        id: 2,
-        firstName: 'Lukas',
-        lastName: 'Pohl',
-        email: 'l.pohl@crossover.info',
-        phone: '+49 151 11111111',
-        category: 'mitarbeiter',
-        tags: ['Leitung', 'Kernteam'],
-        lastContact: new Date('2026-01-28'),
-        notes: 'Freizeitleiter, Juleica',
-        status: 'aktiv'
-    },
-    {
-        id: 3,
-        firstName: 'Maria',
-        lastName: 'Schmidt',
-        email: 'maria.schmidt@example.com',
-        phone: '+49 151 98765432',
-        category: 'eltern',
-        tags: ['Notfallkontakt Anna Schmidt'],
-        lastContact: new Date('2026-01-15'),
-        notes: 'Mutter von Anna Schmidt',
-        status: 'aktiv'
-    },
-    {
-        id: 4,
-        firstName: 'Sarah',
-        lastName: 'Müller',
-        email: 's.mueller@crossover.info',
-        phone: '+49 152 22222222',
-        category: 'mitarbeiter',
-        tags: ['Teamer', 'Erste Hilfe'],
-        lastContact: new Date('2026-01-27'),
-        notes: 'Organisation, 3 Jahre Erfahrung',
-        status: 'aktiv'
-    },
-    {
-        id: 5,
-        firstName: 'Thomas',
-        lastName: 'Weber',
-        email: 'thomas.weber@extern.de',
-        phone: '+49 160 55555555',
-        category: 'externe',
-        tags: ['Speaker', 'Referent'],
-        lastContact: new Date('2025-12-10'),
-        notes: 'Externer Speaker für Seminare',
-        status: 'aktiv'
-    }
-])
+	{
+		id: 1,
+		firstName: "Anna",
+		lastName: "Schmidt",
+		email: "anna.schmidt@example.com",
+		phone: "+49 151 12345678",
+		category: "teilnehmer",
+		tags: ["young+free", "Crottendorf 2026"],
+		lastContact: new Date("2026-01-25"),
+		notes: "Vegetarisch, war bereits 2x dabei",
+		status: "aktiv",
+	},
+	{
+		id: 2,
+		firstName: "Lukas",
+		lastName: "Pohl",
+		email: "l.pohl@crossover.info",
+		phone: "+49 151 11111111",
+		category: "mitarbeiter",
+		tags: ["Leitung", "Kernteam"],
+		lastContact: new Date("2026-01-28"),
+		notes: "Freizeitleiter, Juleica",
+		status: "aktiv",
+	},
+	{
+		id: 3,
+		firstName: "Maria",
+		lastName: "Schmidt",
+		email: "maria.schmidt@example.com",
+		phone: "+49 151 98765432",
+		category: "eltern",
+		tags: ["Notfallkontakt Anna Schmidt"],
+		lastContact: new Date("2026-01-15"),
+		notes: "Mutter von Anna Schmidt",
+		status: "aktiv",
+	},
+	{
+		id: 4,
+		firstName: "Sarah",
+		lastName: "Müller",
+		email: "s.mueller@crossover.info",
+		phone: "+49 152 22222222",
+		category: "mitarbeiter",
+		tags: ["Teamer", "Erste Hilfe"],
+		lastContact: new Date("2026-01-27"),
+		notes: "Organisation, 3 Jahre Erfahrung",
+		status: "aktiv",
+	},
+	{
+		id: 5,
+		firstName: "Thomas",
+		lastName: "Weber",
+		email: "thomas.weber@extern.de",
+		phone: "+49 160 55555555",
+		category: "externe",
+		tags: ["Speaker", "Referent"],
+		lastContact: new Date("2025-12-10"),
+		notes: "Externer Speaker für Seminare",
+		status: "aktiv",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const selectedStatus = ref('all')
+const searchQuery = ref("");
+const selectedCategory = ref("all");
+const selectedStatus = ref("all");
 
 const filteredContacts = computed(() => {
-    return contacts.value.filter(c => {
-        const matchesSearch = !searchQuery.value || 
-            `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            c.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            c.tags.some(tag => tag.toLowerCase().includes(searchQuery.value.toLowerCase()))
-        
-        const matchesCategory = selectedCategory.value === 'all' || c.category === selectedCategory.value
-        const matchesStatus = selectedStatus.value === 'all' || c.status === selectedStatus.value
-        
-        return matchesSearch && matchesCategory && matchesStatus
-    })
-})
+	return contacts.value.filter((c) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			`${c.firstName} ${c.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			c.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			c.tags.some((tag) => tag.toLowerCase().includes(searchQuery.value.toLowerCase()));
+
+		const matchesCategory = selectedCategory.value === "all" || c.category === selectedCategory.value;
+		const matchesStatus = selectedStatus.value === "all" || c.status === selectedStatus.value;
+
+		return matchesSearch && matchesCategory && matchesStatus;
+	});
+});
 
 const stats = computed(() => {
-    const total = contacts.value.length
-    const active = contacts.value.filter(c => c.status === 'aktiv').length
-    const participants = contacts.value.filter(c => c.category === 'teilnehmer').length
-    const staff = contacts.value.filter(c => c.category === 'mitarbeiter').length
-    
-    return { total, active, participants, staff }
-})
+	const total = contacts.value.length;
+	const active = contacts.value.filter((c) => c.status === "aktiv").length;
+	const participants = contacts.value.filter((c) => c.category === "teilnehmer").length;
+	const staff = contacts.value.filter((c) => c.category === "mitarbeiter").length;
+
+	return { total, active, participants, staff };
+});
 
 const categoryConfig = {
-    teilnehmer: { label: 'Teilnehmer', color: 'primary', icon: 'i-lucide-user' },
-    mitarbeiter: { label: 'Mitarbeiter', color: 'info', icon: 'i-lucide-user-check' },
-    eltern: { label: 'Eltern', color: 'success', icon: 'i-lucide-users' },
-    externe: { label: 'Externe', color: 'warning', icon: 'i-lucide-user-plus' },
-    andere: { label: 'Andere', color: 'neutral', icon: 'i-lucide-user-circle' }
-}
+	teilnehmer: { label: "Teilnehmer", color: "primary", icon: "i-lucide-user" },
+	mitarbeiter: { label: "Mitarbeiter", color: "info", icon: "i-lucide-user-check" },
+	eltern: { label: "Eltern", color: "success", icon: "i-lucide-users" },
+	externe: { label: "Externe", color: "warning", icon: "i-lucide-user-plus" },
+	andere: { label: "Andere", color: "neutral", icon: "i-lucide-user-circle" },
+};
 
 const statusConfig = {
-    aktiv: { label: 'Aktiv', color: 'success' },
-    inaktiv: { label: 'Inaktiv', color: 'neutral' },
-    archiviert: { label: 'Archiviert', color: 'neutral' }
+	aktiv: { label: "Aktiv", color: "success" },
+	inaktiv: { label: "Inaktiv", color: "neutral" },
+	archiviert: { label: "Archiviert", color: "neutral" },
+};
+
+function getCategoryConfig(category: Contact["category"]) {
+	return categoryConfig[category];
 }
 
-function getCategoryConfig(category: Contact['category']) {
-    return categoryConfig[category]
-}
-
-function getStatusConfig(status: Contact['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: Contact["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 const columns: TableColumn<Contact>[] = [
-    { id: 'name', header: 'Name' },
-    { accessorKey: 'category', header: 'Kategorie' },
-    { id: 'contact', header: 'Kontakt' },
-    { accessorKey: 'tags', header: 'Tags' },
-    { accessorKey: 'lastContact', header: 'Letzter Kontakt' },
-    { accessorKey: 'status', header: 'Status' },
-    { id: 'actions', header: '' }
+	{ id: "name", header: "Name" },
+	{ accessorKey: "category", header: "Kategorie" },
+	{ id: "contact", header: "Kontakt" },
+	{ accessorKey: "tags", header: "Tags" },
+	{ accessorKey: "lastContact", header: "Letzter Kontakt" },
+	{ accessorKey: "status", header: "Status" },
+	{ id: "actions", header: "" },
 ];
 </script>
 

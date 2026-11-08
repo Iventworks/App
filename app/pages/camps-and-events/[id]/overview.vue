@@ -1,149 +1,155 @@
 <script setup lang="ts">
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
 // Mock data für Camp/Event Übersicht
 const campData = ref({
-    id: 1,
-    name: 'young+free Crottendorf 2026',
-    type: 'Winterfreizeit',
-    status: 'in_planung',
-    startDate: new Date('2026-02-15'),
-    endDate: new Date('2026-02-21'),
-    location: 'Crottendorf, Erzgebirge',
-    description: 'Die young+free Winterfreizeit findet vom 15. bis 21. Februar 2026 in Crottendorf im Erzgebirge statt. Eine Woche voller Action, Gemeinschaft und geistlichem Input.',
-    maxParticipants: 80,
-    currentParticipants: 45,
-    ageRange: '15-18 Jahre',
-    price: '189 €',
-    registrationDeadline: new Date('2026-02-01'),
-    teamLeader: 'Jesko Bahlcke',
-    teamLeaderEmail: 'j.bahlcke@crossoverskul.info'
-})
+	id: 1,
+	name: "young+free Crottendorf 2026",
+	type: "Winterfreizeit",
+	status: "in_planung",
+	startDate: new Date("2026-02-15"),
+	endDate: new Date("2026-02-21"),
+	location: "Crottendorf, Erzgebirge",
+	description:
+		"Die young+free Winterfreizeit findet vom 15. bis 21. Februar 2026 in Crottendorf im Erzgebirge statt. Eine Woche voller Action, Gemeinschaft und geistlichem Input.",
+	maxParticipants: 80,
+	currentParticipants: 45,
+	ageRange: "15-18 Jahre",
+	price: "189 €",
+	registrationDeadline: new Date("2026-02-01"),
+	teamLeader: "Jesko Bahlcke",
+	teamLeaderEmail: "j.bahlcke@crossoverskul.info",
+});
 
 const stats = computed(() => [
-    {
-        label: 'Teilnehmer',
-        value: campData.value.currentParticipants,
-        icon: 'i-lucide-users',
-        color: 'primary' as const,
-        description: `von ${campData.value.maxParticipants} Plätzen`,
-        trend: '+12 diese Woche'
-    },
-    {
-        label: 'Mitarbeiter',
-        value: 15,
-        icon: 'i-lucide-user-check',
-        color: 'success' as const,
-        description: 'davon 8 Teamer',
-        trend: '3 neue Zusagen'
-    },
-    {
-        label: 'Offene Aufgaben',
-        value: 8,
-        icon: 'i-lucide-list-checks',
-        color: 'warning' as const,
-        description: 'von 24 gesamt',
-        trend: '5 erledigt heute'
-    },
-    {
-        label: 'Budget',
-        value: '85%',
-        icon: 'i-lucide-wallet',
-        color: 'info' as const,
-        description: 'ausgelastet',
-        trend: 'Im Plan'
-    }
-])
+	{
+		label: "Teilnehmer",
+		value: campData.value.currentParticipants,
+		icon: "i-lucide-users",
+		color: "primary" as const,
+		description: `von ${campData.value.maxParticipants} Plätzen`,
+		trend: "+12 diese Woche",
+	},
+	{
+		label: "Mitarbeiter",
+		value: 15,
+		icon: "i-lucide-user-check",
+		color: "success" as const,
+		description: "davon 8 Teamer",
+		trend: "3 neue Zusagen",
+	},
+	{
+		label: "Offene Aufgaben",
+		value: 8,
+		icon: "i-lucide-list-checks",
+		color: "warning" as const,
+		description: "von 24 gesamt",
+		trend: "5 erledigt heute",
+	},
+	{
+		label: "Budget",
+		value: "85%",
+		icon: "i-lucide-wallet",
+		color: "info" as const,
+		description: "ausgelastet",
+		trend: "Im Plan",
+	},
+]);
 
 const recentActivity = ref([
-    {
-        id: 1,
-        user: 'Sarah Müller',
-        action: 'hat die Teilnehmerliste aktualisiert',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15),
-        icon: 'i-lucide-users'
-    },
-    {
-        id: 2,
-        user: 'Lukas Pohl',
-        action: 'hat eine neue Aufgabe erstellt: Materialbestellung',
-        timestamp: new Date(Date.now() - 1000 * 60 * 45),
-        icon: 'i-lucide-plus-circle'
-    },
-    {
-        id: 3,
-        user: 'Lisa Frischmuth',
-        action: 'hat das Programm für Samstag aktualisiert',
-        timestamp: new Date(Date.now() - 1000 * 60 * 120),
-        icon: 'i-lucide-calendar'
-    },
-    {
-        id: 4,
-        user: 'Jesko Bahlcke',
-        action: 'hat eine Datei hochgeladen: Packliste_2026.pdf',
-        timestamp: new Date(Date.now() - 1000 * 60 * 180),
-        icon: 'i-lucide-file-up'
-    }
-])
+	{
+		id: 1,
+		user: "Sarah Müller",
+		action: "hat die Teilnehmerliste aktualisiert",
+		timestamp: new Date(Date.now() - 1000 * 60 * 15),
+		icon: "i-lucide-users",
+	},
+	{
+		id: 2,
+		user: "Lukas Pohl",
+		action: "hat eine neue Aufgabe erstellt: Materialbestellung",
+		timestamp: new Date(Date.now() - 1000 * 60 * 45),
+		icon: "i-lucide-plus-circle",
+	},
+	{
+		id: 3,
+		user: "Lisa Frischmuth",
+		action: "hat das Programm für Samstag aktualisiert",
+		timestamp: new Date(Date.now() - 1000 * 60 * 120),
+		icon: "i-lucide-calendar",
+	},
+	{
+		id: 4,
+		user: "Jesko Bahlcke",
+		action: "hat eine Datei hochgeladen: Packliste_2026.pdf",
+		timestamp: new Date(Date.now() - 1000 * 60 * 180),
+		icon: "i-lucide-file-up",
+	},
+]);
 
 const upcomingMilestones = ref([
-    {
-        id: 1,
-        title: 'Anmeldeschluss',
-        date: new Date('2026-02-01'),
-        description: 'Letzte Möglichkeit zur Anmeldung',
-        status: 'upcoming' as const
-    },
-    {
-        id: 2,
-        title: 'Team-Vorbesprechung',
-        date: new Date('2026-02-08'),
-        description: 'Finales Planungstreffen mit allen Mitarbeitern',
-        status: 'upcoming' as const
-    },
-    {
-        id: 3,
-        title: 'Freizeit-Beginn',
-        date: new Date('2026-02-15'),
-        description: 'Anreise und Check-In',
-        status: 'upcoming' as const
-    }
-])
+	{
+		id: 1,
+		title: "Anmeldeschluss",
+		date: new Date("2026-02-01"),
+		description: "Letzte Möglichkeit zur Anmeldung",
+		status: "upcoming" as const,
+	},
+	{
+		id: 2,
+		title: "Team-Vorbesprechung",
+		date: new Date("2026-02-08"),
+		description: "Finales Planungstreffen mit allen Mitarbeitern",
+		status: "upcoming" as const,
+	},
+	{
+		id: 3,
+		title: "Freizeit-Beginn",
+		date: new Date("2026-02-15"),
+		description: "Anreise und Check-In",
+		status: "upcoming" as const,
+	},
+]);
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDateTime(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+	return date.toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 
 function getStatusColor(status: string) {
-    const colors = {
-        'in_planung': 'warning',
-        'anmeldung_offen': 'info',
-        'laufend': 'success',
-        'abgeschlossen': 'neutral'
-    } as const
-    return colors[status as keyof typeof colors] || 'neutral'
+	const colors = {
+		in_planung: "warning",
+		anmeldung_offen: "info",
+		laufend: "success",
+		abgeschlossen: "neutral",
+	} as const;
+	return colors[status as keyof typeof colors] || "neutral";
 }
 
 function getStatusLabel(status: string) {
-    const labels = {
-        'in_planung': 'In Planung',
-        'anmeldung_offen': 'Anmeldung offen',
-        'laufend': 'Laufend',
-        'abgeschlossen': 'Abgeschlossen'
-    }
-    return labels[status as keyof typeof labels] || status
+	const labels = {
+		in_planung: "In Planung",
+		anmeldung_offen: "Anmeldung offen",
+		laufend: "Laufend",
+		abgeschlossen: "Abgeschlossen",
+	};
+	return labels[status as keyof typeof labels] || status;
 }
 
 function getDaysUntil(date: Date) {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
+	const now = new Date();
+	const diff = date.getTime() - now.getTime();
+	const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+	return days;
 }
 </script>
 

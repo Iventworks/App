@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import type { BreadcrumbItem } from '@nuxt/ui'
+import type { BreadcrumbItem } from "@nuxt/ui";
 
 interface Props {
-    title?: string
-    icon?: string
-    description?: string
-    breadcrumbItems?: BreadcrumbItem[]
+	title?: string;
+	icon?: string;
+	description?: string;
+	breadcrumbItems?: BreadcrumbItem[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    title: '',
-    icon: undefined,
+	title: "",
+	icon: undefined,
 });
-
 </script>
 
 <template>

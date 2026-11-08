@@ -1,118 +1,118 @@
 <script setup lang="ts">
 interface StatItem {
-    label: string
-    value: number
-    change: number
-    trend: 'up' | 'down' | 'stable'
-    icon: string
+	label: string;
+	value: number;
+	change: number;
+	trend: "up" | "down" | "stable";
+	icon: string;
 }
 
 const yearlyStats = ref<StatItem[]>([
-    {
-        label: 'Gesamte Teilnehmer',
-        value: 287,
-        change: 23,
-        trend: 'up',
-        icon: 'i-lucide-users'
-    },
-    {
-        label: 'Veranstaltungen',
-        value: 12,
-        change: 3,
-        trend: 'up',
-        icon: 'i-lucide-calendar'
-    },
-    {
-        label: 'Aktive Mitarbeiter',
-        value: 45,
-        change: 8,
-        trend: 'up',
-        icon: 'i-lucide-user-check'
-    },
-    {
-        label: 'Freizeittage',
-        value: 68,
-        change: -5,
-        trend: 'down',
-        icon: 'i-lucide-calendar-days'
-    }
-])
+	{
+		label: "Gesamte Teilnehmer",
+		value: 287,
+		change: 23,
+		trend: "up",
+		icon: "i-lucide-users",
+	},
+	{
+		label: "Veranstaltungen",
+		value: 12,
+		change: 3,
+		trend: "up",
+		icon: "i-lucide-calendar",
+	},
+	{
+		label: "Aktive Mitarbeiter",
+		value: 45,
+		change: 8,
+		trend: "up",
+		icon: "i-lucide-user-check",
+	},
+	{
+		label: "Freizeittage",
+		value: 68,
+		change: -5,
+		trend: "down",
+		icon: "i-lucide-calendar-days",
+	},
+]);
 
 const monthlyParticipants = ref([
-    { month: 'Jan', count: 0 },
-    { month: 'Feb', count: 45 },
-    { month: 'Mär', count: 12 },
-    { month: 'Apr', count: 28 },
-    { month: 'Mai', count: 0 },
-    { month: 'Jun', count: 0 },
-    { month: 'Jul', count: 85 },
-    { month: 'Aug', count: 42 },
-    { month: 'Sep', count: 0 },
-    { month: 'Okt', count: 35 },
-    { month: 'Nov', count: 25 },
-    { month: 'Dez', count: 15 }
-])
+	{ month: "Jan", count: 0 },
+	{ month: "Feb", count: 45 },
+	{ month: "Mär", count: 12 },
+	{ month: "Apr", count: 28 },
+	{ month: "Mai", count: 0 },
+	{ month: "Jun", count: 0 },
+	{ month: "Jul", count: 85 },
+	{ month: "Aug", count: 42 },
+	{ month: "Sep", count: 0 },
+	{ month: "Okt", count: 35 },
+	{ month: "Nov", count: 25 },
+	{ month: "Dez", count: 15 },
+]);
 
 const topEvents = ref([
-    {
-        id: 1,
-        name: 'Sommercamp 2025',
-        participants: 85,
-        satisfaction: 4.8,
-        status: 'abgeschlossen'
-    },
-    {
-        id: 2,
-        name: 'young+free Crottendorf 2026',
-        participants: 45,
-        satisfaction: 0,
-        status: 'geplant'
-    },
-    {
-        id: 3,
-        name: 'Ostercamp 2025',
-        participants: 42,
-        satisfaction: 4.6,
-        status: 'abgeschlossen'
-    },
-    {
-        id: 4,
-        name: 'Herbstfreizeit 2025',
-        participants: 35,
-        satisfaction: 4.7,
-        status: 'abgeschlossen'
-    }
-])
+	{
+		id: 1,
+		name: "Sommercamp 2025",
+		participants: 85,
+		satisfaction: 4.8,
+		status: "abgeschlossen",
+	},
+	{
+		id: 2,
+		name: "young+free Crottendorf 2026",
+		participants: 45,
+		satisfaction: 0,
+		status: "geplant",
+	},
+	{
+		id: 3,
+		name: "Ostercamp 2025",
+		participants: 42,
+		satisfaction: 4.6,
+		status: "abgeschlossen",
+	},
+	{
+		id: 4,
+		name: "Herbstfreizeit 2025",
+		participants: 35,
+		satisfaction: 4.7,
+		status: "abgeschlossen",
+	},
+]);
 
 const ageDistribution = ref([
-    { range: '13-14', count: 45 },
-    { range: '15-16', count: 98 },
-    { range: '17-18', count: 87 },
-    { range: '19+', count: 57 }
-])
+	{ range: "13-14", count: 45 },
+	{ range: "15-16", count: 98 },
+	{ range: "17-18", count: 87 },
+	{ range: "19+", count: 57 },
+]);
 
 const categoryDistribution = ref([
-    { category: 'Freizeiten', count: 8, percentage: 67 },
-    { category: 'Events', count: 2, percentage: 17 },
-    { category: 'Schulungen', count: 2, percentage: 16 }
-])
+	{ category: "Freizeiten", count: 8, percentage: 67 },
+	{ category: "Events", count: 2, percentage: 17 },
+	{ category: "Schulungen", count: 2, percentage: 16 },
+]);
 
 function getTrendIcon(trend: string) {
-    const icons = {
-        up: 'i-lucide-trending-up',
-        down: 'i-lucide-trending-down',
-        stable: 'i-lucide-minus'
-    }
-    return icons[trend as keyof typeof icons]
+	const icons = {
+		up: "i-lucide-trending-up",
+		down: "i-lucide-trending-down",
+		stable: "i-lucide-minus",
+	};
+	return icons[trend as keyof typeof icons];
 }
 
 function getTrendColor(trend: string) {
-    const colors = {
-        up: 'text-green-500',
-        down: 'text-red-500',
-        stable: 'text-gray-500'
-    }
-    return colors[trend as keyof typeof colors]
+	const colors = {
+		up: "text-green-500",
+		down: "text-red-500",
+		stable: "text-gray-500",
+	};
+	return colors[trend as keyof typeof colors];
 }
 </script>
 

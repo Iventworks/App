@@ -1,166 +1,167 @@
 <script setup lang="ts">
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
 interface StaffMember {
-    id: number
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    role: 'leader' | 'teamer' | 'tech' | 'kitchen' | 'other'
-    status: 'confirmed' | 'pending' | 'declined'
-    joinedAt: Date
-    experience: string
-    certifications: string[]
-    availability: string
+	id: number;
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string;
+	role: "leader" | "teamer" | "tech" | "kitchen" | "other";
+	status: "confirmed" | "pending" | "declined";
+	joinedAt: Date;
+	experience: string;
+	certifications: string[];
+	availability: string;
 }
 
 const staffMembers = ref<StaffMember[]>([
-    {
-        id: 1,
-        firstName: 'Lukas',
-        lastName: 'Pohl',
-        email: 'l.pohl@crossover.info',
-        phone: '+49 151 11111111',
-        role: 'leader',
-        status: 'confirmed',
-        joinedAt: new Date('2025-12-01'),
-        experience: '5+ Jahre Freizeitleitung',
-        certifications: ['Erste Hilfe', 'Juleica'],
-        availability: 'Volle Woche'
-    },
-    {
-        id: 2,
-        firstName: 'Sarah',
-        lastName: 'Müller',
-        email: 's.mueller@crossover.info',
-        phone: '+49 152 22222222',
-        role: 'teamer',
-        status: 'confirmed',
-        joinedAt: new Date('2025-12-15'),
-        experience: '3 Jahre als Teamer',
-        certifications: ['Erste Hilfe'],
-        availability: 'Volle Woche'
-    },
-    {
-        id: 3,
-        firstName: 'Lisa',
-        lastName: 'Frischmuth',
-        email: 'l.frischmuth@crossover.info',
-        phone: '+49 153 33333333',
-        role: 'teamer',
-        status: 'confirmed',
-        joinedAt: new Date('2026-01-05'),
-        experience: '2 Jahre Mitarbeiter',
-        certifications: ['Erste Hilfe', 'Juleica'],
-        availability: 'Volle Woche'
-    },
-    {
-        id: 4,
-        firstName: 'Jesko',
-        lastName: 'Bahlcke',
-        email: 'j.bahlcke@crossover.info',
-        phone: '+49 154 44444444',
-        role: 'teamer',
-        status: 'confirmed',
-        joinedAt: new Date('2026-01-10'),
-        experience: '4 Jahre Teamarbeit',
-        certifications: ['Erste Hilfe'],
-        availability: 'Volle Woche'
-    },
-    {
-        id: 5,
-        firstName: 'Miriam',
-        lastName: 'Lohrey',
-        email: 'm.lohrey@crossover.info',
-        phone: '+49 155 55555555',
-        role: 'tech',
-        status: 'confirmed',
-        joinedAt: new Date('2026-01-12'),
-        experience: 'Technik & Medien',
-        certifications: [],
-        availability: 'Volle Woche'
-    },
-    {
-        id: 6,
-        firstName: 'Anna',
-        lastName: 'Schmidt',
-        email: 'a.schmidt@crossover.info',
-        phone: '+49 156 66666666',
-        role: 'teamer',
-        status: 'pending',
-        joinedAt: new Date('2026-01-20'),
-        experience: '1 Jahr Erfahrung',
-        certifications: [],
-        availability: 'Ab Samstag'
-    },
-    {
-        id: 7,
-        firstName: 'Küchenteam',
-        lastName: 'Extern',
-        email: 'kueche@extern.de',
-        phone: '+49 157 77777777',
-        role: 'kitchen',
-        status: 'confirmed',
-        joinedAt: new Date('2025-11-20'),
-        experience: 'Professionelles Küchenteam',
-        certifications: ['Hygieneschulung'],
-        availability: 'Volle Woche'
-    }
-])
+	{
+		id: 1,
+		firstName: "Lukas",
+		lastName: "Pohl",
+		email: "l.pohl@crossover.info",
+		phone: "+49 151 11111111",
+		role: "leader",
+		status: "confirmed",
+		joinedAt: new Date("2025-12-01"),
+		experience: "5+ Jahre Freizeitleitung",
+		certifications: ["Erste Hilfe", "Juleica"],
+		availability: "Volle Woche",
+	},
+	{
+		id: 2,
+		firstName: "Sarah",
+		lastName: "Müller",
+		email: "s.mueller@crossover.info",
+		phone: "+49 152 22222222",
+		role: "teamer",
+		status: "confirmed",
+		joinedAt: new Date("2025-12-15"),
+		experience: "3 Jahre als Teamer",
+		certifications: ["Erste Hilfe"],
+		availability: "Volle Woche",
+	},
+	{
+		id: 3,
+		firstName: "Lisa",
+		lastName: "Frischmuth",
+		email: "l.frischmuth@crossover.info",
+		phone: "+49 153 33333333",
+		role: "teamer",
+		status: "confirmed",
+		joinedAt: new Date("2026-01-05"),
+		experience: "2 Jahre Mitarbeiter",
+		certifications: ["Erste Hilfe", "Juleica"],
+		availability: "Volle Woche",
+	},
+	{
+		id: 4,
+		firstName: "Jesko",
+		lastName: "Bahlcke",
+		email: "j.bahlcke@crossover.info",
+		phone: "+49 154 44444444",
+		role: "teamer",
+		status: "confirmed",
+		joinedAt: new Date("2026-01-10"),
+		experience: "4 Jahre Teamarbeit",
+		certifications: ["Erste Hilfe"],
+		availability: "Volle Woche",
+	},
+	{
+		id: 5,
+		firstName: "Miriam",
+		lastName: "Lohrey",
+		email: "m.lohrey@crossover.info",
+		phone: "+49 155 55555555",
+		role: "tech",
+		status: "confirmed",
+		joinedAt: new Date("2026-01-12"),
+		experience: "Technik & Medien",
+		certifications: [],
+		availability: "Volle Woche",
+	},
+	{
+		id: 6,
+		firstName: "Anna",
+		lastName: "Schmidt",
+		email: "a.schmidt@crossover.info",
+		phone: "+49 156 66666666",
+		role: "teamer",
+		status: "pending",
+		joinedAt: new Date("2026-01-20"),
+		experience: "1 Jahr Erfahrung",
+		certifications: [],
+		availability: "Ab Samstag",
+	},
+	{
+		id: 7,
+		firstName: "Küchenteam",
+		lastName: "Extern",
+		email: "kueche@extern.de",
+		phone: "+49 157 77777777",
+		role: "kitchen",
+		status: "confirmed",
+		joinedAt: new Date("2025-11-20"),
+		experience: "Professionelles Küchenteam",
+		certifications: ["Hygieneschulung"],
+		availability: "Volle Woche",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedRole = ref('all')
-const selectedStatus = ref('all')
+const searchQuery = ref("");
+const selectedRole = ref("all");
+const selectedStatus = ref("all");
 
 const filteredStaff = computed(() => {
-    return staffMembers.value.filter(s => {
-        const matchesSearch = !searchQuery.value || 
-            `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            s.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        const matchesRole = selectedRole.value === 'all' || s.role === selectedRole.value
-        const matchesStatus = selectedStatus.value === 'all' || s.status === selectedStatus.value
-        
-        return matchesSearch && matchesRole && matchesStatus
-    })
-})
+	return staffMembers.value.filter((s) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			`${s.firstName} ${s.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			s.email.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		const matchesRole = selectedRole.value === "all" || s.role === selectedRole.value;
+		const matchesStatus = selectedStatus.value === "all" || s.status === selectedStatus.value;
+
+		return matchesSearch && matchesRole && matchesStatus;
+	});
+});
 
 const stats = computed(() => {
-    const total = staffMembers.value.length
-    const confirmed = staffMembers.value.filter(s => s.status === 'confirmed').length
-    const pending = staffMembers.value.filter(s => s.status === 'pending').length
-    const leaders = staffMembers.value.filter(s => s.role === 'leader').length
-    const teamers = staffMembers.value.filter(s => s.role === 'teamer').length
-    
-    return { total, confirmed, pending, leaders, teamers }
-})
+	const total = staffMembers.value.length;
+	const confirmed = staffMembers.value.filter((s) => s.status === "confirmed").length;
+	const pending = staffMembers.value.filter((s) => s.status === "pending").length;
+	const leaders = staffMembers.value.filter((s) => s.role === "leader").length;
+	const teamers = staffMembers.value.filter((s) => s.role === "teamer").length;
+
+	return { total, confirmed, pending, leaders, teamers };
+});
 
 const roleConfig = {
-    leader: { label: 'Leitung', color: 'info', icon: 'i-lucide-crown' },
-    teamer: { label: 'Teamer', color: 'primary', icon: 'i-lucide-users' },
-    tech: { label: 'Technik', color: 'success', icon: 'i-lucide-settings' },
-    kitchen: { label: 'Küche', color: 'warning', icon: 'i-lucide-chef-hat' },
-    other: { label: 'Sonstiges', color: 'neutral', icon: 'i-lucide-user' }
-}
+	leader: { label: "Leitung", color: "info", icon: "i-lucide-crown" },
+	teamer: { label: "Teamer", color: "primary", icon: "i-lucide-users" },
+	tech: { label: "Technik", color: "success", icon: "i-lucide-settings" },
+	kitchen: { label: "Küche", color: "warning", icon: "i-lucide-chef-hat" },
+	other: { label: "Sonstiges", color: "neutral", icon: "i-lucide-user" },
+};
 
 const statusConfig = {
-    confirmed: { label: 'Bestätigt', color: 'success' },
-    pending: { label: 'Ausstehend', color: 'warning' },
-    declined: { label: 'Abgesagt', color: 'error' }
+	confirmed: { label: "Bestätigt", color: "success" },
+	pending: { label: "Ausstehend", color: "warning" },
+	declined: { label: "Abgesagt", color: "error" },
+};
+
+function getRoleConfig(role: StaffMember["role"]) {
+	return roleConfig[role];
 }
 
-function getRoleConfig(role: StaffMember['role']) {
-    return roleConfig[role]
-}
-
-function getStatusConfig(status: StaffMember['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: StaffMember["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 </script>
 

@@ -49,19 +49,14 @@ const defaultPathSerializer = ({ path, url: _url }: PathSerializer) => {
         style = 'matrix';
       }
 
-      const value = toValue(
-        (toValue(path) as Record<string, unknown> | undefined)?.[name],
-      );
+      const value = toValue((toValue(path) as Record<string, unknown> | undefined)?.[name]);
 
       if (value === undefined || value === null) {
         continue;
       }
 
       if (Array.isArray(value)) {
-        url = url.replace(
-          match,
-          serializeArrayParam({ explode, name, style, value }),
-        );
+        url = url.replace(match, serializeArrayParam({ explode, name, style, value }));
         continue;
       }
 
@@ -102,8 +97,8 @@ const defaultPathSerializer = ({ path, url: _url }: PathSerializer) => {
 export const createQuerySerializer = <T = unknown>({
   parameters = {},
   ...args
-}: QuerySerializerOptions = {}) => {
-  const querySerializer = (queryParams: T) => {
+}: QuerySerializerOptions = {}): ((queryParams: T) => string) => {
+  const querySerializer = (queryParams: T): string => {
     const search: string[] = [];
     const qParams = toValue(queryParams);
     if (qParams && typeof qParams === 'object') {
@@ -170,14 +165,12 @@ const checkForExistence = (
   return false;
 };
 
-export const setAuthParams = async ({
-  security,
-  ...options
-}: Pick<Required<RequestOptions>, 'security'> &
-  Pick<RequestOptions, 'auth' | 'query'> & {
+export async function setAuthParams(
+  options: Pick<RequestOptions, 'auth' | 'query' | 'security'> & {
     headers: Headers;
-  }) => {
-  for (const auth of security) {
+  },
+): Promise<void> {
+  for (const auth of options.security ?? []) {
     if (checkForExistence(options, auth.name)) {
       continue;
     }
@@ -194,9 +187,7 @@ export const setAuthParams = async ({
         if (!options.query) {
           options.query = {};
         }
-        const queryValue = toValue(options.query) as
-          | Record<string, unknown>
-          | undefined;
+        const queryValue = toValue(options.query) as Record<string, unknown> | undefined;
         if (queryValue) {
           queryValue[name] = token;
         }
@@ -211,7 +202,7 @@ export const setAuthParams = async ({
         break;
     }
   }
-};
+}
 
 export const buildUrl: Client['buildUrl'] = (options) => {
   const url = getUrl({
@@ -236,7 +227,7 @@ export const getUrl = ({
 }: Pick<BuildUrlOptions, 'path' | 'query' | 'url'> & {
   baseUrl?: string;
   querySerializer: QuerySerializer;
-}) => {
+}): string => {
   const pathUrl = _url.startsWith('/') ? _url : `/${_url}`;
   let url = (baseUrl ?? '') + pathUrl;
   if (path) {
@@ -284,9 +275,7 @@ export const mergeHeaders = (
     }
 
     const iterator =
-      h instanceof Headers
-        ? headersEntries(h)
-        : Object.entries(h as Record<string, unknown>);
+      h instanceof Headers ? headersEntries(h) : Object.entries(h as Record<string, unknown>);
 
     for (const [key, value] of iterator) {
       if (value === null) {
@@ -297,12 +286,9 @@ export const mergeHeaders = (
         }
       } else if (value !== undefined) {
         const v = unwrapRefs(value);
-        // assume object headers are meant to be JSON stringified, i.e. their
+        // assume object headers are meant to be JSON stringified, i.e., their
         // content value in OpenAPI specification is 'application/json'
-        mergedHeaders.set(
-          key,
-          typeof v === 'object' ? JSON.stringify(v) : (v as string),
-        );
+        mergedHeaders.set(key, typeof v === 'object' ? JSON.stringify(v) : (v as string));
       }
     }
   }
@@ -358,12 +344,17 @@ export const unwrapRefs = <T>(value: T): UnwrapRefs<T> => {
     return (isRef(value) ? unref(value) : value) as UnwrapRefs<T>;
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item) => unwrapRefs(item)) as UnwrapRefs<T>;
+  if (
+    value instanceof Blob ||
+    value instanceof FormData ||
+    value instanceof ReadableStream ||
+    value instanceof AbortSignal
+  ) {
+    return value as UnwrapRefs<T>;
   }
 
-  if (value instanceof Blob) {
-    return value as UnwrapRefs<T>;
+  if (Array.isArray(value)) {
+    return value.map((item) => unwrapRefs(item)) as UnwrapRefs<T>;
   }
 
   if (isRef(value)) {

@@ -1,0 +1,28 @@
+# Runs the registry image — CI (.gitlab/ci/build.yml) builds and pushes $CI_REGISTRY_IMAGE:latest
+# from the default branch. Adjust the image name to your registry and project. Ports and DB paths
+# are baked into the image (docker/Dockerfile ENV) — set only what differs for this deployment.
+services:
+  
+  cmp:
+    image: gcr.leicraftmc.de/crossover/cmp:latest
+    container_name: cmp
+    restart: unless-stopped
+    ports:
+      - "31316:31316"
+    environment:
+      CMP_LOG_LEVEL: info
+
+      CMP_API_DISABLE_DOCS: false
+
+      CMP_APP_URL: https://cmp.crossover.is-on.net
+
+      CMP_SMTP_HOST: "mail.example.com"
+      CMP_SMTP_PORT: 465
+      CMP_SMTP_USERNAME: "YourSMTPUsernameHere"
+      CMP_SMTP_PASSWORD: "YourSMTPPasswordHere"
+      CMP_SMTP_FROM: '"CMP" <noreply@crossover.info>'
+      CMP_SMTP_SECURE: true
+
+    volumes:
+      - ./data:/opt/crossover/cmp/data
+      - ./config:/opt/crossover/cmp/config

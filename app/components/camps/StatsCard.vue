@@ -1,16 +1,16 @@
 <script setup lang="ts">
 interface Props {
-    label: string
-    value: string | number
-    icon?: string
-    color?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
-    description?: string
-    trend?: string
+	label: string;
+	value: string | number;
+	icon?: string;
+	color?: "primary" | "success" | "warning" | "error" | "info" | "neutral";
+	description?: string;
+	trend?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    color: 'primary'
-})
+	color: "primary",
+});
 </script>
 
 <template>

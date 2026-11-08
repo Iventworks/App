@@ -1,66 +1,75 @@
 <script setup lang="ts">
-import type { Mail } from '~/types'
+import type { Mail } from "~/utils/types";
 
 defineProps<{
-  mail: Mail
-}>()
+	mail: Mail;
+}>();
 
 function format(date: Date, formatStr: string): string {
-  const options: Intl.DateTimeFormatOptions = {}
+	const options: Intl.DateTimeFormatOptions = {};
 
-  if (formatStr.includes('HH')) {
-    options.hour = '2-digit'
-    options.hour12 = false
-  }
-  if (formatStr.includes('mm')) {
-    options.minute = '2-digit'
-  }
-  if (formatStr.includes('dd')) {
-    options.day = '2-digit'
-  }
-  if (formatStr.includes('MMM')) {
-    options.month = 'short'
-  }
+	if (formatStr.includes("HH")) {
+		options.hour = "2-digit";
+		options.hour12 = false;
+	}
+	if (formatStr.includes("mm")) {
+		options.minute = "2-digit";
+	}
+	if (formatStr.includes("dd")) {
+		options.day = "2-digit";
+	}
+	if (formatStr.includes("MMM")) {
+		options.month = "short";
+	}
 
-  return new Intl.DateTimeFormat('de-DE', options).format(date)
+	return new Intl.DateTimeFormat("de-DE", options).format(date);
 }
 
-const emits = defineEmits(['close'])
+const emits = defineEmits(["close"]);
 
-const dropdownItems = [[{
-  label: 'Mark as unread',
-  icon: 'i-lucide-check-circle'
-}, {
-  label: 'Mark as important',
-  icon: 'i-lucide-triangle-alert'
-}], [{
-  label: 'Star thread',
-  icon: 'i-lucide-star'
-}, {
-  label: 'Mute thread',
-  icon: 'i-lucide-circle-pause'
-}]]
+const dropdownItems = [
+	[
+		{
+			label: "Mark as unread",
+			icon: "i-lucide-check-circle",
+		},
+		{
+			label: "Mark as important",
+			icon: "i-lucide-triangle-alert",
+		},
+	],
+	[
+		{
+			label: "Star thread",
+			icon: "i-lucide-star",
+		},
+		{
+			label: "Mute thread",
+			icon: "i-lucide-circle-pause",
+		},
+	],
+];
 
-const toast = useToast()
+const toast = useToast();
 
-const reply = ref('')
-const loading = ref(false)
+const reply = ref("");
+const loading = ref(false);
 
 function onSubmit() {
-  loading.value = true
+	loading.value = true;
 
-  setTimeout(() => {
-    reply.value = ''
+	setTimeout(() => {
+		reply.value = "";
 
-    toast.add({
-      title: 'Email sent',
-      description: 'Your email has been sent successfully',
-      icon: 'i-lucide-check-circle',
-      color: 'success'
-    })
+		toast.add({
+			title: "Email sent",
+			description: "Your email has been sent successfully",
+			icon: "i-lucide-check-circle",
+			color: "success",
+		});
 
-    loading.value = false
-  }, 1000)
+		loading.value = false;
+	}, 1000);
 }
 </script>
 

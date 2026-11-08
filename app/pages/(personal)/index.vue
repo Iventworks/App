@@ -1,160 +1,160 @@
 <script setup lang="ts">
 interface Camp {
-    id: string
-    name: string
-    dateRange: string
-    participants: number
-    maxParticipants: number
-    status: 'planning' | 'active' | 'completed'
-    myRole: string
+	id: string;
+	name: string;
+	dateRange: string;
+	participants: number;
+	maxParticipants: number;
+	status: "planning" | "active" | "completed";
+	myRole: string;
 }
 
 interface Activity {
-    id: number
-    type: 'task' | 'chat' | 'participant' | 'document'
-    title: string
-    description: string
-    time: Date
-    camp: string
-    icon: string
+	id: number;
+	type: "task" | "chat" | "participant" | "document";
+	title: string;
+	description: string;
+	time: Date;
+	camp: string;
+	icon: string;
 }
 
 const myCamps = ref<Camp[]>([
-    {
-        id: '1',
-        name: 'young+free Crottendorf 2026',
-        dateRange: '14.-21. Februar 2026',
-        participants: 42,
-        maxParticipants: 50,
-        status: 'planning',
-        myRole: 'Freizeitleiter'
-    },
-    {
-        id: '2',
-        name: 'SkiWelt Wilder Kaiser 2025',
-        dateRange: '01.-08. März 2025',
-        participants: 35,
-        maxParticipants: 40,
-        status: 'active',
-        myRole: 'Teamer'
-    },
-    {
-        id: '3',
-        name: 'Orchesterfreizeit im Kloster 2025',
-        dateRange: '22.-29. August 2025',
-        participants: 28,
-        maxParticipants: 30,
-        status: 'planning',
-        myRole: 'Programmleitung'
-    }
-])
+	{
+		id: "1",
+		name: "young+free Crottendorf 2026",
+		dateRange: "14.-21. Februar 2026",
+		participants: 42,
+		maxParticipants: 50,
+		status: "planning",
+		myRole: "Freizeitleiter",
+	},
+	{
+		id: "2",
+		name: "SkiWelt Wilder Kaiser 2025",
+		dateRange: "01.-08. März 2025",
+		participants: 35,
+		maxParticipants: 40,
+		status: "active",
+		myRole: "Teamer",
+	},
+	{
+		id: "3",
+		name: "Orchesterfreizeit im Kloster 2025",
+		dateRange: "22.-29. August 2025",
+		participants: 28,
+		maxParticipants: 30,
+		status: "planning",
+		myRole: "Programmleitung",
+	},
+]);
 
 const recentActivities = ref<Activity[]>([
-    {
-        id: 1,
-        type: 'task',
-        title: 'Neue Aufgabe zugewiesen',
-        description: 'Materialbestellung für Workshop',
-        time: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        camp: 'young+free Crottendorf 2026',
-        icon: 'i-lucide-check-circle'
-    },
-    {
-        id: 2,
-        type: 'chat',
-        title: 'Neue Nachricht',
-        description: 'Sarah Müller: Hast du die Programmpunkte fertig?',
-        time: new Date(Date.now() - 5 * 60 * 60 * 1000),
-        camp: 'young+free Crottendorf 2026',
-        icon: 'i-lucide-message-circle'
-    },
-    {
-        id: 3,
-        type: 'participant',
-        title: 'Neue Anmeldung',
-        description: '3 neue Teilnehmer haben sich angemeldet',
-        time: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        camp: 'SkiWelt Wilder Kaiser 2025',
-        icon: 'i-lucide-user-plus'
-    },
-    {
-        id: 4,
-        type: 'document',
-        title: 'Dokument hochgeladen',
-        description: 'Teilnehmerliste_aktualisiert.xlsx',
-        time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        camp: 'young+free Crottendorf 2026',
-        icon: 'i-lucide-file'
-    }
-])
+	{
+		id: 1,
+		type: "task",
+		title: "Neue Aufgabe zugewiesen",
+		description: "Materialbestellung für Workshop",
+		time: new Date(Date.now() - 2 * 60 * 60 * 1000),
+		camp: "young+free Crottendorf 2026",
+		icon: "i-lucide-check-circle",
+	},
+	{
+		id: 2,
+		type: "chat",
+		title: "Neue Nachricht",
+		description: "Sarah Müller: Hast du die Programmpunkte fertig?",
+		time: new Date(Date.now() - 5 * 60 * 60 * 1000),
+		camp: "young+free Crottendorf 2026",
+		icon: "i-lucide-message-circle",
+	},
+	{
+		id: 3,
+		type: "participant",
+		title: "Neue Anmeldung",
+		description: "3 neue Teilnehmer haben sich angemeldet",
+		time: new Date(Date.now() - 24 * 60 * 60 * 1000),
+		camp: "SkiWelt Wilder Kaiser 2025",
+		icon: "i-lucide-user-plus",
+	},
+	{
+		id: 4,
+		type: "document",
+		title: "Dokument hochgeladen",
+		description: "Teilnehmerliste_aktualisiert.xlsx",
+		time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+		camp: "young+free Crottendorf 2026",
+		icon: "i-lucide-file",
+	},
+]);
 
 const upcomingEvents = ref([
-    {
-        id: 1,
-        title: 'Team-Meeting',
-        date: new Date('2026-01-30'),
-        time: '19:00',
-        type: 'meeting',
-        camp: 'young+free Crottendorf 2026'
-    },
-    {
-        id: 2,
-        title: 'Anmeldefrist',
-        date: new Date('2026-02-05'),
-        time: '23:59',
-        type: 'deadline',
-        camp: 'young+free Crottendorf 2026'
-    },
-    {
-        id: 3,
-        title: 'Freizeit Beginn',
-        date: new Date('2026-02-14'),
-        time: '16:00',
-        type: 'event',
-        camp: 'young+free Crottendorf 2026'
-    }
-])
+	{
+		id: 1,
+		title: "Team-Meeting",
+		date: new Date("2026-01-30"),
+		time: "19:00",
+		type: "meeting",
+		camp: "young+free Crottendorf 2026",
+	},
+	{
+		id: 2,
+		title: "Anmeldefrist",
+		date: new Date("2026-02-05"),
+		time: "23:59",
+		type: "deadline",
+		camp: "young+free Crottendorf 2026",
+	},
+	{
+		id: 3,
+		title: "Freizeit Beginn",
+		date: new Date("2026-02-14"),
+		time: "16:00",
+		type: "event",
+		camp: "young+free Crottendorf 2026",
+	},
+]);
 
 const tasksSummary = ref({
-    total: 12,
-    overdue: 1,
-    today: 3,
-    thisWeek: 5,
-    completed: 8
-})
+	total: 12,
+	overdue: 1,
+	today: 3,
+	thisWeek: 5,
+	completed: 8,
+});
 
 const statusConfig = {
-    planning: { label: 'In Planung', color: 'warning' },
-    active: { label: 'Aktiv', color: 'success' },
-    completed: { label: 'Abgeschlossen', color: 'neutral' }
-}
+	planning: { label: "In Planung", color: "warning" },
+	active: { label: "Aktiv", color: "success" },
+	completed: { label: "Abgeschlossen", color: "neutral" },
+};
 
-function getStatusConfig(status: Camp['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: Camp["status"]) {
+	return statusConfig[status];
 }
 
 function getParticipantsPercentage(camp: Camp) {
-    return Math.round((camp.participants / camp.maxParticipants) * 100)
+	return Math.round((camp.participants / camp.maxParticipants) * 100);
 }
 
 function formatTimeAgo(date: Date) {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-    
-    if (seconds < 60) return 'Gerade eben'
-    if (seconds < 3600) return `vor ${Math.floor(seconds / 60)} Min`
-    if (seconds < 86400) return `vor ${Math.floor(seconds / 3600)} Std`
-    return `vor ${Math.floor(seconds / 86400)} Tag${Math.floor(seconds / 86400) > 1 ? 'en' : ''}`
+	const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+
+	if (seconds < 60) return "Gerade eben";
+	if (seconds < 3600) return `vor ${Math.floor(seconds / 60)} Min`;
+	if (seconds < 86400) return `vor ${Math.floor(seconds / 3600)} Std`;
+	return `vor ${Math.floor(seconds / 86400)} Tag${Math.floor(seconds / 86400) > 1 ? "en" : ""}`;
 }
 
 function formatEventDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getDaysUntil(date: Date) {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
+	const now = new Date();
+	const diff = date.getTime() - now.getTime();
+	const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+	return days;
 }
 </script>
 

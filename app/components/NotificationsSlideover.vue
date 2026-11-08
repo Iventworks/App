@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { formatTimeAgo } from '@vueuse/core'
-import type { Notification } from '~/utils/types'
+import { formatTimeAgo } from "@vueuse/core";
+import type { Notification } from "~/utils/types";
 
-const { isNotificationsSlideoverOpen } = useDashboard()
+const { isNotificationsSlideoverOpen } = useDashboard();
 
 // const { data: notifications } = await useFetch<Notification[]>('/api/notifications')
 const notifications: Notification[] = [
@@ -10,11 +10,10 @@ const notifications: Notification[] = [
 		id: 1,
 		sender: {
 			id: 1,
-			name: 'Lukas Pohl',
-			email: 'l.pohl@crossover.info',
-
+			name: "Lukas Pohl",
+			email: "l.pohl@crossover.info",
 		},
-		body: 'Kannst du mir noch den Input für Tag 2 schicken?',
+		body: "Kannst du mir noch den Input für Tag 2 schicken?",
 		date: new Date().toISOString(),
 		unread: true,
 	},
@@ -22,10 +21,10 @@ const notifications: Notification[] = [
 		id: 2,
 		sender: {
 			id: 2,
-			name: 'Raphael Below',
-			email: 'r.below@crossover.info'
+			name: "Raphael Below",
+			email: "r.below@crossover.info",
 		},
-		body: 'Linus Fischer hat leider für die Freizeit abgesagt.',
+		body: "Linus Fischer hat leider für die Freizeit abgesagt.",
 		date: new Date(Date.now() - 3600 * 1000).toISOString(),
 		unread: false,
 	},
@@ -33,14 +32,14 @@ const notifications: Notification[] = [
 		id: 3,
 		sender: {
 			id: 3,
-			name: 'Berend Tillmanns',
-			email: 'b.tillmanns@crossover.info'
+			name: "Berend Tillmanns",
+			email: "b.tillmanns@crossover.info",
 		},
-		body: 'Bitte denk daran, die Teilnehmerliste zu aktualisieren.',
+		body: "Bitte denk daran, die Teilnehmerliste zu aktualisieren.",
 		date: new Date(Date.now() - 7200 * 1000).toISOString(),
 		unread: true,
 	},
-]
+];
 </script>
 
 <template>

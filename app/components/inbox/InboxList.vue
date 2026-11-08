@@ -1,72 +1,73 @@
 <script setup lang="ts">
-import type { Mail } from '~/types'
-
+import type { Mail } from "~/utils/types";
 
 function isToday(date: Date): boolean {
-  const today = new Date()
-  return date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
+	const today = new Date();
+	return (
+		date.getDate() === today.getDate() &&
+		date.getMonth() === today.getMonth() &&
+		date.getFullYear() === today.getFullYear()
+	);
 }
 
 function format(date: Date, formatStr: string): string {
-  const options: Intl.DateTimeFormatOptions = {}
+	const options: Intl.DateTimeFormatOptions = {};
 
-  if (formatStr.includes('HH')) {
-    options.hour = '2-digit'
-    options.hour12 = false
-  }
-  if (formatStr.includes('mm')) {
-    options.minute = '2-digit'
-  }
-  if (formatStr.includes('dd')) {
-    options.day = '2-digit'
-  }
-  if (formatStr.includes('MMM')) {
-    options.month = 'short'
-  }
+	if (formatStr.includes("HH")) {
+		options.hour = "2-digit";
+		options.hour12 = false;
+	}
+	if (formatStr.includes("mm")) {
+		options.minute = "2-digit";
+	}
+	if (formatStr.includes("dd")) {
+		options.day = "2-digit";
+	}
+	if (formatStr.includes("MMM")) {
+		options.month = "short";
+	}
 
-  return new Intl.DateTimeFormat('de-DE', options).format(date)
+	return new Intl.DateTimeFormat("de-DE", options).format(date);
 }
 
 const props = defineProps<{
-  mails: Mail[]
-}>()
+	mails: Mail[];
+}>();
 
-const mailsRefs = ref<Element[]>([])
+const mailsRefs = ref<Element[]>([]);
 
-const selectedMail = defineModel<Mail | null>()
+const selectedMail = defineModel<Mail | null>();
 
 watch(selectedMail, () => {
-  if (!selectedMail.value) {
-    return
-  }
-  const ref = mailsRefs.value[selectedMail.value.id]
-  if (ref) {
-    ref.scrollIntoView({ block: 'nearest' })
-  }
-})
+	if (!selectedMail.value) {
+		return;
+	}
+	const ref = mailsRefs.value[selectedMail.value.id];
+	if (ref) {
+		ref.scrollIntoView({ block: "nearest" });
+	}
+});
 
 defineShortcuts({
-  arrowdown: () => {
-    const index = props.mails.findIndex(mail => mail.id === selectedMail.value?.id)
+	arrowdown: () => {
+		const index = props.mails.findIndex((mail) => mail.id === selectedMail.value?.id);
 
-    if (index === -1) {
-      selectedMail.value = props.mails[0]
-    } else if (index < props.mails.length - 1) {
-      selectedMail.value = props.mails[index + 1]
-    }
-  },
-  arrowup: () => {
-    const index = props.mails.findIndex(mail => mail.id === selectedMail.value?.id)
+		if (index === -1) {
+			selectedMail.value = props.mails[0];
+		} else if (index < props.mails.length - 1) {
+			selectedMail.value = props.mails[index + 1];
+		}
+	},
+	arrowup: () => {
+		const index = props.mails.findIndex((mail) => mail.id === selectedMail.value?.id);
 
-    if (index === -1) {
-      selectedMail.value = props.mails[props.mails.length - 1]
-    } else if (index > 0) {
-      selectedMail.value = props.mails[index - 1]
-    }
-  }
-})
+		if (index === -1) {
+			selectedMail.value = props.mails[props.mails.length - 1];
+		} else if (index > 0) {
+			selectedMail.value = props.mails[index - 1];
+		}
+	},
+});
 </script>
 
 <template>

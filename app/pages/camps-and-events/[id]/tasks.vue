@@ -1,162 +1,164 @@
 <script setup lang="ts">
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
 interface Task {
-    id: number
-    title: string
-    description: string
-    assignee: string
-    dueDate: Date
-    priority: 'low' | 'medium' | 'high' | 'urgent'
-    status: 'todo' | 'in_progress' | 'done'
-    category: string
+	id: number;
+	title: string;
+	description: string;
+	assignee: string;
+	dueDate: Date;
+	priority: "low" | "medium" | "high" | "urgent";
+	status: "todo" | "in_progress" | "done";
+	category: string;
 }
 
 const tasks = ref<Task[]>([
-    {
-        id: 1,
-        title: 'Materialbestellung abschließen',
-        description: 'Bastelmaterial für Workshops bestellen',
-        assignee: 'Lisa Frischmuth',
-        dueDate: new Date('2026-02-01'),
-        priority: 'high',
-        status: 'in_progress',
-        category: 'Material'
-    },
-    {
-        id: 2,
-        title: 'Teilnehmerliste finalisieren',
-        description: 'Alle Anmeldungen prüfen und Liste erstellen',
-        assignee: 'Sarah Müller',
-        dueDate: new Date('2026-02-05'),
-        priority: 'urgent',
-        status: 'done',
-        category: 'Organisation'
-    },
-    {
-        id: 3,
-        title: 'Gottesdienstablauf planen',
-        description: 'Detaillierte Planung der Gottesdienste',
-        assignee: 'Jesko Bahlcke',
-        dueDate: new Date('2026-02-08'),
-        priority: 'high',
-        status: 'in_progress',
-        category: 'Programm'
-    },
-    {
-        id: 4,
-        title: 'Teamschulungsunterlagen vorbereiten',
-        description: 'Materialien für Mitarbeiterschulung zusammenstellen',
-        assignee: 'Lukas Pohl',
-        dueDate: new Date('2026-02-07'),
-        priority: 'medium',
-        status: 'todo',
-        category: 'Team'
-    },
-    {
-        id: 5,
-        title: 'Verpflegungsplan erstellen',
-        description: 'Menüplan für die gesamte Woche erstellen',
-        assignee: 'Küchenteam',
-        dueDate: new Date('2026-02-03'),
-        priority: 'medium',
-        status: 'in_progress',
-        category: 'Verpflegung'
-    },
-    {
-        id: 6,
-        title: 'Notfallkontakte aktualisieren',
-        description: 'Liste aller Notfallkontakte aktualisieren',
-        assignee: 'Sarah Müller',
-        dueDate: new Date('2026-02-10'),
-        priority: 'high',
-        status: 'todo',
-        category: 'Organisation'
-    },
-    {
-        id: 7,
-        title: 'Packliste veröffentlichen',
-        description: 'Packliste an alle Teilnehmer versenden',
-        assignee: 'Miriam Lohrey',
-        dueDate: new Date('2026-01-30'),
-        priority: 'medium',
-        status: 'done',
-        category: 'Kommunikation'
-    },
-    {
-        id: 8,
-        title: 'Spiele und Materialien prüfen',
-        description: 'Inventur der vorhandenen Spiele und Materialien',
-        assignee: 'Lisa Frischmuth',
-        dueDate: new Date('2026-02-01'),
-        priority: 'low',
-        status: 'todo',
-        category: 'Material'
-    }
-])
+	{
+		id: 1,
+		title: "Materialbestellung abschließen",
+		description: "Bastelmaterial für Workshops bestellen",
+		assignee: "Lisa Frischmuth",
+		dueDate: new Date("2026-02-01"),
+		priority: "high",
+		status: "in_progress",
+		category: "Material",
+	},
+	{
+		id: 2,
+		title: "Teilnehmerliste finalisieren",
+		description: "Alle Anmeldungen prüfen und Liste erstellen",
+		assignee: "Sarah Müller",
+		dueDate: new Date("2026-02-05"),
+		priority: "urgent",
+		status: "done",
+		category: "Organisation",
+	},
+	{
+		id: 3,
+		title: "Gottesdienstablauf planen",
+		description: "Detaillierte Planung der Gottesdienste",
+		assignee: "Jesko Bahlcke",
+		dueDate: new Date("2026-02-08"),
+		priority: "high",
+		status: "in_progress",
+		category: "Programm",
+	},
+	{
+		id: 4,
+		title: "Teamschulungsunterlagen vorbereiten",
+		description: "Materialien für Mitarbeiterschulung zusammenstellen",
+		assignee: "Lukas Pohl",
+		dueDate: new Date("2026-02-07"),
+		priority: "medium",
+		status: "todo",
+		category: "Team",
+	},
+	{
+		id: 5,
+		title: "Verpflegungsplan erstellen",
+		description: "Menüplan für die gesamte Woche erstellen",
+		assignee: "Küchenteam",
+		dueDate: new Date("2026-02-03"),
+		priority: "medium",
+		status: "in_progress",
+		category: "Verpflegung",
+	},
+	{
+		id: 6,
+		title: "Notfallkontakte aktualisieren",
+		description: "Liste aller Notfallkontakte aktualisieren",
+		assignee: "Sarah Müller",
+		dueDate: new Date("2026-02-10"),
+		priority: "high",
+		status: "todo",
+		category: "Organisation",
+	},
+	{
+		id: 7,
+		title: "Packliste veröffentlichen",
+		description: "Packliste an alle Teilnehmer versenden",
+		assignee: "Miriam Lohrey",
+		dueDate: new Date("2026-01-30"),
+		priority: "medium",
+		status: "done",
+		category: "Kommunikation",
+	},
+	{
+		id: 8,
+		title: "Spiele und Materialien prüfen",
+		description: "Inventur der vorhandenen Spiele und Materialien",
+		assignee: "Lisa Frischmuth",
+		dueDate: new Date("2026-02-01"),
+		priority: "low",
+		status: "todo",
+		category: "Material",
+	},
+]);
 
-const selectedStatus = ref<string>('all')
-const selectedPriority = ref<string>('all')
-const searchQuery = ref('')
+const selectedStatus = ref<string>("all");
+const selectedPriority = ref<string>("all");
+const searchQuery = ref("");
 
 const filteredTasks = computed(() => {
-    return tasks.value.filter(task => {
-        const matchesStatus = selectedStatus.value === 'all' || task.status === selectedStatus.value
-        const matchesPriority = selectedPriority.value === 'all' || task.priority === selectedPriority.value
-        const matchesSearch = !searchQuery.value || 
-            task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            task.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            task.assignee.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        return matchesStatus && matchesPriority && matchesSearch
-    })
-})
+	return tasks.value.filter((task) => {
+		const matchesStatus = selectedStatus.value === "all" || task.status === selectedStatus.value;
+		const matchesPriority =
+			selectedPriority.value === "all" || task.priority === selectedPriority.value;
+		const matchesSearch =
+			!searchQuery.value ||
+			task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			task.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			task.assignee.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		return matchesStatus && matchesPriority && matchesSearch;
+	});
+});
 
 const taskStats = computed(() => {
-    const total = tasks.value.length
-    const done = tasks.value.filter(t => t.status === 'done').length
-    const inProgress = tasks.value.filter(t => t.status === 'in_progress').length
-    const todo = tasks.value.filter(t => t.status === 'todo').length
-    const urgent = tasks.value.filter(t => t.priority === 'urgent' && t.status !== 'done').length
-    
-    return { total, done, inProgress, todo, urgent }
-})
+	const total = tasks.value.length;
+	const done = tasks.value.filter((t) => t.status === "done").length;
+	const inProgress = tasks.value.filter((t) => t.status === "in_progress").length;
+	const todo = tasks.value.filter((t) => t.status === "todo").length;
+	const urgent = tasks.value.filter((t) => t.priority === "urgent" && t.status !== "done").length;
+
+	return { total, done, inProgress, todo, urgent };
+});
 
 const priorityConfig = {
-    low: { label: 'Niedrig', color: 'neutral', icon: 'i-lucide-arrow-down' },
-    medium: { label: 'Mittel', color: 'primary', icon: 'i-lucide-minus' },
-    high: { label: 'Hoch', color: 'warning', icon: 'i-lucide-arrow-up' },
-    urgent: { label: 'Dringend', color: 'error', icon: 'i-lucide-alert-circle' }
-}
+	low: { label: "Niedrig", color: "neutral", icon: "i-lucide-arrow-down" },
+	medium: { label: "Mittel", color: "primary", icon: "i-lucide-minus" },
+	high: { label: "Hoch", color: "warning", icon: "i-lucide-arrow-up" },
+	urgent: { label: "Dringend", color: "error", icon: "i-lucide-alert-circle" },
+};
 
 const statusConfig = {
-    todo: { label: 'Zu erledigen', color: 'neutral', icon: 'i-lucide-circle' },
-    in_progress: { label: 'In Bearbeitung', color: 'primary', icon: 'i-lucide-loader' },
-    done: { label: 'Erledigt', color: 'success', icon: 'i-lucide-check-circle' }
+	todo: { label: "Zu erledigen", color: "neutral", icon: "i-lucide-circle" },
+	in_progress: { label: "In Bearbeitung", color: "primary", icon: "i-lucide-loader" },
+	done: { label: "Erledigt", color: "success", icon: "i-lucide-check-circle" },
+};
+
+function getPriorityConfig(priority: Task["priority"]) {
+	return priorityConfig[priority];
 }
 
-function getPriorityConfig(priority: Task['priority']) {
-    return priorityConfig[priority]
-}
-
-function getStatusConfig(status: Task['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: Task["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function isOverdue(task: Task) {
-    return task.status !== 'done' && task.dueDate < new Date()
+	return task.status !== "done" && task.dueDate < new Date();
 }
 
 function getDaysUntil(date: Date) {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
+	const now = new Date();
+	const diff = date.getTime() - now.getTime();
+	const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+	return days;
 }
 </script>
 

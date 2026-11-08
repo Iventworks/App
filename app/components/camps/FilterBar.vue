@@ -1,23 +1,23 @@
 <script setup lang="ts">
 interface Props {
-    searchPlaceholder?: string
-    showSearch?: boolean
+	searchPlaceholder?: string;
+	showSearch?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    searchPlaceholder: 'Suchen...',
-    showSearch: true
-})
+	searchPlaceholder: "Suchen...",
+	showSearch: true,
+});
 
 const emit = defineEmits<{
-    'update:search': [value: string]
-}>()
+	"update:search": [value: string];
+}>();
 
-const searchQuery = ref('')
+const searchQuery = ref("");
 
 watch(searchQuery, (value) => {
-    emit('update:search', value)
-})
+	emit("update:search", value);
+});
 </script>
 
 <template>

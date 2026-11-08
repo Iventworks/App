@@ -1,134 +1,140 @@
 <script setup lang="ts">
 interface InfoItem {
-    id: number
-    title: string
-    content: string
-    category: 'announcement' | 'reminder' | 'info' | 'important' | 'event'
-    date: Date
-    author: string
-    read: boolean
-    attachments?: { name: string, size: string }[]
+	id: number;
+	title: string;
+	content: string;
+	category: "announcement" | "reminder" | "info" | "important" | "event";
+	date: Date;
+	author: string;
+	read: boolean;
+	attachments?: { name: string; size: string }[];
 }
 
 const infoItems = ref<InfoItem[]>([
-    {
-        id: 1,
-        title: 'Wichtig: Anmeldefrist für young+free Crottendorf 2026',
-        content: 'Die Anmeldefrist für Teilnehmer läuft am 5. Februar ab. Bitte stellt sicher, dass alle Anmeldungen bis dahin eingegangen sind und die Teilnehmerliste aktualisiert wurde.',
-        category: 'important',
-        date: new Date('2026-01-27'),
-        author: 'Lukas Pohl',
-        read: false
-    },
-    {
-        id: 2,
-        title: 'Team-Meeting am 30. Januar',
-        content: 'Unser nächstes Team-Meeting findet am Donnerstag, den 30. Januar um 19:00 Uhr online statt. Agenda: Letzte Vorbereitungen, Materialplanung und Programmablauf. Zoom-Link folgt per E-Mail.',
-        category: 'event',
-        date: new Date('2026-01-26'),
-        author: 'Sarah Müller',
-        read: true,
-        attachments: [
-            { name: 'Agenda_Team-Meeting.pdf', size: '245 KB' }
-        ]
-    },
-    {
-        id: 3,
-        title: 'Neue Hygiene-Vorschriften für 2026',
-        content: 'Das Gesundheitsamt hat aktualisierte Hygiene-Vorschriften für Gruppenunterkünfte herausgegeben. Bitte lest euch das beigefügte Dokument durch und beachtet die neuen Regelungen bei der Planung.',
-        category: 'info',
-        date: new Date('2026-01-25'),
-        author: 'Miriam Lohrey',
-        read: true,
-        attachments: [
-            { name: 'Hygiene-Vorschriften_2026.pdf', size: '1.2 MB' }
-        ]
-    },
-    {
-        id: 4,
-        title: 'Erinnerung: Erste-Hilfe-Kurs Auffrischung',
-        content: 'Alle Teamer sollten ihre Erste-Hilfe-Bescheinigung vor Beginn der Freizeit auffrischen. Es sind noch Plätze im Kurs am 8. Februar frei. Anmeldung über den Link im Anhang.',
-        category: 'reminder',
-        date: new Date('2026-01-24'),
-        author: 'Lisa Frischmuth',
-        read: false
-    },
-    {
-        id: 5,
-        title: 'Ankündigung: Neue Freizeit im Sommer',
-        content: 'Wir planen eine neue Sommerfreizeit vom 15.-22. Juli 2026 am Bodensee. Erste Informationen und die Möglichkeit zur Interessensbekundung als Teamer findet ihr im Portal.',
-        category: 'announcement',
-        date: new Date('2026-01-23'),
-        author: 'Jesko Bahlcke',
-        read: true
-    },
-    {
-        id: 6,
-        title: 'Materialbestellung abgeschlossen',
-        content: 'Die Bestellung für Bastelmaterial und Spiele ist eingegangen. Alles wurde geprüft und ist vollständig. Die Materialien werden vor Ort verfügbar sein.',
-        category: 'info',
-        date: new Date('2026-01-22'),
-        author: 'Lisa Frischmuth',
-        read: true
-    }
-])
+	{
+		id: 1,
+		title: "Wichtig: Anmeldefrist für young+free Crottendorf 2026",
+		content:
+			"Die Anmeldefrist für Teilnehmer läuft am 5. Februar ab. Bitte stellt sicher, dass alle Anmeldungen bis dahin eingegangen sind und die Teilnehmerliste aktualisiert wurde.",
+		category: "important",
+		date: new Date("2026-01-27"),
+		author: "Lukas Pohl",
+		read: false,
+	},
+	{
+		id: 2,
+		title: "Team-Meeting am 30. Januar",
+		content:
+			"Unser nächstes Team-Meeting findet am Donnerstag, den 30. Januar um 19:00 Uhr online statt. Agenda: Letzte Vorbereitungen, Materialplanung und Programmablauf. Zoom-Link folgt per E-Mail.",
+		category: "event",
+		date: new Date("2026-01-26"),
+		author: "Sarah Müller",
+		read: true,
+		attachments: [{ name: "Agenda_Team-Meeting.pdf", size: "245 KB" }],
+	},
+	{
+		id: 3,
+		title: "Neue Hygiene-Vorschriften für 2026",
+		content:
+			"Das Gesundheitsamt hat aktualisierte Hygiene-Vorschriften für Gruppenunterkünfte herausgegeben. Bitte lest euch das beigefügte Dokument durch und beachtet die neuen Regelungen bei der Planung.",
+		category: "info",
+		date: new Date("2026-01-25"),
+		author: "Miriam Lohrey",
+		read: true,
+		attachments: [{ name: "Hygiene-Vorschriften_2026.pdf", size: "1.2 MB" }],
+	},
+	{
+		id: 4,
+		title: "Erinnerung: Erste-Hilfe-Kurs Auffrischung",
+		content:
+			"Alle Teamer sollten ihre Erste-Hilfe-Bescheinigung vor Beginn der Freizeit auffrischen. Es sind noch Plätze im Kurs am 8. Februar frei. Anmeldung über den Link im Anhang.",
+		category: "reminder",
+		date: new Date("2026-01-24"),
+		author: "Lisa Frischmuth",
+		read: false,
+	},
+	{
+		id: 5,
+		title: "Ankündigung: Neue Freizeit im Sommer",
+		content:
+			"Wir planen eine neue Sommerfreizeit vom 15.-22. Juli 2026 am Bodensee. Erste Informationen und die Möglichkeit zur Interessensbekundung als Teamer findet ihr im Portal.",
+		category: "announcement",
+		date: new Date("2026-01-23"),
+		author: "Jesko Bahlcke",
+		read: true,
+	},
+	{
+		id: 6,
+		title: "Materialbestellung abgeschlossen",
+		content:
+			"Die Bestellung für Bastelmaterial und Spiele ist eingegangen. Alles wurde geprüft und ist vollständig. Die Materialien werden vor Ort verfügbar sein.",
+		category: "info",
+		date: new Date("2026-01-22"),
+		author: "Lisa Frischmuth",
+		read: true,
+	},
+]);
 
-const selectedCategory = ref('all')
-const searchQuery = ref('')
-const showUnreadOnly = ref(false)
+const selectedCategory = ref("all");
+const searchQuery = ref("");
+const showUnreadOnly = ref(false);
 
 const filteredItems = computed(() => {
-    return infoItems.value.filter(item => {
-        const matchesCategory = selectedCategory.value === 'all' || item.category === selectedCategory.value
-        const matchesSearch = !searchQuery.value || 
-            item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            item.content.toLowerCase().includes(searchQuery.value.toLowerCase())
-        const matchesRead = !showUnreadOnly.value || !item.read
-        
-        return matchesCategory && matchesSearch && matchesRead
-    })
-})
+	return infoItems.value.filter((item) => {
+		const matchesCategory =
+			selectedCategory.value === "all" || item.category === selectedCategory.value;
+		const matchesSearch =
+			!searchQuery.value ||
+			item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			item.content.toLowerCase().includes(searchQuery.value.toLowerCase());
+		const matchesRead = !showUnreadOnly.value || !item.read;
+
+		return matchesCategory && matchesSearch && matchesRead;
+	});
+});
 
 const stats = computed(() => {
-    const total = infoItems.value.length
-    const unread = infoItems.value.filter(i => !i.read).length
-    const important = infoItems.value.filter(i => i.category === 'important').length
-    
-    return { total, unread, important }
-})
+	const total = infoItems.value.length;
+	const unread = infoItems.value.filter((i) => !i.read).length;
+	const important = infoItems.value.filter((i) => i.category === "important").length;
+
+	return { total, unread, important };
+});
 
 const categoryConfig = {
-    announcement: { label: 'Ankündigung', color: 'primary', icon: 'i-lucide-megaphone' },
-    reminder: { label: 'Erinnerung', color: 'warning', icon: 'i-lucide-bell' },
-    info: { label: 'Information', color: 'info', icon: 'i-lucide-info' },
-    important: { label: 'Wichtig', color: 'error', icon: 'i-lucide-alert-triangle' },
-    event: { label: 'Termin', color: 'success', icon: 'i-lucide-calendar' }
-}
+	announcement: { label: "Ankündigung", color: "primary", icon: "i-lucide-megaphone" },
+	reminder: { label: "Erinnerung", color: "warning", icon: "i-lucide-bell" },
+	info: { label: "Information", color: "info", icon: "i-lucide-info" },
+	important: { label: "Wichtig", color: "error", icon: "i-lucide-alert-triangle" },
+	event: { label: "Termin", color: "success", icon: "i-lucide-calendar" },
+};
 
-function getCategoryConfig(category: InfoItem['category']) {
-    return categoryConfig[category]
+function getCategoryConfig(category: InfoItem["category"]) {
+	return categoryConfig[category];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDateTime(date: Date) {
-    return date.toLocaleDateString('de-DE', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    })
+	return date.toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 
 function markAsRead(item: InfoItem) {
-    item.read = true
+	item.read = true;
 }
 
 function markAllAsRead() {
-    infoItems.value.forEach(item => item.read = true)
+	infoItems.value.forEach((item) => {
+		item.read = true;
+	});
 }
 </script>
 

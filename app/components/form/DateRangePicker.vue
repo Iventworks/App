@@ -1,64 +1,58 @@
 <script setup lang="ts">
-import { DateFormatter, getLocalTimeZone, CalendarDate } from '@internationalized/date'
+import { CalendarDate, DateFormatter, getLocalTimeZone } from "@internationalized/date";
 
 interface Range {
-    start: Date | null,
-    end: Date | null
+	start: Date | null;
+	end: Date | null;
 }
 
 interface Props {
-    icon?: string
-    class?: string
+	icon?: string;
+	class?: string;
 }
 
 withDefaults(defineProps<Props>(), {
-    icon: 'i-lucide-calendar'
+	icon: "i-lucide-calendar",
 });
 
-const df = new DateFormatter('en-US', {
-    dateStyle: 'medium'
+const df = new DateFormatter("en-US", {
+	dateStyle: "medium",
 });
 
 const selected = defineModel<Range>({ required: true });
 
 const toCalendarDate = (date: Date) => {
-    return new CalendarDate(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        date.getDate()
-    )
-}
+	return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+};
 
 const calendarRange = computed({
-    get: () => ({
-        start: selected.value.start ? toCalendarDate(selected.value.start) : undefined,
-        end: selected.value.end ? toCalendarDate(selected.value.end) : undefined
-    }),
-    set: (newValue: { start: CalendarDate | null, end: CalendarDate | null }) => {
-        selected.value = {
-            start: newValue.start ? newValue.start.toDate(getLocalTimeZone()) : null,
-            end: newValue.end ? newValue.end.toDate(getLocalTimeZone()) : null
-        }
-    }
+	get: () => ({
+		start: selected.value.start ? toCalendarDate(selected.value.start) : undefined,
+		end: selected.value.end ? toCalendarDate(selected.value.end) : undefined,
+	}),
+	set: (newValue: { start: CalendarDate | null; end: CalendarDate | null }) => {
+		selected.value = {
+			start: newValue.start ? newValue.start.toDate(getLocalTimeZone()) : null,
+			end: newValue.end ? newValue.end.toDate(getLocalTimeZone()) : null,
+		};
+	},
 });
 
-
 const inputValue = computed(() => {
-    const { start, end } = selected.value
+	const { start, end } = selected.value;
 
-    if (!start) return 'Pick a date'
-    if (!end) return df.format(start)
+	if (!start) return "Pick a date";
+	if (!end) return df.format(start);
 
-    return `${df.format(start)} - ${df.format(end)}`
-})
+	return `${df.format(start)} - ${df.format(end)}`;
+});
 
 const resetRange = () => {
-    selected.value = {
-        start: null,
-        end: null
-    }
-}
-
+	selected.value = {
+		start: null,
+		end: null,
+	};
+};
 </script>
 
 <template>

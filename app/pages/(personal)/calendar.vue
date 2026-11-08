@@ -1,236 +1,163 @@
 <script setup lang="ts">
+import { type DateValue, getLocalTimeZone, today } from "@internationalized/date";
 
 export interface CalendarEntry {
-    id: number;
-    title: string;
-    description?: string;
-    
-    // Timestamps in milliseconds
-    startTime: number;
-    endTime: number;
+	id: number;
+	title: string;
+	description?: string;
+
+	// Timestamps in milliseconds
+	startTime: number;
+	endTime: number;
 }
 
 interface CalendarData {
-    // Key format: "YYYY-MM-DD"
-    // Value: Array of entries falling on that day
-    [startDateKey: string]: CalendarEntry[];
+	// Key format: "YYYY-MM-DD"
+	// Value: Array of entries falling on that day
+	[startDateKey: string]: CalendarEntry[];
 }
 
 // mock data structure
 const calendarData = ref<CalendarData>({
-    ["2026-01-16"]: [
-        {
-            id: 1,
-            title: "young+free Crottendorf Planungstreffen",
-            description: "Planungstreffen für die young+free Crottendorf Winterfreizeit 2026",
-            startTime: new Date("2026-01-16T18:00:00").getTime(),
-            endTime: new Date("2026-01-17T18:00:00").getTime(),
-        }
-    ],
-    ["2026-01-28"]: [
-        {
-            id: 2,
-            title: "Meeting mit Lukas Pohl",
-            description: "Meeting mit Lukas Pohl bezüglich des neuen Projekts",
-            startTime: new Date("2026-01-28T18:00:00").getTime(),
-            endTime: new Date("2026-01-28T19:30:00").getTime(),
-        }
-    ],
-    ["2026-02-15"]: [
-        {
-            id: 3,
-            title: "young+free Crottendorf 2026",
-            description: "young+free Crottendorf Winterfreizeit 2026",
-            startTime: new Date("2026-02-15T00:00:00").getTime(),
-            endTime: new Date("2026-02-21T23:59:59").getTime()
-        }
-    ]
+	["2026-01-16"]: [
+		{
+			id: 1,
+			title: "young+free Crottendorf Planungstreffen",
+			description: "Planungstreffen für die young+free Crottendorf Winterfreizeit 2026",
+			startTime: new Date("2026-01-16T18:00:00").getTime(),
+			endTime: new Date("2026-01-17T18:00:00").getTime(),
+		},
+	],
+	["2026-01-28"]: [
+		{
+			id: 2,
+			title: "Meeting mit Lukas Pohl",
+			description: "Meeting mit Lukas Pohl bezüglich des neuen Projekts",
+			startTime: new Date("2026-01-28T18:00:00").getTime(),
+			endTime: new Date("2026-01-28T19:30:00").getTime(),
+		},
+	],
+	["2026-02-15"]: [
+		{
+			id: 3,
+			title: "young+free Crottendorf 2026",
+			description: "young+free Crottendorf Winterfreizeit 2026",
+			startTime: new Date("2026-02-15T00:00:00").getTime(),
+			endTime: new Date("2026-02-21T23:59:59").getTime(),
+		},
+	],
 });
 
-// Current view state
-const currentDate = ref(new Date());
-const selectedDate = ref<Date | null>(null);
+const timeZone = getLocalTimeZone();
+
+// Current view state: the month shown by UCalendar and the selected day
+const displayedMonth = shallowRef<DateValue>(today(timeZone));
+const selectedDay = shallowRef<DateValue | undefined>(today(timeZone));
+
+const selectedDate = computed(() => selectedDay.value?.toDate(timeZone) ?? null);
 
 // Computed properties
-const currentMonth = computed(() => currentDate.value.getMonth());
-const currentYear = computed(() => currentDate.value.getFullYear());
+const currentMonth = computed(() => displayedMonth.value.month - 1);
+const currentYear = computed(() => displayedMonth.value.year);
 
 const monthName = computed(() => {
-    return new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentDate.value);
+	return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(
+		displayedMonth.value.toDate(timeZone),
+	);
 });
 
-const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-
-// Get calendar days for the current month view
-const calendarDays = computed(() => {
-    const year = currentYear.value;
-    const month = currentMonth.value;
-    
-    // First day of the month
-    const firstDay = new Date(year, month, 1);
-    // Last day of the month
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // Get the day of week (0 = Sunday, 1 = Monday, etc.)
-    // Convert to Monday-based (0 = Monday)
-    let firstDayOfWeek = firstDay.getDay() - 1;
-    if (firstDayOfWeek < 0) firstDayOfWeek = 6;
-    
-    const days: Array<{
-        date: Date;
-        dateKey: string;
-        isCurrentMonth: boolean;
-        isToday: boolean;
-        isSelected: boolean;
-        events: CalendarEntry[];
-    }> = [];
-    
-    // Add days from previous month
-    const prevMonthLastDay = new Date(year, month, 0);
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-        const date = new Date(year, month - 1, prevMonthLastDay.getDate() - i);
-        const dateKey = formatDateKey(date);
-        days.push({
-            date,
-            dateKey,
-            isCurrentMonth: false,
-            isToday: false,
-            isSelected: false,
-            events: calendarData.value[dateKey] || []
-        });
-    }
-    
-    // Add days from current month
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-        const date = new Date(year, month, day);
-        const dateKey = formatDateKey(date);
-        const isToday = date.getTime() === today.getTime();
-        const isSelected = selectedDate.value ? date.getTime() === new Date(selectedDate.value).setHours(0, 0, 0, 0) : false;
-        
-        days.push({
-            date,
-            dateKey,
-            isCurrentMonth: true,
-            isToday,
-            isSelected,
-            events: getEventsForDate(dateKey)
-        });
-    }
-    
-    // Add days from next month to fill the grid
-    const remainingDays = 42 - days.length; // 6 weeks * 7 days
-    for (let day = 1; day <= remainingDays; day++) {
-        const date = new Date(year, month + 1, day);
-        const dateKey = formatDateKey(date);
-        days.push({
-            date,
-            dateKey,
-            isCurrentMonth: false,
-            isToday: false,
-            isSelected: false,
-            events: calendarData.value[dateKey] || []
-        });
-    }
-    
-    return days;
-});
+function eventsForDay(day: DateValue): CalendarEntry[] {
+	// DateValue.toString() is "YYYY-MM-DD", the same format as the calendarData keys
+	return getEventsForDate(day.toString());
+}
 
 // Get events that occur on or span across a specific date
 function getEventsForDate(dateKey: string): CalendarEntry[] {
-    const date = new Date(dateKey);
-    date.setHours(0, 0, 0, 0);
-    const dayStart = date.getTime();
-    const dayEnd = new Date(date).setHours(23, 59, 59, 999);
-    
-    const allEvents: CalendarEntry[] = [];
-    
-    // Check all events to see if they occur on this day
-    for (const [key, events] of Object.entries(calendarData.value)) {
-        for (const event of events) {
-            // Event spans or touches this day
-            if (event.startTime <= dayEnd && event.endTime >= dayStart) {
-                allEvents.push(event);
-            }
-        }
-    }
-    
-    return allEvents;
+	const date = new Date(dateKey);
+	date.setHours(0, 0, 0, 0);
+	const dayStart = date.getTime();
+	const dayEnd = new Date(date).setHours(23, 59, 59, 999);
+
+	const allEvents: CalendarEntry[] = [];
+
+	// Check all events to see if they occur on this day
+	for (const [key, events] of Object.entries(calendarData.value)) {
+		for (const event of events) {
+			// Event spans or touches this day
+			if (event.startTime <= dayEnd && event.endTime >= dayStart) {
+				allEvents.push(event);
+			}
+		}
+	}
+
+	return allEvents;
 }
 
 // Selected day events
 const selectedDayEvents = computed(() => {
-    if (!selectedDate.value) return [];
-    const dateKey = formatDateKey(selectedDate.value);
-    return getEventsForDate(dateKey);
+	if (!selectedDate.value) return [];
+	const dateKey = formatDateKey(selectedDate.value);
+	return getEventsForDate(dateKey);
 });
 
 // Helper functions
 function formatDateKey(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
 
 function formatTime(timestamp: number): string {
-    return new Intl.DateTimeFormat('de-DE', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    }).format(new Date(timestamp));
+	return new Intl.DateTimeFormat("de-DE", {
+		hour: "2-digit",
+		minute: "2-digit",
+	}).format(new Date(timestamp));
 }
 
 function formatEventDate(event: CalendarEntry): string {
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-    
-    const isSameDay = start.toDateString() === end.toDateString();
-    
-    if (isSameDay) {
-        // Check if it's an all-day event (00:00 to 23:59)
-        if (start.getHours() === 0 && start.getMinutes() === 0 && 
-            end.getHours() === 23 && end.getMinutes() === 59) {
-            return 'Ganztägig';
-        }
-        return `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
-    } else {
-        return `${start.toLocaleDateString('de-DE')} - ${end.toLocaleDateString('de-DE')}`;
-    }
+	const start = new Date(event.startTime);
+	const end = new Date(event.endTime);
+
+	const isSameDay = start.toDateString() === end.toDateString();
+
+	if (isSameDay) {
+		// Check if it's an all-day event (00:00 to 23:59)
+		if (
+			start.getHours() === 0 &&
+			start.getMinutes() === 0 &&
+			end.getHours() === 23 &&
+			end.getMinutes() === 59
+		) {
+			return "Ganztägig";
+		}
+		return `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
+	} else {
+		return `${start.toLocaleDateString("de-DE")} - ${end.toLocaleDateString("de-DE")}`;
+	}
 }
 
 // Navigation functions
 function previousMonth() {
-    currentDate.value = new Date(currentYear.value, currentMonth.value - 1, 1);
+	displayedMonth.value = displayedMonth.value.subtract({ months: 1 }).set({ day: 1 });
 }
 
 function nextMonth() {
-    currentDate.value = new Date(currentYear.value, currentMonth.value + 1, 1);
+	displayedMonth.value = displayedMonth.value.add({ months: 1 }).set({ day: 1 });
 }
 
 function goToToday() {
-    currentDate.value = new Date();
-    selectedDate.value = new Date();
-}
-
-function selectDate(date: Date) {
-    selectedDate.value = date;
+	displayedMonth.value = today(timeZone);
+	selectedDay.value = today(timeZone);
 }
 
 function isMultiDayEvent(event: CalendarEntry): boolean {
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-    return end.getTime() > start.getTime();
+	const start = new Date(event.startTime);
+	const end = new Date(event.endTime);
+	start.setHours(0, 0, 0, 0);
+	end.setHours(0, 0, 0, 0);
+	return end.getTime() > start.getTime();
 }
-
-// Initialize selected date to today
-onMounted(() => {
-    selectedDate.value = new Date();
-});
-
 </script>
 
 <template>
@@ -282,76 +209,79 @@ onMounted(() => {
                             </template>
 
                             <!-- Calendar Grid -->
-                            <div class="calendar-grid">
-                                <!-- Week day headers -->
-                                <div class="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-800 border-b">
-                                    <div
-                                        v-for="day in weekDays"
-                                        :key="day"
-                                        class="bg-gray-50 dark:bg-gray-900 py-2 text-center text-sm font-medium text-gray-700 dark:text-gray-300"
-                                    >
-                                        {{ day }}
+                            <UCalendar
+                                v-model="selectedDay"
+                                v-model:placeholder="displayedMonth"
+                                locale="de-DE"
+                                :week-starts-on="1"
+                                weekday-format="short"
+                                fixed-weeks
+                                color="primary"
+                                variant="soft"
+                                :ui="{
+                                    root: 'w-full',
+                                    header: 'hidden',
+                                    body: 'pt-0',
+                                    grid: 'space-y-0 overflow-hidden rounded-lg border border-default',
+                                    gridWeekDaysRow: 'mb-0 gap-px border-b border-default bg-elevated/50',
+                                    headCell: 'py-2 text-center text-sm font-medium text-toned',
+                                    gridBody: 'gap-px bg-accented',
+                                    gridRow: 'gap-px place-items-stretch',
+                                    cell: 'w-full bg-default text-left',
+                                    cellTrigger: 'm-0 size-auto w-full min-h-14 sm:min-h-25 flex-col items-stretch justify-start gap-1 rounded-none p-1 sm:p-2 whitespace-normal cursor-pointer data-today:ring-2 data-today:ring-inset data-today:ring-primary-500',
+                                }"
+                            >
+                                <!-- "Mo." → "Mo", as in the previous grid -->
+                                <template #week-day="{ day }">
+                                    {{ day.replace(".", "") }}
+                                </template>
+
+                                <template #day="{ day }">
+                                    <!-- Day number -->
+                                    <div class="flex items-center justify-center sm:justify-between">
+                                        <span class="text-sm font-medium">{{ day.day }}</span>
+                                        <UBadge
+                                            v-if="eventsForDay(day).length > 0"
+                                            color="primary"
+                                            variant="solid"
+                                            size="xs"
+                                            class="hidden sm:inline-flex"
+                                        >
+                                            {{ eventsForDay(day).length }}
+                                        </UBadge>
                                     </div>
-                                </div>
 
-                                <!-- Calendar days -->
-                                <div class="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-800">
-                                    <div
-                                        v-for="day in calendarDays"
-                                        :key="day.dateKey"
-                                        class="min-h-25 bg-white dark:bg-gray-950 p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors relative"
-                                        :class="{
-                                            'bg-primary-50 dark:bg-primary-950 hover:bg-primary-100 dark:hover:bg-primary-900': day.isSelected,
-                                            'ring-2 ring-primary-500 ring-inset': day.isToday
-                                        }"
-                                        @click="selectDate(day.date)"
-                                    >
-                                        <!-- Day number -->
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span
-                                                class="text-sm font-medium"
-                                                :class="{
-                                                    'text-gray-400 dark:text-gray-600': !day.isCurrentMonth,
-                                                    'text-primary-600 dark:text-primary-400 font-bold': day.isToday,
-                                                    'text-gray-900 dark:text-gray-100': day.isCurrentMonth && !day.isToday
-                                                }"
-                                            >
-                                                {{ day.date.getDate() }}
-                                            </span>
-                                            <UBadge
-                                                v-if="day.events.length > 0"
-                                                color="primary"
-                                                variant="solid"
-                                                size="xs"
-                                            >
-                                                {{ day.events.length }}
-                                            </UBadge>
+                                    <!-- Events (titles from sm, dots on phones) -->
+                                    <div class="hidden sm:block space-y-1">
+                                        <div
+                                            v-for="event in eventsForDay(day).slice(0, 2)"
+                                            :key="event.id"
+                                            class="text-xs px-1.5 py-0.5 rounded truncate"
+                                            :class="{
+                                                'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300': isMultiDayEvent(event),
+                                                'bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300': !isMultiDayEvent(event)
+                                            }"
+                                            :title="event.title"
+                                        >
+                                            {{ event.title }}
                                         </div>
-
-                                        <!-- Events -->
-                                        <div class="space-y-1">
-                                            <div
-                                                v-for="(event, idx) in day.events.slice(0, 2)"
-                                                :key="event.id"
-                                                class="text-xs px-1.5 py-0.5 rounded truncate"
-                                                :class="{
-                                                    'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300': isMultiDayEvent(event),
-                                                    'bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300': !isMultiDayEvent(event)
-                                                }"
-                                                :title="event.title"
-                                            >
-                                                {{ event.title }}
-                                            </div>
-                                            <div
-                                                v-if="day.events.length > 2"
-                                                class="text-xs text-gray-500 dark:text-gray-400 px-1.5"
-                                            >
-                                                +{{ day.events.length - 2 }} weitere
-                                            </div>
+                                        <div
+                                            v-if="eventsForDay(day).length > 2"
+                                            class="text-xs text-gray-500 dark:text-gray-400 px-1.5"
+                                        >
+                                            +{{ eventsForDay(day).length - 2 }} weitere
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                    <div v-if="eventsForDay(day).length > 0" class="flex sm:hidden justify-center gap-0.5">
+                                        <span
+                                            v-for="event in eventsForDay(day).slice(0, 3)"
+                                            :key="event.id"
+                                            class="size-1.5 rounded-full"
+                                            :class="isMultiDayEvent(event) ? 'bg-primary-500' : 'bg-sky-500'"
+                                        />
+                                    </div>
+                                </template>
+                            </UCalendar>
                         </UCard>
                     </div>
 
@@ -445,15 +375,3 @@ onMounted(() => {
         </template>
     </UDashboardPanel>
 </template>
-
-<style scoped>
-.calendar-grid {
-    overflow: hidden;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(229 231 235);
-}
-
-:global(.dark) .calendar-grid {
-    border-color: rgb(31 41 55);
-}
-</style>

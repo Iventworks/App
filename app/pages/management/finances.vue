@@ -1,147 +1,148 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn } from "@nuxt/ui";
 
 interface Transaction {
-    id: number
-    date: Date
-    description: string
-    category: string
-    type: 'income' | 'expense'
-    amount: number
-    status: 'pending' | 'completed' | 'cancelled'
-    relatedTo?: string
-    paymentMethod: string
+	id: number;
+	date: Date;
+	description: string;
+	category: string;
+	type: "income" | "expense";
+	amount: number;
+	status: "pending" | "completed" | "cancelled";
+	relatedTo?: string;
+	paymentMethod: string;
 }
 
 const transactions = ref<Transaction[]>([
-    {
-        id: 1,
-        date: new Date('2026-01-25'),
-        description: 'Teilnehmerbeitrag young+free Crottendorf',
-        category: 'Einnahmen',
-        type: 'income',
-        amount: 189.00,
-        status: 'completed',
-        relatedTo: 'young+free Crottendorf 2026',
-        paymentMethod: 'Überweisung'
-    },
-    {
-        id: 2,
-        date: new Date('2026-01-22'),
-        description: 'Materialbestellung Bastelmaterial',
-        category: 'Material',
-        type: 'expense',
-        amount: 245.50,
-        status: 'completed',
-        relatedTo: 'young+free Crottendorf 2026',
-        paymentMethod: 'Rechnung'
-    },
-    {
-        id: 3,
-        date: new Date('2026-01-20'),
-        description: 'Unterkunft Crottendorf Anzahlung',
-        category: 'Unterkunft',
-        type: 'expense',
-        amount: 1200.00,
-        status: 'pending',
-        relatedTo: 'young+free Crottendorf 2026',
-        paymentMethod: 'Überweisung'
-    },
-    {
-        id: 4,
-        date: new Date('2026-01-18'),
-        description: 'Teilnehmerbeitrag young+free Crottendorf',
-        category: 'Einnahmen',
-        type: 'income',
-        amount: 189.00,
-        status: 'completed',
-        relatedTo: 'young+free Crottendorf 2026',
-        paymentMethod: 'PayPal'
-    },
-    {
-        id: 5,
-        date: new Date('2026-01-15'),
-        description: 'Verpflegung Wocheneinkauf',
-        category: 'Verpflegung',
-        type: 'expense',
-        amount: 680.00,
-        status: 'completed',
-        relatedTo: 'young+free Crottendorf 2026',
-        paymentMethod: 'Rechnung'
-    }
-])
+	{
+		id: 1,
+		date: new Date("2026-01-25"),
+		description: "Teilnehmerbeitrag young+free Crottendorf",
+		category: "Einnahmen",
+		type: "income",
+		amount: 189.0,
+		status: "completed",
+		relatedTo: "young+free Crottendorf 2026",
+		paymentMethod: "Überweisung",
+	},
+	{
+		id: 2,
+		date: new Date("2026-01-22"),
+		description: "Materialbestellung Bastelmaterial",
+		category: "Material",
+		type: "expense",
+		amount: 245.5,
+		status: "completed",
+		relatedTo: "young+free Crottendorf 2026",
+		paymentMethod: "Rechnung",
+	},
+	{
+		id: 3,
+		date: new Date("2026-01-20"),
+		description: "Unterkunft Crottendorf Anzahlung",
+		category: "Unterkunft",
+		type: "expense",
+		amount: 1200.0,
+		status: "pending",
+		relatedTo: "young+free Crottendorf 2026",
+		paymentMethod: "Überweisung",
+	},
+	{
+		id: 4,
+		date: new Date("2026-01-18"),
+		description: "Teilnehmerbeitrag young+free Crottendorf",
+		category: "Einnahmen",
+		type: "income",
+		amount: 189.0,
+		status: "completed",
+		relatedTo: "young+free Crottendorf 2026",
+		paymentMethod: "PayPal",
+	},
+	{
+		id: 5,
+		date: new Date("2026-01-15"),
+		description: "Verpflegung Wocheneinkauf",
+		category: "Verpflegung",
+		type: "expense",
+		amount: 680.0,
+		status: "completed",
+		relatedTo: "young+free Crottendorf 2026",
+		paymentMethod: "Rechnung",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedType = ref('all')
-const selectedCategory = ref('all')
-const selectedStatus = ref('all')
+const searchQuery = ref("");
+const selectedType = ref("all");
+const selectedCategory = ref("all");
+const selectedStatus = ref("all");
 
 const filteredTransactions = computed(() => {
-    return transactions.value.filter(t => {
-        const matchesSearch = !searchQuery.value || 
-            t.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            (t.relatedTo && t.relatedTo.toLowerCase().includes(searchQuery.value.toLowerCase()))
-        
-        const matchesType = selectedType.value === 'all' || t.type === selectedType.value
-        const matchesCategory = selectedCategory.value === 'all' || t.category === selectedCategory.value
-        const matchesStatus = selectedStatus.value === 'all' || t.status === selectedStatus.value
-        
-        return matchesSearch && matchesType && matchesCategory && matchesStatus
-    })
-})
+	return transactions.value.filter((t) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			t.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			(t.relatedTo && t.relatedTo.toLowerCase().includes(searchQuery.value.toLowerCase()));
+
+		const matchesType = selectedType.value === "all" || t.type === selectedType.value;
+		const matchesCategory = selectedCategory.value === "all" || t.category === selectedCategory.value;
+		const matchesStatus = selectedStatus.value === "all" || t.status === selectedStatus.value;
+
+		return matchesSearch && matchesType && matchesCategory && matchesStatus;
+	});
+});
 
 const stats = computed(() => {
-    const totalIncome = transactions.value
-        .filter(t => t.type === 'income' && t.status === 'completed')
-        .reduce((sum, t) => sum + t.amount, 0)
-    
-    const totalExpense = transactions.value
-        .filter(t => t.type === 'expense' && t.status === 'completed')
-        .reduce((sum, t) => sum + t.amount, 0)
-    
-    const balance = totalIncome - totalExpense
-    
-    const pending = transactions.value
-        .filter(t => t.status === 'pending')
-        .reduce((sum, t) => sum + t.amount, 0)
-    
-    return { totalIncome, totalExpense, balance, pending }
-})
+	const totalIncome = transactions.value
+		.filter((t) => t.type === "income" && t.status === "completed")
+		.reduce((sum, t) => sum + t.amount, 0);
+
+	const totalExpense = transactions.value
+		.filter((t) => t.type === "expense" && t.status === "completed")
+		.reduce((sum, t) => sum + t.amount, 0);
+
+	const balance = totalIncome - totalExpense;
+
+	const pending = transactions.value
+		.filter((t) => t.status === "pending")
+		.reduce((sum, t) => sum + t.amount, 0);
+
+	return { totalIncome, totalExpense, balance, pending };
+});
 
 const categories = computed(() => {
-    const cats = [...new Set(transactions.value.map(t => t.category))]
-    return ['all', ...cats]
-})
+	const cats = [...new Set(transactions.value.map((t) => t.category))];
+	return ["all", ...cats];
+});
 
 const statusConfig = {
-    pending: { label: 'Ausstehend', color: 'orange' },
-    completed: { label: 'Abgeschlossen', color: 'green' },
-    cancelled: { label: 'Storniert', color: 'red' }
-}
+	pending: { label: "Ausstehend", color: "orange" },
+	completed: { label: "Abgeschlossen", color: "green" },
+	cancelled: { label: "Storniert", color: "red" },
+};
 
-function getStatusConfig(status: Transaction['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: Transaction["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('de-DE', { 
-        style: 'currency', 
-        currency: 'EUR' 
-    }).format(amount)
+	return new Intl.NumberFormat("de-DE", {
+		style: "currency",
+		currency: "EUR",
+	}).format(amount);
 }
 
 const columns: TableColumn<Transaction>[] = [
-    { accessorKey: 'date', header: 'Datum' },
-    { accessorKey: 'description', header: 'Beschreibung' },
-    { accessorKey: 'category', header: 'Kategorie' },
-    { accessorKey: 'amount', header: 'Betrag' },
-    { accessorKey: 'status', header: 'Status' },
-    { id: 'actions', header: '' }
-]
+	{ accessorKey: "date", header: "Datum" },
+	{ accessorKey: "description", header: "Beschreibung" },
+	{ accessorKey: "category", header: "Kategorie" },
+	{ accessorKey: "amount", header: "Betrag" },
+	{ accessorKey: "status", header: "Status" },
+	{ id: "actions", header: "" },
+];
 </script>
 
 <template>

@@ -1,64 +1,64 @@
-# Nuxt Dashboard Template
+# CMP — Crossover Management Portal
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Full-stack Nuxt app: Nuxt 4 frontend **and** the Hono API in `server/`, mounted at `/api`. Built
+on the LeiCraftMC style guide's `fullstack-nuxt-app` template.
 
-Get started with the Nuxt dashboard template with multiple pages, collapsible sidebar, keyboard shortcuts, light & dark more, command palette and more, powered by [Nuxt UI](https://ui.nuxt.com).
+## Stack
 
-- [Live demo](https://dashboard-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
-
-<a href="https://dashboard-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/dashboard-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png">
-    <img alt="Nuxt Dashboard Template" src="https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png">
-  </picture>
-</a>
-
-> The dashboard template for Vue is on https://github.com/nuxt-ui-templates/dashboard-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t github:nuxt-ui-templates/dashboard
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=dashboard&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fdashboard&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fdashboard-dark.png&demo-url=https%3A%2F%2Fdashboard-template.nuxt.dev%2F&demo-title=Nuxt%20Dashboard%20Template&demo-description=A%20dashboard%20template%20with%20multi-column%20layout%20for%20building%20sophisticated%20admin%20interfaces.)
+- Nuxt 4 (`app/` srcDir) + NuxtUI v4 + Tailwind v4 (CSS-first), PWA via `@vite-pwa/nuxt`
+- Hono + Zod + `hono-openapi` (Scalar) in `server/`, mounted at `/api` via a catch-all Nitro route
+- Drizzle ORM + `bun-sqlite`
+- Bun runtime (Nitro `bun` preset)
+- Biome formatter/linter
+- AGPL-3.0
 
 ## Setup
 
-Make sure to install the dependencies:
-
 ```bash
-pnpm install
+bun install
+cp example.env .env
+bun run dev   # http://localhost:31316
 ```
 
-## Development Server
+The `server/plugins/startup.ts` Nitro plugin initializes the DB and the Hono `API` on boot.
+Endpoints are at `/api/v1/**`, `/api/health`, `/api/docs/v1`. On first start (empty DB) an `admin`
+user is created; its one-time password-reset link is logged and written to
+`config/initial_admin_password_reset_token.txt`.
 
-Start the development server on `http://localhost:3000`:
+## Configuration
 
-```bash
-pnpm dev
-```
+All settings are `CMP_*` env vars — see `example.env`. One URL drives both halves:
+`CMP_APP_URL` is the public origin (CORS, reset links, and the browser's API base
+`<CMP_APP_URL>/api/v1`). `CMP_ENABLE_SIGNUP=true` shows the signup page.
 
-## Production
+## API client
 
-Build the application for production:
-
-```bash
-pnpm build
-```
-
-Locally preview production build:
+The typed client in `app/api-client/` is generated from the API's OpenAPI spec (the script boots
+the API in-process, no dev server needed). Never edit it by hand:
 
 ```bash
-pnpm preview
+bun run api-client:generate
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Scripts
 
-## Renovate integration
+- `bun run dev` — dev server on port 31316 (frontend + API)
+- `bun run build` — production build (single `.output/`, Bun preset)
+- `bun run start` — run the built server
+- `docker/` — production image: `.output/` + `drizzle/migrations` on `oven/bun`
+- `bun run db:generate` / `db:migrate` — Drizzle migrations (`drizzle/migrations/`, committed)
+- `bun run check` / `check:ci` / `format` — Biome
+- `bun run typecheck` — `nuxt typecheck` + `tsc` (includes `server/`)
+- `bun test` — API tests
 
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+## Structure
+
+See the LeiCraftMC style guide:
+
+- [docs/01-project-structure.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/01-project-structure.md) — the full-stack Nuxt shape
+- [docs/04-backend-hono.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/04-backend-hono.md) — Mounting Hono in Nitro
+- [docs/06-frontend-nuxt.md](https://github.com/LeiCraftMC/Style-Guides/blob/main/docs/06-frontend-nuxt.md)
+
+## License
+
+AGPL-3.0

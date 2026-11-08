@@ -1,263 +1,280 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
-import type { TableColumn } from '@nuxt/ui'
-import type { Row, ColumnFiltersState, FilterFn, HeaderContext, CellContext } from '@tanstack/vue-table'
-import { getPaginationRowModel } from '@tanstack/table-core'
-import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
-import DateRangePicker from '../form/DateRangePicker.vue';
+import type { TableColumn } from "@nuxt/ui";
+import { getPaginationRowModel } from "@tanstack/table-core";
+import type {
+	CellContext,
+	ColumnFiltersState,
+	FilterFn,
+	HeaderContext,
+	Row,
+} from "@tanstack/vue-table";
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import DateRangePicker from "../form/DateRangePicker.vue";
 
 // Cell slot props type (matches UTable's slot props)
 type CellSlotProps = {
-    row: Row<T>
-}
+	row: Row<T>;
+};
 
 // Select option type for select filters
 interface SelectOption {
-    label: string
-    value: string | number | boolean | null
-    icon?: string
-    color?: string
+	label: string;
+	value: string | number | boolean | null;
+	icon?: string;
+	color?: string;
 }
 
 // Filter types
-type FilterType = 'text' | 'number' | 'date' | 'select' | 'multi-select' | 'custom'
+type FilterType = "text" | "number" | "date" | "select" | "multi-select" | "custom";
 
 // Filter configuration type
 interface FilterConfig {
-    /** Column key to filter */
-    column: keyof T;
-    /** Filter type */
-    type?: FilterType
-    /** Input placeholder */
-    placeholder?: string
-    /** Input icon */
-    icon?: string
-    /** Custom CSS class for the input */
-    class?: string
-    /** Options for select/multi-select filters */
-    options?: SelectOption[]
-    /** Custom filter function */
-    filterFn?: FilterFn<T>
-    /** Label for the filter (shown in multi-select badge) */
-    label?: string
+	/** Column key to filter */
+	column: keyof T;
+	/** Filter type */
+	type?: FilterType;
+	/** Input placeholder */
+	placeholder?: string;
+	/** Input icon */
+	icon?: string;
+	/** Custom CSS class for the input */
+	class?: string;
+	/** Options for select/multi-select filters */
+	options?: SelectOption[];
+	/** Custom filter function */
+	filterFn?: FilterFn<T>;
+	/** Label for the filter (shown in multi-select badge) */
+	label?: string;
 }
 
 // Props
 interface Props {
-    /** Table data */
-    data: T[] | Ref<T[]>
-    /** Table columns configuration */
-    columns: TableColumn<T>[]
-    /** Loading state */
-    loading?: boolean | Ref<boolean>
-    /** Filter configurations */
-    filters?: FilterConfig[]
-    /** Default page size */
-    defaultPageSize?: number
-    /** Available page size options */
-    pageSizeOptions?: number[]
-    /** Show refresh button */
-    showRefresh?: boolean
-    /** Show pagination */
-    showPagination?: boolean
-    /** Show page size selector */
-    showPageSizeSelector?: boolean
-    /** Empty state title */
-    emptyTitle?: string
-    /** Empty state description */
-    emptyDescription?: string
-    /** Empty state icon */
-    emptyIcon?: string
+	/** Table data */
+	data: T[] | Ref<T[]>;
+	/** Table columns configuration */
+	columns: TableColumn<T>[];
+	/** Loading state */
+	loading?: boolean | Ref<boolean>;
+	/** Filter configurations */
+	filters?: FilterConfig[];
+	/** Default page size */
+	defaultPageSize?: number;
+	/** Available page size options */
+	pageSizeOptions?: number[];
+	/** Show refresh button */
+	showRefresh?: boolean;
+	/** Show pagination */
+	showPagination?: boolean;
+	/** Show page size selector */
+	showPageSizeSelector?: boolean;
+	/** Empty state title */
+	emptyTitle?: string;
+	/** Empty state description */
+	emptyDescription?: string;
+	/** Empty state icon */
+	emptyIcon?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    loading: false,
-    filters: () => [],
-    defaultPageSize: 10,
-    pageSizeOptions: () => [10, 25, 50, 100],
-    showRefresh: true,
-    showPagination: true,
-    showPageSizeSelector: true,
-    emptyTitle: 'No data',
-    emptyDescription: 'No items found.',
-    emptyIcon: 'i-lucide-database'
+	loading: false,
+	filters: () => [],
+	defaultPageSize: 10,
+	pageSizeOptions: () => [10, 25, 50, 100],
+	showRefresh: true,
+	showPagination: true,
+	showPageSizeSelector: true,
+	emptyTitle: "No data",
+	emptyDescription: "No items found.",
+	emptyIcon: "i-lucide-database",
 });
 
 // Emits
 const emit = defineEmits<{
-    /** Emitted when refresh button is clicked */
-    refresh: []
-    /** Emitted when a row is selected/clicked */
-    'row-click': [row: T]
-}>()
+	/** Emitted when refresh button is clicked */
+	refresh: [];
+	/** Emitted when a row is selected/clicked */
+	"row-click": [row: T];
+}>();
 
-type DynamicHeaderSlots<T, K = keyof T> = Record<string, (props: HeaderContext<T, unknown>) => any> & Record<`${K extends string ? K : never}-header`, (props: HeaderContext<T, unknown>) => any>;
-type DynamicFooterSlots<T, K = keyof T> = Record<string, (props: HeaderContext<T, unknown>) => any> & Record<`${K extends string ? K : never}-footer`, (props: HeaderContext<T, unknown>) => any>;
-type DynamicCellSlots<T, K = keyof T> = Record<string, (props: CellContext<T, unknown>) => any> & Record<`${K extends string ? K : never}-cell`, (props: CellContext<T, unknown>) => any>;
+type DynamicHeaderSlots<T, K = keyof T> = Record<
+	string,
+	(props: HeaderContext<T, unknown>) => any
+> &
+	Record<`${K extends string ? K : never}-header`, (props: HeaderContext<T, unknown>) => any>;
+type DynamicFooterSlots<T, K = keyof T> = Record<
+	string,
+	(props: HeaderContext<T, unknown>) => any
+> &
+	Record<`${K extends string ? K : never}-footer`, (props: HeaderContext<T, unknown>) => any>;
+type DynamicCellSlots<T, K = keyof T> = Record<string, (props: CellContext<T, unknown>) => any> &
+	Record<`${K extends string ? K : never}-cell`, (props: CellContext<T, unknown>) => any>;
 
 type TableSlots = {
-    /** Header left side content (before search) */
-    'header-left'?: () => any
-    /** Header right side content (after refresh button) */
-    'header-right'?: () => any
-    /** Custom empty state */
-    'empty'?: () => any
-    /** Actions in the empty state */
-    'empty-actions'?: () => any
-    /** Footer left side content */
-    'footer-left'?: () => any
-    /** Footer right side content (replaces pagination) */
-    'footer-right'?: () => any
-} & DynamicHeaderSlots<T> & DynamicFooterSlots<T> & DynamicCellSlots<T>;
+	/** Header left side content (before search) */
+	"header-left"?: () => any;
+	/** Header right side content (after refresh button) */
+	"header-right"?: () => any;
+	/** Custom empty state */
+	empty?: () => any;
+	/** Actions in the empty state */
+	"empty-actions"?: () => any;
+	/** Footer left side content */
+	"footer-left"?: () => any;
+	/** Footer right side content (replaces pagination) */
+	"footer-right"?: () => any;
+} & DynamicHeaderSlots<T> &
+	DynamicFooterSlots<T> &
+	DynamicCellSlots<T>;
 
 // Slots with proper typing for type checking
-defineSlots<TableSlots>()
+defineSlots<TableSlots>();
 
 // Use useSlots for dynamic slot access (avoids index signature issues)
 const slots = useSlots();
 
 // Table ref
-const table = useTemplateRef('table')
+const table = useTemplateRef("table");
 
 // Filter configurations
-const allFilters = computed<FilterConfig[]>(() => props.filters ?? [])
+const allFilters = computed<FilterConfig[]>(() => props.filters ?? []);
 
 // Column filters state
-const columnFilters = ref<ColumnFiltersState>([])
+const columnFilters = ref<ColumnFiltersState>([]);
 
 // Initialize filters for all specified columns
 watchEffect(() => {
-    const filterColumns = allFilters.value.map(f => f.column)
-    for (const col of filterColumns) {
-        const existingFilter = columnFilters.value.find(f => f.id === col)
-        if (!existingFilter) {
-            const filter = allFilters.value.find(f => f.column === col)
-            const initialValue = filter?.type === 'multi-select' ? [] : ''
-            columnFilters.value.push({ id: col as string, value: initialValue })
-        }
-    }
-})
+	const filterColumns = allFilters.value.map((f) => f.column);
+	for (const col of filterColumns) {
+		const existingFilter = columnFilters.value.find((f) => f.id === col);
+		if (!existingFilter) {
+			const filter = allFilters.value.find((f) => f.column === col);
+			const initialValue = filter?.type === "multi-select" ? [] : "";
+			columnFilters.value.push({ id: col as string, value: initialValue });
+		}
+	}
+});
 
 // Helper to get/set filter value for a specific column
 function getFilterValue(column: string): any {
-    const filter = allFilters.value.find(f => f.column === column)
-    const value = table.value?.tableApi?.getColumn(column)?.getFilterValue()
-    // Return undefined for select types to show placeholder, empty string for text
-    if (filter?.type === 'select' || filter?.type === 'multi-select') {
-        return value ?? undefined
-    }
-    return value ?? ''
+	const filter = allFilters.value.find((f) => f.column === column);
+	const value = table.value?.tableApi?.getColumn(column)?.getFilterValue();
+	// Return undefined for select types to show placeholder, empty string for text
+	if (filter?.type === "select" || filter?.type === "multi-select") {
+		return value ?? undefined;
+	}
+	return value ?? "";
 }
 
 function setFilterValue(column: string, value: any) {
-    const filter = allFilters.value.find(f => f.column === column)
-    if (filter?.type === 'multi-select') {
-        table.value?.tableApi?.getColumn(column)?.setFilterValue(value?.length ? value : undefined)
-    } else {
-        table.value?.tableApi?.getColumn(column)?.setFilterValue(value || undefined)
-    }
+	const filter = allFilters.value.find((f) => f.column === column);
+	if (filter?.type === "multi-select") {
+		table.value?.tableApi?.getColumn(column)?.setFilterValue(value?.length ? value : undefined);
+	} else {
+		table.value?.tableApi?.getColumn(column)?.setFilterValue(value || undefined);
+	}
 }
 
 // Get select items for a filter
 function getSelectItems(filter: FilterConfig) {
-    if (!filter.options) return []
-    return filter.options.map(opt => ({
-        label: opt.label,
-        value: opt.value as string | number
-    }))
+	if (!filter.options) return [];
+	return filter.options.map((opt) => ({
+		label: opt.label,
+		value: opt.value as string | number,
+	}));
 }
 
 // Get multi-select items for a filter
 function getMultiSelectItems(filter: FilterConfig) {
-    if (!filter.options) return []
-    return filter.options.map(opt => ({
-        label: opt.label,
-        value: opt.value
-    }))
+	if (!filter.options) return [];
+	return filter.options.map((opt) => ({
+		label: opt.label,
+		value: opt.value,
+	}));
 }
 
 // Enhanced columns with custom filter functions
 const enhancedColumns = computed<TableColumn<T>[]>(() => {
-    return props.columns.map(col => {
-        const accessorKey = (col as any).accessorKey || (col as any).id
-        const filter = allFilters.value.find(f => f.column === accessorKey)
-        
-        if (!filter) return col;
-        
-        // Add custom filter function based on filter type
-        let filterFn: FilterFn<T> | undefined
-        
-        if (filter.filterFn) {
-            filterFn = filter.filterFn
-        } else if (filter.type === 'select') {
-            filterFn = (row, columnId, filterValue) => {
-                if (!filterValue || filterValue === '' || filterValue === null) return true
-                const cellValue = row.getValue(columnId)
-                return cellValue === filterValue
-            }
-        } else if (filter.type === 'multi-select') {
-            filterFn = (row, columnId, filterValue) => {
-                if (!filterValue || !Array.isArray(filterValue) || filterValue.length === 0) return true
-                const cellValue = row.getValue(columnId)
-                return filterValue.includes(cellValue)
-            }
-        } else if (filter.type === 'date') {
-            filterFn = (row, columnId, filterValue) => {
-                if (!filterValue || !filterValue.start || !filterValue.end) return true
-                const cellValue = row.getValue(columnId) as string | number
-                const cellDate = new Date(cellValue)
-                const startDate = new Date(filterValue.start)
-                const endDate = new Date(filterValue.end)
-                // Normalize time for comparison
-                cellDate.setHours(0,0,0,0)
-                startDate.setHours(0,0,0,0)
-                endDate.setHours(0,0,0,0)
-                return cellDate >= startDate && cellDate <= endDate
-            }
-        }
-        
-        if (filterFn) {
-            return {
-                ...col,
-                filterFn
-            } as TableColumn<T>
-        }
-        
-        return col;
-    })
-})
+	return props.columns.map((col) => {
+		const accessorKey = (col as any).accessorKey || (col as any).id;
+		const filter = allFilters.value.find((f) => f.column === accessorKey);
+
+		if (!filter) return col;
+
+		// Add custom filter function based on filter type
+		let filterFn: FilterFn<T> | undefined;
+
+		if (filter.filterFn) {
+			filterFn = filter.filterFn;
+		} else if (filter.type === "select") {
+			filterFn = (row, columnId, filterValue) => {
+				if (!filterValue || filterValue === "" || filterValue === null) return true;
+				const cellValue = row.getValue(columnId);
+				return cellValue === filterValue;
+			};
+		} else if (filter.type === "multi-select") {
+			filterFn = (row, columnId, filterValue) => {
+				if (!filterValue || !Array.isArray(filterValue) || filterValue.length === 0) return true;
+				const cellValue = row.getValue(columnId);
+				return filterValue.includes(cellValue);
+			};
+		} else if (filter.type === "date") {
+			filterFn = (row, columnId, filterValue) => {
+				if (!filterValue || !filterValue.start || !filterValue.end) return true;
+				const cellValue = row.getValue(columnId) as string | number;
+				const cellDate = new Date(cellValue);
+				const startDate = new Date(filterValue.start);
+				const endDate = new Date(filterValue.end);
+				// Normalize time for comparison
+				cellDate.setHours(0, 0, 0, 0);
+				startDate.setHours(0, 0, 0, 0);
+				endDate.setHours(0, 0, 0, 0);
+				return cellDate >= startDate && cellDate <= endDate;
+			};
+		}
+
+		if (filterFn) {
+			return {
+				...col,
+				filterFn,
+			} as TableColumn<T>;
+		}
+
+		return col;
+	});
+});
 
 // Pagination state
 const pagination = ref({
-    pageIndex: 0,
-    pageSize: props.defaultPageSize
-})
+	pageIndex: 0,
+	pageSize: props.defaultPageSize,
+});
 
 // Page size select items
 const pageSizeItems = computed(() =>
-    props.pageSizeOptions.map(size => ({
-        label: String(size),
-        value: size
-    }))
-)
+	props.pageSizeOptions.map((size) => ({
+		label: String(size),
+		value: size,
+	})),
+);
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
-const isMobile = breakpoints.smaller('sm');
+const isMobile = breakpoints.smaller("sm");
 
 // Handle page size change
 function handlePageSizeChange(value: number) {
-    table.value?.tableApi?.setPageSize(value)
+	table.value?.tableApi?.setPageSize(value);
 }
 
 // Handle refresh
 function handleRefresh() {
-    emit('refresh')
+	emit("refresh");
 }
 
 // Expose table ref and API for parent component access
 defineExpose({
-    table,
-    tableApi: computed(() => table.value?.tableApi)
-})
+	table,
+	tableApi: computed(() => table.value?.tableApi),
+});
 </script>
 
 <template>

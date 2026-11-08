@@ -1,11 +1,10 @@
-
 export function useSelectedCampOrEvent() {
-    return useState<{
-        id: number,
-		label: string,
+	return useState<{
+		id: number;
+		label: string;
 		avatar: {
-			src: string,
-			alt: string
-		}
-	} | null>('selectedCampOrEvent', () => null);
+			src: string;
+			alt: string;
+		};
+	} | null>("selectedCampOrEvent", () => null);
 }

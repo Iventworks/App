@@ -1,111 +1,100 @@
 <script setup lang="ts">
+import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
-import type { FormSubmitEvent, AuthFormField } from "@nuxt/ui";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
 
 definePageMeta({
-    layout: "auth",
+	layout: "auth",
 });
 
 useSeoMeta({
-    title: "Login | CMP",
-    description: "Loggen Sie sich ins CMP-Dashboard ein",
+	title: "Login | CMP",
+	description: "Loggen Sie sich ins CMP-Dashboard ein",
 });
 
 const route = useRoute();
 let redirectUrl = route.query.url?.toString() || "/";
 
-// Ensure redirectUrl is a safe path within the application
-if (!redirectUrl.startsWith("/")) {
-    redirectUrl = "/";
+// Only follow internal paths (`/…`, not protocol-relative `//evil.example`)
+if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
+	redirectUrl = "/";
 }
-
 
 const toast = useToast();
 
 const fields: AuthFormField[] = [
-    {
-        name: "username",
-        type: "text",
-        label: "Benutzername",
-        placeholder: "Geben Sie Ihren Benutzernamen ein",
-        required: true,
-    },
-    {
-        name: "password",
-        label: "Passwort",
-        type: "password",
-        placeholder: "Geben Sie Ihr Passwort ein",
-        required: true,
-    },
-    {
-        name: "remember",
-        label: "Angemeldet bleiben",
-        type: "checkbox",
-        description: "Sie bleiben 30 Tage lang angemeldet.",
-    },
+	{
+		name: "username",
+		type: "text",
+		label: "Benutzername",
+		placeholder: "Geben Sie Ihren Benutzernamen ein",
+		required: true,
+	},
+	{
+		name: "password",
+		label: "Passwort",
+		type: "password",
+		placeholder: "Geben Sie Ihr Passwort ein",
+		required: true,
+	},
+	{
+		name: "remember",
+		label: "Angemeldet bleiben",
+		type: "checkbox",
+		description: "Sie bleiben 30 Tage lang angemeldet.",
+	},
 ];
 
 const schema = z.object({
-    username: z
-        .string("Benutzername ist erforderlich")
-        .trim()
-        .min(1, "Benutzername ist erforderlich"),
-    password: z
-        .string("Passwort ist erforderlich")
-        .trim()
-        .min(1, "Passwort ist erforderlich"),
-    remember: z.boolean().optional(),
+	username: z.string("Benutzername ist erforderlich").trim().min(1, "Benutzername ist erforderlich"),
+	password: z.string("Passwort ist erforderlich").trim().min(1, "Passwort ist erforderlich"),
+	remember: z.boolean().optional(),
 });
 
 type Schema = z.output<typeof schema>;
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-    const result = await useAPI((api) => {
-        return api.postAuthLogin({ body: payload.data });
-    });
+	const result = await useAPI((api) => {
+		return api.postAuthLogin({ body: payload.data });
+	});
 
-    if (result.success) {
-        updateAPIClient(result.data.token);
+	if (result.success) {
+		updateAPIClient(result.data.token);
 
-        const sessionToken = useCookie("cmp_session_token", {
-            path: "/",
-            secure: true,
-            sameSite: "lax",
-            httpOnly: false,
-            maxAge: payload.data.remember ? 60 * 60 * 24 * 30 : undefined, // 30 days
-        });
+		useAppCookies().sessionToken.set(result.data.token, {
+			maxAge: payload.data.remember ? 60 * 60 * 24 * 30 : undefined, // 30 days only with "remember me"
+		});
 
-        sessionToken.value = result.data.token;
+		await useUserInfoStore().refresh();
 
-        await useUserInfoStore().refresh();
+		toast.add({
+			title: "Login erfolgreich",
+			description: "Sie haben sich erfolgreich eingeloggt.",
+		});
 
-        toast.add({
-            title: "Login erfolgreich",
-            description: "Sie haben sich erfolgreich eingeloggt.",
-        });
-
-        await navigateTo(redirectUrl.toString());
-        return;
-    } else {
-        if ((result.code as number) === 401) {
-            toast.add({
-                title: "Ungültiger Benutzername oder Passwort",
-                description: "Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut.",
-                icon: "i-lucide-alert-circle",
-                color: "error",
-            });
-        } else {
-            toast.add({
-                title: "Login fehlgeschlagen",
-                description: result.message || "Beim Login ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.",
-                icon: "i-lucide-alert-circle",
-                color: "error",
-            });
-        }
-    }
+		await navigateTo(redirectUrl.toString());
+		return;
+	} else {
+		if ((result.code as number) === 401) {
+			toast.add({
+				title: "Ungültiger Benutzername oder Passwort",
+				description: "Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
+		} else {
+			toast.add({
+				title: "Login fehlgeschlagen",
+				description:
+					result.message ||
+					"Beim Login ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
+		}
+	}
 }
 </script>
 

@@ -1,75 +1,75 @@
 <script setup lang="ts">
+import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
-import type { FormSubmitEvent, AuthFormField } from "@nuxt/ui";
 
 const isSignupEnabled = useRuntimeConfig().public.isSignupEnabled;
 
 definePageMeta({
-    layout: 'auth'
+	layout: "auth",
 });
 
 useSeoMeta({
-    title: "Passwort vergessen | CMP",
-    description: "Setzen Sie Ihr Passwort zurück",
+	title: "Passwort vergessen | CMP",
+	description: "Setzen Sie Ihr Passwort zurück",
 });
 
 const toast = useToast();
 
 const fields: AuthFormField[] = [
-    {
-        name: "email",
-        type: "email",
-        label: "E-Mail-Adresse",
-        placeholder: "Geben Sie Ihre E-Mail-Adresse ein",
-        required: true,
-    },
+	{
+		name: "email",
+		type: "email",
+		label: "E-Mail-Adresse",
+		placeholder: "Geben Sie Ihre E-Mail-Adresse ein",
+		required: true,
+	},
 ];
 
 const schema = z.object({
-    email: z.email("Ungültige E-Mail-Adresse").trim(),
+	email: z.email("Ungültige E-Mail-Adresse").trim(),
 });
 
 type Schema = z.output<typeof schema>;
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-    // @TODO: Implement forgot password when backend is implemented
-    toast.add({
-        title: "Funktion nicht implementiert",
-        description: "Die Funktion zum Zurücksetzen des Passworts ist noch nicht implementiert.",
-    });
+	// @TODO: Implement forgot password when backend is implemented
+	toast.add({
+		title: "Funktion nicht implementiert",
+		description: "Die Funktion zum Zurücksetzen des Passworts ist noch nicht implementiert.",
+	});
 
-    // const result = await useAPI().postAuthLogin({ body: payload.data });
+	// const result = await useAPI().postAuthLogin({ body: payload.data });
 
-    // if (result.success) {
+	// if (result.success) {
 
-    //     updateAPIClient(result.data.token);
+	//     updateAPIClient(result.data.token);
 
-    //     const sessionToken = useCookie("cmp_session_token", {
-    //         path:     '/',
-    //         secure:   true,
-    //         sameSite: 'strict',
-    //         httpOnly: false,
-    //         maxAge:   604800,
-    //     });
+	//     const sessionToken = useCookie("cmp_session_token", {
+	//         path:     '/',
+	//         secure:   true,
+	//         sameSite: 'strict',
+	//         httpOnly: false,
+	//         maxAge:   604800,
+	//     });
 
-    //     sessionToken.value = result.data.token;
+	//     sessionToken.value = result.data.token;
 
-    //     await useUserInfoStore().refreshIfNeeded();
+	//     await useUserInfoStore().refreshIfNeeded();
 
-    //     toast.add({
-    //         title: 'Login Successful',
-    //         description: 'You have been logged in successfully.'
-    //     });
+	//     toast.add({
+	//         title: 'Login Successful',
+	//         description: 'You have been logged in successfully.'
+	//     });
 
-    //     await navigateTo(redirectUrl.toString());
-    //     return;
+	//     await navigateTo(redirectUrl.toString());
+	//     return;
 
-    // } else {
-    //     toast.add({
-    //         title: 'Login Failed',
-    //         description: 'An error occurred during login.'
-    //     });
-    // }
+	// } else {
+	//     toast.add({
+	//         title: 'Login Failed',
+	//         description: 'An error occurred during login.'
+	//     });
+	// }
 }
 </script>
 

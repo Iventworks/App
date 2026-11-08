@@ -1,134 +1,155 @@
 <script setup lang="ts">
-import * as z from 'zod'
-import type { FormError, FormSubmitEvent } from '@nuxt/ui'
-import { useUserInfoStore } from '~/composables/stores/useUserStore'
+import type { FormError, FormSubmitEvent } from "@nuxt/ui";
+import * as z from "zod";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
-const toast = useToast()
-const overlay = useOverlay()
+const toast = useToast();
+const overlay = useOverlay();
 
-const passwordLoading = ref(false)
-const deleteLoading = ref(false)
-const deleteConfirmOpen = ref(false)
-const deleteConfirmText = ref('')
+const passwordLoading = ref(false);
+const deleteLoading = ref(false);
+const deleteConfirmOpen = ref(false);
+const deleteConfirmText = ref("");
 
 const passwordSchema = z.object({
-	current_password: z.string('Current Password is required').trim().min(1, 'Current Password is required'),
-	new_password: z.string('Password is required').trim()
-		.min(8, 'Must be at least 8 characters')
-		.max(50, 'Must be at most 50 characters')
-		.regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-		.regex(/[a-z]/, 'Must contain at least one lowercase letter')
-		.regex(/[0-9]/, 'Must contain at least one number')
-		.regex(/[\W_]/, 'Must contain at least one special character'),
-	confirm_password: z.string('Confirm Password is required').trim().min(1, 'Confirm Password is required')
-})
+	current_password: z
+		.string("Current Password is required")
+		.trim()
+		.min(1, "Current Password is required"),
+	new_password: z
+		.string("Password is required")
+		.trim()
+		.min(8, "Must be at least 8 characters")
+		.max(50, "Must be at most 50 characters")
+		.regex(/[A-Z]/, "Must contain at least one uppercase letter")
+		.regex(/[a-z]/, "Must contain at least one lowercase letter")
+		.regex(/[0-9]/, "Must contain at least one number")
+		.regex(/[\W_]/, "Must contain at least one special character"),
+	confirm_password: z
+		.string("Confirm Password is required")
+		.trim()
+		.min(1, "Confirm Password is required"),
+});
 
-type PasswordSchema = z.output<typeof passwordSchema>
+type PasswordSchema = z.output<typeof passwordSchema>;
 
 const password = reactive<Partial<PasswordSchema>>({
 	current_password: undefined,
 	new_password: undefined,
-	confirm_password: undefined
+	confirm_password: undefined,
 });
 
 const validate = (state: Partial<PasswordSchema>): FormError[] => {
-	const errors: FormError[] = []
-	if (state.current_password && state.new_password && state.current_password === state.new_password) {
-		errors.push({ name: 'new_password', message: 'New password must be different from current password' })
+	const errors: FormError[] = [];
+	if (
+		state.current_password &&
+		state.new_password &&
+		state.current_password === state.new_password
+	) {
+		errors.push({
+			name: "new_password",
+			message: "New password must be different from current password",
+		});
 	}
-	if (state.new_password && state.confirm_password && state.new_password !== state.confirm_password) {
-		errors.push({ name: 'confirm_password', message: 'Passwords do not match' })
+	if (
+		state.new_password &&
+		state.confirm_password &&
+		state.new_password !== state.confirm_password
+	) {
+		errors.push({ name: "confirm_password", message: "Passwords do not match" });
 	}
-	return errors
-}
+	return errors;
+};
 
 async function onPasswordSubmit(event: FormSubmitEvent<PasswordSchema>) {
-	passwordLoading.value = true
+	passwordLoading.value = true;
 
 	try {
-		const result = await useAPI((api) => api.putAccountPassword({
-			body: {
-				current_password: event.data.current_password,
-				new_password: event.data.new_password
-			}
-		}))
+		const result = await useAPI((api) =>
+			api.putAccountPassword({
+				body: {
+					current_password: event.data.current_password,
+					new_password: event.data.new_password,
+				},
+			}),
+		);
 
 		if (result.success) {
 			toast.add({
-				title: 'Password updated',
-				description: 'Your password has been successfully updated. Please log in again.',
-				icon: 'i-lucide-check',
-				color: 'success'
-			})
+				title: "Password updated",
+				description: "Your password has been successfully updated. Please log in again.",
+				icon: "i-lucide-check",
+				color: "success",
+			});
 
-			await useUserInfoStore().clear()
+			await useUserInfoStore().clear();
 			useAppCookies().sessionToken.get().value = null;
-			navigateTo('/auth/login')
+			navigateTo("/auth/login");
 		} else {
 			toast.add({
-				title: 'Error',
-				description: result.message || 'An error occurred while updating your password.',
-				icon: 'i-lucide-alert-circle',
-				color: 'error'
-			})
+				title: "Error",
+				description: result.message || "An error occurred while updating your password.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
 		}
 	} catch (error) {
 		toast.add({
-			title: 'Error',
-			description: 'An unexpected error occurred.',
-			icon: 'i-lucide-alert-circle',
-			color: 'error'
-		})
+			title: "Error",
+			description: "An unexpected error occurred.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
 	} finally {
-		passwordLoading.value = false
+		passwordLoading.value = false;
 	}
 }
 
 async function onDeleteAccount() {
-	if (deleteConfirmText.value !== 'DELETE') {
+	if (deleteConfirmText.value !== "DELETE") {
 		toast.add({
-			title: 'Confirmation required',
-			description: 'Please type DELETE to confirm account deletion.',
-			icon: 'i-lucide-alert-triangle',
-			color: 'warning'
-		})
-		return
+			title: "Confirmation required",
+			description: "Please type DELETE to confirm account deletion.",
+			icon: "i-lucide-alert-triangle",
+			color: "warning",
+		});
+		return;
 	}
 
-	deleteLoading.value = true
+	deleteLoading.value = true;
 
 	try {
-		const result = await useAPI((api) => api.deleteAccount({}))
+		const result = await useAPI((api) => api.deleteAccount({}));
 
 		if (result.success) {
 			toast.add({
-				title: 'Account deleted',
-				description: 'Your account has been permanently deleted.',
-				icon: 'i-lucide-check',
-				color: 'success'
-			})
+				title: "Account deleted",
+				description: "Your account has been permanently deleted.",
+				icon: "i-lucide-check",
+				color: "success",
+			});
 
-			await useUserInfoStore().clear()
+			await useUserInfoStore().clear();
 			useAppCookies().sessionToken.get().value = null;
-			navigateTo('/')
+			navigateTo("/");
 		} else {
 			toast.add({
-				title: 'Error',
-				description: result.message || 'An error occurred while deleting your account.',
-				icon: 'i-lucide-alert-circle',
-				color: 'error'
-			})
+				title: "Error",
+				description: result.message || "An error occurred while deleting your account.",
+				icon: "i-lucide-alert-circle",
+				color: "error",
+			});
 		}
 	} catch (error) {
 		toast.add({
-			title: 'Error',
-			description: 'An unexpected error occurred.',
-			icon: 'i-lucide-alert-circle',
-			color: 'error'
-		})
+			title: "Error",
+			description: "An unexpected error occurred.",
+			icon: "i-lucide-alert-circle",
+			color: "error",
+		});
 	} finally {
-		deleteLoading.value = false
-		deleteConfirmOpen.value = false
+		deleteLoading.value = false;
+		deleteConfirmOpen.value = false;
 	}
 }
 </script>

@@ -1,103 +1,95 @@
 <script setup lang="ts">
+import type { AuthFormField, FormError, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
-import type { FormSubmitEvent, AuthFormField, FormError } from "@nuxt/ui";
 
 definePageMeta({
-    layout: 'auth'
+	layout: "auth",
 });
 
 useSeoMeta({
-    title: "Passwort zurücksetzen | CMP",
-    description: "Setzen Sie Ihr Passwort zurück",
+	title: "Passwort zurücksetzen | CMP",
+	description: "Setzen Sie Ihr Passwort zurück",
 });
 
 const route = useRoute();
-const reset_token = route.query.token as string || '';
+const reset_token = (route.query.token as string) || "";
 
 const toast = useToast();
 
 const fields: AuthFormField[] = [
-    {
-        name: "password",
-        label: "Neues Passwort",
-        type: "password",
-        placeholder: "Geben Sie ein neues Passwort ein",
-        required: true,
-    },
-    {
-        name: "confirm_password",
-        label: "Neues Passwort bestätigen",
-        type: "password",
-        placeholder: "Geben Sie Ihr neues Passwort erneut ein",
-        required: true,
-    },
+	{
+		name: "password",
+		label: "Neues Passwort",
+		type: "password",
+		placeholder: "Geben Sie ein neues Passwort ein",
+		required: true,
+	},
+	{
+		name: "confirm_password",
+		label: "Neues Passwort bestätigen",
+		type: "password",
+		placeholder: "Geben Sie Ihr neues Passwort erneut ein",
+		required: true,
+	},
 ];
 
 const schema = z.object({
-    password: z
-        .string("Passwort ist erforderlich")
-        .trim()
-        .min(8, "Muss mindestens 8 Zeichen lang sein")
-        .max(50, "Darf höchstens 50 Zeichen lang sein")
-        .regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
-        .regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
-        .regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
-        .regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
-    confirm_password: z
-        .string("Passwort bestätigen ist erforderlich")
-        .trim()
-        .min(1, "Passwort bestätigen ist erforderlich"),
+	password: z
+		.string("Passwort ist erforderlich")
+		.trim()
+		.min(8, "Muss mindestens 8 Zeichen lang sein")
+		.max(50, "Darf höchstens 50 Zeichen lang sein")
+		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
+		.regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
+		.regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
+		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
+	confirm_password: z
+		.string("Passwort bestätigen ist erforderlich")
+		.trim()
+		.min(1, "Passwort bestätigen ist erforderlich"),
 });
 
 type NewPasswordSchema = z.output<typeof schema>;
 
 const formState = reactive<NewPasswordSchema>({
-    password: "",
-    confirm_password: "",
+	password: "",
+	confirm_password: "",
 });
 
 const validate = (state: Partial<NewPasswordSchema>): FormError[] => {
-    const errors: FormError[] = [];
-    if (
-        state.password &&
-        state.confirm_password &&
-        state.password !== state.confirm_password
-    ) {
-        errors.push({
-            name: "confirm_password",
-            message: "Passwörter stimmen nicht überein",
-        });
-    }
-    return errors;
+	const errors: FormError[] = [];
+	if (state.password && state.confirm_password && state.password !== state.confirm_password) {
+		errors.push({
+			name: "confirm_password",
+			message: "Passwörter stimmen nicht überein",
+		});
+	}
+	return errors;
 };
 async function onSubmit(payload: FormSubmitEvent<NewPasswordSchema>) {
+	const result = await useAPI((api) => {
+		return api.postAuthResetPassword({
+			body: {
+				reset_token,
+				new_password: payload.data.password,
+			},
+		});
+	});
 
-    const result = await useAPI((api) => {
-        return api.postAuthResetPassword({
-            body: {
-                reset_token,
-                new_password: payload.data.password,
-            }
-        });
-    });
+	if (result.success) {
+		toast.add({
+			title: "Passwort erfolgreich zurückgesetzt",
+			description: "Ihr Passwort wurde erfolgreich zurückgesetzt.",
+		});
 
-
-    if (result.success) {
-
-        toast.add({
-            title: 'Passwort erfolgreich zurückgesetzt',
-            description: 'Ihr Passwort wurde erfolgreich zurückgesetzt.'
-        });
-
-        await navigateTo("/auth/login");
-        return;
-
-    } else {
-        toast.add({
-            title: 'Passwort zurücksetzen fehlgeschlagen',
-            description: 'Beim Zurücksetzen des Passworts ist ein Fehler aufgetreten.'
-        });
-    }
+		await navigateTo("/auth/login");
+		return;
+	} else {
+		toast.add({
+			title: "Passwort zurücksetzen fehlgeschlagen",
+			description: "Beim Zurücksetzen des Passworts ist ein Fehler aufgetreten.",
+		});
+	}
 }
 </script>
 

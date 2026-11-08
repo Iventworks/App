@@ -1,164 +1,164 @@
 <script setup lang="ts">
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
-type ProgramCategory = 'workshop' | 'sport' | 'worship' | 'freetime' | 'meal' | 'other'
+type ProgramCategory = "workshop" | "sport" | "worship" | "freetime" | "meal" | "other";
 
 interface ProgramItem {
-    id: number
-    day: string
-    time: string
-    title: string
-    description: string
-    location: string
-    responsible: string
-    category: ProgramCategory
-    duration: number // in minutes
+	id: number;
+	day: string;
+	time: string;
+	title: string;
+	description: string;
+	location: string;
+	responsible: string;
+	category: ProgramCategory;
+	duration: number; // in minutes
 }
 
 const programItems = ref<ProgramItem[]>([
-    {
-        id: 1,
-        day: 'Samstag, 15.02.2026',
-        time: '14:00',
-        title: 'Anreise & Check-In',
-        description: 'Ankunft der Teilnehmer, Zimmerverteilung',
-        location: 'Haupteingang',
-        responsible: 'Lukas Pohl',
-        category: 'other',
-        duration: 120
-    },
-    {
-        id: 2,
-        day: 'Samstag, 15.02.2026',
-        time: '16:00',
-        title: 'Kennenlernspiele',
-        description: 'Gemeinsame Spiele zum Kennenlernen',
-        location: 'Sporthalle',
-        responsible: 'Sarah Müller',
-        category: 'sport',
-        duration: 90
-    },
-    {
-        id: 3,
-        day: 'Samstag, 15.02.2026',
-        time: '18:00',
-        title: 'Abendessen',
-        description: 'Gemeinsames Abendessen',
-        location: 'Speisesaal',
-        responsible: 'Küchenteam',
-        category: 'meal',
-        duration: 60
-    },
-    {
-        id: 4,
-        day: 'Samstag, 15.02.2026',
-        time: '19:30',
-        title: 'Eröffnungsgottesdienst',
-        description: 'Gemeinsamer Start in die Freizeit mit Lobpreis und Andacht',
-        location: 'Kapelle',
-        responsible: 'Jesko Bahlcke',
-        category: 'worship',
-        duration: 90
-    },
-    {
-        id: 5,
-        day: 'Sonntag, 16.02.2026',
-        time: '08:00',
-        title: 'Frühstück',
-        description: 'Gemeinsames Frühstück',
-        location: 'Speisesaal',
-        responsible: 'Küchenteam',
-        category: 'meal',
-        duration: 60
-    },
-    {
-        id: 6,
-        day: 'Sonntag, 16.02.2026',
-        time: '10:00',
-        title: 'Morgengottesdienst',
-        description: 'Lobpreis und Predigt',
-        location: 'Kapelle',
-        responsible: 'Lukas Pohl',
-        category: 'worship',
-        duration: 90
-    },
-    {
-        id: 7,
-        day: 'Sonntag, 16.02.2026',
-        time: '12:00',
-        title: 'Mittagessen',
-        description: 'Gemeinsames Mittagessen',
-        location: 'Speisesaal',
-        responsible: 'Küchenteam',
-        category: 'meal',
-        duration: 60
-    },
-    {
-        id: 8,
-        day: 'Sonntag, 16.02.2026',
-        time: '14:00',
-        title: 'Workshops',
-        description: 'Verschiedene Workshops zur Auswahl: Kreativ, Sport, Musik',
-        location: 'Verschiedene Räume',
-        responsible: 'Lisa Frischmuth',
-        category: 'workshop',
-        duration: 120
-    },
-    {
-        id: 9,
-        day: 'Sonntag, 16.02.2026',
-        time: '16:30',
-        title: 'Freie Zeit',
-        description: 'Zeit zur freien Verfügung',
-        location: '-',
-        responsible: '-',
-        category: 'freetime',
-        duration: 90
-    }
-])
+	{
+		id: 1,
+		day: "Samstag, 15.02.2026",
+		time: "14:00",
+		title: "Anreise & Check-In",
+		description: "Ankunft der Teilnehmer, Zimmerverteilung",
+		location: "Haupteingang",
+		responsible: "Lukas Pohl",
+		category: "other",
+		duration: 120,
+	},
+	{
+		id: 2,
+		day: "Samstag, 15.02.2026",
+		time: "16:00",
+		title: "Kennenlernspiele",
+		description: "Gemeinsame Spiele zum Kennenlernen",
+		location: "Sporthalle",
+		responsible: "Sarah Müller",
+		category: "sport",
+		duration: 90,
+	},
+	{
+		id: 3,
+		day: "Samstag, 15.02.2026",
+		time: "18:00",
+		title: "Abendessen",
+		description: "Gemeinsames Abendessen",
+		location: "Speisesaal",
+		responsible: "Küchenteam",
+		category: "meal",
+		duration: 60,
+	},
+	{
+		id: 4,
+		day: "Samstag, 15.02.2026",
+		time: "19:30",
+		title: "Eröffnungsgottesdienst",
+		description: "Gemeinsamer Start in die Freizeit mit Lobpreis und Andacht",
+		location: "Kapelle",
+		responsible: "Jesko Bahlcke",
+		category: "worship",
+		duration: 90,
+	},
+	{
+		id: 5,
+		day: "Sonntag, 16.02.2026",
+		time: "08:00",
+		title: "Frühstück",
+		description: "Gemeinsames Frühstück",
+		location: "Speisesaal",
+		responsible: "Küchenteam",
+		category: "meal",
+		duration: 60,
+	},
+	{
+		id: 6,
+		day: "Sonntag, 16.02.2026",
+		time: "10:00",
+		title: "Morgengottesdienst",
+		description: "Lobpreis und Predigt",
+		location: "Kapelle",
+		responsible: "Lukas Pohl",
+		category: "worship",
+		duration: 90,
+	},
+	{
+		id: 7,
+		day: "Sonntag, 16.02.2026",
+		time: "12:00",
+		title: "Mittagessen",
+		description: "Gemeinsames Mittagessen",
+		location: "Speisesaal",
+		responsible: "Küchenteam",
+		category: "meal",
+		duration: 60,
+	},
+	{
+		id: 8,
+		day: "Sonntag, 16.02.2026",
+		time: "14:00",
+		title: "Workshops",
+		description: "Verschiedene Workshops zur Auswahl: Kreativ, Sport, Musik",
+		location: "Verschiedene Räume",
+		responsible: "Lisa Frischmuth",
+		category: "workshop",
+		duration: 120,
+	},
+	{
+		id: 9,
+		day: "Sonntag, 16.02.2026",
+		time: "16:30",
+		title: "Freie Zeit",
+		description: "Zeit zur freien Verfügung",
+		location: "-",
+		responsible: "-",
+		category: "freetime",
+		duration: 90,
+	},
+]);
 
-const selectedDay = ref<string>('all')
+const selectedDay = ref<string>("all");
 
 const days = computed(() => {
-    const uniqueDays = [...new Set(programItems.value.map(item => item.day))]
-    return ['all', ...uniqueDays]
-})
+	const uniqueDays = [...new Set(programItems.value.map((item) => item.day))];
+	return ["all", ...uniqueDays];
+});
 
 const filteredProgram = computed(() => {
-    if (selectedDay.value === 'all') {
-        return programItems.value
-    }
-    return programItems.value.filter(item => item.day === selectedDay.value)
-})
+	if (selectedDay.value === "all") {
+		return programItems.value;
+	}
+	return programItems.value.filter((item) => item.day === selectedDay.value);
+});
 
 const groupedProgram = computed(() => {
-    const grouped: Record<string, ProgramItem[]> = {}
-    filteredProgram.value.forEach(item => {
-        if (!grouped[item.day]) {
-            grouped[item.day] = []
-        }
-        grouped[item.day]!.push(item)
-    })
-    return grouped
-})
+	const grouped: Record<string, ProgramItem[]> = {};
+	filteredProgram.value.forEach((item) => {
+		if (!grouped[item.day]) {
+			grouped[item.day] = [];
+		}
+		grouped[item.day]!.push(item);
+	});
+	return grouped;
+});
 
 const categoryConfig = {
-    workshop: { label: 'Workshop', color: 'purple', icon: 'i-lucide-presentation' },
-    sport: { label: 'Sport', color: 'blue', icon: 'i-lucide-activity' },
-    worship: { label: 'Gottesdienst', color: 'green', icon: 'i-lucide-church' },
-    freetime: { label: 'Freizeit', color: 'gray', icon: 'i-lucide-sun' },
-    meal: { label: 'Mahlzeit', color: 'orange', icon: 'i-lucide-utensils' },
-    other: { label: 'Sonstiges', color: 'neutral', icon: 'i-lucide-calendar' }
-}
+	workshop: { label: "Workshop", color: "purple", icon: "i-lucide-presentation" },
+	sport: { label: "Sport", color: "blue", icon: "i-lucide-activity" },
+	worship: { label: "Gottesdienst", color: "green", icon: "i-lucide-church" },
+	freetime: { label: "Freizeit", color: "gray", icon: "i-lucide-sun" },
+	meal: { label: "Mahlzeit", color: "orange", icon: "i-lucide-utensils" },
+	other: { label: "Sonstiges", color: "neutral", icon: "i-lucide-calendar" },
+};
 
-function getCategoryConfig(category: ProgramItem['category']) {
-    return categoryConfig[category]
+function getCategoryConfig(category: ProgramItem["category"]) {
+	return categoryConfig[category];
 }
 
 function getDayLabel(day: string) {
-    if (day === 'all') return 'Alle Tage'
-    return day
+	if (day === "all") return "Alle Tage";
+	return day;
 }
 </script>
 

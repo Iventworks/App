@@ -1,28 +1,31 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { NavigationMenuItem } from "@nuxt/ui";
 
 useSeoMeta({
-	title: 'Kontoeinstellungen | CMP',
-	description: 'Verwalten Sie Ihre Kontoeinstellungen'
-})
+	title: "Kontoeinstellungen | CMP",
+	description: "Verwalten Sie Ihre Kontoeinstellungen",
+});
 
-const links = [[
-	{
-		label: 'Allgemein',
-		icon: 'i-lucide-user',
-		to: '/settings',
-		exact: true
-	}, {
-		label: 'Sicherheit',
-		icon: 'i-lucide-shield',
-		to: '/settings/security'
-	}, {
-		label: 'Downloads',
-		icon: 'i-lucide-download',
-		to: '/settings/downloads'
-	}
-]] satisfies NavigationMenuItem[][]
-
+const links = [
+	[
+		{
+			label: "Allgemein",
+			icon: "i-lucide-user",
+			to: "/settings",
+			exact: true,
+		},
+		{
+			label: "Sicherheit",
+			icon: "i-lucide-shield",
+			to: "/settings/security",
+		},
+		{
+			label: "Downloads",
+			icon: "i-lucide-download",
+			to: "/settings/downloads",
+		},
+	],
+] satisfies NavigationMenuItem[][];
 </script>
 
 <template>

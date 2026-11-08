@@ -1,147 +1,148 @@
 <script setup lang="ts">
 interface CampEvent {
-    id: number
-    name: string
-    type: 'freizeit' | 'seminar' | 'event' | 'schulung'
-    startDate: Date
-    endDate: Date
-    location: string
-    status: 'planung' | 'anmeldung' | 'laufend' | 'abgeschlossen'
-    participants: number
-    maxParticipants: number
-    staff: number
-    leader: string
+	id: number;
+	name: string;
+	type: "freizeit" | "seminar" | "event" | "schulung";
+	startDate: Date;
+	endDate: Date;
+	location: string;
+	status: "planung" | "anmeldung" | "laufend" | "abgeschlossen";
+	participants: number;
+	maxParticipants: number;
+	staff: number;
+	leader: string;
 }
 
 const campsAndEvents = ref<CampEvent[]>([
-    {
-        id: 1,
-        name: 'young+free Crottendorf 2026',
-        type: 'freizeit',
-        startDate: new Date('2026-02-15'),
-        endDate: new Date('2026-02-21'),
-        location: 'Crottendorf, Erzgebirge',
-        status: 'anmeldung',
-        participants: 45,
-        maxParticipants: 80,
-        staff: 15,
-        leader: 'Lukas Pohl'
-    },
-    {
-        id: 2,
-        name: 'Ostercamp 2026',
-        type: 'freizeit',
-        startDate: new Date('2026-04-03'),
-        endDate: new Date('2026-04-06'),
-        location: 'Taizé, Frankreich',
-        status: 'planung',
-        participants: 12,
-        maxParticipants: 40,
-        staff: 6,
-        leader: 'Sarah Müller'
-    },
-    {
-        id: 3,
-        name: 'Sommercamp 2026',
-        type: 'freizeit',
-        startDate: new Date('2026-07-20'),
-        endDate: new Date('2026-07-27'),
-        location: 'Ostsee',
-        status: 'planung',
-        participants: 0,
-        maxParticipants: 100,
-        staff: 0,
-        leader: 'TBD'
-    },
-    {
-        id: 4,
-        name: 'Mitarbeiterschulung Frühjahr',
-        type: 'schulung',
-        startDate: new Date('2026-03-14'),
-        endDate: new Date('2026-03-14'),
-        location: 'Gemeindehaus Leipzig',
-        status: 'anmeldung',
-        participants: 22,
-        maxParticipants: 30,
-        staff: 3,
-        leader: 'Jesko Bahlcke'
-    },
-    {
-        id: 5,
-        name: 'Worship Night',
-        type: 'event',
-        startDate: new Date('2026-05-15'),
-        endDate: new Date('2026-05-15'),
-        location: 'Stadtkirche Leipzig',
-        status: 'planung',
-        participants: 0,
-        maxParticipants: 200,
-        staff: 8,
-        leader: 'Lisa Frischmuth'
-    }
-])
+	{
+		id: 1,
+		name: "young+free Crottendorf 2026",
+		type: "freizeit",
+		startDate: new Date("2026-02-15"),
+		endDate: new Date("2026-02-21"),
+		location: "Crottendorf, Erzgebirge",
+		status: "anmeldung",
+		participants: 45,
+		maxParticipants: 80,
+		staff: 15,
+		leader: "Lukas Pohl",
+	},
+	{
+		id: 2,
+		name: "Ostercamp 2026",
+		type: "freizeit",
+		startDate: new Date("2026-04-03"),
+		endDate: new Date("2026-04-06"),
+		location: "Taizé, Frankreich",
+		status: "planung",
+		participants: 12,
+		maxParticipants: 40,
+		staff: 6,
+		leader: "Sarah Müller",
+	},
+	{
+		id: 3,
+		name: "Sommercamp 2026",
+		type: "freizeit",
+		startDate: new Date("2026-07-20"),
+		endDate: new Date("2026-07-27"),
+		location: "Ostsee",
+		status: "planung",
+		participants: 0,
+		maxParticipants: 100,
+		staff: 0,
+		leader: "TBD",
+	},
+	{
+		id: 4,
+		name: "Mitarbeiterschulung Frühjahr",
+		type: "schulung",
+		startDate: new Date("2026-03-14"),
+		endDate: new Date("2026-03-14"),
+		location: "Gemeindehaus Leipzig",
+		status: "anmeldung",
+		participants: 22,
+		maxParticipants: 30,
+		staff: 3,
+		leader: "Jesko Bahlcke",
+	},
+	{
+		id: 5,
+		name: "Worship Night",
+		type: "event",
+		startDate: new Date("2026-05-15"),
+		endDate: new Date("2026-05-15"),
+		location: "Stadtkirche Leipzig",
+		status: "planung",
+		participants: 0,
+		maxParticipants: 200,
+		staff: 8,
+		leader: "Lisa Frischmuth",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedType = ref('all')
-const selectedStatus = ref('all')
+const searchQuery = ref("");
+const selectedType = ref("all");
+const selectedStatus = ref("all");
 
 const filteredCamps = computed(() => {
-    return campsAndEvents.value.filter(c => {
-        const matchesSearch = !searchQuery.value || 
-            c.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            c.location.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        const matchesType = selectedType.value === 'all' || c.type === selectedType.value
-        const matchesStatus = selectedStatus.value === 'all' || c.status === selectedStatus.value
-        
-        return matchesSearch && matchesType && matchesStatus
-    })
-})
+	return campsAndEvents.value.filter((c) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			c.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			c.location.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		const matchesType = selectedType.value === "all" || c.type === selectedType.value;
+		const matchesStatus = selectedStatus.value === "all" || c.status === selectedStatus.value;
+
+		return matchesSearch && matchesType && matchesStatus;
+	});
+});
 
 const stats = computed(() => {
-    const total = campsAndEvents.value.length
-    const upcoming = campsAndEvents.value.filter(c => c.startDate > new Date()).length
-    const active = campsAndEvents.value.filter(c => c.status === 'laufend').length
-    const totalParticipants = campsAndEvents.value.reduce((sum, c) => sum + c.participants, 0)
-    
-    return { total, upcoming, active, totalParticipants }
-})
+	const total = campsAndEvents.value.length;
+	const upcoming = campsAndEvents.value.filter((c) => c.startDate > new Date()).length;
+	const active = campsAndEvents.value.filter((c) => c.status === "laufend").length;
+	const totalParticipants = campsAndEvents.value.reduce((sum, c) => sum + c.participants, 0);
+
+	return { total, upcoming, active, totalParticipants };
+});
 
 const typeConfig = {
-    freizeit: { label: 'Freizeit', color: 'primary', icon: 'i-lucide-tent' },
-    seminar: { label: 'Seminar', color: 'info', icon: 'i-lucide-book-open' },
-    event: { label: 'Event', color: 'success', icon: 'i-lucide-calendar-star' },
-    schulung: { label: 'Schulung', color: 'warning', icon: 'i-lucide-graduation-cap' }
-}
+	freizeit: { label: "Freizeit", color: "primary", icon: "i-lucide-tent" },
+	seminar: { label: "Seminar", color: "info", icon: "i-lucide-book-open" },
+	event: { label: "Event", color: "success", icon: "i-lucide-calendar-star" },
+	schulung: { label: "Schulung", color: "warning", icon: "i-lucide-graduation-cap" },
+};
 
 const statusConfig = {
-    planung: { label: 'Planung', color: 'neutral' },
-    anmeldung: { label: 'Anmeldung', color: 'primary' },
-    laufend: { label: 'Laufend', color: 'success' },
-    abgeschlossen: { label: 'Abgeschlossen', color: 'neutral' }
+	planung: { label: "Planung", color: "neutral" },
+	anmeldung: { label: "Anmeldung", color: "primary" },
+	laufend: { label: "Laufend", color: "success" },
+	abgeschlossen: { label: "Abgeschlossen", color: "neutral" },
+};
+
+function getTypeConfig(type: CampEvent["type"]) {
+	return typeConfig[type];
 }
 
-function getTypeConfig(type: CampEvent['type']) {
-    return typeConfig[type]
-}
-
-function getStatusConfig(status: CampEvent['status']) {
-    return statusConfig[status]
+function getStatusConfig(status: CampEvent["status"]) {
+	return statusConfig[status];
 }
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDateRange(start: Date, end: Date) {
-    if (start.toDateString() === end.toDateString()) {
-        return formatDate(start)
-    }
-    return `${formatDate(start)} - ${formatDate(end)}`
+	if (start.toDateString() === end.toDateString()) {
+		return formatDate(start);
+	}
+	return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
 function getParticipantPercentage(current: number, max: number) {
-    return Math.round((current / max) * 100)
+	return Math.round((current / max) * 100);
 }
 </script>
 

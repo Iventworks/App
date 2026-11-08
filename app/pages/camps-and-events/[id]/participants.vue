@@ -1,214 +1,216 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn } from "@nuxt/ui";
 
-const route = useRoute()
-const campId = computed(() => route.params.id as string)
+const route = useRoute();
+const campId = computed(() => route.params.id as string);
 
 interface Participant {
-    id: number
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    age: number
-    gender: 'male' | 'female' | 'other'
-    registrationDate: Date
-    paymentStatus: 'pending' | 'partial' | 'paid'
-    medicalInfo: string
-    emergencyContact: string
-    emergencyPhone: string
-    dietaryRequirements: string
-    status: 'registered' | 'confirmed' | 'cancelled'
+	id: number;
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string;
+	age: number;
+	gender: "male" | "female" | "other";
+	registrationDate: Date;
+	paymentStatus: "pending" | "partial" | "paid";
+	medicalInfo: string;
+	emergencyContact: string;
+	emergencyPhone: string;
+	dietaryRequirements: string;
+	status: "registered" | "confirmed" | "cancelled";
 }
 
 const participants = ref<Participant[]>([
-    {
-        id: 1,
-        firstName: 'Anna',
-        lastName: 'Schmidt',
-        email: 'anna.schmidt@example.com',
-        phone: '+49 151 12345678',
-        age: 15,
-        gender: 'female',
-        registrationDate: new Date('2026-01-10'),
-        paymentStatus: 'paid',
-        medicalInfo: 'Keine Allergien',
-        emergencyContact: 'Maria Schmidt',
-        emergencyPhone: '+49 151 98765432',
-        dietaryRequirements: 'Vegetarisch',
-        status: 'confirmed'
-    },
-    {
-        id: 2,
-        firstName: 'Max',
-        lastName: 'Müller',
-        email: 'max.mueller@example.com',
-        phone: '+49 152 23456789',
-        age: 16,
-        gender: 'male',
-        registrationDate: new Date('2026-01-12'),
-        paymentStatus: 'paid',
-        medicalInfo: 'Asthma (Medikation vorhanden)',
-        emergencyContact: 'Thomas Müller',
-        emergencyPhone: '+49 152 87654321',
-        dietaryRequirements: 'Keine',
-        status: 'confirmed'
-    },
-    {
-        id: 3,
-        firstName: 'Sophie',
-        lastName: 'Weber',
-        email: 'sophie.weber@example.com',
-        phone: '+49 153 34567890',
-        age: 14,
-        gender: 'female',
-        registrationDate: new Date('2026-01-15'),
-        paymentStatus: 'partial',
-        medicalInfo: 'Laktoseintoleranz',
-        emergencyContact: 'Julia Weber',
-        emergencyPhone: '+49 153 76543210',
-        dietaryRequirements: 'Laktosefrei',
-        status: 'registered'
-    },
-    {
-        id: 4,
-        firstName: 'Leon',
-        lastName: 'Fischer',
-        email: 'leon.fischer@example.com',
-        phone: '+49 154 45678901',
-        age: 17,
-        gender: 'male',
-        registrationDate: new Date('2026-01-18'),
-        paymentStatus: 'pending',
-        medicalInfo: 'Keine',
-        emergencyContact: 'Sandra Fischer',
-        emergencyPhone: '+49 154 65432109',
-        dietaryRequirements: 'Keine',
-        status: 'registered'
-    },
-    {
-        id: 5,
-        firstName: 'Emma',
-        lastName: 'Wagner',
-        email: 'emma.wagner@example.com',
-        phone: '+49 155 56789012',
-        age: 13,
-        gender: 'female',
-        registrationDate: new Date('2026-01-20'),
-        paymentStatus: 'paid',
-        medicalInfo: 'Nussallergie',
-        emergencyContact: 'Michael Wagner',
-        emergencyPhone: '+49 155 54321098',
-        dietaryRequirements: 'Keine Nüsse',
-        status: 'confirmed'
-    }
-])
+	{
+		id: 1,
+		firstName: "Anna",
+		lastName: "Schmidt",
+		email: "anna.schmidt@example.com",
+		phone: "+49 151 12345678",
+		age: 15,
+		gender: "female",
+		registrationDate: new Date("2026-01-10"),
+		paymentStatus: "paid",
+		medicalInfo: "Keine Allergien",
+		emergencyContact: "Maria Schmidt",
+		emergencyPhone: "+49 151 98765432",
+		dietaryRequirements: "Vegetarisch",
+		status: "confirmed",
+	},
+	{
+		id: 2,
+		firstName: "Max",
+		lastName: "Müller",
+		email: "max.mueller@example.com",
+		phone: "+49 152 23456789",
+		age: 16,
+		gender: "male",
+		registrationDate: new Date("2026-01-12"),
+		paymentStatus: "paid",
+		medicalInfo: "Asthma (Medikation vorhanden)",
+		emergencyContact: "Thomas Müller",
+		emergencyPhone: "+49 152 87654321",
+		dietaryRequirements: "Keine",
+		status: "confirmed",
+	},
+	{
+		id: 3,
+		firstName: "Sophie",
+		lastName: "Weber",
+		email: "sophie.weber@example.com",
+		phone: "+49 153 34567890",
+		age: 14,
+		gender: "female",
+		registrationDate: new Date("2026-01-15"),
+		paymentStatus: "partial",
+		medicalInfo: "Laktoseintoleranz",
+		emergencyContact: "Julia Weber",
+		emergencyPhone: "+49 153 76543210",
+		dietaryRequirements: "Laktosefrei",
+		status: "registered",
+	},
+	{
+		id: 4,
+		firstName: "Leon",
+		lastName: "Fischer",
+		email: "leon.fischer@example.com",
+		phone: "+49 154 45678901",
+		age: 17,
+		gender: "male",
+		registrationDate: new Date("2026-01-18"),
+		paymentStatus: "pending",
+		medicalInfo: "Keine",
+		emergencyContact: "Sandra Fischer",
+		emergencyPhone: "+49 154 65432109",
+		dietaryRequirements: "Keine",
+		status: "registered",
+	},
+	{
+		id: 5,
+		firstName: "Emma",
+		lastName: "Wagner",
+		email: "emma.wagner@example.com",
+		phone: "+49 155 56789012",
+		age: 13,
+		gender: "female",
+		registrationDate: new Date("2026-01-20"),
+		paymentStatus: "paid",
+		medicalInfo: "Nussallergie",
+		emergencyContact: "Michael Wagner",
+		emergencyPhone: "+49 155 54321098",
+		dietaryRequirements: "Keine Nüsse",
+		status: "confirmed",
+	},
+]);
 
-const searchQuery = ref('')
-const selectedStatus = ref('all')
-const selectedPaymentStatus = ref('all')
+const searchQuery = ref("");
+const selectedStatus = ref("all");
+const selectedPaymentStatus = ref("all");
 
 // Modalsteuerung
-const isActionsModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
-const isEditMode = ref(false)
-const selectedParticipant = ref<Participant | null>(null)
-const editedParticipant = ref<Participant | null>(null)
+const isActionsModalOpen = ref(false);
+const isDeleteModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedParticipant = ref<Participant | null>(null);
+const editedParticipant = ref<Participant | null>(null);
 
 // Aktionen
 function openActionsModal(participant: Participant) {
-    selectedParticipant.value = participant
-    editedParticipant.value = { ...participant }
-    isEditMode.value = false
-    isActionsModalOpen.value = true
+	selectedParticipant.value = participant;
+	editedParticipant.value = { ...participant };
+	isEditMode.value = false;
+	isActionsModalOpen.value = true;
 }
 
 function enableEditMode() {
-    isEditMode.value = true
+	isEditMode.value = true;
 }
 
 function cancelEdit() {
-    if (selectedParticipant.value) {
-        editedParticipant.value = { ...selectedParticipant.value }
-    }
-    isEditMode.value = false
+	if (selectedParticipant.value) {
+		editedParticipant.value = { ...selectedParticipant.value };
+	}
+	isEditMode.value = false;
 }
 
 function sendEmail(participant: Participant) {
-    window.location.href = `mailto:${participant.email}?subject=young+free Crottendorf 2026`
+	window.location.href = `mailto:${participant.email}?subject=young+free Crottendorf 2026`;
 }
 
 function confirmDelete() {
-    isDeleteModalOpen.value = true
+	isDeleteModalOpen.value = true;
 }
 
 function deleteParticipant() {
-    if (selectedParticipant.value) {
-        participants.value = participants.value.filter(p => p.id !== selectedParticipant.value!.id)
-        selectedParticipant.value = null
-        editedParticipant.value = null
-        isActionsModalOpen.value = false
-    }
+	if (selectedParticipant.value) {
+		participants.value = participants.value.filter((p) => p.id !== selectedParticipant.value!.id);
+		selectedParticipant.value = null;
+		editedParticipant.value = null;
+		isActionsModalOpen.value = false;
+	}
 }
 
 function saveParticipant() {
-    if (selectedParticipant.value && editedParticipant.value) {
-        const index = participants.value.findIndex(p => p.id === selectedParticipant.value!.id)
-        if (index !== -1) {
-            participants.value[index] = { ...editedParticipant.value }
-            selectedParticipant.value = { ...editedParticipant.value }
-        }
-        isEditMode.value = false
-    }
+	if (selectedParticipant.value && editedParticipant.value) {
+		const index = participants.value.findIndex((p) => p.id === selectedParticipant.value!.id);
+		if (index !== -1) {
+			participants.value[index] = { ...editedParticipant.value };
+			selectedParticipant.value = { ...editedParticipant.value };
+		}
+		isEditMode.value = false;
+	}
 }
 
 const filteredParticipants = computed(() => {
-    return participants.value.filter(p => {
-        const matchesSearch = !searchQuery.value || 
-            `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            p.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-        
-        const matchesStatus = selectedStatus.value === 'all' || p.status === selectedStatus.value
-        const matchesPayment = selectedPaymentStatus.value === 'all' || p.paymentStatus === selectedPaymentStatus.value
-        
-        return matchesSearch && matchesStatus && matchesPayment
-    })
-})
+	return participants.value.filter((p) => {
+		const matchesSearch =
+			!searchQuery.value ||
+			`${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+			p.email.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+		const matchesStatus = selectedStatus.value === "all" || p.status === selectedStatus.value;
+		const matchesPayment =
+			selectedPaymentStatus.value === "all" || p.paymentStatus === selectedPaymentStatus.value;
+
+		return matchesSearch && matchesStatus && matchesPayment;
+	});
+});
 
 const stats = computed(() => {
-    const total = participants.value.length
-    const confirmed = participants.value.filter(p => p.status === 'confirmed').length
-    const registered = participants.value.filter(p => p.status === 'registered').length
-    const paid = participants.value.filter(p => p.paymentStatus === 'paid').length
-    const pending = participants.value.filter(p => p.paymentStatus === 'pending').length
-    
-    return { total, confirmed, registered, paid, pending }
-})
+	const total = participants.value.length;
+	const confirmed = participants.value.filter((p) => p.status === "confirmed").length;
+	const registered = participants.value.filter((p) => p.status === "registered").length;
+	const paid = participants.value.filter((p) => p.paymentStatus === "paid").length;
+	const pending = participants.value.filter((p) => p.paymentStatus === "pending").length;
+
+	return { total, confirmed, registered, paid, pending };
+});
 
 const paymentStatusConfig = {
-    pending: { label: 'Ausstehend', color: 'error' },
-    partial: { label: 'Teilweise', color: 'warning' },
-    paid: { label: 'Bezahlt', color: 'success' }
+	pending: { label: "Ausstehend", color: "error" },
+	partial: { label: "Teilweise", color: "warning" },
+	paid: { label: "Bezahlt", color: "success" },
 } as const;
 
 const statusConfig = {
-    registered: { label: 'Angemeldet', color: 'primary' },
-    confirmed: { label: 'Bestätigt', color: 'success' },
-    cancelled: { label: 'Abgesagt', color: 'error' }
+	registered: { label: "Angemeldet", color: "primary" },
+	confirmed: { label: "Bestätigt", color: "success" },
+	cancelled: { label: "Abgesagt", color: "error" },
 } as const;
 
 function formatDate(date: Date) {
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+	return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 const columns: TableColumn<Participant>[] = [
-    { id: 'name', header: 'Name' },
-    { accessorKey: 'age', header: 'Alter' },
-    { accessorKey: 'contact', header: 'Kontakt' },
-    { accessorKey: 'status', header: 'Status' },
-    { accessorKey: 'payment', header: 'Zahlung' },
-    { id: 'actions', header: '' }
-]
+	{ id: "name", header: "Name" },
+	{ accessorKey: "age", header: "Alter" },
+	{ accessorKey: "contact", header: "Kontakt" },
+	{ accessorKey: "status", header: "Status" },
+	{ accessorKey: "payment", header: "Zahlung" },
+	{ id: "actions", header: "" },
+];
 </script>
 
 <template>
