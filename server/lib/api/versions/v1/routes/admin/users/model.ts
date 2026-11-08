@@ -38,7 +38,7 @@ export namespace AdminUsersModel.Create {
 	});
 
 	export const Body = InsertSchema.extend({
-		password: z.string().min(8).max(128),
+		password: UserDataPolicies.Password,
 	});
 	export type Body = z.infer<typeof Body>;
 
@@ -47,7 +47,13 @@ export namespace AdminUsersModel.Create {
 }
 
 export namespace AdminUsersModel.Update {
-	export const Body = createUpdateSchema(DB.Tables.users)
+	// Same field rules as the account route: admins cannot store an invalid username or email.
+	export const Body = createUpdateSchema(DB.Tables.users, {
+		username: UserDataPolicies.Username,
+		display_name: z.string().trim().min(1).max(64),
+		email: z.email("Invalid email"),
+		phone: z.string().trim().max(40).nullable(),
+	})
 		.omit({
 			id: true,
 			password_hash: true,

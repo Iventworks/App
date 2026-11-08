@@ -255,7 +255,15 @@ async function confirmDelete() {
 							description="Nur für das Team dieses Events sichtbar"
 							icon="i-lucide-heart-pulse"
 						>
-							<div class="grid gap-3 sm:grid-cols-2">
+							<UAlert
+								v-if="!participant.medical_visible"
+								icon="i-lucide-lock"
+								color="neutral"
+								variant="subtle"
+								title="Nicht sichtbar"
+								description="Gesundheitsangaben und Notizen des Teams sehen nur die Mitarbeitenden dieser Freizeit. Wer sie braucht, wird unter „Team“ eingetragen."
+							/>
+							<div v-else class="grid gap-3 sm:grid-cols-2">
 								<div
 									v-for="entry in health"
 									:key="entry.key"
@@ -282,6 +290,7 @@ async function confirmDelete() {
 
 							<div class="mt-4 flex flex-wrap gap-2">
 								<UBadge
+									v-if="participant.medical_visible"
 									:icon="participant.can_swim === false ? 'i-lucide-life-buoy' : 'i-lucide-waves'"
 									:label="
 										participant.can_swim === null
@@ -307,6 +316,7 @@ async function confirmDelete() {
 						</DashboardSectionCard>
 
 						<DashboardSectionCard
+							v-if="participant.medical_visible"
 							title="Notizen des Teams"
 							description="Beobachtungen und Absprachen rund um diese Person"
 							icon="i-lucide-notebook-pen"

@@ -56,7 +56,7 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 		toast.add({
 			title: "Profil konnte nicht gespeichert werden",
 			description:
-				code === 401
+				code === 400
 					? "Das aktuelle Passwort ist falsch."
 					: code === 409
 						? "Benutzername oder E-Mail-Adresse ist bereits vergeben."

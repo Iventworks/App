@@ -1,4 +1,5 @@
 import type { CronJob as BunCronJob } from "bun";
+import { Housekeeping } from "./housekeeping";
 import { Logger } from "./logger";
 
 class CronJob {
@@ -36,12 +37,9 @@ export class CronJobHandler {
 		this.initialized = true;
 
 		this.jobs.push(
-			new CronJob("* * * * *", async () => {
-				// do something every minute
-			}),
-
-			new CronJob("* * * * *", async () => {
-				// do something every minute
+			// Nightly at 03:30: drop expired sessions, reset links, invitations and old notifications.
+			new CronJob("30 3 * * *", async () => {
+				await Housekeeping.run();
 			}),
 		);
 	}

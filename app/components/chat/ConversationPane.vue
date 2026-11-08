@@ -59,6 +59,9 @@ const bottomAnchor = ref<HTMLElement | null>(null);
 const editingId = ref<number | null>(null);
 const editDraft = ref("");
 const savingEdit = ref(false);
+// Server time of the last sync (`/messages/sync`): edits/deletions by others after it arrive on the
+// next poll. 0 after (re)loading a chat, so client clock skew can never hide a change.
+let syncSince = 0;
 
 // --- scrolling ------------------------------------------------------------------------------
 
@@ -101,6 +104,7 @@ async function loadInitial() {
 	const conversationId = props.conversation.id;
 	loading.value = true;
 	messages.value = [];
+	syncSince = 0;
 	hasOlder.value = false;
 	cancelEdit();
 
@@ -172,22 +176,40 @@ async function poll() {
 	if (polling || loading.value) return;
 	polling = true;
 	const conversationId = props.conversation.id;
-	const last = messages.value.at(-1);
+	const after = messages.value.at(-1)?.id ?? 0;
 
 	const result = await useAPI((api) =>
-		api.getConversationsByConversationIdMessages({
+		api.getConversationsByConversationIdMessagesSync({
 			path: { conversationId },
-			query: last ? { after: last.id, limit: 100 } : { limit: PAGE_SIZE },
+			query: { after, since: syncSince },
 		}),
 	);
 	polling = false;
 
-	if (conversationId !== props.conversation.id || !result.success || !result.data.length) return;
+	if (conversationId !== props.conversation.id || !result.success) return;
+	const { messages: fresh, updated, deleted_ids, server_time } = result.data;
+	syncSince = server_time;
+
+	if (deleted_ids.length) {
+		const deleted = new Set(deleted_ids);
+		messages.value = messages.value.filter((message) => !deleted.has(message.id));
+		if (editingId.value !== null && deleted.has(editingId.value)) cancelEdit();
+	}
+	if (updated.length) {
+		// Only replace messages that are loaded; never resurrect the one being edited locally.
+		const loaded = new Set(messages.value.map((message) => message.id));
+		merge(updated.filter((message) => loaded.has(message.id) && message.id !== editingId.value));
+	}
+	// The chat list shows the last message as a preview: refresh it when that may have changed.
+	if (!fresh.length) {
+		if (deleted_ids.length || updated.length) emit("changed");
+		return;
+	}
 
 	const stickToBottom = isNearBottom();
-	merge(result.data);
+	merge(fresh);
 	if (stickToBottom) await scrollToBottom(true);
-	if (result.data.some((message) => !message.is_own)) {
+	if (fresh.some((message) => !message.is_own)) {
 		await markRead();
 		emit("changed");
 	}

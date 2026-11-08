@@ -259,6 +259,56 @@ describe("Admin users and audit log", () => {
 		);
 	});
 
+	test("only admins reach /admin; other roles get 403", async () => {
+		for (const session of [coreSession, volunteerSession]) {
+			await makeAPIRequest("/v1/admin/users", { authToken: session.token }, 403);
+			await makeAPIRequest("/v1/admin/invitations", { authToken: session.token }, 403);
+		}
+		await makeAPIRequest("/v1/admin/users", { authToken: adminSession.token });
+	});
+
+	test("users cannot change their own role; admin role changes reach existing sessions", async () => {
+		// The role field is not part of the account body: it is dropped, the role stays.
+		await makeAPIRequest("/v1/account", {
+			method: "PUT",
+			authToken: volunteerSession.token,
+			body: { display_name: "Vroni", role: "admin", current_password: volunteer.password },
+		});
+		const me = await makeAPIRequest("/v1/account", { authToken: volunteerSession.token });
+		expect(me.role).toBe("volunteer");
+		expect(me.display_name).toBe("Vroni");
+
+		// Promoting the user updates the role cached on their live session immediately.
+		await makeAPIRequest(`/v1/admin/users/${volunteer.id}`, {
+			method: "PUT",
+			authToken: adminSession.token,
+			body: { role: "core_team" },
+		});
+		const session = await makeAPIRequest("/v1/auth/session", { authToken: volunteerSession.token });
+		expect(session.user_role).toBe("core_team");
+		await makeAPIRequest("/v1/org/core-team/overview", { authToken: volunteerSession.token });
+
+		await makeAPIRequest(`/v1/admin/users/${volunteer.id}`, {
+			method: "PUT",
+			authToken: adminSession.token,
+			body: { role: "volunteer" },
+		});
+		await makeAPIRequest("/v1/org/core-team/overview", { authToken: volunteerSession.token }, 403);
+	});
+
+	test("admin edits validate username and email like everywhere else", async () => {
+		await makeAPIRequest(
+			`/v1/admin/users/${volunteer.id}`,
+			{ method: "PUT", authToken: adminSession.token, body: { email: "kein-email" } },
+			400,
+		);
+		await makeAPIRequest(
+			`/v1/admin/users/${volunteer.id}`,
+			{ method: "PUT", authToken: adminSession.token, body: { username: "Ungültig Name!" } },
+			400,
+		);
+	});
+
 	test("role changes are audited and filterable", async () => {
 		await makeAPIRequest(`/v1/admin/users/${unverified.id}`, {
 			method: "PUT",
@@ -808,5 +858,56 @@ describe("Core team area", () => {
 			{ method: "DELETE", authToken: coreSession.token },
 			404,
 		);
+	});
+});
+
+describe("Housekeeping", () => {
+	test("removes expired sessions, reset links, open invitations and old read notifications", async () => {
+		const { Housekeeping } = await import("../server/lib/utils/housekeeping");
+		const now = Date.now();
+		const db = DB.instance();
+		const day = 24 * 60 * 60 * 1000;
+
+		db
+			.insert(DB.Tables.sessions)
+			.values({
+				id: "expired-session",
+				hashed_token: "x",
+				user_id: volunteer.id,
+				user_role: "volunteer",
+				expires_at: now - 1,
+			})
+			.run();
+		db
+			.insert(DB.Tables.passwordResets)
+			.values({ token: "expired-reset", user_id: volunteer.id, expires_at: now - 1 })
+			.run();
+		db
+			.insert(DB.Tables.invitations)
+			.values({ token_hash: "expired-invite", email: "alt@example.com", expires_at: now - 1 })
+			.run();
+		db
+			.insert(DB.Tables.notifications)
+			.values([
+				{ user_id: volunteer.id, type: "system", title: "alt", read_at: now - 100 * day },
+				{ user_id: volunteer.id, type: "system", title: "ungelesen" },
+			])
+			.run();
+
+		const result = await Housekeeping.run(now);
+		expect(result.sessions).toBeGreaterThanOrEqual(1);
+		expect(result.passwordResets).toBeGreaterThanOrEqual(1);
+		expect(result.invitations).toBeGreaterThanOrEqual(1);
+		expect(result.notifications).toBeGreaterThanOrEqual(1);
+
+		const titles = db
+			.select()
+			.from(DB.Tables.notifications)
+			.all()
+			.map((n) => n.title);
+		expect(titles).toContain("ungelesen");
+		expect(titles).not.toContain("alt");
+		// The live session of the test user survives.
+		await makeAPIRequest("/v1/account", { authToken: volunteerSession.token });
 	});
 });

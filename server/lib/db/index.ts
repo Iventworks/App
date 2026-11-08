@@ -63,7 +63,9 @@ export class DB {
 					.insert(DB.Tables.users)
 					.values({
 						username,
-						email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
+						// Reserved TLD (RFC 2606): no real mailbox receives mail for the seed admin.
+						// The admin sets their own address in the profile after the first login.
+						email: `${username}@cmp.invalid`,
 						password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
 						display_name: "Default Administrator",
 						role: "admin",

@@ -266,6 +266,7 @@ export class ConversationAccess {
 			.where(
 				and(
 					inArray(DB.Tables.messages.conversation_id, conversationIds),
+					isNull(DB.Tables.messages.deleted_at),
 					sql`${DB.Tables.messages.created_at} > coalesce(${DB.Tables.conversationMembers.last_read_at}, 0)`,
 					or(isNull(DB.Tables.messages.sender_id), ne(DB.Tables.messages.sender_id, userId)),
 				),
@@ -359,7 +360,9 @@ export class ConversationAccess {
 		const lastMessageIds = db
 			.select({ id: sql<number>`max(${DB.Tables.messages.id})` })
 			.from(DB.Tables.messages)
-			.where(inArray(DB.Tables.messages.conversation_id, ids))
+			.where(
+				and(inArray(DB.Tables.messages.conversation_id, ids), isNull(DB.Tables.messages.deleted_at)),
+			)
 			.groupBy(DB.Tables.messages.conversation_id)
 			.all()
 			.map((row) => Number(row.id));

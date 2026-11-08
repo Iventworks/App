@@ -2,6 +2,9 @@
 # Keep local state and secrets out of the build context.
 data/
 config/
+docker/data/
+docker/config/
+docker/.env
 .env
 .env.*
 !example.env

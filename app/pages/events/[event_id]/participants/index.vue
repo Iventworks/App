@@ -276,6 +276,15 @@ async function exportCsv() {
 
 		<template #body>
 			<DashboardPageBody>
+				<UAlert
+					v-if="!can('participants:view_medical')"
+					icon="i-lucide-lock"
+					color="neutral"
+					variant="subtle"
+					title="Gesundheitsangaben ausgeblendet"
+					description="Allergien, Medikamente, medizinische Hinweise und Notizen des Teams sehen nur die Mitarbeitenden dieser Freizeit. Leere Felder heißen hier also nicht „keine Angaben“."
+				/>
+
 				<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 					<DashboardStatCard
 						label="Teilnehmende"

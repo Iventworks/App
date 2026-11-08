@@ -7,18 +7,22 @@ services:
     image: gcr.leicraftmc.de/crossover/cmp:latest
     container_name: cmp
     restart: unless-stopped
+    # Loopback only: the reverse proxy on this host terminates TLS for CMP_APP_URL and forwards
+    # here (docs/14). Publish on all interfaces only if the proxy runs on another machine.
     ports:
-      - "31316:31316"
+      - "127.0.0.1:31316:31316"
     environment:
       CMP_LOG_LEVEL: info
 
-      CMP_API_DISABLE_DOCS: false
+      # The interactive API docs (/api/docs/v1) stay off on the public host.
+      CMP_API_DISABLE_DOCS: true
 
       CMP_APP_URL: https://cmp.crossover.is-on.net
 
-      # Set to true only when the container is reachable exclusively through ONE reverse proxy
-      # that appends the client address to X-Forwarded-For (login rate limiting uses the last entry).
-      CMP_TRUST_PROXY: false
+      # true because the port above is bound to loopback, so every request comes through the one
+      # reverse proxy, which appends the client address to X-Forwarded-For (login rate limiting
+      # uses the last entry). Set to false if the port is ever published publicly.
+      CMP_TRUST_PROXY: true
       CMP_TIMEZONE: Europe/Berlin
       CMP_MAX_UPLOAD_SIZE_MB: 25
 

@@ -68,10 +68,12 @@ router.put(
 		description: "Update information about the authenticated user's account.",
 		tags: [DOCS_TAGS.ACCOUNT],
 
-		responses: APIResponseSpec.describeWithWrongInputs(
+		// A wrong password is a 400, not a 401: clients treat 401 as "session expired" and sign out.
+		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("Account information updated successfully"),
-			APIResponseSpec.unauthorized(
-				"Your Auth Context is not a session / Current password is incorrect",
+			APIResponseSpec.unauthorized("Your Auth Context is not a session"),
+			APIResponseSpec.badRequest(
+				"Current password is incorrect / Syntax or validation error in request",
 			),
 			APIResponseSpec.conflict("Username or email already in use"),
 		),
@@ -97,7 +99,7 @@ router.put(
 		// A stolen session token alone must not be enough to change the login email/username
 		// (and then take the account over via password reset). See docs/10-auth.md.
 		if (!(await Bun.password.verify(current_password, user.password_hash))) {
-			return APIResponse.unauthorized(c, "Current password is incorrect");
+			return APIResponse.badRequest(c, "Current password is incorrect");
 		}
 
 		// Check for conflicts if changing username or email
@@ -169,7 +171,7 @@ router.put(
 			}
 
 			if ((await Bun.password.verify(body.current_password, user.password_hash)) === false) {
-				return APIResponse.unauthorized(c, "Current password is incorrect");
+				return APIResponse.badRequest(c, "Current password is incorrect");
 			}
 
 			const newPasswordHash = await Bun.password.hash(body.new_password);

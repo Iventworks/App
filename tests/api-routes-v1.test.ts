@@ -430,7 +430,8 @@ describe("Account routes", async () => {
 				authToken: session_token,
 				body: { ...newUserData, current_password: "WrongP@ss1" },
 			},
-			401,
+			// 400, not 401: a typo must not look like an expired session to the client.
+			400,
 		);
 
 		await makeAPIRequest("/v1/account", {
@@ -471,6 +472,19 @@ describe("Account routes", async () => {
 			.where(eq(DB.Tables.users.id, testUser.id))
 			.get();
 		expect(dbresult?.role).toBe("unverified");
+	});
+
+	test("PUT /v1/account/password with a wrong current password is a 400 and keeps the session", async () => {
+		await makeAPIRequest(
+			"/v1/account/password",
+			{
+				method: "PUT",
+				authToken: session_token,
+				body: { current_password: "WrongP@ss1", new_password: "Another!Pass1" },
+			},
+			400,
+		);
+		await makeAPIRequest("/v1/account", { authToken: session_token });
 	});
 
 	test("PUT /v1/account/password rotates credentials and invalidates old sessions", async () => {

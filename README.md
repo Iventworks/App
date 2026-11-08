@@ -42,7 +42,7 @@ Organisation roles (`users.role`), highest first:
 | Role | Can |
 | --- | --- |
 | `admin` | Users, invitations, full audit log — plus everything below |
-| `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat. Acts as **leader in every event**. |
+| `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat. Acts as **leader in every event** — but sees participants' health data and the team's notes about them only in events they are on the team of. |
 | `volunteer` | The portal: own dashboard, tasks, chats, calendar, notes; the events they are staff of |
 | `unverified` | Only their own account settings (`/pending` page) |
 
@@ -68,7 +68,8 @@ Route gates live in `app/middleware/auth.global.ts` (session validation, `/pendi
 accounts, `/admin` and `/core-team` gates). Event pages load the event and the caller's
 permissions through `useCurrentEvent()`.
 
-Chats are polled (no WebSocket yet); unread badges refresh every minute.
+Chats are polled (no WebSocket yet): an open chat syncs new messages, edits and deletions every
+4 seconds; unread badges refresh every minute.
 
 ## Files
 
@@ -115,9 +116,31 @@ bun run api-client:generate
 - `docker/` — production image: `.output/` + `drizzle/migrations` on `oven/bun`
 - `bun run db:generate` / `db:migrate` — Drizzle migrations (`drizzle/migrations/`, committed)
 - `bun run db:import-legacy` — import users from a CMP-API database (see above)
-- `bun run check` / `check:ci` / `format` — Biome
+- `bun run check` / `check:ci` / `lint` / `format` — Biome
 - `bun run typecheck` — `nuxt typecheck` + `tsc` (includes `server/`)
-- `bun test` — API tests
+- `bun test` / `bun run test:ci` — API tests (CI: coverage + JUnit report)
+
+## Deployment
+
+CI (`.gitlab/ci/build.yml`) builds the image from the default branch and pushes
+`$CI_REGISTRY_IMAGE:latest`; `docker/docker-compose.yml` runs it.
+
+1. On the host, create the volumes for the image's non-root `bun` user (uid 1000):
+   `sudo mkdir -p /opt/crossover/cmp/{data,config} && sudo chown -R 1000:1000 /opt/crossover/cmp`.
+2. Put the SMTP credentials into `docker/.env` (gitignored): `CMP_SMTP_HOST`, `CMP_SMTP_USERNAME`,
+   `CMP_SMTP_PASSWORD`. Without `CMP_SMTP_HOST`, email (reset links, invitations) is off and
+   invitation links are shown in the admin UI instead.
+3. Set `CMP_APP_URL` in the compose file to the public origin, then `docker compose -f
+   docker/docker-compose.yml up -d`.
+4. The app listens on `127.0.0.1:31316`; point the reverse proxy (TLS) at it. With that setup
+   `CMP_TRUST_PROXY=true` is correct; set it to `false` if the port is ever published directly.
+5. First start only: open the reset link from
+   `/opt/crossover/cmp/config/initial_admin_password_reset_token.txt` (also in the logs), set the
+   `admin` password, then change the admin's email in the profile and invite everyone else.
+
+`/opt/crossover/cmp/data` holds the database **and** the uploads — back it up as a whole. The API
+docs (`/api/docs/v1`) are disabled in the compose file; set `CMP_API_DISABLE_DOCS=false` to enable
+them. Migrations run automatically on start.
 
 ## Structure
 

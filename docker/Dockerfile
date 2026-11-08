@@ -33,6 +33,12 @@ ENV CMP_CONFIG_BASE_DIR=/opt/crossover/cmp/config
 ENV CMP_UPLOAD_DIR=/opt/crossover/cmp/data/uploads
 
 
+# Run as the image's unprivileged `bun` user. On the host, the bind-mounted directories must be
+# writable for it: `sudo chown -R 1000:1000 /opt/crossover/cmp/data /opt/crossover/cmp/config`.
+RUN mkdir -p /opt/crossover/cmp/data /opt/crossover/cmp/config \
+	&& chown -R bun:bun /opt/crossover/cmp
+USER bun
+
 VOLUME /opt/crossover/cmp/data
 VOLUME /opt/crossover/cmp/config
 

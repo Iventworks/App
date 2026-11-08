@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, lt, lte, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
@@ -61,7 +61,9 @@ router.get(
 			rows = await DB.instance()
 				.select()
 				.from(table)
-				.where(and(eq(table.conversation_id, conversation.id), gt(table.id, after)))
+				.where(
+					and(eq(table.conversation_id, conversation.id), gt(table.id, after), isNull(table.deleted_at)),
+				)
 				.orderBy(asc(table.id))
 				.limit(limit)
 				.all();
@@ -73,6 +75,7 @@ router.get(
 					.where(
 						and(
 							eq(table.conversation_id, conversation.id),
+							isNull(table.deleted_at),
 							before !== undefined ? lt(table.id, before) : undefined,
 						),
 					)
@@ -87,6 +90,70 @@ router.get(
 			"Messages retrieved successfully",
 			await toResponse(rows, getAuthUserId(c)),
 		);
+	},
+);
+
+router.get(
+	"/sync",
+
+	APIRouteSpec.authenticated({
+		summary: "Sync messages",
+		description:
+			"Polling endpoint for an open chat: new messages after `after`, plus edits and deletions of already-loaded messages since `since` (the previous response's `server_time`).",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success("Messages synced successfully", MessagesModel.Sync.Response),
+			APIResponseSpec.notFound("Conversation not found"),
+			APIResponseSpec.forbidden("You do not have access to this conversation"),
+		),
+	}),
+
+	zValidator("query", MessagesModel.Sync.Query),
+
+	async (c) => {
+		const conversation = c.get("conversation");
+		const userId = getAuthUserId(c);
+		const { after, since } = c.req.valid("query") as MessagesModel.Sync.Query;
+		const table = DB.Tables.messages;
+
+		// Taken before querying; changes in the same millisecond are re-sent next time (`>=`).
+		const serverTime = Date.now();
+
+		const fresh = await DB.instance()
+			.select()
+			.from(table)
+			.where(
+				and(eq(table.conversation_id, conversation.id), gt(table.id, after), isNull(table.deleted_at)),
+			)
+			.orderBy(asc(table.id))
+			.limit(200)
+			.all();
+
+		const changed = await DB.instance()
+			.select()
+			.from(table)
+			.where(
+				and(
+					eq(table.conversation_id, conversation.id),
+					lte(table.id, after),
+					or(gte(table.edited_at, since), gte(table.deleted_at, since)),
+				),
+			)
+			.orderBy(asc(table.id))
+			.all();
+
+		return APIResponse.success(c, "Messages synced successfully", {
+			messages: await toResponse(fresh, userId),
+			updated: await toResponse(
+				changed.filter((message) => message.deleted_at === null),
+				userId,
+			),
+			deleted_ids: changed
+				.filter((message) => message.deleted_at !== null)
+				.map((message) => message.id),
+			server_time: serverTime,
+		} satisfies MessagesModel.Sync.Response);
 	},
 );
 
@@ -151,6 +218,7 @@ router.use("/:messageId/*", zValidator("param", MessagesModel.Params), async (c,
 			and(
 				eq(DB.Tables.messages.id, messageId.data),
 				eq(DB.Tables.messages.conversation_id, c.get("conversation").id),
+				isNull(DB.Tables.messages.deleted_at),
 			),
 		)
 		.get();
@@ -201,7 +269,8 @@ router.delete(
 
 	APIRouteSpec.authenticated({
 		summary: "Delete message",
-		description: "Delete one of the caller's own messages.",
+		description:
+			"Delete one of the caller's own messages. The text is removed; other members' open chats drop it on their next sync.",
 		tags: [DOCS_TAGS.MESSAGING],
 
 		responses: APIResponseSpec.describeBasic(
@@ -212,8 +281,10 @@ router.delete(
 	}),
 
 	async (c) => {
+		// Tombstone instead of a hard delete so `/sync` can report it; the text itself is wiped.
 		await DB.instance()
-			.delete(DB.Tables.messages)
+			.update(DB.Tables.messages)
+			.set({ content: "", deleted_at: Date.now() })
 			.where(eq(DB.Tables.messages.id, c.get("message").id))
 			.run();
 		return APIResponse.successNoData(c, "Message deleted successfully");

@@ -236,15 +236,14 @@ router.put(
 
 		const roleChanged = updates.role && updates.role !== user.role;
 
-		await DB.instance()
-			.update(DB.Tables.users)
-			.set(updates)
-			.where(eq(DB.Tables.users.id, user.id))
-			.run();
-
-		if (roleChanged && updates.role) {
-			await AuthHandler.changeUserRoleInAuthContexts(user.id, updates.role);
-		}
+		// One transaction: the role on the user and the role cached on their sessions/API keys
+		// must never disagree.
+		await DB.instance().transaction(async (tx: DrizzleDB) => {
+			await tx.update(DB.Tables.users).set(updates).where(eq(DB.Tables.users.id, user.id)).run();
+			if (roleChanged && updates.role) {
+				await AuthHandler.changeUserRoleInAuthContexts(user.id, updates.role, tx);
+			}
+		});
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),

@@ -167,7 +167,9 @@ export class PermissionHelper {
 	static listEventPermissions(role: PermissionHelper.EventRole | null, membership: object | null) {
 		return (
 			Object.keys(PermissionHelper.EVENT_PERMISSIONS) as PermissionHelper.EventPermission[]
-		).filter((permission) => PermissionHelper.canInEvent({ access: { role, membership }, permission }));
+		).filter((permission) =>
+			PermissionHelper.canInEvent({ access: { role, membership }, permission }),
+		);
 	}
 }
 

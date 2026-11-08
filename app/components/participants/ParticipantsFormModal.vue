@@ -157,8 +157,11 @@ function nullable(value: string) {
 	return trimmed ? trimmed : null;
 }
 
+/** Editing someone whose health data the caller cannot see: those fields are left untouched. */
+const healthHidden = computed(() => props.participant?.medical_visible === false);
+
 function toBody() {
-	return {
+	const body = {
 		first_name: form.first_name.trim(),
 		last_name: form.last_name.trim(),
 		birth_date: form.birth_date || null,
@@ -186,6 +189,10 @@ function toBody() {
 				phone: contact.phone.trim(),
 			})),
 	};
+	if (!healthHidden.value) return body;
+	// The API ignores them for such callers anyway; don't send the blanks at all.
+	const { allergies, medications, dietary_requirements, medical_notes, can_swim, ...rest } = body;
+	return rest;
 }
 
 function onError(event: FormErrorEvent) {
@@ -342,7 +349,16 @@ async function submit() {
 				</template>
 
 				<template #health>
-					<div class="grid gap-4 pt-4 sm:grid-cols-2">
+					<UAlert
+						v-if="healthHidden"
+						class="mt-4"
+						icon="i-lucide-lock"
+						color="neutral"
+						variant="subtle"
+						title="Nur für das Team sichtbar"
+						description="Gesundheitsangaben dieser Person sehen nur die Mitarbeitenden der Freizeit. Beim Speichern bleiben sie unverändert."
+					/>
+					<div v-else class="grid gap-4 pt-4 sm:grid-cols-2">
 						<UFormField label="Allergien" name="allergies" class="sm:col-span-2">
 							<UTextarea v-model="form.allergies" :rows="2" autoresize class="w-full" />
 						</UFormField>

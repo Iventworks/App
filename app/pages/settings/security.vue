@@ -77,7 +77,7 @@ async function onPasswordSubmit(event: FormSubmitEvent<PasswordSchema>) {
 		toast.add({
 			title: "Passwort konnte nicht geändert werden",
 			description:
-				(result.code as number) === 401 ? "Das aktuelle Passwort ist falsch." : result.message,
+				(result.code as number) === 400 ? "Das aktuelle Passwort ist falsch." : result.message,
 			icon: "i-lucide-alert-circle",
 			color: "error",
 		});

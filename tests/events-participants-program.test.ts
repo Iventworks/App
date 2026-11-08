@@ -166,15 +166,17 @@ describe("Event participants", () => {
 		const coreEvent = await makeAPIRequest(`/v1/events/${eventId}`, { authToken: coreSession.token });
 		expect(coreEvent.permissions).not.toContain("participants:view_medical");
 		expect(coreEvent.permissions).toContain("participants:manage");
-		const staffEvent = await makeAPIRequest(`/v1/events/${eventId}`, { authToken: staffSession.token });
+		const staffEvent = await makeAPIRequest(`/v1/events/${eventId}`, {
+			authToken: staffSession.token,
+		});
 		expect(staffEvent.permissions).toContain("participants:view_medical");
 
 		// Leave the note list as the following tests expect it.
 		const ownNote = forStaff.staff_notes.find((note) => note.content.includes("Inhalationsspray"));
-		await makeAPIRequest(
-			`/v1/events/${eventId}/participants/${participantId}/notes/${ownNote!.id}`,
-			{ method: "DELETE", authToken: staffSession.token },
-		);
+		await makeAPIRequest(`/v1/events/${eventId}/participants/${participantId}/notes/${ownNote!.id}`, {
+			method: "DELETE",
+			authToken: staffSession.token,
+		});
 	});
 
 	test("rejects rooms of other events, invalid dates and missing names", async () => {

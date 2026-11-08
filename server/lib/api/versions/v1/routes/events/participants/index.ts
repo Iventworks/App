@@ -541,7 +541,9 @@ router.put(
 
 		const event = c.get("event");
 		const participant = c.get("participant");
-		const { emergency_contacts, ...input } = c.req.valid("json") as EventParticipantsModel.Update.Body;
+		const { emergency_contacts, ...input } = c.req.valid(
+			"json",
+		) as EventParticipantsModel.Update.Body;
 		// Callers who cannot see health data (core team outside the team) must not overwrite it
 		// with the blanks they were shown.
 		const body: Omit<EventParticipantsModel.Update.Body, "emergency_contacts"> = { ...input };

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { CalendarModel } from "../server/lib/api/versions/v1/routes/calendar/model";
 import { MessagesModel } from "../server/lib/api/versions/v1/routes/conversations/messages/model";
 import { ConversationsModel } from "../server/lib/api/versions/v1/routes/conversations/model";
@@ -690,6 +691,73 @@ describe("Conversations", () => {
 			`/v1/conversations/${directId}/messages/${target}`,
 			{ method: "PUT", authToken: aliceSession.token, body: { content: "x" } },
 			404,
+		);
+	});
+
+	test("sync reports new messages, other people's edits and deletions", async () => {
+		const history = await makeAPIRequest(`/v1/conversations/${directId}/messages`, {
+			authToken: bobSession.token,
+			expectedBodySchema: MessagesModel.GetAll.Response,
+		});
+		// The message deleted in the previous test is gone from the history.
+		expect(history.some((message) => message.id === messageIds[0])).toBe(false);
+
+		const lastId = history.at(-1)!.id;
+		const first = await makeAPIRequest(
+			`/v1/conversations/${directId}/messages/sync?after=${lastId}&since=0`,
+			{ authToken: bobSession.token, expectedBodySchema: MessagesModel.Sync.Response },
+		);
+		expect(first.messages).toEqual([]);
+		// The earlier delete is reported as a tombstone, not as content.
+		expect(first.deleted_ids).toContain(messageIds[0]!);
+
+		const since = first.server_time;
+		const edited = messageIds[1]!;
+		const deleted = messageIds[2]!;
+		await makeAPIRequest(`/v1/conversations/${directId}/messages/${edited}`, {
+			method: "PUT",
+			authToken: aliceSession.token,
+			body: { content: "Wie geht's dir?" },
+		});
+		await makeAPIRequest(`/v1/conversations/${directId}/messages/${deleted}`, {
+			method: "DELETE",
+			authToken: aliceSession.token,
+		});
+		const fresh = await makeAPIRequest(
+			`/v1/conversations/${directId}/messages`,
+			{ method: "POST", authToken: aliceSession.token, body: { content: "Neu" } },
+			201,
+		);
+
+		const sync = await makeAPIRequest(
+			`/v1/conversations/${directId}/messages/sync?after=${lastId}&since=${since}`,
+			{ authToken: bobSession.token, expectedBodySchema: MessagesModel.Sync.Response },
+		);
+		expect(sync.messages.map((message) => message.id)).toEqual([fresh.id]);
+		expect(sync.updated.map((message) => [message.id, message.content])).toEqual([
+			[edited, "Wie geht's dir?"],
+		]);
+		expect(sync.deleted_ids).toContain(deleted);
+		expect(sync.server_time).toBeGreaterThanOrEqual(since);
+
+		// Deleted messages keep no text and do not count as unread.
+		const row = DB.instance()
+			.select()
+			.from(DB.Tables.messages)
+			.where(eq(DB.Tables.messages.id, deleted))
+			.get();
+		expect(row?.content).toBe("");
+		expect(row?.deleted_at).not.toBeNull();
+
+		await makeAPIRequest(
+			`/v1/conversations/${directId}/messages/sync?after=abc&since=0`,
+			{ authToken: bobSession.token },
+			400,
+		);
+		await makeAPIRequest(
+			`/v1/conversations/${directId}/messages/sync?after=0&since=0`,
+			{ authToken: carolSession.token },
+			403,
 		);
 	});
 

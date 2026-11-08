@@ -9,6 +9,7 @@ import type {
 	Row,
 } from "@tanstack/vue-table";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { isRef } from "vue";
 
 // Cell slot props type (matches UTable's slot props)
 type CellSlotProps = {
@@ -140,18 +141,14 @@ const allFilters = computed<FilterConfig[]>(() => props.filters ?? []);
 // Column filters state
 const columnFilters = ref<ColumnFiltersState>([]);
 
-// Initialize filters for all specified columns
-watchEffect(() => {
-	const filterColumns = allFilters.value.map((f) => f.column);
-	for (const col of filterColumns) {
-		const existingFilter = columnFilters.value.find((f) => f.id === col);
-		if (!existingFilter) {
-			const filter = allFilters.value.find((f) => f.column === col);
-			const initialValue = filter?.type === "multi-select" ? [] : "";
-			columnFilters.value.push({ id: col as string, value: initialValue });
-		}
-	}
-});
+// Drop filter state for columns that no longer have a filter. Unset filters stay out of the
+// state: TanStack applies every entry in it, even an empty one.
+watch(
+	() => allFilters.value.map((f) => f.column as string),
+	(filterColumns) => {
+		columnFilters.value = columnFilters.value.filter((f) => filterColumns.includes(f.id));
+	},
+);
 
 // Helper to get/set filter value for a specific column
 function getFilterValue(column: string): any {
@@ -169,7 +166,7 @@ function setFilterValue(column: string, value: any) {
 	if (filter?.type === "multi-select") {
 		table.value?.tableApi?.getColumn(column)?.setFilterValue(value?.length ? value : undefined);
 	} else {
-		table.value?.tableApi?.getColumn(column)?.setFilterValue(value || undefined);
+		table.value?.tableApi?.getColumn(column)?.setFilterValue(value ?? undefined);
 	}
 }
 
@@ -199,16 +196,27 @@ const enhancedColumns = computed<TableColumn<T>[]>(() => {
 
 		if (!filter) return col;
 
-		// Add custom filter function based on filter type
+		// Explicit filter function per type; TanStack's "auto" picks one from the first row's value
 		let filterFn: FilterFn<T> | undefined;
 
 		if (filter.filterFn) {
 			filterFn = filter.filterFn;
+		} else if (!filter.type || filter.type === "text") {
+			filterFn = (row, columnId, filterValue) => {
+				if (filterValue == null || filterValue === "") return true;
+				const cellValue = String(row.getValue(columnId) ?? "").toLowerCase();
+				return cellValue.includes(String(filterValue).toLowerCase());
+			};
+		} else if (filter.type === "number") {
+			filterFn = (row, columnId, filterValue) => {
+				if (filterValue == null || filterValue === "") return true;
+				const cellValue = row.getValue(columnId);
+				return cellValue != null && Number(cellValue) === Number(filterValue);
+			};
 		} else if (filter.type === "select") {
 			filterFn = (row, columnId, filterValue) => {
-				if (!filterValue || filterValue === "" || filterValue === null) return true;
-				const cellValue = row.getValue(columnId);
-				return cellValue === filterValue;
+				if (filterValue == null || filterValue === "") return true;
+				return row.getValue(columnId) === filterValue;
 			};
 		} else if (filter.type === "multi-select") {
 			filterFn = (row, columnId, filterValue) => {
@@ -277,181 +285,174 @@ defineExpose({
 </script>
 
 <template>
-    <UCard class="border-slate-800 bg-slate-900/60">
-        <template #header>
-            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <!-- Filters Section -->
-                <div class="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                    <slot name="header-left" />
-                    
-                    <!-- Render all filters based on type -->
-                    <template v-for="filter in allFilters" :key="filter.column">
-                        <!-- Text Input Filter (default) -->
-                        <UInput
-                            v-if="!filter.type || filter.type === 'text'"
-                            :model-value="getFilterValue(filter.column as string) as string"
-                            :class="filter.class || 'w-full sm:w-auto sm:max-w-sm sm:min-w-48'"
-                            :icon="filter.icon || 'i-lucide-search'"
-                            :placeholder="filter.placeholder || 'Suchen …'"
-                            @update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
-                        />
+	<UCard class="border-slate-800 bg-slate-900/60">
+		<template #header>
+			<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+				<!-- Filters Section -->
+				<div class="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+					<slot name="header-left" />
+					
+					<!-- Render all filters based on type -->
+					<template v-for="filter in allFilters" :key="filter.column">
+						<!-- Text Input Filter (default) -->
+						<UInput
+							v-if="!filter.type || filter.type === 'text'"
+							:model-value="getFilterValue(filter.column as string) as string"
+							:class="filter.class || 'w-full sm:w-auto sm:max-w-sm sm:min-w-48'"
+							:icon="filter.icon || 'i-lucide-search'"
+							:placeholder="filter.placeholder || 'Suchen …'"
+							@update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
+						/>
 
-                        <!-- Number Input Filter -->
-                        <UInput
-                            v-else-if="filter.type === 'number'"
-                            type="number"
-                            :model-value="getFilterValue(filter.column as string) as string"
-                            :class="filter.class || 'w-full sm:w-auto sm:max-w-32 sm:min-w-24'"
-                            :icon="filter.icon || 'i-lucide-calendar'"
-                            :placeholder="filter.placeholder || 'Zahl …'"
-                            @update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
-                        />
+						<!-- Number Input Filter -->
+						<UInput
+							v-else-if="filter.type === 'number'"
+							type="number"
+							:model-value="getFilterValue(filter.column as string) as string"
+							:class="filter.class || 'w-full sm:w-auto sm:max-w-32 sm:min-w-24'"
+							:icon="filter.icon || 'i-lucide-hash'"
+							:placeholder="filter.placeholder || 'Zahl …'"
+							@update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
+						/>
 
-                        <!-- Date Picker Filter -->
-                        <FormDateRangePicker
-                            v-else-if="filter.type === 'date'"
-                            :model-value="getFilterValue(filter.column as string) as any"
-                            :class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
-                            :icon="filter.icon || 'i-lucide-calendar'"
-                            @update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
-                        />
+						<!-- Date Picker Filter -->
+						<FormDateRangePicker
+							v-else-if="filter.type === 'date'"
+							:model-value="getFilterValue(filter.column as string) as any"
+							:class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
+							:icon="filter.icon || 'i-lucide-calendar'"
+							@update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
+						/>
 
-                        <!-- Select Filter -->
-                        <USelectMenu
-                            v-else-if="filter.type === 'select'"
-                            :model-value="getFilterValue(filter.column as string)"
-                            :items="getSelectItems(filter)"
-                            value-key="value"
-                            :class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
-                            :placeholder="filter.placeholder || 'Alle'"
-                            @update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
-                        >
-                            <template #leading>
-                                <UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
-                            </template>
-                        </USelectMenu>
+						<!-- Select Filter -->
+						<USelectMenu
+							v-else-if="filter.type === 'select'"
+							:model-value="getFilterValue(filter.column as string)"
+							:items="getSelectItems(filter)"
+							value-key="value"
+							:class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
+							:placeholder="filter.placeholder || 'Alle'"
+							@update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
+						>
+							<template #leading>
+								<UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
+							</template>
+						</USelectMenu>
 
-                        <!-- Multi-Select Filter -->
-                        <USelectMenu
-                            v-else-if="filter.type === 'multi-select'"
-                            :model-value="(getFilterValue(filter.column as string) as any[]) || []"
-                            :items="getMultiSelectItems(filter)"
-                            value-key="value"
-                            multiple
-                            :class="filter.class || 'w-full sm:w-auto sm:min-w-48'"
-                            :placeholder="filter.placeholder || 'Auswählen …'"
-                            @update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
-                        >
-                            <template #leading>
-                                <UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
-                            </template>
-                        </USelectMenu>
-                    </template>
-                </div>
-                
-                <!-- Actions Section -->
-                <div class="flex items-center gap-2 sm:gap-3 justify-end">
-                    <UButton
-                        v-if="showRefresh"
-                        icon="i-lucide-refresh-cw"
-                        color="neutral"
-                        variant="subtle"
-                        class="sm:hidden"
-                        aria-label="Aktualisieren"
-                        @click="handleRefresh"
-                    />
-                    <UButton
-                        v-if="showRefresh"
-                        label="Aktualisieren"
-                        icon="i-lucide-refresh-cw"
-                        color="neutral"
-                        variant="subtle"
-                        class="hidden sm:inline-flex"
-                        @click="handleRefresh"
-                    />
-                    <!-- <UButton
-                        v-if="showRefresh"
-                        label="Aktualisieren"
-                        icon="i-lucide-refresh-cw"
-                        color="neutral"
-                        variant="subtle"
-                        @click="handleRefresh"
-                    /> -->
+						<!-- Multi-Select Filter -->
+						<USelectMenu
+							v-else-if="filter.type === 'multi-select'"
+							:model-value="(getFilterValue(filter.column as string) as any[]) || []"
+							:items="getMultiSelectItems(filter)"
+							value-key="value"
+							multiple
+							:class="filter.class || 'w-full sm:w-auto sm:min-w-48'"
+							:placeholder="filter.placeholder || 'Auswählen …'"
+							@update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
+						>
+							<template #leading>
+								<UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
+							</template>
+						</USelectMenu>
+					</template>
+				</div>
+				
+				<!-- Actions Section -->
+				<div class="flex items-center gap-2 sm:gap-3 justify-end">
+					<UButton
+						v-if="showRefresh"
+						icon="i-lucide-refresh-cw"
+						color="neutral"
+						variant="subtle"
+						class="sm:hidden"
+						aria-label="Aktualisieren"
+						@click="handleRefresh"
+					/>
+					<UButton
+						v-if="showRefresh"
+						label="Aktualisieren"
+						icon="i-lucide-refresh-cw"
+						color="neutral"
+						variant="subtle"
+						class="hidden sm:inline-flex"
+						@click="handleRefresh"
+					/>
 
-                    <slot name="header-right" />
-                </div>
-            </div>
-        </template>
+					<slot name="header-right" />
+				</div>
+			</div>
+		</template>
 
-        <!-- Loading State -->
-        <div v-if="isRef(loading) ? loading.value : loading" class="flex items-center justify-center py-12">
-            <UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
-        </div>
+		<!-- Loading State -->
+		<div v-if="isRef(loading) ? loading.value : loading" class="flex items-center justify-center py-12">
+			<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
+		</div>
 
-        <!-- Table -->
-        <UTable
-            v-else-if="(isRef(data) ? data.value : data)?.length"
-            ref="table"
-            :data="isRef(data) ? data.value : data"
-            :columns="enhancedColumns"
-            v-model:column-filters="columnFilters"
-            v-model:pagination="pagination"
-            :pagination-options="{
-                getPaginationRowModel: getPaginationRowModel()
-            }"
-        >
-            <!-- Pass through all cell slots dynamically -->
-            <template v-for="(_, slotName) in slots" :key="slotName" #[slotName]="slotProps">
-                <slot :name="(slotName as keyof TableSlots)" v-bind="slotProps || {}" />
-            </template>
-        </UTable>
+		<!-- Table -->
+		<UTable
+			v-else-if="(isRef(data) ? data.value : data)?.length"
+			ref="table"
+			:data="isRef(data) ? data.value : data"
+			:columns="enhancedColumns"
+			v-model:column-filters="columnFilters"
+			v-model:pagination="pagination"
+			:pagination-options="{
+				getPaginationRowModel: getPaginationRowModel()
+			}"
+		>
+			<!-- Pass through all cell slots dynamically -->
+			<template v-for="(_, slotName) in slots" :key="slotName" #[slotName]="slotProps">
+				<slot :name="(slotName as keyof TableSlots)" v-bind="slotProps || {}" />
+			</template>
+		</UTable>
 
-        <!-- Empty State -->
-        <template v-else>
-            <slot name="empty">
-                <UEmpty
-                    :icon="emptyIcon"
-                    :title="emptyTitle"
-                    :description="emptyDescription"
-                    variant="naked"
-                >
-                    <template v-if="slots['empty-actions']" #actions>
-                        <slot name="empty-actions" />
-                    </template>
-                </UEmpty>
-            </slot>
-        </template>
+		<!-- Empty State -->
+		<template v-else>
+			<slot name="empty">
+				<UEmpty
+					:icon="emptyIcon"
+					:title="emptyTitle"
+					:description="emptyDescription"
+					variant="naked"
+				>
+					<template v-if="slots['empty-actions']" #actions>
+						<slot name="empty-actions" />
+					</template>
+				</UEmpty>
+			</slot>
+		</template>
 
-        <template v-if="!(isRef(loading) ? loading.value : loading) && ((isRef(data) ? data.value : data))?.length && (showPagination || showPageSizeSelector)" #footer>
-            <div class="flex items-center gap-3" :class="showPageSizeSelector && !isMobile ? 'justify-between' : 'justify-center'">
-                <div v-if="showPageSizeSelector && !isMobile" class="flex items-center gap-3 text-sm text-muted">
-                    <slot name="footer-left">
-                        <!-- Hide page size selector on mobile -->
-                        <USelect
-                            :items="pageSizeItems"
-                            size="md"
-                            class="min-w-18"
-                            :default-value="defaultPageSize"
-                            @update:model-value="handlePageSizeChange"
-                        />
-                    </slot>
-                </div>
+		<template v-if="!(isRef(loading) ? loading.value : loading) && (isRef(data) ? data.value : data)?.length && (showPagination || showPageSizeSelector)" #footer>
+			<div class="flex items-center gap-3" :class="showPageSizeSelector && !isMobile ? 'justify-between' : 'justify-center'">
+				<div v-if="showPageSizeSelector && !isMobile" class="flex items-center gap-3 text-sm text-muted">
+					<slot name="footer-left">
+						<!-- Hide page size selector on mobile -->
+						<USelect
+							:items="pageSizeItems"
+							size="md"
+							class="min-w-18"
+							:default-value="defaultPageSize"
+							@update:model-value="handlePageSizeChange"
+						/>
+					</slot>
+				</div>
 
-                <div class="flex items-center">
-                    <slot name="footer-right">
-                        <!-- Mobile Pagination (fewer siblings, show edges) -->
-                        <UPagination
-                            v-if="showPagination"
-                            :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
-                            :items-per-page="table?.tableApi?.getState().pagination.pageSize"
-                            :total="table?.tableApi?.getFilteredRowModel().rows.length"
-                            :sibling-count="isMobile ? 0 : 2"
-                            :show-edges="true"
-                            @update:page="(p: number) => table?.tableApi?.setPageIndex(p - 1)"
-                        />
-                    </slot>
-                </div>
-            </div>
-        </template>
-    </UCard>
+				<div class="flex items-center">
+					<slot name="footer-right">
+						<!-- Mobile Pagination (fewer siblings, show edges) -->
+						<UPagination
+							v-if="showPagination"
+							:default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+							:items-per-page="table?.tableApi?.getState().pagination.pageSize"
+							:total="table?.tableApi?.getFilteredRowModel().rows.length"
+							:sibling-count="isMobile ? 0 : 2"
+							:show-edges="true"
+							@update:page="(p: number) => table?.tableApi?.setPageIndex(p - 1)"
+						/>
+					</slot>
+				</div>
+			</div>
+		</template>
+	</UCard>
 </template>
+

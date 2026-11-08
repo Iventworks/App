@@ -11,12 +11,22 @@ const props = defineProps<{
 		medical_notes: string;
 		can_swim: boolean | null;
 		photo_consent: boolean;
+		/** False for viewers outside the event's team: health fields arrive blank. */
+		medical_visible?: boolean;
 	};
 }>();
 
 const indicators = computed(() => {
 	const p = props.participant;
 	const list: { key: string; icon: string; class: string; text: string }[] = [];
+	if (p.medical_visible === false) {
+		list.push({
+			key: "hidden",
+			icon: "i-lucide-lock",
+			class: "text-slate-500",
+			text: "Gesundheitsangaben sind nur für das Team dieser Freizeit sichtbar",
+		});
+	}
 	if (p.allergies.trim()) {
 		list.push({
 			key: "allergies",

@@ -404,7 +404,7 @@ export const zPostAdminUsersBody = z.object({
         'unverified'
     ]).optional(),
     phone: z.string().nullish(),
-    password: z.string().min(8).max(128)
+    password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
 });
 
 /**
@@ -472,16 +472,16 @@ export const zGetAdminUsersByUserIdResponse = z.object({
 });
 
 export const zPutAdminUsersByUserIdBody = z.object({
-    username: z.string().optional(),
-    display_name: z.string().optional(),
-    email: z.string().optional(),
+    username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/).optional(),
+    display_name: z.string().min(1).max(64).optional(),
+    email: z.email().regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).optional(),
     role: z.enum([
         'admin',
         'core_team',
         'volunteer',
         'unverified'
     ]).optional(),
-    phone: z.string().nullish()
+    phone: z.string().max(40).nullish()
 });
 
 export const zPutAdminUsersByUserIdPath = z.object({
@@ -1885,6 +1885,70 @@ export const zPostConversationsByConversationIdMessagesResponse = z.object({
     })
 });
 
+export const zGetConversationsByConversationIdMessagesSyncPath = z.object({
+    conversationId: z.int().gt(0).lte(9007199254740991)
+});
+
+export const zGetConversationsByConversationIdMessagesSyncQuery = z.object({
+    after: z.int().gte(0).lte(9007199254740991),
+    since: z.int().gte(0).lte(9007199254740991)
+});
+
+/**
+ * Messages synced successfully
+ */
+export const zGetConversationsByConversationIdMessagesSyncResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Messages synced successfully'),
+    data: z.object({
+        messages: z.array(z.object({
+            id: z.number(),
+            conversation_id: z.number(),
+            content: z.string(),
+            created_at: z.number(),
+            edited_at: z.number().nullable(),
+            sender: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            is_own: z.boolean()
+        })),
+        updated: z.array(z.object({
+            id: z.number(),
+            conversation_id: z.number(),
+            content: z.string(),
+            created_at: z.number(),
+            edited_at: z.number().nullable(),
+            sender: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            is_own: z.boolean()
+        })),
+        deleted_ids: z.array(z.number()),
+        server_time: z.number()
+    })
+});
+
 export const zDeleteConversationsByConversationIdMessagesByMessageIdPath = z.object({
     conversationId: z.int().gt(0).lte(9007199254740991),
     messageId: z.int().gt(0).lte(9007199254740991)
@@ -2141,6 +2205,7 @@ export const zGetEventsResponse = z.object({
             'groups:view',
             'groups:manage',
             'participants:view',
+            'participants:view_medical',
             'participants:manage',
             'participants:add_note',
             'rooms:view',
@@ -2245,6 +2310,7 @@ export const zPostEventsResponse = z.object({
             'groups:view',
             'groups:manage',
             'participants:view',
+            'participants:view_medical',
             'participants:manage',
             'participants:add_note',
             'rooms:view',
@@ -2347,6 +2413,7 @@ export const zGetEventsByEventIdResponse = z.object({
             'groups:view',
             'groups:manage',
             'participants:view',
+            'participants:view_medical',
             'participants:manage',
             'participants:add_note',
             'rooms:view',
@@ -2454,6 +2521,7 @@ export const zPutEventsByEventIdResponse = z.object({
             'groups:view',
             'groups:manage',
             'participants:view',
+            'participants:view_medical',
             'participants:manage',
             'participants:add_note',
             'rooms:view',
@@ -2543,6 +2611,7 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
                 'groups:view',
                 'groups:manage',
                 'participants:view',
+                'participants:view_medical',
                 'participants:manage',
                 'participants:add_note',
                 'rooms:view',
@@ -3270,6 +3339,7 @@ export const zGetEventsByEventIdParticipantsResponse = z.object({
         fee_paid: z.boolean(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        medical_visible: z.boolean(),
         age: z.number().nullable(),
         room: z.object({
             id: z.number(),
@@ -3367,6 +3437,7 @@ export const zPostEventsByEventIdParticipantsResponse = z.object({
         fee_paid: z.boolean(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        medical_visible: z.boolean(),
         age: z.number().nullable(),
         room: z.object({
             id: z.number(),
@@ -3472,6 +3543,7 @@ export const zGetEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         fee_paid: z.boolean(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        medical_visible: z.boolean(),
         age: z.number().nullable(),
         room: z.object({
             id: z.number(),
@@ -3589,6 +3661,7 @@ export const zPutEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         fee_paid: z.boolean(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        medical_visible: z.boolean(),
         age: z.number().nullable(),
         room: z.object({
             id: z.number(),

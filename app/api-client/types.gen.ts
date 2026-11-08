@@ -449,20 +449,20 @@ export type PutAccountData = {
 
 export type PutAccountErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * Current password is incorrect / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'Current password is incorrect / Syntax or validation error in request';
     };
     /**
-     * Your Auth Context is not a session / Current password is incorrect
+     * Your Auth Context is not a session
      */
     401: {
         success: false;
         code: 401;
-        message: 'Your Auth Context is not a session / Current password is incorrect';
+        message: 'Your Auth Context is not a session';
     };
     /**
      * Username or email already in use
@@ -965,6 +965,9 @@ export type PostAdminUsersData = {
         email: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
         phone?: string | null;
+        /**
+         * New password for the account
+         */
         password: string;
     };
     path?: never;
@@ -3204,6 +3207,96 @@ export type PostConversationsByConversationIdMessagesResponses = {
 
 export type PostConversationsByConversationIdMessagesResponse = PostConversationsByConversationIdMessagesResponses[keyof PostConversationsByConversationIdMessagesResponses];
 
+export type GetConversationsByConversationIdMessagesSyncData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query: {
+        after: number;
+        since: number;
+    };
+    url: '/conversations/{conversationId}/messages/sync';
+};
+
+export type GetConversationsByConversationIdMessagesSyncErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdMessagesSyncError = GetConversationsByConversationIdMessagesSyncErrors[keyof GetConversationsByConversationIdMessagesSyncErrors];
+
+export type GetConversationsByConversationIdMessagesSyncResponses = {
+    /**
+     * Messages synced successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Messages synced successfully';
+        data: {
+            messages: Array<{
+                id: number;
+                conversation_id: number;
+                content: string;
+                created_at: number;
+                edited_at: number | null;
+                sender: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                is_own: boolean;
+            }>;
+            updated: Array<{
+                id: number;
+                conversation_id: number;
+                content: string;
+                created_at: number;
+                edited_at: number | null;
+                sender: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                is_own: boolean;
+            }>;
+            deleted_ids: Array<number>;
+            server_time: number;
+        };
+    };
+};
+
+export type GetConversationsByConversationIdMessagesSyncResponse = GetConversationsByConversationIdMessagesSyncResponses[keyof GetConversationsByConversationIdMessagesSyncResponses];
+
 export type DeleteConversationsByConversationIdMessagesByMessageIdData = {
     body?: never;
     path: {
@@ -3712,7 +3805,7 @@ export type GetEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -3796,7 +3889,7 @@ export type PostEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -3929,7 +4022,7 @@ export type GetEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -4022,7 +4115,7 @@ export type PutEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -4104,7 +4197,7 @@ export type GetEventsByEventIdOverviewResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -5220,6 +5313,7 @@ export type GetEventsByEventIdParticipantsResponses = {
             fee_paid: boolean;
             created_at: number;
             updated_at: number;
+            medical_visible: boolean;
             age: number | null;
             room: {
                 id: number;
@@ -5335,6 +5429,7 @@ export type PostEventsByEventIdParticipantsResponses = {
             fee_paid: boolean;
             created_at: number;
             updated_at: number;
+            medical_visible: boolean;
             age: number | null;
             room: {
                 id: number;
@@ -5540,6 +5635,7 @@ export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
             fee_paid: boolean;
             created_at: number;
             updated_at: number;
+            medical_visible: boolean;
             age: number | null;
             room: {
                 id: number;
@@ -5670,6 +5766,7 @@ export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
             fee_paid: boolean;
             created_at: number;
             updated_at: number;
+            medical_visible: boolean;
             age: number | null;
             room: {
                 id: number;

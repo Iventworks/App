@@ -44,7 +44,11 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   (`PermissionHelper`) holds both permission matrices; checks live in handlers
   (`PermissionHelper.can`, `EventAccess.can(c, "…")`) and turn into `APIResponse.forbidden`.
   Routers only use the coarse `requireOrgRole(...)` guard. `core_team`/`admin` act as `leader` in
-  every event. `unverified` accounts may only use `/account`.
+  every event — except for member-only permissions (`PermissionHelper.MEMBER_ONLY_EVENT_PERMISSIONS`):
+  participants' health data and the staff's notes about them (`participants:view_medical`) are
+  only visible to people on the event's team (GDPR Art. 9, data minimisation); for everyone else
+  the API blanks those fields and ignores them on update. `unverified` accounts may only use
+  `/account`.
 - **Event sub-resources** live under `routes/events/<resource>/` with
   `basePath("/:eventId/<resource>")`; `EventAccess.loader` (mounted once in `routes/events/index.ts`)
   loads `c.get("event")` / `c.get("eventAccess")`. Follow `routes/events/tasks/` as the reference.
@@ -71,7 +75,10 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   `application/octet-stream` attachment so it can never run script on the app origin.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `CMP_TIMEZONE` (`server/lib/utils/time.ts`).
-- **Messaging** is REST + polling (`?after=<id>`), no WebSocket yet.
+- **Messaging** is REST + polling, no WebSocket: an open chat polls
+  `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>` every few seconds and
+  receives new messages plus other people's edits and deletions (messages are soft-deleted as
+  tombstones with their text wiped, so deletions can be synced).
 - All pages render client-side (`routeRules: { "/**": { ssr: false } }`) — the guide's
   "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
   use `definePageMeta({ layout: "dashboard" })` (or `auth`).
