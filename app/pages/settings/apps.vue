@@ -2,32 +2,38 @@
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Apps | Einstellungen | CMP",
-	description: "Die CMP-App für Android herunterladen oder als Web-App installieren",
+	title: "App installieren | Einstellungen | CMP",
+	description: "CMP als App auf Handy, Tablet oder Computer installieren",
 });
 
-const APP_VERSION = "1.0.2";
+const toast = useToast();
+const { isStandalone, platform, canPrompt, install } = usePwaInstall();
+const installing = ref(false);
 
-const androidFiles = [
-	{
-		name: "Android-App (.apk)",
-		description: "Direkt auf deinem Gerät installieren",
-		url: `/static/mobile-apps/cmp_${APP_VERSION}.apk`,
-		icon: "i-lucide-download",
-		primary: true,
-	},
-	{
-		name: "App Bundle (.aab)",
-		description: "Nur für die Veröffentlichung im Play Store",
-		url: `/static/mobile-apps/cmp_${APP_VERSION}.aab`,
-		icon: "i-lucide-package",
-		primary: false,
-	},
-];
+async function onInstall() {
+	installing.value = true;
+	const outcome = await install();
+	installing.value = false;
+	if (outcome === "accepted") {
+		toast.add({
+			title: "CMP wird installiert",
+			description: "Du findest die App gleich auf deinem Startbildschirm bzw. im Startmenü.",
+			icon: "i-lucide-check",
+			color: "success",
+		});
+	}
+}
 
-const comingSoon = [
-	{ platform: "iOS", icon: "i-lucide-smartphone" },
-	{ platform: "Windows", icon: "i-lucide-laptop" },
+const PLATFORM_LABELS = {
+	ios: "iPhone & iPad",
+	android: "Android",
+	desktop: "Computer",
+} as const;
+
+const benefits = [
+	{ icon: "i-lucide-smartphone", text: "Eigenes App-Symbol auf dem Startbildschirm" },
+	{ icon: "i-lucide-maximize", text: "Vollbild ohne Browser-Leiste" },
+	{ icon: "i-lucide-refresh-cw", text: "Aktualisiert sich automatisch – nichts zum Herunterladen" },
 ];
 </script>
 
@@ -35,101 +41,105 @@ const comingSoon = [
 	<UDashboardPanel id="settings-apps" :ui="{ body: 'lg:py-12' }">
 		<template #header>
 			<DashboardPageHeader
-				title="Apps"
+				title="App installieren"
 				icon="i-lucide-smartphone"
-				description="CMP auf dem Handy nutzen"
+				description="CMP wie eine App nutzen"
 			/>
 		</template>
 
 		<template #body>
 			<DashboardPageBody class="mx-auto w-full lg:max-w-3xl">
-				<DashboardSectionCard
-					title="Android"
-					:description="`Version ${APP_VERSION}`"
-					icon="i-lucide-smartphone"
-				>
-					<div class="space-y-3">
-						<div
-							v-for="file in androidFiles"
-							:key="file.name"
-							class="flex flex-wrap items-center gap-3 rounded-lg bg-slate-800/60 p-4"
-						>
-							<UIcon :name="file.icon" class="size-5 text-slate-400" />
-							<div class="min-w-0 flex-1">
-								<p class="text-sm font-medium text-white">{{ file.name }}</p>
-								<p class="text-xs text-slate-400">{{ file.description }}</p>
-							</div>
-							<UButton
-								:to="file.url"
-								download
-								external
-								label="Herunterladen"
-								icon="i-lucide-download"
-								size="sm"
-								:color="file.primary ? 'primary' : 'neutral'"
-								:variant="file.primary ? 'solid' : 'subtle'"
-							/>
-						</div>
-					</div>
+				<UAlert
+					v-if="isStandalone"
+					icon="i-lucide-badge-check"
+					color="success"
+					variant="subtle"
+					title="Du nutzt CMP bereits als App"
+					description="Auf diesem Gerät ist alles eingerichtet."
+				/>
 
-					<div class="mt-6 space-y-2 text-sm">
-						<p class="font-medium text-white">So installierst du die APK</p>
-						<ol class="list-inside list-decimal space-y-1 text-slate-400">
-							<li>Lade die APK-Datei auf deinem Android-Gerät herunter.</li>
-							<li>Öffne die Datei aus den Downloads.</li>
-							<li>Erlaube bei Nachfrage die Installation aus dieser Quelle.</li>
-							<li>Folge den Installationsschritten und melde dich in der App an.</li>
-						</ol>
+				<DashboardSectionCard
+					v-else
+					title="Auf diesem Gerät installieren"
+					:description="`Erkannt: ${PLATFORM_LABELS[platform]}`"
+					icon="i-lucide-download"
+				>
+					<div class="space-y-5">
+						<ul class="space-y-2 text-sm text-slate-300">
+							<li v-for="benefit in benefits" :key="benefit.text" class="flex items-center gap-2">
+								<UIcon :name="benefit.icon" class="size-4 shrink-0 text-primary-400" />
+								{{ benefit.text }}
+							</li>
+						</ul>
+
+						<UButton
+							v-if="canPrompt"
+							label="Jetzt installieren"
+							icon="i-lucide-download"
+							size="lg"
+							:loading="installing"
+							@click="onInstall"
+						/>
+
+						<div v-else class="rounded-lg bg-slate-800/60 p-4 text-sm">
+							<template v-if="platform === 'ios'">
+								<p class="font-medium text-white">In Safari:</p>
+								<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
+									<li>
+										Tippe unten auf
+										<UIcon name="i-lucide-share" class="inline size-4 align-text-bottom" />
+										„Teilen“.
+									</li>
+									<li>Wähle „Zum Home-Bildschirm“.</li>
+									<li>Tippe auf „Hinzufügen“.</li>
+								</ol>
+								<p class="mt-3 text-xs text-slate-500">
+									Auf iPhone und iPad klappt das nur in Safari, nicht in anderen Browsern.
+								</p>
+							</template>
+							<template v-else-if="platform === 'android'">
+								<p class="font-medium text-white">In Chrome:</p>
+								<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
+									<li>
+										Öffne das Menü
+										<UIcon name="i-lucide-ellipsis-vertical" class="inline size-4 align-text-bottom" />
+										oben rechts.
+									</li>
+									<li>Wähle „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.</li>
+								</ol>
+							</template>
+							<template v-else>
+								<p class="font-medium text-white">In Chrome oder Edge:</p>
+								<p class="mt-2 text-slate-300">
+									Klicke rechts in der Adressleiste auf das Installieren-Symbol
+									<UIcon name="i-lucide-monitor-down" class="inline size-4 align-text-bottom" />.
+									In Firefox und Safari am Mac geht das nicht – nutze CMP dort einfach im Browser.
+								</p>
+							</template>
+						</div>
 					</div>
 				</DashboardSectionCard>
 
 				<DashboardSectionCard
-					title="Als Web-App installieren"
-					description="Funktioniert auf iPhone, Android und am Computer"
-					icon="i-lucide-app-window"
+					title="Andere Geräte"
+					description="So installierst du CMP woanders"
+					icon="i-lucide-monitor-smartphone"
 				>
-					<div class="grid gap-4 text-sm sm:grid-cols-2">
+					<div class="grid gap-4 text-sm sm:grid-cols-3">
 						<div class="space-y-1">
-							<p class="font-medium text-white">iPhone & iPad (Safari)</p>
-							<p class="text-slate-400">
-								Tippe auf <UIcon name="i-lucide-share" class="inline size-4 align-text-bottom" />
-								„Teilen“ und wähle „Zum Home-Bildschirm“.
-							</p>
+							<p class="font-medium text-white">iPhone & iPad</p>
+							<p class="text-slate-400">Safari → Teilen → „Zum Home-Bildschirm“</p>
 						</div>
 						<div class="space-y-1">
-							<p class="font-medium text-white">Android (Chrome)</p>
-							<p class="text-slate-400">
-								Öffne das Menü
-								<UIcon name="i-lucide-ellipsis-vertical" class="inline size-4 align-text-bottom" />
-								und wähle „Zum Startbildschirm hinzufügen“ bzw. „App installieren“.
-							</p>
+							<p class="font-medium text-white">Android</p>
+							<p class="text-slate-400">Chrome → Menü → „App installieren“</p>
 						</div>
-						<div class="space-y-1 sm:col-span-2">
-							<p class="font-medium text-white">Computer (Chrome, Edge)</p>
-							<p class="text-slate-400">
-								Klicke in der Adressleiste auf das Installieren-Symbol
-								<UIcon name="i-lucide-monitor-down" class="inline size-4 align-text-bottom" />.
-							</p>
+						<div class="space-y-1">
+							<p class="font-medium text-white">Computer</p>
+							<p class="text-slate-400">Chrome/Edge → Installieren-Symbol in der Adressleiste</p>
 						</div>
 					</div>
 				</DashboardSectionCard>
-
-				<div class="grid gap-4 sm:grid-cols-2">
-					<UCard
-						v-for="entry in comingSoon"
-						:key="entry.platform"
-						class="border-slate-800 bg-slate-900/60"
-					>
-						<div class="flex items-center gap-3">
-							<UIcon :name="entry.icon" class="size-6 text-slate-500" />
-							<div class="flex-1">
-								<p class="font-medium text-white">{{ entry.platform }}</p>
-								<p class="text-xs text-slate-500">Eigene App folgt – bis dahin die Web-App nutzen.</p>
-							</div>
-							<UBadge label="Demnächst" color="neutral" variant="subtle" />
-						</div>
-					</UCard>
-				</div>
 			</DashboardPageBody>
 		</template>
 	</UDashboardPanel>

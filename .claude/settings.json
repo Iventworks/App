@@ -44,7 +44,11 @@
 			".nitro/**",
 			".data/**",
 			".cache/**",
-			"dist/**"
+			"dist/**",
+			"data/**",
+			"config/**",
+			"coverage/**",
+			"tmp-data-*/**"
 		]
 	}
 }

@@ -144,7 +144,7 @@ const settingsItems: NavigationMenuItem[] = [
 	{ label: "Profil", icon: "i-lucide-user", to: "/settings", exact: true },
 	{ label: "Sicherheit", icon: "i-lucide-shield", to: "/settings/security" },
 	{ label: "API-Schlüssel", icon: "i-lucide-key", to: "/settings/api-keys" },
-	{ label: "Apps", icon: "i-lucide-smartphone", to: "/settings/apps" },
+	{ label: "App installieren", icon: "i-lucide-smartphone", to: "/settings/apps" },
 ];
 
 const adminItems: NavigationMenuItem[] = [

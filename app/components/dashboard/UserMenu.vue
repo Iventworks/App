@@ -89,7 +89,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 	],
 	[
 		{
-			label: "Apps herunterladen",
+			label: "App installieren",
 			icon: "i-lucide-smartphone",
 			to: "/settings/apps",
 		},

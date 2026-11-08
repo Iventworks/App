@@ -63,9 +63,15 @@ export default defineNuxtConfig({
 	app: {
 		head: {
 			htmlAttrs: { lang: "de" },
+			meta: [
+				{ name: "theme-color", content: "#020617" },
+				{ name: "apple-mobile-web-app-title", content: "CMP" },
+			],
 			link: [
 				{ rel: "manifest", href: "/manifest.webmanifest" },
 				{ rel: "icon", href: "/favicon.ico" },
+				// iOS home-screen icon (Safari ignores the manifest icons).
+				{ rel: "apple-touch-icon", href: "/static/logo/apple-touch-icon.png" },
 			],
 			script: [
 				{
@@ -96,7 +102,13 @@ export default defineNuxtConfig({
 
 			id: "info.crossover.cmp.app",
 
+			// 192 + 512 are what Chrome requires for installability.
 			icons: [
+				{
+					src: "/static/logo/crossover-favicon-192x192.png",
+					sizes: "192x192",
+					type: "image/png",
+				},
 				{
 					src: "/static/logo/crossover-favicon-512x512.png",
 					sizes: "512x512",
@@ -110,7 +122,8 @@ export default defineNuxtConfig({
 			],
 
 			display: "standalone",
-			orientation: "portrait",
+			// Not locked: the week schedule and tables need landscape on tablets and desktops.
+			orientation: "any",
 
 			lang: "de",
 

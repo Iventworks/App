@@ -82,6 +82,9 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
 - All pages render client-side (`routeRules: { "/**": { ssr: false } }`) — the guide's
   "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
   use `definePageMeta({ layout: "dashboard" })` (or `auth`).
-- **PWA** (`@vite-pwa/nuxt`) is kept (the guide ships none): the Android TWA wraps the web app.
+- **PWA** (`@vite-pwa/nuxt`) is kept (the guide ships none): it is the only mobile channel — no
+  native/TWA builds are shipped. `/settings/apps` offers the install (`usePwaInstall`, which
+  replays the `beforeinstallprompt` event caught by `plugins/pwaInstall.client.ts`) and the
+  Safari steps for iOS.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
 - UI language is German, informal ("du").
