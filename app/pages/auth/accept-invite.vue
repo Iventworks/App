@@ -67,23 +67,8 @@ const fields = computed<AuthFormField[]>(() => [
 // Mirrors the backend's `UserDataPolicies`. No `.trim()` on passwords.
 const schema = z.object({
 	display_name: z.string("Anzeigename ist erforderlich").trim().min(1).max(64),
-	username: z
-		.string("Benutzername ist erforderlich")
-		.trim()
-		.min(5, "Mindestens 5 Zeichen")
-		.max(40, "Höchstens 40 Zeichen")
-		.regex(
-			/^(?!.*[.-]{2})[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/,
-			"Nur Kleinbuchstaben, Zahlen, Punkt, Unter- und Bindestrich",
-		),
-	password: z
-		.string("Passwort ist erforderlich")
-		.min(8, "Muss mindestens 8 Zeichen lang sein")
-		.max(50, "Darf höchstens 50 Zeichen lang sein")
-		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
-		.regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
-		.regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
-		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
+	username: usernameField(),
+	password: newPasswordField(),
 	confirm_password: z.string().min(1, "Bitte bestätige dein Passwort"),
 });
 

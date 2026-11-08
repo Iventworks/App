@@ -5,12 +5,15 @@
  */
 import type {
 	GetAccountResponses,
+	GetAdminUsersByUserIdResponses,
+	GetAdminUsersResponses,
 	GetEventsByEventIdFilesResponses,
 	GetEventsByEventIdMembersResponses,
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
 	GetNotificationsResponses,
 	GetUsersResponses,
+	PostAdminUsersByUserIdPasswordLinkResponses,
 } from "~/api-client";
 
 export namespace UtilityTypes {
@@ -34,3 +37,9 @@ export type NotificationItem = GetNotificationsResponses["200"]["data"]["items"]
 
 export type FolderListing = GetEventsByEventIdFilesResponses["200"]["data"];
 export type FileItem = FolderListing["items"][number];
+
+/** A full account as admins see it (`/admin/users`). */
+export type AdminUser = GetAdminUsersResponses["200"]["data"][number];
+export type AdminUserDetail = GetAdminUsersByUserIdResponses["200"]["data"];
+/** A one-time "set your password" link, shown to the admin once. */
+export type PasswordLink = PostAdminUsersByUserIdPasswordLinkResponses["201"]["data"];

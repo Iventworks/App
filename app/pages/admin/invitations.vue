@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem, FormSubmitEvent } from "@nuxt/ui";
+import type { DropdownMenuItem, FormSubmitEvent, TableColumn } from "@nuxt/ui";
 import * as z from "zod";
 import type { GetAdminInvitationsResponses } from "~/api-client";
 import { zPostAdminInvitationsBody } from "~/api-client/zod.gen";
@@ -50,13 +50,6 @@ const {
 	return result.data;
 });
 
-const statusFilter = ref<InvitationStatus | "all">("pending");
-
-const visibleInvitations = computed(() => {
-	const all = invitations.value ?? [];
-	return statusFilter.value === "all" ? all : all.filter((i) => i.status === statusFilter.value);
-});
-
 const counts = computed(() => {
 	const all = invitations.value ?? [];
 	return {
@@ -65,6 +58,40 @@ const counts = computed(() => {
 		expired: all.filter((i) => i.status === "expired").length,
 	};
 });
+
+const { active: statusFilter, links: statusLinks } = useQueryTabs<InvitationStatus | "all">(
+	"status",
+	() => [
+		{ value: "pending", label: "Offen", icon: STATUS_ICONS.pending, badge: counts.value.pending },
+		{
+			value: "accepted",
+			label: "Angenommen",
+			icon: STATUS_ICONS.accepted,
+			badge: counts.value.accepted,
+		},
+		{
+			value: "expired",
+			label: "Abgelaufen",
+			icon: STATUS_ICONS.expired,
+			badge: counts.value.expired,
+		},
+		{ value: "all", label: "Alle", icon: "i-lucide-list" },
+	],
+);
+
+const visibleInvitations = computed(() => {
+	const all = invitations.value ?? [];
+	return statusFilter.value === "all" ? all : all.filter((i) => i.status === statusFilter.value);
+});
+
+const columns: TableColumn<Invitation>[] = [
+	{ accessorKey: "email", header: "Person" },
+	{ accessorKey: "role", header: "Rolle" },
+	{ accessorKey: "status", header: "Status" },
+	{ accessorKey: "created_at", header: "Eingeladen" },
+	{ accessorKey: "expires_at", header: "Gültig bis" },
+	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
+];
 
 // --- create ---------------------------------------------------------------------------------
 
@@ -93,6 +120,13 @@ const createState = reactive({
 function openCreate() {
 	Object.assign(createState, { email: "", display_name: "", role: "volunteer", expires_in_days: 7 });
 	createOpen.value = true;
+}
+
+// "Einladen" on the users page links here with `?new=1`.
+const route = useRoute();
+if (route.query.new) {
+	openCreate();
+	void useRouter().replace({ query: { ...route.query, new: undefined } });
 }
 
 // The link is only returned once (on create/resend); show it right away.
@@ -217,113 +251,95 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 			<DashboardPageHeader
 				title="Einladungen"
 				icon="i-lucide-mail-plus"
-				description="Neue Konten gibt es nur per Einladung"
+				description="Per E-Mail einladen – Benutzername und Passwort wählt die Person selbst"
 			>
 				<template #right>
+					<UButton
+						label="Direkt anlegen"
+						icon="i-lucide-user-plus"
+						color="neutral"
+						variant="subtle"
+						to="/admin/users"
+					/>
 					<UButton label="Neue Einladung" icon="i-lucide-plus" @click="openCreate" />
 				</template>
 			</DashboardPageHeader>
 
 			<UDashboardToolbar>
-				<UTabs
-					v-model="statusFilter"
-					:items="[
-						{ label: `Offen (${counts.pending})`, value: 'pending' },
-						{ label: `Angenommen (${counts.accepted})`, value: 'accepted' },
-						{ label: `Abgelaufen (${counts.expired})`, value: 'expired' },
-						{ label: 'Alle', value: 'all' },
-					]"
-					:content="false"
-					size="sm"
-					variant="link"
-				/>
+				<UNavigationMenu :items="statusLinks" highlight class="-mx-1 flex-1" />
 			</UDashboardToolbar>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
-				<div v-if="loading && !invitations" class="flex justify-center py-12">
-					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
-				</div>
-
-				<UEmpty
-					v-else-if="!visibleInvitations.length"
-					icon="i-lucide-mail"
-					title="Keine Einladungen"
-					description="Lade neue Mitarbeitende per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort."
+				<DashboardDataTable
+					:data="visibleInvitations"
+					:columns="columns"
+					:loading="loading && !invitations"
+					:filters="[{ column: 'email', type: 'text', placeholder: 'E-Mail suchen …' }]"
+					:default-page-size="25"
+					empty-title="Keine Einladungen"
+					empty-description="Lade neue Mitarbeitende per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort."
+					empty-icon="i-lucide-mail"
+					@refresh="refresh"
 				>
-					<template #actions>
+					<template #empty-actions>
 						<UButton label="Jemanden einladen" icon="i-lucide-plus" @click="openCreate" />
 					</template>
-				</UEmpty>
 
-				<UCard
-					v-else
-					class="border-slate-800 bg-slate-900/60"
-					:ui="{ body: 'p-0 sm:p-0' }"
-				>
-					<ul class="divide-y divide-slate-800">
-						<li
-							v-for="invitation in visibleInvitations"
-							:key="invitation.id"
-							class="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6"
-						>
-							<div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-800">
-								<UIcon :name="STATUS_ICONS[invitation.status]" class="size-4 text-slate-300" />
-							</div>
+					<template #email-cell="{ row }">
+						<div class="min-w-0">
+							<p class="font-medium text-white">{{ row.original.display_name || row.original.email }}</p>
+							<p v-if="row.original.display_name" class="text-xs text-slate-500">{{ row.original.email }}</p>
+						</div>
+					</template>
 
-							<div class="min-w-0 flex-1">
-								<p class="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
-									{{ invitation.display_name || invitation.email }}
-									<UBadge
-										:label="STATUS_LABELS[invitation.status]"
-										:color="STATUS_COLORS[invitation.status]"
-										variant="subtle"
-										size="sm"
-									/>
-									<UBadge
-										:label="getRoleLabel(invitation.role)"
-										:color="getRoleColor(invitation.role)"
-										variant="outline"
-										size="sm"
-									/>
-								</p>
-								<p class="truncate text-xs text-slate-500">
-									<template v-if="invitation.display_name">{{ invitation.email }} · </template>
-									Eingeladen {{ formatRelative(invitation.created_at) }}
-									<template v-if="invitation.invited_by">
-										von {{ invitation.invited_by.display_name }}
-									</template>
-									·
-									<template v-if="invitation.status === 'accepted'">
-										angenommen {{ formatDate(invitation.accepted_at) }}
-										<template v-if="invitation.accepted_user">
-											als @{{ invitation.accepted_user.username }}
-										</template>
-									</template>
-									<template v-else-if="invitation.status === 'expired'">
-										abgelaufen {{ formatDate(invitation.expires_at) }}
-									</template>
-									<template v-else>gültig bis {{ formatDate(invitation.expires_at) }}</template>
-								</p>
-							</div>
+					<template #role-cell="{ row }">
+						<UBadge :label="getRoleLabel(row.original.role)" :color="getRoleColor(row.original.role)" variant="subtle" />
+					</template>
 
+					<template #status-cell="{ row }">
+						<UBadge
+							:label="STATUS_LABELS[row.original.status]"
+							:color="STATUS_COLORS[row.original.status]"
+							:icon="STATUS_ICONS[row.original.status]"
+							variant="soft"
+						/>
+						<p v-if="row.original.accepted_user" class="mt-1 text-xs text-slate-500">
+							als
+							<NuxtLink :to="`/admin/users/${row.original.accepted_user.id}`" class="text-primary-400 hover:underline">
+								@{{ row.original.accepted_user.username }}
+							</NuxtLink>
+						</p>
+					</template>
+
+					<template #created_at-cell="{ row }">
+						<p class="text-sm text-slate-300" :title="formatDate(row.original.created_at)">
+							{{ formatRelative(row.original.created_at) }}
+						</p>
+						<p v-if="row.original.invited_by" class="text-xs text-slate-500">
+							von {{ row.original.invited_by.display_name }}
+						</p>
+					</template>
+
+					<template #expires_at-cell="{ row }">
+						<span class="text-sm text-slate-400">
+							{{ row.original.status === "accepted" ? `angenommen ${formatDate(row.original.accepted_at)}` : formatDate(row.original.expires_at) }}
+						</span>
+					</template>
+
+					<template #actions-cell="{ row }">
+						<div class="flex justify-end">
 							<UDropdownMenu
-								v-if="invitation.status !== 'accepted'"
-								:items="actions(invitation)"
+								v-if="row.original.status !== 'accepted'"
+								:items="actions(row.original)"
 								:ui="{ viewport: 'main-bg-color' }"
 							>
-								<UButton
-									icon="i-lucide-ellipsis-vertical"
-									color="neutral"
-									variant="ghost"
-									size="sm"
-									aria-label="Aktionen"
-								/>
+								<UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aktionen" />
 							</UDropdownMenu>
-						</li>
-					</ul>
-				</UCard>
+						</div>
+					</template>
+				</DashboardDataTable>
 			</DashboardPageBody>
 		</template>
 	</UDashboardPanel>

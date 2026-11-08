@@ -1,14 +1,13 @@
-import { randomBytes as crypto_randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
-import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler } from "../../../../../utils/authHandler";
 import { EmailService } from "../../../../../utils/email";
+import { PasswordLinks } from "../../../../../utils/passwordLinks";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
 import { ResetPasswordModel } from "./model";
@@ -32,10 +31,9 @@ const RESET_CLEANUP_INTERVAL = setInterval(() => {
 }, RESET_REQUEST_WINDOW_MS);
 RESET_CLEANUP_INTERVAL.unref();
 
-// Tokens are stored hashed, never in plaintext. Uses LCrypt.sha256 (sha3-256)
-// so init-time tokens (db/index) and endpoint tokens share one algorithm.
+// Tokens are stored hashed, never in plaintext (see PasswordLinks).
 export function hashResetToken(resetToken: string) {
-	return LCrypt.sha256(resetToken).toHex();
+	return PasswordLinks.hashToken(resetToken);
 }
 
 function checkRateLimit(
@@ -196,26 +194,12 @@ router.post(
 			.get();
 
 		if (user) {
-			const resetToken = crypto_randomBytes(64).toString("hex");
-
+			let resetToken: string;
 			try {
-				await DB.instance().transaction(async (tx: DrizzleDB) => {
-					// Delete any existing reset tokens for this user
-					await tx
-						.delete(DB.Tables.passwordResets)
-						.where(eq(DB.Tables.passwordResets.user_id, user.id))
-						.run();
-
-					// Create new reset token — 1 hour expiry (OWASP recommendation: 15-60 min)
-					await tx
-						.insert(DB.Tables.passwordResets)
-						.values({
-							user_id: user.id,
-							token: hashResetToken(resetToken),
-							expires_at: Date.now() + 60 * 60 * 1000, // 1 hour
-						})
-						.run();
-				});
+				resetToken = await DB.instance().transaction(
+					async (tx: DrizzleDB) =>
+						(await PasswordLinks.issue(user.id, PasswordLinks.RESET_TTL_MS, tx)).token,
+				);
 			} catch (error: any) {
 				Logger.error("Failed to request password reset", error.stack || error.message || error);
 				return APIResponse.serverError(c, "Failed to request password reset");

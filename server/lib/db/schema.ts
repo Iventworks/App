@@ -39,6 +39,12 @@ export const users = sqliteTable("users", {
 
 	phone: text(),
 
+	// Set while an admin has suspended the account: no login, all sessions and API keys revoked.
+	suspended_at: integer(),
+	suspended_reason: text(),
+
+	last_login_at: integer(),
+
 	created_at: SQLUtils.getCreatedAtColumn(),
 });
 
@@ -775,6 +781,8 @@ export const auditLogs = sqliteTable(
 	(table) => [
 		index("audit_logs_event_created_idx").on(table.event_id, table.created_at),
 		index("audit_logs_created_idx").on(table.created_at),
+		index("audit_logs_entity_idx").on(table.entity_type, table.entity_id),
+		index("audit_logs_user_created_idx").on(table.user_id, table.created_at),
 	],
 );
 

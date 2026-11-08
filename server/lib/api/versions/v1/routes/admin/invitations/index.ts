@@ -7,6 +7,7 @@ import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EmailService } from "../../../../../utils/email";
 import { getAuthUserId } from "../../../../../utils/guards";
+import { UserAccountSettings } from "../../../../../utils/shared-models/accountData";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -179,7 +180,7 @@ router.post(
 			action: "invite",
 			entityType: "invitation",
 			entityId: invitation.id,
-			summary: `${email} als „${invitation.role}“ eingeladen`,
+			summary: `${email} als „${UserAccountSettings.RoleLabels[invitation.role]}“ eingeladen`,
 		});
 
 		return APIResponse.created(

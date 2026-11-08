@@ -55,8 +55,26 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   Request bodies are explicit `z.object`s — drizzle-zod insert schemas drop optionality when a
   column gets a refinement. Write German summaries to `AuditLog.record` (never medical details) and
   use `Notifier.notify` for assignments.
-- **Invite-only**: no signup. Admins create invitations (`/admin/invitations`); the invitee
-  accepts at `/auth/accept-invite?token=…` (`/auth/invitations/*`).
+- **No signup** — accounts come from admins, two ways:
+  - *Invitation* (`/admin/invitations`): email link, the invitee picks username and password at
+    `/auth/accept-invite?token=…` (`/auth/invitations/*`).
+  - *Direct* (`POST /admin/users`, "Benutzer anlegen"): with a password, or without one — then the
+    response carries a one-time link (`PasswordLinks`, 7 days, `/auth/reset-password?token=…`)
+    that the admin hands over. Admins can also issue such a link later (`…/password-link`).
+- **User management** (modelled on LeiOS Hub): `/admin/users` list → `/admin/users/[user_id]`
+  with sub-routes *Übersicht* / *Aktivität* (`useSubrouterPathDynamics` +
+  `useSubrouterInjectedData("admin_user")`). Admins can suspend accounts (`suspended_at`,
+  `suspended_reason`): login is refused with 403, sessions, API keys and password links are
+  revoked, the person disappears from `/users` pickers; data stays. "Überall abmelden" ends
+  sessions only. Never on your own account. `last_login_at` is set on login.
+- **Audit log** (the guide has no spec yet): `AuditLog.record` writes German `summary` +
+  `action` (closed enum `AuditLogModel.Actions`) + `entity_type`/`entity_id` + optional
+  `metadata`, with millisecond `created_at`. `AuditLog.list` serves both `GET /admin/audit-log`
+  and `GET /events/{id}/audit-log` (filters: person, action, object type/id, text, time range;
+  `actors` lists everyone in the log for the person filter). The UI is one component,
+  `AuditLogTable` (filters synced to the URL with `sync-url`, coloured action badges, links to
+  the object via `auditObjectLink`, expandable metadata, absolute + relative time); labels live in
+  `app/utils/audit.ts`. Add new object types there when you record a new `entityType`.
 - `PUT /api/v1/account` requires `current_password` (docs/10), like the template.
 - **Login rate limiting** is per client IP (+ username); there is no per-username lockout across
   clients (it let anyone lock the admin out). The Nitro bridge passes the client IP as Hono env
@@ -88,3 +106,13 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   Safari steps for iOS.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
 - UI language is German, informal ("du").
+- **Shared components extended** (copies of `shared/frontend`, deliberately changed):
+  `DashboardStatCard` takes `to` (the whole card links) and `iconColor: "info"`;
+  `DashboardDeleteModal` is German, its confirm word is `LÖSCHEN`, and `requireConfirmText` can
+  turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated.
+  Date fields use `FormDatePicker` / `FormDateTimePicker` / `FormDayRangePicker` (Nuxt UI
+  calendar), never native `type="date"` inputs.
+- **Views of one page** (filters like "Offen / Meine / Alle", "Nach Bereich / Nach Person") are
+  toolbar sub-navigation too: `useQueryTabs(key, tabs)` returns highlighted `UNavigationMenu`
+  links that keep the view in the query string. No `UTabs` in toolbars (inside modals they are
+  fine).

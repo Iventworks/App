@@ -75,6 +75,7 @@ router.post(
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Login successful", AuthModel.Login.Response),
 			APIResponseSpec.unauthorized("Unauthorized: Invalid username or password"),
+			APIResponseSpec.forbidden("This account is suspended"),
 			APIResponseSpec.tooManyRequests("Too many login attempts. Try again later."),
 		),
 	}),
@@ -135,7 +136,17 @@ router.post(
 			// Successful login — clear this client's counter for the account
 			clientUserAttempts.delete(clientUserKey);
 
+			// Only revealed after the correct password, so it tells nothing about other accounts.
+			if (user.suspended_at) {
+				return APIResponse.forbidden(c, "This account is suspended");
+			}
+
 			const session = await DB.instance().transaction(async (tx: DrizzleDB) => {
+				await tx
+					.update(DB.Tables.users)
+					.set({ last_login_at: Date.now() })
+					.where(eq(DB.Tables.users.id, user.id))
+					.run();
 				return await SessionHandler.createSession(user.id, tx);
 			});
 

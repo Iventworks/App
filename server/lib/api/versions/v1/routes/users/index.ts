@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, like, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
@@ -43,6 +43,7 @@ router.get(
 			.where(
 				and(
 					ne(DB.Tables.users.role, "unverified"),
+					isNull(DB.Tables.users.suspended_at),
 					role ? eq(DB.Tables.users.role, role) : undefined,
 					pattern
 						? or(

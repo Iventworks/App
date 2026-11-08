@@ -7,8 +7,8 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Passwort zurücksetzen | CMP",
-	description: "Setze dein Passwort zurück",
+	title: "Passwort festlegen | CMP",
+	description: "Lege ein neues Passwort für dein Konto fest",
 });
 
 const route = useRoute();
@@ -34,16 +34,8 @@ const fields: AuthFormField[] = [
 	},
 ];
 
-// Mirrors the backend's `UserDataPolicies.Password`. No `.trim()`: it would silently change the password.
 const schema = z.object({
-	password: z
-		.string("Passwort ist erforderlich")
-		.min(8, "Muss mindestens 8 Zeichen lang sein")
-		.max(50, "Darf höchstens 50 Zeichen lang sein")
-		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
-		.regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
-		.regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
-		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
+	password: newPasswordField(),
 	confirm_password: z
 		.string("Passwort bestätigen ist erforderlich")
 		.min(1, "Passwort bestätigen ist erforderlich"),
@@ -81,15 +73,15 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
 	if (result.success) {
 		toast.add({
-			title: "Passwort zurückgesetzt",
-			description: "Dein Passwort wurde zurückgesetzt. Du kannst dich jetzt anmelden.",
+			title: "Passwort gespeichert",
+			description: "Du kannst dich jetzt mit deinem neuen Passwort anmelden.",
 			icon: "i-lucide-check",
 			color: "success",
 		});
 		await navigateTo("/auth/login");
 	} else {
 		toast.add({
-			title: "Zurücksetzen fehlgeschlagen",
+			title: "Passwort konnte nicht gespeichert werden",
 			description: result.message || "Der Link ist möglicherweise ungültig oder abgelaufen.",
 			icon: "i-lucide-alert-circle",
 			color: "error",
@@ -103,11 +95,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 		v-if="resetToken"
 		:schema="schema"
 		:validate="validate"
-		title="Passwort zurücksetzen"
-		description="Gib unten dein neues Passwort ein."
+		title="Passwort festlegen"
+		description="Wähle ein neues Passwort für dein Konto. Der Link funktioniert nur einmal."
 		icon="i-lucide-key-round"
 		:fields="fields"
-		:submit="{ label: 'Passwort zurücksetzen', loading, disabled: loading }"
+		:submit="{ label: 'Passwort speichern', loading, disabled: loading }"
 		@submit="onSubmit"
 	>
 		<template #footer>

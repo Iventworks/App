@@ -168,6 +168,9 @@ export const zGetAccountResponse = z.object({
             'unverified'
         ]),
         phone: z.string().nullable(),
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -177,6 +180,9 @@ export const zPutAccountBody = z.object({
     display_name: z.string().min(1).max(64).optional(),
     email: z.email().regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).optional(),
     phone: z.string().max(40).nullish(),
+    suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
+    suspended_reason: z.string().nullish(),
+    last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
     current_password: z.string().min(1)
 });
 
@@ -365,6 +371,7 @@ export const zGetAdminUsersQuery = z.object({
         'volunteer',
         'unverified'
     ]).optional(),
+    status: z.enum(['active', 'suspended']).optional(),
     search: z.string().min(1).max(64).optional(),
     limit: z.int().gte(1).lte(100).optional(),
     offset: z.int().gte(0).lte(9007199254740991).optional()
@@ -389,6 +396,9 @@ export const zGetAdminUsersResponse = z.object({
             'unverified'
         ]),
         phone: z.string().nullable(),
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     }))
 });
@@ -403,8 +413,8 @@ export const zPostAdminUsersBody = z.object({
         'volunteer',
         'unverified'
     ]).optional(),
-    phone: z.string().nullish(),
-    password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
+    phone: z.string().max(40).nullish(),
+    password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/).optional()
 });
 
 /**
@@ -415,18 +425,27 @@ export const zPostAdminUsersResponse = z.object({
     code: z.literal(201),
     message: z.literal('User created successfully'),
     data: z.object({
-        id: z.int().gte(-9007199254740991).lte(9007199254740991),
-        username: z.string(),
-        display_name: z.string(),
-        email: z.string(),
-        role: z.enum([
-            'admin',
-            'core_team',
-            'volunteer',
-            'unverified'
-        ]),
-        phone: z.string().nullable(),
-        created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+        user: z.object({
+            id: z.int().gte(-9007199254740991).lte(9007199254740991),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ]),
+            phone: z.string().nullable(),
+            suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+            suspended_reason: z.string().nullable(),
+            last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+            created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+        }),
+        password_link: z.object({
+            url: z.string(),
+            expires_at: z.number()
+        }).nullable()
     })
 });
 
@@ -467,7 +486,28 @@ export const zGetAdminUsersByUserIdResponse = z.object({
             'unverified'
         ]),
         phone: z.string().nullable(),
-        created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        events: z.array(z.object({
+            id: z.number(),
+            name: z.string(),
+            type: z.enum(['camp', 'event']),
+            status: z.enum([
+                'planning',
+                'confirmed',
+                'cancelled',
+                'archived'
+            ]),
+            start_date: z.string(),
+            end_date: z.string(),
+            role: z.enum(['leader', 'staff']),
+            position: z.string().nullable()
+        })),
+        active_sessions: z.number(),
+        api_keys: z.number(),
+        password_link_expires_at: z.number().nullable()
     })
 });
 
@@ -507,6 +547,9 @@ export const zPutAdminUsersByUserIdResponse = z.object({
             'unverified'
         ]),
         phone: z.string().nullable(),
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -527,6 +570,103 @@ export const zPutAdminUsersByUserIdPasswordResponse = z.object({
     code: z.literal(200),
     message: z.literal('Password reset successfully'),
     data: z.null()
+});
+
+export const zPostAdminUsersByUserIdPasswordLinkPath = z.object({
+    userId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Password link created successfully
+ */
+export const zPostAdminUsersByUserIdPasswordLinkResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Password link created successfully'),
+    data: z.object({
+        url: z.string(),
+        expires_at: z.number()
+    })
+});
+
+export const zPostAdminUsersByUserIdSessionsRevokePath = z.object({
+    userId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Sessions revoked successfully
+ */
+export const zPostAdminUsersByUserIdSessionsRevokeResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Sessions revoked successfully'),
+    data: z.object({
+        revoked: z.number()
+    })
+});
+
+export const zPostAdminUsersByUserIdSuspendBody = z.object({
+    reason: z.string().max(500).optional()
+});
+
+export const zPostAdminUsersByUserIdSuspendPath = z.object({
+    userId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * User suspended successfully
+ */
+export const zPostAdminUsersByUserIdSuspendResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('User suspended successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        username: z.string(),
+        display_name: z.string(),
+        email: z.string(),
+        role: z.enum([
+            'admin',
+            'core_team',
+            'volunteer',
+            'unverified'
+        ]),
+        phone: z.string().nullable(),
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+    })
+});
+
+export const zPostAdminUsersByUserIdUnsuspendPath = z.object({
+    userId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Suspension lifted successfully
+ */
+export const zPostAdminUsersByUserIdUnsuspendResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Suspension lifted successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        username: z.string(),
+        display_name: z.string(),
+        email: z.string(),
+        role: z.enum([
+            'admin',
+            'core_team',
+            'volunteer',
+            'unverified'
+        ]),
+        phone: z.string().nullable(),
+        suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        suspended_reason: z.string().nullable(),
+        last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+    })
 });
 
 /**
@@ -730,12 +870,29 @@ export const zDeleteAdminInvitationsByInvitationIdResponse = z.object({
 });
 
 export const zGetAdminAuditLogQuery = z.object({
-    event_id: z.int().gt(0).lte(9007199254740991).optional(),
     user_id: z.int().gt(0).lte(9007199254740991).optional(),
+    action: z.enum([
+        'create',
+        'update',
+        'delete',
+        'assign',
+        'unassign',
+        'review',
+        'invite',
+        'login',
+        'suspend',
+        'unsuspend',
+        'revoke',
+        'password_link'
+    ]).optional(),
     entity_type: z.string().min(1).max(64).optional(),
-    action: z.string().min(1).max(32).optional(),
+    entity_id: z.int().gt(0).lte(9007199254740991).optional(),
+    search: z.string().min(1).max(100).optional(),
+    from: z.int().gte(0).lte(9007199254740991).optional(),
+    to: z.int().gte(0).lte(9007199254740991).optional(),
     limit: z.int().gte(1).lte(200).optional().default(50),
-    offset: z.int().gte(0).lte(9007199254740991).optional().default(0)
+    offset: z.int().gte(0).lte(9007199254740991).optional().default(0),
+    event_id: z.int().gt(0).lte(9007199254740991).optional()
 });
 
 /**
@@ -751,7 +908,20 @@ export const zGetAdminAuditLogResponse = z.object({
             id: z.number(),
             user_id: z.number().nullable(),
             event_id: z.number().nullable(),
-            action: z.string(),
+            action: z.enum([
+                'create',
+                'update',
+                'delete',
+                'assign',
+                'unassign',
+                'review',
+                'invite',
+                'login',
+                'suspend',
+                'unsuspend',
+                'revoke',
+                'password_link'
+            ]),
             entity_type: z.string(),
             entity_id: z.number().nullable(),
             summary: z.string(),
@@ -774,6 +944,19 @@ export const zGetAdminAuditLogResponse = z.object({
                 id: z.number(),
                 name: z.string()
             }).nullable()
+        })),
+        actors: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }))
     })
 });
@@ -5648,9 +5831,28 @@ export const zGetEventsByEventIdAuditLogPath = z.object({
 });
 
 export const zGetEventsByEventIdAuditLogQuery = z.object({
+    user_id: z.int().gt(0).lte(9007199254740991).optional(),
+    action: z.enum([
+        'create',
+        'update',
+        'delete',
+        'assign',
+        'unassign',
+        'review',
+        'invite',
+        'login',
+        'suspend',
+        'unsuspend',
+        'revoke',
+        'password_link'
+    ]).optional(),
+    entity_type: z.string().min(1).max(64).optional(),
+    entity_id: z.int().gt(0).lte(9007199254740991).optional(),
+    search: z.string().min(1).max(100).optional(),
+    from: z.int().gte(0).lte(9007199254740991).optional(),
+    to: z.int().gte(0).lte(9007199254740991).optional(),
     limit: z.int().gte(1).lte(200).optional().default(50),
-    offset: z.int().gte(0).lte(9007199254740991).optional().default(0),
-    entity_type: z.string().min(1).max(64).optional()
+    offset: z.int().gte(0).lte(9007199254740991).optional().default(0)
 });
 
 /**
@@ -5663,15 +5865,28 @@ export const zGetEventsByEventIdAuditLogResponse = z.object({
     data: z.object({
         total: z.number(),
         entries: z.array(z.object({
-            id: z.int().gte(-9007199254740991).lte(9007199254740991),
-            user_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
-            event_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
-            action: z.string(),
+            id: z.number(),
+            user_id: z.number().nullable(),
+            event_id: z.number().nullable(),
+            action: z.enum([
+                'create',
+                'update',
+                'delete',
+                'assign',
+                'unassign',
+                'review',
+                'invite',
+                'login',
+                'suspend',
+                'unsuspend',
+                'revoke',
+                'password_link'
+            ]),
             entity_type: z.string(),
-            entity_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+            entity_id: z.number().nullable(),
             summary: z.string(),
             metadata: z.record(z.string(), z.unknown()).nullable(),
-            created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+            created_at: z.number(),
             user: z.object({
                 id: z.number(),
                 username: z.string(),
@@ -5684,7 +5899,24 @@ export const zGetEventsByEventIdAuditLogResponse = z.object({
                     'volunteer',
                     'unverified'
                 ])
+            }).nullable(),
+            event: z.object({
+                id: z.number(),
+                name: z.string()
             }).nullable()
+        })),
+        actors: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }))
     })
 });

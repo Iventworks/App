@@ -49,6 +49,13 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 - Event pages start with `const { event, can } = await useCurrentEvent();` and hide controls with
   `can("participants:manage")` etc. — the API enforces the same permissions.
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
+- `UDashboardToolbar`: its default slot *replaces* the `#left`/`#right` layout. As soon as you
+  need `#right`, put the rest in `#left` — content in the default slot plus `#right` silently
+  drops `#right`.
+- Toolbar view switches: `const { active: view, links: viewLinks } = useQueryTabs("view", [...])`
+  + `<UNavigationMenu :items="viewLinks" highlight class="-mx-1 flex-1" />`.
+- Password and username fields: `newPasswordField()`, `usernameField()`, `PASSWORD_HINT`
+  (`app/utils/passwords.ts`) — the German rule-by-rule messages.
 
 ## CMP-specific notes
 

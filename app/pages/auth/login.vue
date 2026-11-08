@@ -76,13 +76,17 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 			title:
 				code === 401
 					? "Benutzername oder Passwort falsch"
-					: code === 429
-						? "Zu viele Versuche"
-						: "Anmeldung fehlgeschlagen",
+					: code === 403
+						? "Konto gesperrt"
+						: code === 429
+							? "Zu viele Versuche"
+							: "Anmeldung fehlgeschlagen",
 			description:
 				code === 401
 					? "Bitte prüfe deine Eingaben und versuche es erneut."
-					: result.message || "Bitte versuche es später erneut.",
+					: code === 403
+						? "Dein Konto wurde von einer Admin-Person gesperrt. Wende dich an das Kernteam."
+						: result.message || "Bitte versuche es später erneut.",
 			icon: "i-lucide-alert-circle",
 			color: "error",
 		});

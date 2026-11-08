@@ -19,18 +19,10 @@ const toast = useToast();
 
 // --- password -------------------------------------------------------------------------------
 
-// The generated body only checks the combined policy regex; spell the rules out for the user.
-// Mirrors the backend's `UserDataPolicies.Password`. No `.trim()`: it would change the password.
+// The generated body only checks the combined policy regex; `newPasswordField` spells the rules out.
 const passwordSchema = zPutAccountPasswordBody.extend({
 	current_password: z.string().min(1, "Aktuelles Passwort ist erforderlich"),
-	new_password: z
-		.string()
-		.min(8, "Muss mindestens 8 Zeichen lang sein")
-		.max(50, "Darf höchstens 50 Zeichen lang sein")
-		.regex(/[A-Z]/, "Muss mindestens einen Großbuchstaben enthalten")
-		.regex(/[a-z]/, "Muss mindestens einen Kleinbuchstaben enthalten")
-		.regex(/[0-9]/, "Muss mindestens eine Zahl enthalten")
-		.regex(/[\W_]/, "Muss mindestens ein Sonderzeichen enthalten"),
+	new_password: newPasswordField(),
 	confirm_password: z.string().min(1, "Bitte bestätige das neue Passwort"),
 });
 type PasswordSchema = z.output<typeof passwordSchema>;

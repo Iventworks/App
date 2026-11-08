@@ -38,4 +38,12 @@ export namespace UserAccountSettings {
 	export const Roles = ["admin", "core_team", "volunteer", "unverified"] as const;
 	export const Role = z.enum(Roles);
 	export type Role = z.infer<typeof Role>;
+
+	/** German names for audit summaries (same wording as the UI's `ORG_ROLE_LABELS`). */
+	export const RoleLabels: Record<Role, string> = {
+		admin: "Admin",
+		core_team: "Kernteam",
+		volunteer: "Mitarbeiter:in",
+		unverified: "Nicht freigeschaltet",
+	};
 }

@@ -1,11 +1,11 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
+import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
-import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
 import { EventInsightsModel } from "./model";
@@ -232,34 +232,12 @@ router.get(
 		const event = c.get("event");
 		const query = c.req.valid("query") as EventInsightsModel.AuditLog.Query;
 
-		const condition = query.entity_type
-			? and(
-					eq(DB.Tables.auditLogs.event_id, event.id),
-					eq(DB.Tables.auditLogs.entity_type, query.entity_type),
-				)
-			: eq(DB.Tables.auditLogs.event_id, event.id);
-
-		const [entries, total] = await Promise.all([
-			DB.instance()
-				.select()
-				.from(DB.Tables.auditLogs)
-				.where(condition)
-				.orderBy(desc(DB.Tables.auditLogs.created_at), desc(DB.Tables.auditLogs.id))
-				.limit(query.limit)
-				.offset(query.offset)
-				.all(),
-			DB.instance().select({ value: count() }).from(DB.Tables.auditLogs).where(condition).get(),
-		]);
-
-		const users = await UserSummary.fetchMap(entries.map((entry) => entry.user_id));
-
-		return APIResponse.success(c, "Audit log retrieved successfully", {
-			total: total?.value ?? 0,
-			entries: entries.map((entry) => ({
-				...entry,
-				metadata: entry.metadata ?? null,
-				user: entry.user_id ? (users.get(entry.user_id) ?? null) : null,
-			})),
-		} satisfies EventInsightsModel.AuditLog.Response);
+		return APIResponse.success(
+			c,
+			"Audit log retrieved successfully",
+			(await AuditLog.list(query, {
+				eventId: event.id,
+			})) satisfies EventInsightsModel.AuditLog.Response,
+		);
 	},
 );

@@ -6,6 +6,7 @@ import { type CapturedEmail, EmailService } from "../server/lib/api/utils/email"
 import { AccountSessionsModel } from "../server/lib/api/versions/v1/routes/account/sessions/model";
 import { AdminAuditLogModel } from "../server/lib/api/versions/v1/routes/admin/audit-log/model";
 import { AdminInvitationsModel } from "../server/lib/api/versions/v1/routes/admin/invitations/model";
+import { AdminUsersModel } from "../server/lib/api/versions/v1/routes/admin/users/model";
 import { hashInvitationToken } from "../server/lib/api/versions/v1/routes/auth/invitations";
 import { AuthInvitationsModel } from "../server/lib/api/versions/v1/routes/auth/invitations/model";
 import { OrgAnnouncementsModel } from "../server/lib/api/versions/v1/routes/org/announcements/model";
@@ -333,6 +334,227 @@ describe("Admin users and audit log", () => {
 		expect(invites.entries[0]!.action).toBe("invite");
 
 		await makeAPIRequest("/v1/admin/audit-log", { authToken: coreSession.token }, 403);
+	});
+});
+
+describe("Admin user management", () => {
+	const login = (username: string, password: string, status = 200) =>
+		makeAPIRequest("/v1/auth/login", { method: "POST", body: { username, password } }, status);
+
+	test("create with a password: can log in right away", async () => {
+		const username = `direct_${randomUUID().slice(0, 6)}`;
+		const created = await makeAPIRequest(
+			"/v1/admin/users",
+			{
+				method: "POST",
+				authToken: adminSession.token,
+				body: {
+					username,
+					display_name: "Direkt Angelegt",
+					email: `${username}@example.com`,
+					role: "volunteer",
+					password: "Direkt!Pass123",
+				},
+				expectedBodySchema: AdminUsersModel.Create.Response,
+			},
+			201,
+		);
+		expect(created.user.username).toBe(username);
+		expect(created.password_link).toBeNull();
+		await login(username, "Direkt!Pass123");
+	});
+
+	test("create without a password: locked until the one-time link is used", async () => {
+		const username = `linked_${randomUUID().slice(0, 6)}`;
+		const created = await makeAPIRequest(
+			"/v1/admin/users",
+			{
+				method: "POST",
+				authToken: adminSession.token,
+				body: {
+					username,
+					display_name: "Mit Link",
+					email: `${username}@example.com`,
+					role: "volunteer",
+				},
+				expectedBodySchema: AdminUsersModel.Create.Response,
+			},
+			201,
+		);
+		const link = created.password_link!;
+		expect(link.url).toContain("/auth/reset-password?token=");
+		expect(link.expires_at).toBeGreaterThan(Date.now() + 6 * 24 * 60 * 60 * 1000);
+
+		const detail = await makeAPIRequest(`/v1/admin/users/${created.user.id}`, {
+			authToken: adminSession.token,
+			expectedBodySchema: AdminUsersModel.Detail,
+		});
+		expect(detail.password_link_expires_at).toBe(link.expires_at);
+
+		const token = new URL(link.url).searchParams.get("token")!;
+		await makeAPIRequest("/v1/auth/reset-password", {
+			method: "POST",
+			body: { reset_token: token, new_password: "Eigenes!Pass1" },
+		});
+		await login(username, "Eigenes!Pass1");
+
+		// The audit entry says how the password was handled.
+		const log = await makeAPIRequest(
+			`/v1/admin/audit-log?entity_type=user&entity_id=${created.user.id}`,
+			{ authToken: adminSession.token, expectedBodySchema: AdminAuditLogModel.GetAll.Response },
+		);
+		expect(log.entries[0]!.action).toBe("create");
+		expect(log.entries[0]!.metadata).toMatchObject({ password: "link" });
+	});
+
+	test("detail lists event memberships, sessions and API keys", async () => {
+		const user = await seedUser("volunteer");
+		await seedSession(user.id);
+		const event = seedEvent("Detail-Freizeit", "2026-07-01", "2026-07-05");
+		await addEventMember(event.id, user.id, "leader");
+
+		const detail = await makeAPIRequest(`/v1/admin/users/${user.id}`, {
+			authToken: adminSession.token,
+			expectedBodySchema: AdminUsersModel.Detail,
+		});
+		expect(detail.active_sessions).toBe(1);
+		expect(detail.api_keys).toBe(0);
+		expect(detail.events).toEqual([
+			expect.objectContaining({ id: event.id, name: "Detail-Freizeit", role: "leader" }),
+		]);
+		expect(detail).not.toHaveProperty("password_hash");
+	});
+
+	test("suspend blocks login and ends sessions; lifting it restores access", async () => {
+		const user = await seedUser("volunteer");
+		const session = await seedSession(user.id);
+
+		await makeAPIRequest(
+			`/v1/admin/users/${admin.id}/suspend`,
+			{ method: "POST", authToken: adminSession.token, body: {} },
+			400,
+		);
+
+		const suspended = await makeAPIRequest(`/v1/admin/users/${user.id}/suspend`, {
+			method: "POST",
+			authToken: adminSession.token,
+			body: { reason: "Hat das Team verlassen" },
+		});
+		expect(suspended.suspended_at).toBeNumber();
+		expect(suspended.suspended_reason).toBe("Hat das Team verlassen");
+
+		await makeAPIRequest("/v1/account", { authToken: session.token }, 401);
+		await login(user.username, user.password, 403);
+		await makeAPIRequest(
+			`/v1/admin/users/${user.id}/suspend`,
+			{ method: "POST", authToken: adminSession.token, body: {} },
+			400,
+		);
+
+		// Suspended people disappear from the directory used by pickers.
+		const directory = await makeAPIRequest("/v1/users", { authToken: adminSession.token });
+		expect(directory.some((entry: { id: number }) => entry.id === user.id)).toBe(false);
+
+		const filtered = await makeAPIRequest("/v1/admin/users?status=suspended", {
+			authToken: adminSession.token,
+		});
+		expect(filtered.some((entry: { id: number }) => entry.id === user.id)).toBe(true);
+
+		await makeAPIRequest(`/v1/admin/users/${user.id}/unsuspend`, {
+			method: "POST",
+			authToken: adminSession.token,
+		});
+		const loggedIn = await login(user.username, user.password);
+		expect(loggedIn.token).toBeString();
+
+		const detail = await makeAPIRequest(`/v1/admin/users/${user.id}`, {
+			authToken: adminSession.token,
+		});
+		expect(detail.last_login_at).toBeNumber();
+
+		const log = await makeAPIRequest(`/v1/admin/audit-log?entity_type=user&entity_id=${user.id}`, {
+			authToken: adminSession.token,
+			expectedBodySchema: AdminAuditLogModel.GetAll.Response,
+		});
+		expect(log.entries.map((entry) => entry.action)).toEqual(["unsuspend", "suspend"]);
+	});
+
+	test("sign out everywhere and password links", async () => {
+		const user = await seedUser("volunteer");
+		const a = await seedSession(user.id);
+		await seedSession(user.id);
+
+		await makeAPIRequest(
+			`/v1/admin/users/${admin.id}/sessions/revoke`,
+			{ method: "POST", authToken: adminSession.token },
+			400,
+		);
+		const revoked = await makeAPIRequest(`/v1/admin/users/${user.id}/sessions/revoke`, {
+			method: "POST",
+			authToken: adminSession.token,
+			expectedBodySchema: AdminUsersModel.RevokeSessions.Response,
+		});
+		expect(revoked.revoked).toBe(2);
+		await makeAPIRequest("/v1/account", { authToken: a.token }, 401);
+
+		const link = await makeAPIRequest(
+			`/v1/admin/users/${user.id}/password-link`,
+			{
+				method: "POST",
+				authToken: adminSession.token,
+				expectedBodySchema: AdminUsersModel.PasswordLink,
+			},
+			201,
+		);
+		// The old password still works until the link is used.
+		await login(user.username, user.password);
+		const token = new URL(link.url).searchParams.get("token")!;
+		await makeAPIRequest("/v1/auth/reset-password", {
+			method: "POST",
+			body: { reset_token: token, new_password: "Neu!Gesetzt9" },
+		});
+		await login(user.username, "Neu!Gesetzt9");
+	});
+
+	test("server-managed fields cannot be set through the edit route", async () => {
+		await makeAPIRequest(
+			`/v1/admin/users/${volunteer.id}`,
+			{ method: "PUT", authToken: adminSession.token, body: { suspended_at: Date.now() } },
+			400,
+		);
+		const detail = await makeAPIRequest(`/v1/admin/users/${volunteer.id}`, {
+			authToken: adminSession.token,
+		});
+		expect(detail.suspended_at).toBeNull();
+	});
+
+	test("audit log: text search, time range and the list of actors", async () => {
+		const before = Date.now();
+		const user = await seedUser("volunteer");
+		await makeAPIRequest(`/v1/admin/users/${user.id}/password-link`, {
+			method: "POST",
+			authToken: adminSession.token,
+		});
+
+		const found = await makeAPIRequest(
+			`/v1/admin/audit-log?search=${encodeURIComponent(user.username)}&from=${before}`,
+			{ authToken: adminSession.token, expectedBodySchema: AdminAuditLogModel.GetAll.Response },
+		);
+		expect(found.total).toBe(1);
+		expect(found.entries[0]!.action).toBe("password_link");
+		expect(found.actors.some((actor) => actor.id === admin.id)).toBe(true);
+
+		const none = await makeAPIRequest(
+			`/v1/admin/audit-log?search=${encodeURIComponent(user.username)}&to=${before}`,
+			{ authToken: adminSession.token, expectedBodySchema: AdminAuditLogModel.GetAll.Response },
+		);
+		expect(none.total).toBe(0);
+
+		// "%" is matched literally, not as a wildcard.
+		const literal = await makeAPIRequest("/v1/admin/audit-log?search=%25%25%25", {
+			authToken: adminSession.token,
+		});
+		expect(literal.total).toBe(0);
 	});
 });
 

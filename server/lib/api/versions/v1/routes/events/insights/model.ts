@@ -1,7 +1,5 @@
-import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { DB } from "../../../../../../db";
-import { UserSummary } from "../../../../../utils/shared-models/userSummary";
+import { AuditLogModel } from "../../../../../utils/shared-models/auditLog";
 
 export namespace EventInsightsModel.Stats {
 	const CountByKey = z.record(z.string(), z.number());
@@ -68,22 +66,9 @@ export namespace EventInsightsModel.Stats {
 }
 
 export namespace EventInsightsModel.AuditLog {
-	export const Query = z.object({
-		limit: z.coerce.number().int().min(1).max(200).default(50),
-		offset: z.coerce.number().int().min(0).default(0),
-		entity_type: z.string().min(1).max(64).optional(),
-	});
-	export type Query = z.infer<typeof Query>;
+	export const Query = AuditLogModel.Filters;
+	export type Query = AuditLogModel.Filters;
 
-	export const Entry = createSelectSchema(DB.Tables.auditLogs).extend({
-		metadata: z.record(z.string(), z.any()).nullable(),
-		user: UserSummary.Schema.nullable(),
-	});
-	export type Entry = z.infer<typeof Entry>;
-
-	export const Response = z.object({
-		total: z.number(),
-		entries: z.array(Entry),
-	});
-	export type Response = z.infer<typeof Response>;
+	export const Response = AuditLogModel.Page;
+	export type Response = AuditLogModel.Page;
 }

@@ -32,6 +32,14 @@ export type PostAuthLoginErrors = {
         message: 'Unauthorized: Invalid username or password';
     };
     /**
+     * This account is suspended
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This account is suspended';
+    };
+    /**
      * Too many login attempts. Try again later.
      */
     429: {
@@ -424,6 +432,9 @@ export type GetAccountResponses = {
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
             created_at: number;
         };
     };
@@ -437,6 +448,9 @@ export type PutAccountData = {
         display_name?: string;
         email?: string;
         phone?: string | null;
+        suspended_at?: number | null;
+        suspended_reason?: string | null;
+        last_login_at?: number | null;
         /**
          * Current password — required to confirm account changes
          */
@@ -916,6 +930,7 @@ export type GetAdminUsersData = {
     path?: never;
     query?: {
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+        status?: 'active' | 'suspended';
         search?: string;
         limit?: number;
         offset?: number;
@@ -951,6 +966,9 @@ export type GetAdminUsersResponses = {
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
             created_at: number;
         }>;
     };
@@ -968,7 +986,7 @@ export type PostAdminUsersData = {
         /**
          * New password for the account
          */
-        password: string;
+        password?: string;
     };
     path?: never;
     query?: never;
@@ -1005,13 +1023,22 @@ export type PostAdminUsersResponses = {
         code: 201;
         message: 'User created successfully';
         data: {
-            id: number;
-            username: string;
-            display_name: string;
-            email: string;
-            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
-            phone: string | null;
-            created_at: number;
+            user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                phone: string | null;
+                suspended_at: number | null;
+                suspended_reason: string | null;
+                last_login_at: number | null;
+                created_at: number;
+            };
+            password_link: {
+                url: string;
+                expires_at: number;
+            } | null;
         };
     };
 };
@@ -1107,7 +1134,23 @@ export type GetAdminUsersByUserIdResponses = {
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
             created_at: number;
+            events: Array<{
+                id: number;
+                name: string;
+                type: 'camp' | 'event';
+                status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                start_date: string;
+                end_date: string;
+                role: 'leader' | 'staff';
+                position: string | null;
+            }>;
+            active_sessions: number;
+            api_keys: number;
+            password_link_expires_at: number | null;
         };
     };
 };
@@ -1173,6 +1216,9 @@ export type PutAdminUsersByUserIdResponses = {
             email: string;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
             created_at: number;
         };
     };
@@ -1228,6 +1274,211 @@ export type PutAdminUsersByUserIdPasswordResponses = {
 };
 
 export type PutAdminUsersByUserIdPasswordResponse = PutAdminUsersByUserIdPasswordResponses[keyof PutAdminUsersByUserIdPasswordResponses];
+
+export type PostAdminUsersByUserIdPasswordLinkData = {
+    body?: never;
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/admin/users/{userId}/password-link';
+};
+
+export type PostAdminUsersByUserIdPasswordLinkErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'User not found';
+    };
+};
+
+export type PostAdminUsersByUserIdPasswordLinkError = PostAdminUsersByUserIdPasswordLinkErrors[keyof PostAdminUsersByUserIdPasswordLinkErrors];
+
+export type PostAdminUsersByUserIdPasswordLinkResponses = {
+    /**
+     * Password link created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Password link created successfully';
+        data: {
+            url: string;
+            expires_at: number;
+        };
+    };
+};
+
+export type PostAdminUsersByUserIdPasswordLinkResponse = PostAdminUsersByUserIdPasswordLinkResponses[keyof PostAdminUsersByUserIdPasswordLinkResponses];
+
+export type PostAdminUsersByUserIdSessionsRevokeData = {
+    body?: never;
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/admin/users/{userId}/sessions/revoke';
+};
+
+export type PostAdminUsersByUserIdSessionsRevokeErrors = {
+    /**
+     * Use your account settings to sign out your own sessions
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Use your account settings to sign out your own sessions';
+    };
+    /**
+     * User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'User not found';
+    };
+};
+
+export type PostAdminUsersByUserIdSessionsRevokeError = PostAdminUsersByUserIdSessionsRevokeErrors[keyof PostAdminUsersByUserIdSessionsRevokeErrors];
+
+export type PostAdminUsersByUserIdSessionsRevokeResponses = {
+    /**
+     * Sessions revoked successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Sessions revoked successfully';
+        data: {
+            revoked: number;
+        };
+    };
+};
+
+export type PostAdminUsersByUserIdSessionsRevokeResponse = PostAdminUsersByUserIdSessionsRevokeResponses[keyof PostAdminUsersByUserIdSessionsRevokeResponses];
+
+export type PostAdminUsersByUserIdSuspendData = {
+    body?: {
+        reason?: string;
+    };
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/admin/users/{userId}/suspend';
+};
+
+export type PostAdminUsersByUserIdSuspendErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'User not found';
+    };
+};
+
+export type PostAdminUsersByUserIdSuspendError = PostAdminUsersByUserIdSuspendErrors[keyof PostAdminUsersByUserIdSuspendErrors];
+
+export type PostAdminUsersByUserIdSuspendResponses = {
+    /**
+     * User suspended successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'User suspended successfully';
+        data: {
+            id: number;
+            username: string;
+            display_name: string;
+            email: string;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PostAdminUsersByUserIdSuspendResponse = PostAdminUsersByUserIdSuspendResponses[keyof PostAdminUsersByUserIdSuspendResponses];
+
+export type PostAdminUsersByUserIdUnsuspendData = {
+    body?: never;
+    path: {
+        userId: number;
+    };
+    query?: never;
+    url: '/admin/users/{userId}/unsuspend';
+};
+
+export type PostAdminUsersByUserIdUnsuspendErrors = {
+    /**
+     * User is not suspended
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'User is not suspended';
+    };
+    /**
+     * User not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'User not found';
+    };
+};
+
+export type PostAdminUsersByUserIdUnsuspendError = PostAdminUsersByUserIdUnsuspendErrors[keyof PostAdminUsersByUserIdUnsuspendErrors];
+
+export type PostAdminUsersByUserIdUnsuspendResponses = {
+    /**
+     * Suspension lifted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Suspension lifted successfully';
+        data: {
+            id: number;
+            username: string;
+            display_name: string;
+            email: string;
+            role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            phone: string | null;
+            suspended_at: number | null;
+            suspended_reason: string | null;
+            last_login_at: number | null;
+            created_at: number;
+        };
+    };
+};
+
+export type PostAdminUsersByUserIdUnsuspendResponse = PostAdminUsersByUserIdUnsuspendResponses[keyof PostAdminUsersByUserIdUnsuspendResponses];
 
 export type GetAdminInvitationsData = {
     body?: never;
@@ -1472,12 +1723,16 @@ export type GetAdminAuditLogData = {
     body?: never;
     path?: never;
     query?: {
-        event_id?: number;
         user_id?: number;
+        action?: 'create' | 'update' | 'delete' | 'assign' | 'unassign' | 'review' | 'invite' | 'login' | 'suspend' | 'unsuspend' | 'revoke' | 'password_link';
         entity_type?: string;
-        action?: string;
+        entity_id?: number;
+        search?: string;
+        from?: number;
+        to?: number;
         limit?: number;
         offset?: number;
+        event_id?: number;
     };
     url: '/admin/audit-log';
 };
@@ -1509,7 +1764,7 @@ export type GetAdminAuditLogResponses = {
                 id: number;
                 user_id: number | null;
                 event_id: number | null;
-                action: string;
+                action: 'create' | 'update' | 'delete' | 'assign' | 'unassign' | 'review' | 'invite' | 'login' | 'suspend' | 'unsuspend' | 'revoke' | 'password_link';
                 entity_type: string;
                 entity_id: number | null;
                 summary: string;
@@ -1529,6 +1784,14 @@ export type GetAdminAuditLogResponses = {
                     id: number;
                     name: string;
                 } | null;
+            }>;
+            actors: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
         };
     };
@@ -8830,9 +9093,15 @@ export type GetEventsByEventIdAuditLogData = {
         eventId: number;
     };
     query?: {
+        user_id?: number;
+        action?: 'create' | 'update' | 'delete' | 'assign' | 'unassign' | 'review' | 'invite' | 'login' | 'suspend' | 'unsuspend' | 'revoke' | 'password_link';
+        entity_type?: string;
+        entity_id?: number;
+        search?: string;
+        from?: number;
+        to?: number;
         limit?: number;
         offset?: number;
-        entity_type?: string;
     };
     url: '/events/{eventId}/audit-log';
 };
@@ -8880,7 +9149,7 @@ export type GetEventsByEventIdAuditLogResponses = {
                 id: number;
                 user_id: number | null;
                 event_id: number | null;
-                action: string;
+                action: 'create' | 'update' | 'delete' | 'assign' | 'unassign' | 'review' | 'invite' | 'login' | 'suspend' | 'unsuspend' | 'revoke' | 'password_link';
                 entity_type: string;
                 entity_id: number | null;
                 summary: string;
@@ -8896,6 +9165,18 @@ export type GetEventsByEventIdAuditLogResponses = {
                     phone: string | null;
                     role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
                 } | null;
+                event: {
+                    id: number;
+                    name: string;
+                } | null;
+            }>;
+            actors: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
         };
     };

@@ -6,7 +6,7 @@
 export type OrgRole = "admin" | "core_team" | "volunteer" | "unverified";
 export type EventRole = "leader" | "staff";
 
-type BadgeColor = "error" | "primary" | "info" | "neutral" | "success" | "warning";
+export type BadgeColor = "error" | "primary" | "info" | "neutral" | "success" | "warning";
 
 const ORG_ROLE_RANK: Record<OrgRole, number> = {
 	unverified: 0,
