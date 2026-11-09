@@ -105,6 +105,7 @@ export namespace DB.Tables {
 	export const participantNotes = TableSchema.participantNotes;
 
 	export const files = TableSchema.files;
+	export const fileShares = TableSchema.fileShares;
 
 	export const programItems = TableSchema.programItems;
 	export const programItemResponsibles = TableSchema.programItemResponsibles;
@@ -162,6 +163,7 @@ export namespace DB.Models {
 	export type ParticipantNote = typeof DB.Tables.participantNotes.$inferSelect;
 
 	export type File = typeof DB.Tables.files.$inferSelect;
+	export type FileShare = typeof DB.Tables.fileShares.$inferSelect;
 
 	export type ProgramItem = typeof DB.Tables.programItems.$inferSelect;
 	export type Responsibility = typeof DB.Tables.responsibilities.$inferSelect;

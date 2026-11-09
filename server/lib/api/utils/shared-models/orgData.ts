@@ -15,6 +15,10 @@ export namespace OrgModel {
 		slug: z.string(),
 		display_name: z.string(),
 		primary_color: PrimaryColor,
+		/** Share links for externals allowed. */
+		file_sharing_enabled: z.boolean(),
+		/** Expiry suggested for new share links, in days; null = none. */
+		share_default_expiry_days: z.number().nullable(),
 		/** Base URL for links: the primary custom domain, else the default domain. */
 		url: z.string(),
 		/** `<slug>.<base host>` (multi-org) or the app's host (single-org). */
@@ -43,6 +47,8 @@ export namespace OrgModel {
 			slug: org.slug,
 			display_name: org.display_name,
 			primary_color: org.primary_color,
+			file_sharing_enabled: org.file_sharing_enabled,
+			share_default_expiry_days: org.share_default_expiry_days,
 			url: org.url,
 			default_domain: org.default_domain,
 			primary_domain: org.primary_domain,

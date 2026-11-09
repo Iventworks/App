@@ -8,13 +8,17 @@ import type {
 	GetAccountResponses,
 	GetAdminOrganizationDomainsResponses,
 	GetAdminOrganizationResponses,
+	GetAdminSharesResponses,
 	GetAdminUsersByUserIdResponses,
 	GetAdminUsersResponses,
 	GetEventsByEventIdFilesResponses,
 	GetEventsByEventIdMembersResponses,
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
+	GetFilesByFileIdSharesResponses,
 	GetNotificationsResponses,
+	GetSharesByTokenItemsResponses,
+	GetSharesByTokenResponses,
 	GetSystemDomainsResponses,
 	GetSystemOrgsResponses,
 	GetUsersResponses,
@@ -63,3 +67,13 @@ export type AdminUser = GetAdminUsersResponses["200"]["data"][number];
 export type AdminUserDetail = GetAdminUsersByUserIdResponses["200"]["data"];
 /** A one-time "set your password" link, shown to the admin once. */
 export type PasswordLink = PostAdminUsersByUserIdPasswordLinkResponses["201"]["data"];
+
+/** A share link of a file or folder, for the people managing it. */
+export type FileShare = GetFilesByFileIdSharesResponses["200"]["data"][number];
+export type SharePermissions = FileShare["permissions"];
+/** A share link with the item it opens (admins' overview). */
+export type AdminShare = GetAdminSharesResponses["200"]["data"][number];
+/** What a share link's visitors see. */
+export type PublicShareInfo = GetSharesByTokenResponses["200"]["data"];
+export type PublicShareItem = NonNullable<PublicShareInfo["item"]>;
+export type PublicShareListing = GetSharesByTokenItemsResponses["200"]["data"];

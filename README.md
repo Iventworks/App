@@ -122,9 +122,15 @@ Chats are polled (no WebSocket yet): an open chat syncs new messages, edits and 
 ## Files
 
 Uploads (documents, receipts) are stored on disk under `IVENTWORKS_UPLOAD_DIR` (default
-`./data/uploads`), metadata in the `files` table. Downloads use short-lived signed links
-(`/api/v1/files/download/<token>`, 1 h) so the browser can open them directly. Back up
-`data/` (database **and** uploads) together.
+`./data/uploads`), metadata in the `files` table. A file's contents are at
+`/api/v1/files/<id>/content/<name>`, checked on every request; the browser's session cookie counts
+there, so images and links open directly. Back up `data/` (database **and** uploads) together.
+
+**Share links** let people without an account open a file or folder: *Teilen* in a document's
+menu creates `<org address>/s/<token>` with what it allows (view, upload, edit, delete — or an
+upload-only drop box), an optional password and an expiry. Only the shared item and what lies
+below it are reachable through a link. Org admins see every link under *Administration →
+Freigabelinks*, can switch sharing off for the org and set a default expiry.
 
 ## Configuration
 

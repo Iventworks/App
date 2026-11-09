@@ -1,6 +1,7 @@
 import { and, isNotNull, isNull, lt } from "drizzle-orm";
 import { DB } from "../db";
 import { OrgContext } from "../orgs/context";
+import { FileStorage } from "./fileStorage";
 import { Logger } from "./logger";
 
 /**
@@ -9,6 +10,16 @@ import { Logger } from "./logger";
  */
 export class Housekeeping {
 	static readonly READ_NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+	/** Expired share links stay visible (as expired) for this long, then go. */
+	static readonly EXPIRED_SHARE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+	/**
+	 * Stored files no `files` row points at (an upload interrupted between writing the blob and the
+	 * row, a crash during a delete) are removed once they are this old — the grace period keeps
+	 * uploads that are still being written.
+	 */
+	static readonly ORPHAN_BLOB_GRACE_MS = 24 * 60 * 60 * 1000;
 
 	/** Expired rows of every org at once: system code, so the tenant guard is off. */
 	static async run(now = Date.now()) {
@@ -45,14 +56,32 @@ export class Housekeeping {
 			.returning({ id: DB.Tables.notifications.id })
 			.all();
 
+		const shares = await db
+			.delete(DB.Tables.fileShares)
+			.where(lt(DB.Tables.fileShares.expires_at, now - Housekeeping.EXPIRED_SHARE_RETENTION_MS))
+			.returning({ id: DB.Tables.fileShares.id })
+			.all();
+
+		const referenced = await db
+			.select({ storage_key: DB.Tables.files.storage_key })
+			.from(DB.Tables.files)
+			.where(isNotNull(DB.Tables.files.storage_key))
+			.all();
+		const orphanBlobs = await FileStorage.removeUnreferenced(
+			new Set(referenced.map((row) => row.storage_key!)),
+			now - Housekeeping.ORPHAN_BLOB_GRACE_MS,
+		);
+
 		Logger.info(
-			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s).`,
+			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s), ${shares.length} expired share link(s), ${orphanBlobs} orphaned file(s).`,
 		);
 		return {
 			sessions: sessions.length,
 			passwordResets: resets.length,
 			invitations: invitations.length,
 			notifications: notifications.length,
+			shares: shares.length,
+			orphanBlobs,
 		};
 	}
 }

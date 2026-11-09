@@ -59,7 +59,10 @@ function idFor(ids: SeededIds, path: string, param: string): string {
 		case "kind":
 			return "logo";
 		case "token":
-			return "not-a-real-token";
+			// The share link token (`/shares/{token}`).
+			return pick("shareToken");
+		case "filename":
+			return "datei.txt";
 		case "orgId":
 			return String(victim.org.id);
 		default:
@@ -178,7 +181,9 @@ async function call(
 // Would end the attacker's own session or account, which the later phases still need.
 /** Paths that name one of the other org's objects (not just `{kind}` or a download `{token}`). */
 function namesAnObject(path: string) {
-	return [...path.matchAll(/\{(\w+)\}/g)].some(([, param]) => param !== "kind" && param !== "token");
+	return [...path.matchAll(/\{(\w+)\}/g)].some(
+		([, param]) => param !== "kind" && param !== "filename",
+	);
 }
 
 const SELF_DESTRUCTIVE = [

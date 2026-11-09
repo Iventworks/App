@@ -61,6 +61,30 @@ export class FileAccess {
 		}
 	}
 
+	/**
+	 * Create and manage share links for `file`: only people who manage the whole library may, so a
+	 * link (which can carry edit/delete rights for everything inside a folder) never grants more
+	 * than its creator has. Receipts are never shared.
+	 */
+	static async canShare(
+		authContext: AuthHandler.AuthContext,
+		file: DB.Models.File,
+	): Promise<boolean> {
+		if (authContext.type === "unauthenticated") return false;
+
+		switch (file.scope) {
+			case "org":
+				return PermissionHelper.can({ authContext, permission: "org_documents:write" });
+			case "event": {
+				if (file.event_id === null) return false;
+				const access = await EventAccess.resolve(authContext, file.event_id);
+				return PermissionHelper.canInEvent({ access, permission: "files:manage_all" });
+			}
+			default:
+				return false;
+		}
+	}
+
 	protected static async canAccessReceipt(
 		authContext: AuthHandler.AuthenticatedAuthContext,
 		file: DB.Models.File,

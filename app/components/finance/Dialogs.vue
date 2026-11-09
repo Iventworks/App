@@ -168,14 +168,14 @@ const BUDGET_KIND_OPTIONS = [
 			<div class="flex gap-4 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
 				<a
 					v-if="reviewTarget.receipt"
-					:href="fileURL(reviewTarget.receipt.download_token)"
+					:href="fileURL(reviewTarget.receipt.content_url)"
 					target="_blank"
 					rel="noopener"
 					class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-800"
 				>
 					<img
 						v-if="isImage(reviewTarget)"
-						:src="fileURL(reviewTarget.receipt.download_token)"
+						:src="fileURL(reviewTarget.receipt.content_url)"
 						alt="Beleg"
 						class="size-full object-cover"
 					/>

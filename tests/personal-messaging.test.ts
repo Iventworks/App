@@ -949,7 +949,7 @@ describe("Cross-org isolation", () => {
 		);
 	});
 
-	test("a download token only works on the host of the file's org", async () => {
+	test("file contents only open on the host of the file's org", async () => {
 		const form = new FormData();
 		form.append("file", new File(["Nur für uns"], "intern.txt", { type: "text/plain" }));
 		const file = await makeAPIRequest(
@@ -957,13 +957,21 @@ describe("Cross-org isolation", () => {
 			{ authToken: coreSession.token, additionalOptions: { method: "POST", body: form } },
 			201,
 		);
-		expect(file.download_token).toBeString();
+		expect(file.content_url).toBeString();
+		const path = (file.content_url as string).replace("/api", "");
 
-		await makeAPIRequest(`/v1/files/download/${file.download_token}`, {}, 200);
+		await makeAPIRequest(path, { authToken: coreSession.token }, 200);
+		// The other org's user (with their own session) gets nothing for this id …
 		await makeAPIRequest(
-			`/v1/files/download/${file.download_token}`,
-			{ additionalOptions: { headers: hostHeaders(otherHost) } },
+			path,
+			{ authToken: outsiderSession.token, additionalOptions: { headers: hostHeaders(otherHost) } },
 			404,
+		);
+		// … and this org's session isn't valid on the other host.
+		await makeAPIRequest(
+			path,
+			{ authToken: coreSession.token, additionalOptions: { headers: hostHeaders(otherHost) } },
+			401,
 		);
 		// Metadata by id is not reachable from the other org either.
 		await makeAPIRequest(

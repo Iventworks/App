@@ -66,6 +66,11 @@ async function createFolder(name: string, parentId: number | null) {
 	return result.success;
 }
 
+// Share links for externals: leaders (they manage the whole library), while the org allows them.
+const canShare = computed(
+	() => can("files:manage_all") && useInstance().value?.org?.file_sharing_enabled === true,
+);
+
 function canManage(item: FileItem) {
 	return can("files:manage_all") || (can("files:upload") && item.uploaded_by === user.value?.id);
 }
@@ -86,6 +91,7 @@ function canManage(item: FileItem) {
 					:create-folder="createFolder"
 					:can-write="can('files:upload')"
 					:can-manage="canManage"
+					:can-share="() => canShare"
 					empty-description="Lade Ablaufpläne, Präsentationen, Listen oder Fotos für das Team hoch."
 				/>
 			</DashboardPageBody>

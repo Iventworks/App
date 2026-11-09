@@ -20,7 +20,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "List event documents",
 		description:
-			"List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path. Each file carries a short-lived `download_token` for `GET /files/download/{token}`.",
+			"List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path. Each file carries its `content_url`; `shared` marks items with a share link.",
 		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -54,7 +54,7 @@ router.get(
 		return APIResponse.success(c, "Documents retrieved successfully", {
 			folder: folder ? FileService.toResponse(folder) : null,
 			path: path.map((entry) => FileService.toResponse(entry)),
-			items: items.map((entry) => FileService.toResponse(entry)),
+			items: await FileService.toResponses(items),
 		} satisfies EventFilesModel.GetAll.Response);
 	},
 );

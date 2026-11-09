@@ -20,6 +20,8 @@ export const DOCS_TAGS = {
 	MESSAGING: "Messaging",
 	USERS: "Users",
 	FILES: "Files",
+	FILE_SHARES: "Files / Share links",
+	PUBLIC_SHARES: "Public share links",
 
 	EVENTS: {
 		BASE: "Events",

@@ -47,6 +47,7 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	organization: { label: "Organisation", icon: "i-lucide-building" },
 	org_domain: { label: "Domain", icon: "i-lucide-globe" },
 	org: { label: "Organisation", icon: "i-lucide-building" },
+	file_share: { label: "Freigabelink", icon: "i-lucide-share-2" },
 };
 
 export function auditEntity(type: string) {
@@ -100,6 +101,8 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 			return "/core-team/resources";
 		case "organization":
 			return options.isAdmin ? "/admin/organization" : null;
+		case "file_share":
+			return options.isAdmin ? "/admin/shares" : null;
 		case "org_domain":
 			return options.isAdmin ? "/admin/organization/domains" : null;
 		case "org":

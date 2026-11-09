@@ -176,6 +176,7 @@ const adminItems: NavigationMenuItem[] = [
 	{ label: "Benutzer", icon: "i-lucide-users", to: "/admin/users" },
 	{ label: "Einladungen", icon: "i-lucide-mail-plus", to: "/admin/invitations" },
 	{ label: "Organisation", icon: "i-lucide-palette", to: "/admin/organization" },
+	{ label: "Freigabelinks", icon: "i-lucide-share-2", to: "/admin/shares" },
 	{ label: "Audit-Log", icon: "i-lucide-scroll-text", to: "/admin/audit-log" },
 ];
 

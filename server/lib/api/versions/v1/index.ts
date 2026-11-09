@@ -17,6 +17,7 @@ import { router as instanceRouter } from "./routes/instance";
 import { router as notesRouter } from "./routes/notes";
 import { router as notificationsRouter } from "./routes/notifications";
 import { router as orgRouter } from "./routes/org";
+import { router as sharesRouter } from "./routes/shares";
 import { router as systemRouter } from "./routes/system";
 import { router as tasksRouter } from "./routes/tasks";
 import { router as usersRouter } from "./routes/users";
@@ -49,7 +50,12 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[DOCS_TAGS.PERSONAL.NOTIFICATIONS, "In-app notifications", DOCS_TAGS.PERSONAL.BASE],
 	[DOCS_TAGS.MESSAGING, "Direct messages, group chats and event/team channels"],
 	[DOCS_TAGS.USERS, "Directory of the organisation's members"],
-	[DOCS_TAGS.FILES, "Shared file operations and signed downloads"],
+	[DOCS_TAGS.FILES, "File contents, renaming, moving and deleting"],
+	[DOCS_TAGS.FILE_SHARES, "Share links for people without an account", DOCS_TAGS.FILES],
+	[
+		DOCS_TAGS.PUBLIC_SHARES,
+		"What a share link opens: no account, the link's token (and password) decide",
+	],
 
 	[DOCS_TAGS.EVENTS.EVENTS, "Camps and events"],
 	[DOCS_TAGS.EVENTS.MEMBERS, "Leaders and staff of an event", DOCS_TAGS.EVENTS.EVENTS],
@@ -171,6 +177,8 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 					DOCS_TAGS.MESSAGING,
 					DOCS_TAGS.USERS,
 					DOCS_TAGS.FILES,
+					DOCS_TAGS.FILE_SHARES,
+					DOCS_TAGS.PUBLIC_SHARES,
 				],
 			},
 			{
@@ -235,6 +243,7 @@ router.route("/", notificationsRouter);
 router.route("/", conversationsRouter);
 router.route("/", usersRouter);
 router.route("/", filesRouter);
+router.route("/", sharesRouter);
 
 router.route("/", eventsRouter);
 router.route("/", orgRouter);

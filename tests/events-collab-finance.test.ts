@@ -255,7 +255,7 @@ describe("Event documents and /files", () => {
 		);
 		const parsed = EventFilesModel.Upload.Response.parse(file);
 		expect(parsed.size).toBe(PNG_BYTES.length);
-		expect(parsed.download_token).not.toBeNull();
+		expect(parsed.content_url).toBe(`/api/v1/files/${parsed.id}/content/Plan%20Tag%201.png`);
 		fileId = parsed.id;
 		storageKey = DB.instance()
 			.select()
@@ -296,42 +296,53 @@ describe("Event documents and /files", () => {
 		);
 	});
 
-	test("downloads via signed token; forged or expired tokens are rejected", async () => {
-		const token = FileService.createDownloadToken(fileId);
+	test("contents by path: access checked on every request, header or session cookie", async () => {
+		const path = `/v1/files/${fileId}/content/Plan%20Tag%201.png`;
+		const get = (headers: Record<string, string>, query = "") =>
+			API.getApp().request(`${path}${query}`, { headers: { ...hostHeaders(TEST_HOST), ...headers } });
 
-		const res = await API.getApp().request(`/v1/files/download/${token}`, {
-			headers: hostHeaders(TEST_HOST),
-		});
+		const res = await get({ Authorization: `Bearer ${helperSession.token}` });
 		expect(res.status).toBe(200);
 		expect(res.headers.get("content-type")).toBe("image/png");
 		expect(res.headers.get("content-disposition")).toStartWith("inline;");
 		expect(res.headers.get("content-disposition")).toContain("filename*=UTF-8''Plan%20Tag%201.png");
+		expect(res.headers.get("cache-control")).toBe("private, no-store");
 		expect(new Uint8Array(await res.arrayBuffer())).toEqual(PNG_BYTES);
 
-		const forced = await API.getApp().request(`/v1/files/download/${token}?download=1`, {
-			headers: hostHeaders(TEST_HOST),
+		// The browser's session cookie works here (img src, links, new tabs) …
+		const cookie = await get({
+			Cookie: `iventworks_session_token=${encodeURIComponent(helperSession.token)}`,
+		});
+		expect(cookie.status).toBe(200);
+		// … also without the file name, and `download=1` forces a download.
+		const forced = await API.getApp().request(`/v1/files/${fileId}/content?download=1`, {
+			headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${helperSession.token}` },
 		});
 		expect(forced.headers.get("content-disposition")).toStartWith("attachment;");
 
-		const forged = `${fileId + 1}.${token.split(".").slice(1).join(".")}`;
-		expect(
-			(await API.getApp().request(`/v1/files/download/${forged}`, { headers: hostHeaders(TEST_HOST) }))
-				.status,
-		).toBe(404);
+		// … but nowhere else: other routes ignore the cookie.
+		const elsewhere = await API.getApp().request(`/v1/files/${fileId}`, {
+			headers: {
+				...hostHeaders(TEST_HOST),
+				Cookie: `iventworks_session_token=${encodeURIComponent(helperSession.token)}`,
+			},
+		});
+		expect(elsewhere.status).toBe(401);
 
-		const expired = FileService.createDownloadToken(fileId, -1000);
+		// No session, a bad one, or no access to the event: no bytes.
+		expect((await get({})).status).toBe(401);
+		expect((await get({ Cookie: "iventworks_session_token=garbage" })).status).toBe(401);
+		expect((await get({ Authorization: `Bearer ${outsiderSession.token}` })).status).toBe(403);
 		expect(
-			(
-				await API.getApp().request(`/v1/files/download/${expired}`, { headers: hostHeaders(TEST_HOST) })
-			).status,
-		).toBe(404);
+			(await get({ Cookie: `iventworks_session_token=${encodeURIComponent(outsiderSession.token)}` }))
+				.status,
+		).toBe(403);
 	});
 
 	test("only safe types render inline; SVG and HTML are always downloaded as opaque bytes", async () => {
-		const png = await API.getApp().request(
-			`/v1/files/download/${FileService.createDownloadToken(fileId)}`,
-			{ headers: hostHeaders(TEST_HOST) },
-		);
+		const png = await API.getApp().request(`/v1/files/${fileId}/content`, {
+			headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${helperSession.token}` },
+		});
 		expect(png.headers.get("content-security-policy")).toContain("sandbox");
 		expect(png.headers.get("x-content-type-options")).toBe("nosniff");
 
@@ -351,8 +362,8 @@ describe("Event documents and /files", () => {
 					201,
 				),
 			);
-			const res = await API.getApp().request(`/v1/files/download/${uploaded.download_token}`, {
-				headers: hostHeaders(TEST_HOST),
+			const res = await API.getApp().request(uploaded.content_url!.replace("/api", ""), {
+				headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${helperSession.token}` },
 			});
 			expect(res.status).toBe(200);
 			expect(res.headers.get("content-type")).toBe("application/octet-stream");
@@ -448,7 +459,9 @@ describe("Expenses", () => {
 			),
 		);
 		expect(withReceipt.receipt?.scope).toBe("receipt");
-		expect(withReceipt.receipt?.download_token).not.toBeNull();
+		expect(withReceipt.receipt?.content_url).toStartWith(
+			`/api/v1/files/${withReceipt.receipt?.id}/content/`,
+		);
 		receiptFileId = withReceipt.receipt!.id;
 
 		// Receipts never show up in the documents listing.

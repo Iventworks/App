@@ -16,8 +16,10 @@ export namespace AdminOrganizationModel {
 			.object({
 				display_name: OrgModel.DisplayName.optional(),
 				primary_color: OrgModel.PrimaryColor.optional(),
+				file_sharing_enabled: z.boolean().optional(),
+				share_default_expiry_days: z.number().int().min(1).max(3650).nullable().optional(),
 			})
-			.refine((body) => body.display_name !== undefined || body.primary_color !== undefined, {
+			.refine((body) => Object.values(body).some((value) => value !== undefined), {
 				message: "Nothing to change",
 			});
 		export type Body = z.infer<typeof Body>;

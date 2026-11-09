@@ -41,6 +41,8 @@ export const zGetInstanceResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -95,6 +97,8 @@ export const zGetSystemOrgsResponse = z.object({
             'pink',
             'rose'
         ]),
+        file_sharing_enabled: z.boolean(),
+        share_default_expiry_days: z.number().nullable(),
         url: z.string(),
         default_domain: z.string(),
         primary_domain: z.string().nullable(),
@@ -164,6 +168,8 @@ export const zPostSystemOrgsResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -231,6 +237,8 @@ export const zGetSystemOrgsByOrgIdResponse = z.object({
             'pink',
             'rose'
         ]),
+        file_sharing_enabled: z.boolean(),
+        share_default_expiry_days: z.number().nullable(),
         url: z.string(),
         default_domain: z.string(),
         primary_domain: z.string().nullable(),
@@ -300,6 +308,8 @@ export const zPutSystemOrgsByOrgIdResponse = z.object({
             'pink',
             'rose'
         ]),
+        file_sharing_enabled: z.boolean(),
+        share_default_expiry_days: z.number().nullable(),
         url: z.string(),
         default_domain: z.string(),
         primary_domain: z.string().nullable(),
@@ -1575,6 +1585,8 @@ export const zGetAdminOrganizationResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -1606,7 +1618,9 @@ export const zPutAdminOrganizationBody = z.object({
         'fuchsia',
         'pink',
         'rose'
-    ]).optional()
+    ]).optional(),
+    file_sharing_enabled: z.boolean().optional(),
+    share_default_expiry_days: z.int().gte(1).lte(3650).nullish()
 });
 
 /**
@@ -1640,6 +1654,8 @@ export const zPutAdminOrganizationResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -1686,6 +1702,8 @@ export const zDeleteAdminOrganizationAssetsByKindResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -1736,6 +1754,8 @@ export const zPutAdminOrganizationAssetsByKindResponse = z.object({
                 'pink',
                 'rose'
             ]),
+            file_sharing_enabled: z.boolean(),
+            share_default_expiry_days: z.number().nullable(),
             url: z.string(),
             default_domain: z.string(),
             primary_domain: z.string().nullable(),
@@ -1887,6 +1907,76 @@ export const zPutAdminOrganizationDomainsByDomainIdResponse = z.object({
             cname_target: z.string()
         })
     })
+});
+
+/**
+ * Share links retrieved successfully
+ */
+export const zGetAdminSharesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share links retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        file_id: z.number(),
+        url: z.string(),
+        label: z.string().nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }),
+        has_password: z.boolean(),
+        expires_at: z.number().nullable(),
+        expired: z.boolean(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        last_accessed_at: z.number().nullable(),
+        access_count: z.number(),
+        file: z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            scope: z.enum([
+                'org',
+                'event',
+                'receipt'
+            ]),
+            event: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            folder_id: z.number().nullable(),
+            path: z.string()
+        })
+    }))
+});
+
+export const zDeleteAdminSharesByShareIdPath = z.object({
+    shareId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Share link deleted successfully
+ */
+export const zDeleteAdminSharesByShareIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share link deleted successfully'),
+    data: z.null()
 });
 
 /**
@@ -3178,18 +3268,32 @@ export const zGetUsersByUserIdResponse = z.object({
     })
 });
 
-export const zGetFilesDownloadByTokenPath = z.object({
-    token: z.string().min(1).max(200)
+export const zGetFilesByFileIdContentPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
 });
 
-export const zGetFilesDownloadByTokenQuery = z.object({
+export const zGetFilesByFileIdContentQuery = z.object({
     download: z.enum(['0', '1']).optional()
 });
 
 /**
  * The file content
  */
-export const zGetFilesDownloadByTokenResponse = z.string();
+export const zGetFilesByFileIdContentResponse = z.string();
+
+export const zGetFilesByFileIdContentByFilenamePath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    filename: z.string().max(255)
+});
+
+export const zGetFilesByFileIdContentByFilenameQuery = z.object({
+    download: z.enum(['0', '1']).optional()
+});
+
+/**
+ * The file content
+ */
+export const zGetFilesByFileIdContentByFilenameResponse = z.string();
 
 export const zDeleteFilesByFileIdPath = z.object({
     fileId: z.int().gt(0).lte(9007199254740991)
@@ -3232,7 +3336,8 @@ export const zGetFilesByFileIdResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
     })
 });
 
@@ -3268,7 +3373,450 @@ export const zPutFilesByFileIdResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
+    })
+});
+
+export const zGetFilesByFileIdSharesPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Share links retrieved successfully
+ */
+export const zGetFilesByFileIdSharesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share links retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        file_id: z.number(),
+        url: z.string(),
+        label: z.string().nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }),
+        has_password: z.boolean(),
+        expires_at: z.number().nullable(),
+        expired: z.boolean(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        last_accessed_at: z.number().nullable(),
+        access_count: z.number()
+    }))
+});
+
+export const zPostFilesByFileIdSharesBody = z.object({
+    permissions: z.object({
+        read: z.boolean(),
+        upload: z.boolean(),
+        edit: z.boolean(),
+        delete: z.boolean()
+    }),
+    label: z.string().max(100).nullish(),
+    expires_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
+    password: z.string().min(4).max(128).nullish()
+});
+
+export const zPostFilesByFileIdSharesPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Share link created successfully
+ */
+export const zPostFilesByFileIdSharesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Share link created successfully'),
+    data: z.object({
+        id: z.number(),
+        file_id: z.number(),
+        url: z.string(),
+        label: z.string().nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }),
+        has_password: z.boolean(),
+        expires_at: z.number().nullable(),
+        expired: z.boolean(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        last_accessed_at: z.number().nullable(),
+        access_count: z.number()
+    })
+});
+
+export const zDeleteFilesByFileIdSharesByShareIdPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    shareId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Share link deleted successfully
+ */
+export const zDeleteFilesByFileIdSharesByShareIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share link deleted successfully'),
+    data: z.null()
+});
+
+export const zPutFilesByFileIdSharesByShareIdBody = z.object({
+    permissions: z.object({
+        read: z.boolean(),
+        upload: z.boolean(),
+        edit: z.boolean(),
+        delete: z.boolean()
+    }).optional(),
+    label: z.string().max(100).nullish(),
+    expires_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
+    password: z.string().min(4).max(128).nullish()
+});
+
+export const zPutFilesByFileIdSharesByShareIdPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    shareId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Share link updated successfully
+ */
+export const zPutFilesByFileIdSharesByShareIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share link updated successfully'),
+    data: z.object({
+        id: z.number(),
+        file_id: z.number(),
+        url: z.string(),
+        label: z.string().nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }),
+        has_password: z.boolean(),
+        expires_at: z.number().nullable(),
+        expired: z.boolean(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        last_accessed_at: z.number().nullable(),
+        access_count: z.number()
+    })
+});
+
+export const zGetSharesByTokenPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * Share link retrieved successfully
+ */
+export const zGetSharesByTokenResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share link retrieved successfully'),
+    data: z.object({
+        kind: z.enum(['folder', 'file']),
+        requires_password: z.boolean(),
+        unlocked: z.boolean(),
+        item: z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            mime_type: z.string().nullable(),
+            size: z.number(),
+            updated_at: z.number(),
+            content_url: z.string().nullable()
+        }).nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }).nullable(),
+        expires_at: z.number().nullable()
+    })
+});
+
+export const zPostSharesByTokenUnlockBody = z.object({
+    password: z.string().min(1).max(128)
+});
+
+export const zPostSharesByTokenUnlockPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * Share link unlocked
+ */
+export const zPostSharesByTokenUnlockResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Share link unlocked'),
+    data: z.object({
+        kind: z.enum(['folder', 'file']),
+        requires_password: z.boolean(),
+        unlocked: z.boolean(),
+        item: z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            mime_type: z.string().nullable(),
+            size: z.number(),
+            updated_at: z.number(),
+            content_url: z.string().nullable()
+        }).nullable(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        }).nullable(),
+        expires_at: z.number().nullable()
+    })
+});
+
+export const zGetSharesByTokenItemsPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+export const zGetSharesByTokenItemsQuery = z.object({
+    folder_id: z.int().gt(0).lte(9007199254740991).optional()
+});
+
+/**
+ * Folder retrieved successfully
+ */
+export const zGetSharesByTokenItemsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Folder retrieved successfully'),
+    data: z.object({
+        folder: z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            mime_type: z.string().nullable(),
+            size: z.number(),
+            updated_at: z.number(),
+            content_url: z.string().nullable()
+        }),
+        path: z.array(z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            mime_type: z.string().nullable(),
+            size: z.number(),
+            updated_at: z.number(),
+            content_url: z.string().nullable()
+        })),
+        items: z.array(z.object({
+            id: z.number(),
+            kind: z.enum(['folder', 'file']),
+            name: z.string(),
+            mime_type: z.string().nullable(),
+            size: z.number(),
+            updated_at: z.number(),
+            content_url: z.string().nullable()
+        }))
+    })
+});
+
+export const zGetSharesByTokenFilesByFileIdContentPath = z.object({
+    token: z.string().min(1).max(64),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+export const zGetSharesByTokenFilesByFileIdContentQuery = z.object({
+    download: z.enum(['0', '1']).optional()
+});
+
+/**
+ * The file content
+ */
+export const zGetSharesByTokenFilesByFileIdContentResponse = z.string();
+
+export const zPutSharesByTokenFilesByFileIdContentBody = z.object({
+    file: z.string()
+});
+
+export const zPutSharesByTokenFilesByFileIdContentPath = z.object({
+    token: z.string().min(1).max(64),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * File replaced successfully
+ */
+export const zPutSharesByTokenFilesByFileIdContentResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('File replaced successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable()
+    })
+});
+
+export const zGetSharesByTokenFilesByFileIdContentByFilenamePath = z.object({
+    token: z.string().min(1).max(64),
+    fileId: z.int().gt(0).lte(9007199254740991),
+    filename: z.string().max(255)
+});
+
+export const zGetSharesByTokenFilesByFileIdContentByFilenameQuery = z.object({
+    download: z.enum(['0', '1']).optional()
+});
+
+/**
+ * The file content
+ */
+export const zGetSharesByTokenFilesByFileIdContentByFilenameResponse = z.string();
+
+export const zPostSharesByTokenFilesBody = z.object({
+    file: z.string(),
+    parent_id: z.int().gt(0).lte(9007199254740991).optional()
+});
+
+export const zPostSharesByTokenFilesPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * File uploaded successfully
+ */
+export const zPostSharesByTokenFilesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('File uploaded successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable()
+    })
+});
+
+export const zPostSharesByTokenFoldersBody = z.object({
+    name: z.string().min(1).max(200),
+    parent_id: z.int().gt(0).lte(9007199254740991).optional()
+});
+
+export const zPostSharesByTokenFoldersPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * Folder created successfully
+ */
+export const zPostSharesByTokenFoldersResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Folder created successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable()
+    })
+});
+
+export const zDeleteSharesByTokenFilesByFileIdPath = z.object({
+    token: z.string().min(1).max(64),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Deleted successfully
+ */
+export const zDeleteSharesByTokenFilesByFileIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Deleted successfully'),
+    data: z.null()
+});
+
+export const zPutSharesByTokenFilesByFileIdBody = z.object({
+    name: z.string().min(1).max(200)
+});
+
+export const zPutSharesByTokenFilesByFileIdPath = z.object({
+    token: z.string().min(1).max(64),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Renamed successfully
+ */
+export const zPutSharesByTokenFilesByFileIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Renamed successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable()
     })
 });
 
@@ -4920,7 +5468,8 @@ export const zGetEventsByEventIdProgramResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         is_mine: z.boolean()
     }))
@@ -4991,7 +5540,8 @@ export const zPostEventsByEventIdProgramResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         is_mine: z.boolean()
     })
@@ -5078,7 +5628,8 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         is_mine: z.boolean()
     })
@@ -5142,7 +5693,8 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         is_mine: z.boolean()
     })
@@ -5953,7 +6505,8 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -5971,7 +6524,8 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -5989,7 +6543,8 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }))
     })
 });
@@ -6026,7 +6581,8 @@ export const zPostEventsByEventIdFilesResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
     })
 });
 
@@ -6062,7 +6618,8 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
     })
 });
 
@@ -6149,7 +6706,8 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -6238,7 +6796,8 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -6386,7 +6945,8 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -6472,7 +7032,8 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -6563,7 +7124,8 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -7009,7 +7571,8 @@ export const zGetOrgDocumentsResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -7027,7 +7590,8 @@ export const zGetOrgDocumentsResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -7045,7 +7609,8 @@ export const zGetOrgDocumentsResponse = z.object({
             uploaded_by: z.number().nullable(),
             created_at: z.number(),
             updated_at: z.number(),
-            download_token: z.string().nullable()
+            content_url: z.string().nullable(),
+            shared: z.boolean()
         }))
     })
 });
@@ -7078,7 +7643,8 @@ export const zPostOrgDocumentsResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
     })
 });
 
@@ -7110,7 +7676,8 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
         uploaded_by: z.number().nullable(),
         created_at: z.number(),
         updated_at: z.number(),
-        download_token: z.string().nullable()
+        content_url: z.string().nullable(),
+        shared: z.boolean()
     })
 });
 

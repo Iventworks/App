@@ -1,18 +1,27 @@
-import { createHmac, timingSafeEqual } from "crypto";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
-import { LCrypt } from "../../utils/crypto/lcrypt";
 import { FileStorage } from "../../utils/fileStorage";
+import { Logger } from "../../utils/logger";
+
+/** Locks down inline responses: no script, no plugins, no requests to anywhere. */
+const INLINE_CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
+
+/** `Content-Disposition` with an ASCII fallback and the RFC 5987 UTF-8 file name. */
+function contentDisposition(type: "inline" | "attachment", name: string) {
+	const fallback = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+	return `${type}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
 
 /**
  * Documents, folders and receipts on top of `FileStorage` (blobs) and the `files` table.
  *
- * Downloads use short-lived signed tokens instead of bearer auth, so the browser can open them
- * directly (`<img src>`, `<a href download>`, PDFs in a new tab): list endpoints return
- * `download_token`, the frontend builds `<appUrl>/api/v1/files/download/<token>`.
+ * File contents are plain paths with an access check on every request:
+ * `GET /files/{fileId}/content/{name}` for signed-in people (the session cookie is accepted there,
+ * so `<img src>`, links and new tabs work), `GET /shares/{token}/files/{fileId}/content/{name}`
+ * for share links. Every item carries its `content_url`.
  */
 export class FileService {
 	/**
@@ -47,37 +56,41 @@ export class FileService {
 		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
 	}
 
-	/** Per-process HMAC key; links simply expire on restart. */
-	protected static readonly SIGNING_KEY = LCrypt.randomBytes(32);
-	static readonly DOWNLOAD_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+	// --- contents ------------------------------------------------------------------------------
 
-	// --- download tokens -------------------------------------------------------------------
-
-	protected static sign(payload: string) {
-		return createHmac("sha256", FileService.SIGNING_KEY).update(payload).digest("base64url");
+	/** Path of a file's contents for signed-in people; the name only labels the tab and download. */
+	static contentPath(file: Pick<DB.Models.File, "id" | "name">) {
+		return `/api/v1/files/${file.id}/content/${encodeURIComponent(file.name)}`;
 	}
 
-	static createDownloadToken(fileId: number, ttlMs = FileService.DOWNLOAD_TOKEN_TTL_MS) {
-		const payload = `${fileId}.${Date.now() + ttlMs}`;
-		return `${payload}.${FileService.sign(payload)}`;
-	}
+	/**
+	 * The file's bytes as a response. Only allow-listed types are rendered by the browser; anything
+	 * else (SVG, HTML, …) goes out as opaque bytes so it can never run script on the app origin.
+	 * Never cached by shared caches: access is checked on every request.
+	 */
+	static async contentResponse(file: DB.Models.File, options: { download?: boolean } = {}) {
+		if (file.kind !== "file" || !file.storage_key) return null;
 
-	/** Returns the file id for a valid, unexpired token, otherwise null. */
-	static verifyDownloadToken(token: string): number | null {
-		const parts = token.split(".");
-		if (parts.length !== 3) return null;
-		const [fileIdRaw, expiresRaw, signature] = parts as [string, string, string];
-
-		const expected = Buffer.from(FileService.sign(`${fileIdRaw}.${expiresRaw}`));
-		const given = Buffer.from(signature);
-		if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-
-		const fileId = Number(fileIdRaw);
-		const expires = Number(expiresRaw);
-		if (!Number.isInteger(fileId) || !Number.isFinite(expires) || expires < Date.now()) {
+		const blob = FileStorage.open(file.storage_key);
+		if (!(await blob.exists())) {
+			Logger.error(`Stored blob for file ${file.id} is missing (${file.storage_key})`);
 			return null;
 		}
-		return fileId;
+
+		const safe = FileService.isInlineSafe(file.mime_type);
+		const inline = !options.download && safe;
+		const headers: Record<string, string> = {
+			"Content-Type": safe ? (file.mime_type as string) : "application/octet-stream",
+			"Content-Length": String(blob.size),
+			"Content-Disposition": contentDisposition(inline ? "inline" : "attachment", file.name),
+			"X-Content-Type-Options": "nosniff",
+			"Cache-Control": "private, no-store",
+		};
+		// Chrome refuses to render PDFs in sandboxed documents; PDFs cannot run page script anyway.
+		if (inline && file.mime_type !== "application/pdf") {
+			headers["Content-Security-Policy"] = INLINE_CSP;
+		}
+		return new Response(blob, { status: 200, headers });
 	}
 
 	// --- reads -------------------------------------------------------------------------------
@@ -156,7 +169,8 @@ export class FileService {
 		location: FileService.Location,
 		parentId: number | null,
 		name: string,
-		userId: number,
+		/** null: added through a share link. */
+		userId: number | null,
 		tx: DrizzleDB = DB.instance(),
 	) {
 		return await tx
@@ -181,7 +195,8 @@ export class FileService {
 		location: FileService.Location,
 		parentId: number | null,
 		file: File,
-		userId: number,
+		/** null: uploaded through a share link. */
+		userId: number | null,
 		tx: DrizzleDB = DB.instance(),
 	) {
 		if (file.size > FileStorage.maxUploadBytes) return null;
@@ -226,6 +241,56 @@ export class FileService {
 			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
 			.returning()
 			.get();
+	}
+
+	/** Ids among `fileIds` with at least one share link that hasn't expired (the "geteilt" icon). */
+	static async sharedIds(fileIds: number[], tx: DrizzleDB = DB.instance()): Promise<Set<number>> {
+		if (fileIds.length === 0) return new Set();
+		const rows = await tx
+			.selectDistinct({ file_id: DB.Tables.fileShares.file_id })
+			.from(DB.Tables.fileShares)
+			.where(
+				and(
+					inOrg(DB.Tables.fileShares),
+					inArray(DB.Tables.fileShares.file_id, fileIds),
+					or(isNull(DB.Tables.fileShares.expires_at), gt(DB.Tables.fileShares.expires_at, Date.now())),
+				),
+			)
+			.all();
+		return new Set(rows.map((row) => row.file_id));
+	}
+
+	/** Items for a listing, with the "shared" flag looked up in one query. */
+	static async toResponses(files: DB.Models.File[], tx: DrizzleDB = DB.instance()) {
+		const shared = await FileService.sharedIds(
+			files.map((file) => file.id),
+			tx,
+		);
+		return files.map((file) => FileService.toResponse(file, { shared: shared.has(file.id) }));
+	}
+
+	/** Replace a file's contents (same row, new blob); the old blob is removed afterwards. */
+	static async replaceContent(file: DB.Models.File, upload: File, tx: DrizzleDB = DB.instance()) {
+		if (upload.size > FileStorage.maxUploadBytes) return null;
+		const { storageKey, size } = await FileStorage.save(upload);
+		try {
+			const updated = await tx
+				.update(DB.Tables.files)
+				.set({
+					storage_key: storageKey,
+					size,
+					mime_type: upload.type || "application/octet-stream",
+					updated_at: Date.now(),
+				})
+				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
+				.returning()
+				.get();
+			await FileStorage.remove([file.storage_key]);
+			return updated;
+		} catch (error) {
+			await FileStorage.remove([storageKey]);
+			throw error;
+		}
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */
@@ -287,7 +352,7 @@ export class FileService {
 		return cleaned || "Unbenannt";
 	}
 
-	static toResponse(file: DB.Models.File): FileService.Item {
+	static toResponse(file: DB.Models.File, options: { shared?: boolean } = {}): FileService.Item {
 		return {
 			id: file.id,
 			scope: file.scope,
@@ -300,7 +365,8 @@ export class FileService {
 			uploaded_by: file.uploaded_by,
 			created_at: file.created_at,
 			updated_at: file.updated_at,
-			download_token: file.kind === "file" ? FileService.createDownloadToken(file.id) : null,
+			content_url: file.kind === "file" ? FileService.contentPath(file) : null,
+			shared: options.shared ?? false,
 		};
 	}
 }
@@ -324,8 +390,13 @@ export namespace FileService {
 		uploaded_by: z.number().nullable(),
 		created_at: z.number(),
 		updated_at: z.number(),
-		/** Signed, short-lived token for `GET /files/download/{token}` (null for folders). */
-		download_token: z.string().nullable(),
+		/**
+		 * `GET` path of the contents (null for folders). Opens in the browser — the session cookie
+		 * authenticates it — or with the `Authorization` header; `?download=1` forces a download.
+		 */
+		content_url: z.string().nullable(),
+		/** Has a share link for people without an account (listings only; false elsewhere). */
+		shared: z.boolean(),
 	});
 	export type Item = z.infer<typeof ItemSchema>;
 

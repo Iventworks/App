@@ -16,6 +16,10 @@ const user = await useUserInfoStore().use();
 const toast = useToast();
 
 const canWrite = computed(() => hasOrgRole(user.value?.role, "core_team"));
+// Share links for externals: library managers, while the org allows them.
+const canShare = computed(
+	() => canWrite.value && useInstance().value?.org?.file_sharing_enabled === true,
+);
 
 async function load(parentId: number | null) {
 	const result = await useAPI((api) =>
@@ -89,6 +93,7 @@ async function createFolder(name: string, parentId: number | null) {
 					:create-folder="canWrite ? createFolder : undefined"
 					:can-write="canWrite"
 					:can-manage="() => canWrite"
+					:can-share="() => canShare"
 					empty-description="Hier legt das Kernteam Leitfäden, Vorlagen und Werkzeuge für alle ab."
 				/>
 			</DashboardPageBody>

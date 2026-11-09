@@ -99,7 +99,7 @@ const visibleExpenses = computed(() =>
 				<div class="flex gap-4">
 					<a
 						v-if="expense.receipt"
-						:href="fileURL(expense.receipt.download_token)"
+						:href="fileURL(expense.receipt.content_url)"
 						target="_blank"
 						rel="noopener"
 						class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-800"
@@ -107,7 +107,7 @@ const visibleExpenses = computed(() =>
 					>
 						<img
 							v-if="isImage(expense)"
-							:src="fileURL(expense.receipt.download_token)"
+							:src="fileURL(expense.receipt.content_url)"
 							:alt="`Beleg ${expense.title}`"
 							class="size-full object-cover"
 						/>

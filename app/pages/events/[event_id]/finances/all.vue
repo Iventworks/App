@@ -138,7 +138,7 @@ const tableFilters = computed(() => [
 			<template #receipt-cell="{ row }">
 				<UButton
 					v-if="row.original.receipt"
-					:to="fileURL(row.original.receipt.download_token)"
+					:to="fileURL(row.original.receipt.content_url)"
 					target="_blank"
 					:icon="isImage(row.original) ? 'i-lucide-image' : 'i-lucide-file-text'"
 					label="Ansehen"

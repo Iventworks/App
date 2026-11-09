@@ -14,6 +14,10 @@ export interface OrgInfo {
 	readonly kind: "org" | "system";
 	readonly display_name: string;
 	readonly primary_color: OrgPrimaryColor;
+	/** Share links for externals allowed (org admins can switch them off). */
+	readonly file_sharing_enabled: boolean;
+	/** Expiry suggested for new share links, in days; null = none. */
+	readonly share_default_expiry_days: number | null;
 	/** `<slug>.<base host>` in multi-org mode, the APP_URL host otherwise (and for the system org). */
 	readonly default_domain: string;
 	/** The verified custom domain every other host of the org redirects to, or null. */
@@ -122,6 +126,8 @@ export class OrgRegistry {
 				kind: org.kind,
 				display_name: org.display_name,
 				primary_color: org.primary_color,
+				file_sharing_enabled: org.file_sharing_enabled,
+				share_default_expiry_days: org.share_default_expiry_days,
 				default_domain: defaultDomain,
 				primary_domain: usesCustomDomain ? primary : null,
 				url:

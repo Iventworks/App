@@ -104,11 +104,22 @@ export class OrgService {
 	/** Name and colour (the slug never changes). */
 	static async update(
 		orgId: number,
-		changes: { display_name?: string; primary_color?: OrgPrimaryColor },
+		changes: {
+			display_name?: string;
+			primary_color?: OrgPrimaryColor;
+			file_sharing_enabled?: boolean;
+			share_default_expiry_days?: number | null;
+		},
 	): Promise<OrgInfo> {
 		const set: Partial<typeof DB.Tables.orgs.$inferInsert> = { updated_at: Date.now() };
 		if (changes.display_name !== undefined) set.display_name = changes.display_name.trim();
 		if (changes.primary_color !== undefined) set.primary_color = changes.primary_color;
+		if (changes.file_sharing_enabled !== undefined) {
+			set.file_sharing_enabled = changes.file_sharing_enabled;
+		}
+		if (changes.share_default_expiry_days !== undefined) {
+			set.share_default_expiry_days = changes.share_default_expiry_days;
+		}
 
 		await OrgContext.unscoped(() =>
 			DB.instance().update(DB.Tables.orgs).set(set).where(eq(DB.Tables.orgs.id, orgId)).run(),

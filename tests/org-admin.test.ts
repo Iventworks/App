@@ -720,7 +720,7 @@ describe("Organisation documents", () => {
 			201,
 		);
 		expect(folder.kind).toBe("folder");
-		expect(folder.download_token).toBeNull();
+		expect(folder.content_url).toBeNull();
 
 		const file = await makeAPIRequest(
 			"/v1/org/documents",
@@ -734,7 +734,7 @@ describe("Organisation documents", () => {
 		expect(file.parent_id).toBe(folder.id);
 		expect(file.scope).toBe("org");
 		expect(file.size).toBe(10);
-		expect(file.download_token).not.toBeNull();
+		expect(file.content_url).not.toBeNull();
 
 		const root = await makeAPIRequest("/v1/org/documents", {
 			authToken: volunteerSession.token,

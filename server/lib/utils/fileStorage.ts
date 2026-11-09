@@ -1,4 +1,4 @@
-import { mkdir as fs_mkdir, rm as fs_rm } from "fs/promises";
+import { mkdir as fs_mkdir, rm as fs_rm, stat as fs_stat } from "fs/promises";
 import {
 	dirname as path_dirname,
 	join as path_join,
@@ -62,6 +62,29 @@ export class FileStorage {
 
 	static open(storageKey: string) {
 		return Bun.file(this.resolveKey(storageKey));
+	}
+
+	/**
+	 * Delete stored files whose key is not in `referenced` and that were last written before
+	 * `writtenBefore` (unix ms). Returns how many were removed.
+	 */
+	static async removeUnreferenced(referenced: ReadonlySet<string>, writtenBefore: number) {
+		const base = this.getBaseDir();
+		let removed = 0;
+		for await (const relative of new Bun.Glob("**/*").scan({ cwd: base, onlyFiles: true })) {
+			const key = relative.split(path_sep).join("/");
+			if (referenced.has(key)) continue;
+			const fullPath = this.resolveKey(key);
+			const info = await fs_stat(fullPath).catch(() => null);
+			if (!info || info.mtimeMs >= writtenBefore) continue;
+			try {
+				await fs_rm(fullPath, { force: true });
+				removed++;
+			} catch (error) {
+				Logger.error(`Failed to delete orphaned file ${key}:`, error);
+			}
+		}
+		return removed;
 	}
 
 	static async remove(storageKeys: Iterable<string | null | undefined>) {

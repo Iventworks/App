@@ -22,6 +22,8 @@ const props = withDefaults(
 		canWrite?: boolean;
 		/** Whether the caller may rename/move/delete this item. */
 		canManage?: (item: FileItem) => boolean;
+		/** Whether the caller may create share links for this item. */
+		canShare?: (item: FileItem) => boolean;
 		emptyDescription?: string;
 	}>(),
 	{
@@ -30,6 +32,7 @@ const props = withDefaults(
 		createFolder: undefined,
 		canWrite: false,
 		canManage: () => false,
+		canShare: () => false,
 		emptyDescription: "Hier wurden noch keine Dateien abgelegt.",
 	},
 );
@@ -276,6 +279,16 @@ async function confirmDelete() {
 	await refresh();
 }
 
+// --- share links ----------------------------------------------------------------------------
+
+const shareTarget = ref<FileItem | null>(null);
+const shareOpen = ref(false);
+
+function openShare(item: FileItem) {
+	shareTarget.value = item;
+	shareOpen.value = true;
+}
+
 // --- row actions ----------------------------------------------------------------------------
 
 function itemActions(item: FileItem): DropdownMenuItem[][] {
@@ -286,21 +299,26 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 					{
 						label: "Öffnen",
 						icon: "i-lucide-external-link",
-						to: fileURL(item.download_token),
+						to: fileURL(item.content_url),
 						target: "_blank",
 					},
 					{
 						label: "Herunterladen",
 						icon: "i-lucide-download",
-						to: fileURL(item.download_token, true),
+						to: fileURL(item.content_url, true),
 						target: "_blank",
 					},
 				];
 
-	if (!props.canManage(item)) return [open];
+	const share: DropdownMenuItem[] = props.canShare(item)
+		? [{ label: "Teilen", icon: "i-lucide-share-2", onSelect: () => openShare(item) }]
+		: [];
+
+	if (!props.canManage(item)) return share.length ? [open, share] : [open];
 
 	return [
 		open,
+		...(share.length ? [share] : []),
 		[
 			{ label: "Umbenennen", icon: "i-lucide-pencil", onSelect: () => openRename(item) },
 			...(listing.value?.folder
@@ -332,8 +350,8 @@ async function onMoveUp(item: FileItem) {
 function onRowClick(item: FileItem) {
 	if (item.kind === "folder") {
 		void openFolder(item.id);
-	} else if (item.download_token) {
-		window.open(fileURL(item.download_token), "_blank", "noopener");
+	} else if (item.content_url) {
+		window.open(fileURL(item.content_url), "_blank", "noopener");
 	}
 }
 
@@ -433,7 +451,12 @@ defineExpose({ refresh });
 						:class="['size-5 shrink-0', item.kind === 'folder' ? 'text-amber-400' : 'text-slate-400']"
 					/>
 					<div class="min-w-0 flex-1">
-						<p class="truncate text-sm font-medium text-white">{{ item.name }}</p>
+						<p class="flex items-center gap-1.5 truncate text-sm font-medium text-white">
+							<span class="truncate">{{ item.name }}</span>
+							<UTooltip v-if="item.shared" text="Per Link geteilt">
+								<UIcon name="i-lucide-share-2" class="size-3.5 shrink-0 text-primary-400" aria-label="geteilt" />
+							</UTooltip>
+						</p>
 						<p class="text-xs text-slate-500">
 							<template v-if="item.kind === 'file'">{{ formatFileSize(item.size) }} · </template>
 							{{ formatDate(item.updated_at) }}
@@ -482,6 +505,8 @@ defineExpose({ refresh });
 				</div>
 			</form>
 		</DashboardModal>
+
+		<FilesShareModal v-model:open="shareOpen" :item="shareTarget" @changed="refresh" />
 
 		<DashboardDeleteModal
 			v-model:open="deleteOpen"

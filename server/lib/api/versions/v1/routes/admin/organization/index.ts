@@ -49,7 +49,7 @@ router.put(
 	"/",
 	APIRouteSpec.authenticated({
 		summary: "Update organisation",
-		description: "Change the display name and/or the primary colour.",
+		description: "Change the display name, the primary colour and the share-link settings.",
 		tags: [TAG],
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Organisation updated successfully", AdminOrganizationModel.Settings),
@@ -67,6 +67,22 @@ router.put(
 		}
 		if (body.primary_color !== undefined && body.primary_color !== before.primary_color) {
 			changes.push(`Farbe ${before.primary_color} → ${org.primary_color}`);
+		}
+		if (
+			body.file_sharing_enabled !== undefined &&
+			body.file_sharing_enabled !== before.file_sharing_enabled
+		) {
+			changes.push(org.file_sharing_enabled ? "Freigabelinks erlaubt" : "Freigabelinks abgeschaltet");
+		}
+		if (
+			body.share_default_expiry_days !== undefined &&
+			body.share_default_expiry_days !== before.share_default_expiry_days
+		) {
+			changes.push(
+				org.share_default_expiry_days
+					? `Freigabelinks laufen standardmäßig nach ${org.share_default_expiry_days} Tagen ab`
+					: "Freigabelinks ohne Standard-Ablauf",
+			);
 		}
 		if (changes.length) {
 			await AuditLog.record({

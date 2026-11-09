@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import type { DB } from "../../../../../db";
-import { FileStorage } from "../../../../../utils/fileStorage";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
@@ -12,21 +11,13 @@ import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { FilesModel } from "./model";
+import { router as sharesRouter } from "./shares";
 
 type FilesEnv = {
 	Variables: { file: DB.Models.File };
 };
 
 export const router = new Hono<FilesEnv>().basePath("/files");
-
-/** Locks down inline responses: no script, no plugins, no requests to anywhere. */
-const INLINE_CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
-
-/** `Content-Disposition` with an ASCII fallback and the RFC 5987 UTF-8 file name. */
-function contentDisposition(type: "inline" | "attachment", name: string) {
-	const fallback = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
-	return `${type}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
-}
 
 function auditEventId(file: DB.Models.File) {
 	return file.scope === "org" ? null : file.event_id;
@@ -37,72 +28,6 @@ const LOCATION_LABELS: Record<DB.Models.File["scope"], string> = {
 	event: "Dokument",
 	receipt: "Beleg",
 };
-
-router.get(
-	"/download/:token",
-
-	APIRouteSpec.unauthenticated({
-		summary: "Download a file",
-		description:
-			"Stream a file using a signed, short-lived token from a file listing (`download_token`). No Authorization header needed, so the URL works in `<img>`, links and new tabs. Images, PDFs and plain text are served inline unless `download=1`.",
-		tags: [DOCS_TAGS.FILES],
-
-		responses: {
-			200: {
-				description: "The file content",
-				content: {
-					"application/octet-stream": {
-						schema: { type: "string", format: "binary" },
-					},
-				},
-			},
-			...APIResponseSpec.notFound("File not found or link expired"),
-		},
-	}),
-
-	zValidator("param", FilesModel.Download.Params),
-	zValidator("query", FilesModel.Download.Query),
-
-	async (c) => {
-		const { token } = c.req.valid("param") as FilesModel.Download.Params;
-		const { download } = c.req.valid("query") as FilesModel.Download.Query;
-
-		const fileId = FileService.verifyDownloadToken(token);
-		if (fileId === null) return APIResponse.notFound(c, "File not found or link expired");
-
-		const file = await FileService.get(fileId);
-		if (!file || file.kind !== "file" || !file.storage_key) {
-			return APIResponse.notFound(c, "File not found or link expired");
-		}
-
-		const blob = FileStorage.open(file.storage_key);
-		if (!(await blob.exists())) {
-			Logger.error(`Stored blob for file ${file.id} is missing (${file.storage_key})`);
-			return APIResponse.notFound(c, "File not found or link expired");
-		}
-
-		// Only allow-listed types are rendered by the browser; anything else (SVG, HTML, …) is
-		// downloaded as opaque bytes so it can never run script on the app origin.
-		const inline = download !== "1" && FileService.isInlineSafe(file.mime_type);
-		const safeType = FileService.isInlineSafe(file.mime_type)
-			? (file.mime_type as string)
-			: "application/octet-stream";
-
-		const headers: Record<string, string> = {
-			"Content-Type": safeType,
-			"Content-Length": String(blob.size),
-			"Content-Disposition": contentDisposition(inline ? "inline" : "attachment", file.name),
-			"X-Content-Type-Options": "nosniff",
-			"Cache-Control": "private, max-age=300",
-		};
-		// Chrome refuses to render PDFs in sandboxed documents; PDFs cannot run page script anyway.
-		if (inline && safeType !== "application/pdf") {
-			headers["Content-Security-Policy"] = INLINE_CSP;
-		}
-
-		return new Response(blob, { status: 200, headers });
-	},
-);
 
 router.use(
 	"/:fileId/*",
@@ -126,11 +51,44 @@ router.use(
 );
 
 router.get(
+	"/:fileId/content/:filename?",
+
+	APIRouteSpec.authenticated({
+		summary: "Get file contents",
+		description:
+			"The file's bytes, with an access check on every request. Besides the `Authorization` header, the browser's session cookie is accepted here, so the path works in `<img>`, links and new tabs (`content_url` of every file item). The trailing file name only names the tab and the download. Images, PDFs and plain text open inline unless `download=1`.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: {
+			200: {
+				description: "The file content",
+				content: {
+					"application/octet-stream": {
+						schema: { type: "string", format: "binary" },
+					},
+				},
+			},
+			...APIResponseSpec.notFound("File not found"),
+			...APIResponseSpec.forbidden("You are not allowed to access this file"),
+		},
+	}),
+
+	zValidator("param", FilesModel.Content.Params),
+	zValidator("query", FilesModel.Content.Query),
+
+	async (c) => {
+		const { download } = c.req.valid("query") as FilesModel.Content.Query;
+		const response = await FileService.contentResponse(c.get("file"), { download: download === "1" });
+		return response ?? APIResponse.notFound(c, "File not found");
+	},
+);
+
+router.get(
 	"/:fileId",
 
 	APIRouteSpec.authenticated({
 		summary: "Get file",
-		description: "Retrieve a file's or folder's metadata including a fresh download token.",
+		description: "Retrieve a file's or folder's metadata, including the path of its contents.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
@@ -250,3 +208,6 @@ router.delete(
 		return APIResponse.successNoData(c, "File deleted successfully");
 	},
 );
+
+// Share links of a file or folder (behind the loader above: the item is loaded and read-checked).
+router.route("/", sharesRouter);

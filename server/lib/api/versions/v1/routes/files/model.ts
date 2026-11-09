@@ -11,9 +11,11 @@ export namespace FilesModel {
 	export type Params = z.infer<typeof Params>;
 }
 
-export namespace FilesModel.Download {
+export namespace FilesModel.Content {
 	export const Params = z.object({
-		token: z.string().min(1).max(200),
+		fileId: z.coerce.number().int().positive(),
+		/** Only names the browser tab and the download; not checked. */
+		filename: z.string().max(255).optional(),
 	});
 	export type Params = z.infer<typeof Params>;
 

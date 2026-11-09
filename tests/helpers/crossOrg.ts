@@ -1,6 +1,7 @@
 import { getTableName } from "drizzle-orm";
 import { getTableConfig, type SQLiteTable } from "drizzle-orm/sqlite-core";
 import { APIKeyHandler, SessionHandler } from "../../server/lib/api/utils/authHandler";
+import { FileShares } from "../../server/lib/api/utils/fileShares";
 import { DB } from "../../server/lib/db";
 import { OrgContext } from "../../server/lib/orgs/context";
 import type { OrgInfo } from "../../server/lib/orgs/registry";
@@ -348,6 +349,22 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.returning()
 			.get();
 
+		// A link that allows everything, so attacks through foreign tokens are tried with full rights.
+		const share = db
+			.insert(DB.Tables.fileShares)
+			.values({
+				org_id,
+				file_id: folder.id,
+				token: FileShares.createToken(),
+				label: text("Freigabe"),
+				can_upload: true,
+				can_edit: true,
+				can_delete: true,
+				created_by: admin.id,
+			})
+			.returning()
+			.get();
+
 		const adminSession = await SessionHandler.createSession(admin.id);
 		const apiKey = await APIKeyHandler.createApiKey(volunteer.id, text("Schlüssel"));
 		const volunteerSession = await SessionHandler.createSession(volunteer.id);
@@ -389,6 +406,8 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				sessionId: adminSession.token.split(":")[0]!.split("_").at(-1)!,
 				apiKeyID: apiKey.token.split(":")[0]!.split("_").at(-1)!,
 				domainId: domain.id,
+				shareId: share.id,
+				shareToken: share.token,
 			},
 		};
 	});

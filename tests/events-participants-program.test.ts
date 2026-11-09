@@ -429,7 +429,7 @@ describe("Event program", () => {
 
 		expect(item.responsible.map((user) => user.id)).toEqual([staff.id]);
 		expect(item.files.map((file) => file.id).sort()).toEqual([eventFileId, orgFileId].sort());
-		expect(item.files.every((file) => file.download_token !== null)).toBe(true);
+		expect(item.files.every((file) => file.content_url !== null)).toBe(true);
 		expect(item.is_mine).toBe(false);
 		itemId = item.id;
 

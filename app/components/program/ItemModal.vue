@@ -196,7 +196,7 @@ function fileLink(file: FileItem) {
 			? `/documents?folder=${file.id}`
 			: `/events/${props.eventId}/documents?folder=${file.id}`;
 	}
-	return fileURL(file.download_token);
+	return fileURL(file.content_url);
 }
 </script>
 

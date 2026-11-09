@@ -118,6 +118,33 @@ async function onRemove(kind: AssetKind) {
 function assetUrl(kind: AssetKind) {
 	return kind === "logo" ? org.value.logo_url : org.value.icon_url;
 }
+
+// --- share links ------------------------------------------------------------------------------
+
+const EXPIRY_OPTIONS = [
+	{ label: "Keine Vorgabe", value: 0 },
+	{ label: "7 Tage", value: 7 },
+	{ label: "14 Tage", value: 14 },
+	{ label: "30 Tage", value: 30 },
+	{ label: "90 Tage", value: 90 },
+	{ label: "1 Jahr", value: 365 },
+];
+
+const savingSharing = ref(false);
+async function saveSharing(changes: {
+	file_sharing_enabled?: boolean;
+	share_default_expiry_days?: number | null;
+}) {
+	savingSharing.value = true;
+	const result = await useAPI((api) => api.putAdminOrganization({ body: changes }));
+	savingSharing.value = false;
+	if (!result.success) {
+		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	toast.add({ title: "Gespeichert", icon: "i-lucide-check", color: "success" });
+	await settings.refresh();
+}
 </script>
 
 <template>
@@ -223,6 +250,48 @@ function assetUrl(kind: AssetKind) {
 						/>
 					</div>
 				</div>
+			</div>
+		</DashboardSectionCard>
+
+		<DashboardSectionCard
+			title="Freigabelinks"
+			description="Dateien und Ordner per Link mit Menschen ohne Konto teilen"
+			icon="i-lucide-share-2"
+		>
+			<template #actions>
+				<UButton label="Alle Links" icon="i-lucide-list" size="sm" color="neutral" variant="subtle" to="/admin/shares" />
+			</template>
+			<div class="divide-y divide-slate-800">
+				<div class="flex items-start justify-between gap-4 pb-4">
+					<div>
+						<p class="font-medium text-white">Freigabelinks erlauben</p>
+						<p class="mt-1 text-sm text-slate-400">
+							Aus: Niemand kann neue Links erstellen, und alle bestehenden Links funktionieren nicht mehr,
+							bis du es wieder einschaltest.
+						</p>
+					</div>
+					<USwitch
+						:model-value="org.file_sharing_enabled"
+						:disabled="savingSharing"
+						aria-label="Freigabelinks erlauben"
+						@update:model-value="saveSharing({ file_sharing_enabled: $event })"
+					/>
+				</div>
+				<UFormField
+					name="share_default_expiry_days"
+					label="Standard-Gültigkeit"
+					description="So lange gelten neue Links, wenn beim Teilen nichts anderes gewählt wird."
+					class="flex flex-col gap-2 pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+					:ui="{ container: 'w-full sm:w-48' }"
+				>
+					<USelect
+						:model-value="org.share_default_expiry_days ?? 0"
+						:items="EXPIRY_OPTIONS"
+						:disabled="savingSharing || !org.file_sharing_enabled"
+						class="w-full"
+						@update:model-value="saveSharing({ share_default_expiry_days: Number($event) || null })"
+					/>
+				</UFormField>
 			</div>
 		</DashboardSectionCard>
 	</div>

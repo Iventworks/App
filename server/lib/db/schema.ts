@@ -63,6 +63,10 @@ export const orgs = sqliteTable("orgs", {
 	kind: text({ enum: ORG_KINDS }).notNull().default("org"),
 	display_name: text().notNull(),
 	primary_color: text({ enum: ORG_PRIMARY_COLORS }).notNull().default("fuchsia"),
+	// Share links for externals (`file_shares`); switching it off also disables existing links.
+	file_sharing_enabled: integer({ mode: "boolean" }).notNull().default(true),
+	// Expiry suggested for new share links, in days; null = no expiry by default.
+	share_default_expiry_days: integer(),
 	created_at: SQLUtils.getCreatedAtColumn(),
 	updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 });
@@ -489,6 +493,44 @@ export const files = sqliteTable(
 		index("files_org_id_idx").on(table.org_id),
 		index("files_scope_event_idx").on(table.scope, table.event_id),
 		index("files_parent_id_idx").on(table.parent_id),
+	],
+);
+
+/**
+ * Share links for people without an account (like Nextcloud): `<org url>/s/<token>` opens one
+ * file or folder — a folder with everything inside it. What the link allows is stored per link:
+ * `can_read` (view/download; off = an upload-only drop box), `can_upload` (folders: add files and
+ * folders), `can_edit` (rename, replace file contents) and `can_delete` (delete inside the shared
+ * folder). The shared item itself is never renamed or deleted through its link.
+ * The token is stored readable so the link can be copied again; an optional password is hashed.
+ * @deprecated Use DB.Tables.fileShares to access this table.
+ */
+export const fileShares = sqliteTable(
+	"file_shares",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		org_id: orgIdColumn(),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		token: text().notNull().unique(),
+		// Internal note, e.g. "Für die Eltern" — never shown to the link's visitors.
+		label: text(),
+		can_read: integer({ mode: "boolean" }).notNull().default(true),
+		can_upload: integer({ mode: "boolean" }).notNull().default(false),
+		can_edit: integer({ mode: "boolean" }).notNull().default(false),
+		can_delete: integer({ mode: "boolean" }).notNull().default(false),
+		password_hash: text(),
+		expires_at: integer(),
+		created_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+		last_accessed_at: integer(),
+		access_count: integer().notNull().default(0),
+	},
+	(table) => [
+		index("file_shares_org_id_idx").on(table.org_id),
+		index("file_shares_file_id_idx").on(table.file_id),
 	],
 );
 

@@ -29,6 +29,8 @@ export type GetInstanceResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -162,6 +164,8 @@ export type GetSystemOrgsResponses = {
             slug: string;
             display_name: string;
             primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+            file_sharing_enabled: boolean;
+            share_default_expiry_days: number | null;
             url: string;
             default_domain: string;
             primary_domain: string | null;
@@ -225,6 +229,8 @@ export type PostSystemOrgsResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -334,6 +340,8 @@ export type GetSystemOrgsByOrgIdResponses = {
             slug: string;
             display_name: string;
             primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+            file_sharing_enabled: boolean;
+            share_default_expiry_days: number | null;
             url: string;
             default_domain: string;
             primary_domain: string | null;
@@ -395,6 +403,8 @@ export type PutSystemOrgsByOrgIdResponses = {
             slug: string;
             display_name: string;
             primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+            file_sharing_enabled: boolean;
+            share_default_expiry_days: number | null;
             url: string;
             default_domain: string;
             primary_domain: string | null;
@@ -2744,6 +2754,8 @@ export type GetAdminOrganizationResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -2762,6 +2774,8 @@ export type PutAdminOrganizationData = {
     body?: {
         display_name?: string;
         primary_color?: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+        file_sharing_enabled?: boolean;
+        share_default_expiry_days?: number | null;
     };
     path?: never;
     query?: never;
@@ -2795,6 +2809,8 @@ export type PutAdminOrganizationResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -2845,6 +2861,8 @@ export type DeleteAdminOrganizationAssetsByKindResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -2900,6 +2918,8 @@ export type PutAdminOrganizationAssetsByKindResponses = {
                 slug: string;
                 display_name: string;
                 primary_color: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
+                file_sharing_enabled: boolean;
+                share_default_expiry_days: number | null;
                 url: string;
                 default_domain: string;
                 primary_domain: string | null;
@@ -3197,6 +3217,108 @@ export type PutAdminOrganizationDomainsByDomainIdResponses = {
 };
 
 export type PutAdminOrganizationDomainsByDomainIdResponse = PutAdminOrganizationDomainsByDomainIdResponses[keyof PutAdminOrganizationDomainsByDomainIdResponses];
+
+export type GetAdminSharesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/shares';
+};
+
+export type GetAdminSharesResponses = {
+    /**
+     * Share links retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share links retrieved successfully';
+        data: Array<{
+            id: number;
+            file_id: number;
+            url: string;
+            label: string | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            };
+            has_password: boolean;
+            expires_at: number | null;
+            expired: boolean;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            last_accessed_at: number | null;
+            access_count: number;
+            file: {
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                scope: 'org' | 'event' | 'receipt';
+                event: {
+                    id: number;
+                    name: string;
+                } | null;
+                folder_id: number | null;
+                path: string;
+            };
+        }>;
+    };
+};
+
+export type GetAdminSharesResponse = GetAdminSharesResponses[keyof GetAdminSharesResponses];
+
+export type DeleteAdminSharesByShareIdData = {
+    body?: never;
+    path: {
+        shareId: number;
+    };
+    query?: never;
+    url: '/admin/shares/{shareId}';
+};
+
+export type DeleteAdminSharesByShareIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Share link not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Share link not found';
+    };
+};
+
+export type DeleteAdminSharesByShareIdError = DeleteAdminSharesByShareIdErrors[keyof DeleteAdminSharesByShareIdErrors];
+
+export type DeleteAdminSharesByShareIdResponses = {
+    /**
+     * Share link deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share link deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteAdminSharesByShareIdResponse = DeleteAdminSharesByShareIdResponses[keyof DeleteAdminSharesByShareIdResponses];
 
 export type GetDashboardData = {
     body?: never;
@@ -5184,18 +5306,18 @@ export type GetUsersByUserIdResponses = {
 
 export type GetUsersByUserIdResponse = GetUsersByUserIdResponses[keyof GetUsersByUserIdResponses];
 
-export type GetFilesDownloadByTokenData = {
+export type GetFilesByFileIdContentData = {
     body?: never;
     path: {
-        token: string;
+        fileId: number;
     };
     query?: {
         download?: '0' | '1';
     };
-    url: '/files/download/{token}';
+    url: '/files/{fileId}/content';
 };
 
-export type GetFilesDownloadByTokenErrors = {
+export type GetFilesByFileIdContentErrors = {
     /**
      * Validation Error
      */
@@ -5205,25 +5327,83 @@ export type GetFilesDownloadByTokenErrors = {
         data: unknown;
     };
     /**
-     * File not found or link expired
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * File not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'File not found or link expired';
+        message: 'File not found';
     };
 };
 
-export type GetFilesDownloadByTokenError = GetFilesDownloadByTokenErrors[keyof GetFilesDownloadByTokenErrors];
+export type GetFilesByFileIdContentError = GetFilesByFileIdContentErrors[keyof GetFilesByFileIdContentErrors];
 
-export type GetFilesDownloadByTokenResponses = {
+export type GetFilesByFileIdContentResponses = {
     /**
      * The file content
      */
     200: Blob | File;
 };
 
-export type GetFilesDownloadByTokenResponse = GetFilesDownloadByTokenResponses[keyof GetFilesDownloadByTokenResponses];
+export type GetFilesByFileIdContentResponse = GetFilesByFileIdContentResponses[keyof GetFilesByFileIdContentResponses];
+
+export type GetFilesByFileIdContentByFilenameData = {
+    body?: never;
+    path: {
+        fileId: number;
+        filename: string;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/files/{fileId}/content/{filename}';
+};
+
+export type GetFilesByFileIdContentByFilenameErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetFilesByFileIdContentByFilenameError = GetFilesByFileIdContentByFilenameErrors[keyof GetFilesByFileIdContentByFilenameErrors];
+
+export type GetFilesByFileIdContentByFilenameResponses = {
+    /**
+     * The file content
+     */
+    200: Blob | File;
+};
+
+export type GetFilesByFileIdContentByFilenameResponse = GetFilesByFileIdContentByFilenameResponses[keyof GetFilesByFileIdContentByFilenameResponses];
 
 export type DeleteFilesByFileIdData = {
     body?: never;
@@ -5335,7 +5515,8 @@ export type GetFilesByFileIdResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };
@@ -5403,12 +5584,910 @@ export type PutFilesByFileIdResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };
 
 export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
+
+export type GetFilesByFileIdSharesData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/shares';
+};
+
+export type GetFilesByFileIdSharesErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to share this item
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to share this item';
+    };
+};
+
+export type GetFilesByFileIdSharesError = GetFilesByFileIdSharesErrors[keyof GetFilesByFileIdSharesErrors];
+
+export type GetFilesByFileIdSharesResponses = {
+    /**
+     * Share links retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share links retrieved successfully';
+        data: Array<{
+            id: number;
+            file_id: number;
+            url: string;
+            label: string | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            };
+            has_password: boolean;
+            expires_at: number | null;
+            expired: boolean;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            last_accessed_at: number | null;
+            access_count: number;
+        }>;
+    };
+};
+
+export type GetFilesByFileIdSharesResponse = GetFilesByFileIdSharesResponses[keyof GetFilesByFileIdSharesResponses];
+
+export type PostFilesByFileIdSharesData = {
+    body: {
+        permissions: {
+            read: boolean;
+            upload: boolean;
+            edit: boolean;
+            delete: boolean;
+        };
+        label?: string | null;
+        expires_at?: number | null;
+        password?: string | null;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/shares';
+};
+
+export type PostFilesByFileIdSharesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to share this item
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to share this item';
+    };
+};
+
+export type PostFilesByFileIdSharesError = PostFilesByFileIdSharesErrors[keyof PostFilesByFileIdSharesErrors];
+
+export type PostFilesByFileIdSharesResponses = {
+    /**
+     * Share link created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Share link created successfully';
+        data: {
+            id: number;
+            file_id: number;
+            url: string;
+            label: string | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            };
+            has_password: boolean;
+            expires_at: number | null;
+            expired: boolean;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            last_accessed_at: number | null;
+            access_count: number;
+        };
+    };
+};
+
+export type PostFilesByFileIdSharesResponse = PostFilesByFileIdSharesResponses[keyof PostFilesByFileIdSharesResponses];
+
+export type DeleteFilesByFileIdSharesByShareIdData = {
+    body?: never;
+    path: {
+        fileId: number;
+        shareId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/shares/{shareId}';
+};
+
+export type DeleteFilesByFileIdSharesByShareIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Share link not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Share link not found';
+    };
+};
+
+export type DeleteFilesByFileIdSharesByShareIdError = DeleteFilesByFileIdSharesByShareIdErrors[keyof DeleteFilesByFileIdSharesByShareIdErrors];
+
+export type DeleteFilesByFileIdSharesByShareIdResponses = {
+    /**
+     * Share link deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share link deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteFilesByFileIdSharesByShareIdResponse = DeleteFilesByFileIdSharesByShareIdResponses[keyof DeleteFilesByFileIdSharesByShareIdResponses];
+
+export type PutFilesByFileIdSharesByShareIdData = {
+    body?: {
+        permissions?: {
+            read: boolean;
+            upload: boolean;
+            edit: boolean;
+            delete: boolean;
+        };
+        label?: string | null;
+        expires_at?: number | null;
+        password?: string | null;
+    };
+    path: {
+        fileId: number;
+        shareId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/shares/{shareId}';
+};
+
+export type PutFilesByFileIdSharesByShareIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Share link not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Share link not found';
+    };
+};
+
+export type PutFilesByFileIdSharesByShareIdError = PutFilesByFileIdSharesByShareIdErrors[keyof PutFilesByFileIdSharesByShareIdErrors];
+
+export type PutFilesByFileIdSharesByShareIdResponses = {
+    /**
+     * Share link updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share link updated successfully';
+        data: {
+            id: number;
+            file_id: number;
+            url: string;
+            label: string | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            };
+            has_password: boolean;
+            expires_at: number | null;
+            expired: boolean;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            last_accessed_at: number | null;
+            access_count: number;
+        };
+    };
+};
+
+export type PutFilesByFileIdSharesByShareIdResponse = PutFilesByFileIdSharesByShareIdResponses[keyof PutFilesByFileIdSharesByShareIdResponses];
+
+export type GetSharesByTokenData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/shares/{token}';
+};
+
+export type GetSharesByTokenErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Link not found or expired
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Link not found or expired';
+    };
+};
+
+export type GetSharesByTokenError = GetSharesByTokenErrors[keyof GetSharesByTokenErrors];
+
+export type GetSharesByTokenResponses = {
+    /**
+     * Share link retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share link retrieved successfully';
+        data: {
+            kind: 'folder' | 'file';
+            requires_password: boolean;
+            unlocked: boolean;
+            item: {
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                updated_at: number;
+                content_url: string | null;
+            } | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            } | null;
+            expires_at: number | null;
+        };
+    };
+};
+
+export type GetSharesByTokenResponse = GetSharesByTokenResponses[keyof GetSharesByTokenResponses];
+
+export type PostSharesByTokenUnlockData = {
+    body: {
+        password: string;
+    };
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/shares/{token}/unlock';
+};
+
+export type PostSharesByTokenUnlockErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Wrong password
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Wrong password';
+    };
+    /**
+     * Link not found or expired
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Link not found or expired';
+    };
+    /**
+     * Too many attempts
+     */
+    429: {
+        success: false;
+        code: 429;
+        message: 'Too many attempts';
+    };
+};
+
+export type PostSharesByTokenUnlockError = PostSharesByTokenUnlockErrors[keyof PostSharesByTokenUnlockErrors];
+
+export type PostSharesByTokenUnlockResponses = {
+    /**
+     * Share link unlocked
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Share link unlocked';
+        data: {
+            kind: 'folder' | 'file';
+            requires_password: boolean;
+            unlocked: boolean;
+            item: {
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                updated_at: number;
+                content_url: string | null;
+            } | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            } | null;
+            expires_at: number | null;
+        };
+    };
+};
+
+export type PostSharesByTokenUnlockResponse = PostSharesByTokenUnlockResponses[keyof PostSharesByTokenUnlockResponses];
+
+export type GetSharesByTokenItemsData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: {
+        folder_id?: number;
+    };
+    url: '/shares/{token}/items';
+};
+
+export type GetSharesByTokenItemsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow viewing
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow viewing';
+    };
+    /**
+     * Folder not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Folder not found';
+    };
+};
+
+export type GetSharesByTokenItemsError = GetSharesByTokenItemsErrors[keyof GetSharesByTokenItemsErrors];
+
+export type GetSharesByTokenItemsResponses = {
+    /**
+     * Folder retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Folder retrieved successfully';
+        data: {
+            folder: {
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                updated_at: number;
+                content_url: string | null;
+            };
+            path: Array<{
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                updated_at: number;
+                content_url: string | null;
+            }>;
+            items: Array<{
+                id: number;
+                kind: 'folder' | 'file';
+                name: string;
+                mime_type: string | null;
+                size: number;
+                updated_at: number;
+                content_url: string | null;
+            }>;
+        };
+    };
+};
+
+export type GetSharesByTokenItemsResponse = GetSharesByTokenItemsResponses[keyof GetSharesByTokenItemsResponses];
+
+export type GetSharesByTokenFilesByFileIdContentData = {
+    body?: never;
+    path: {
+        token: string;
+        fileId: number;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/shares/{token}/files/{fileId}/content';
+};
+
+export type GetSharesByTokenFilesByFileIdContentErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetSharesByTokenFilesByFileIdContentError = GetSharesByTokenFilesByFileIdContentErrors[keyof GetSharesByTokenFilesByFileIdContentErrors];
+
+export type GetSharesByTokenFilesByFileIdContentResponses = {
+    /**
+     * The file content
+     */
+    200: Blob | File;
+};
+
+export type GetSharesByTokenFilesByFileIdContentResponse = GetSharesByTokenFilesByFileIdContentResponses[keyof GetSharesByTokenFilesByFileIdContentResponses];
+
+export type PutSharesByTokenFilesByFileIdContentData = {
+    body: {
+        /**
+         * The new contents
+         */
+        file: Blob | File;
+    };
+    path: {
+        token: string;
+        fileId: number;
+    };
+    query?: never;
+    url: '/shares/{token}/files/{fileId}/content';
+};
+
+export type PutSharesByTokenFilesByFileIdContentErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow editing
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow editing';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type PutSharesByTokenFilesByFileIdContentError = PutSharesByTokenFilesByFileIdContentErrors[keyof PutSharesByTokenFilesByFileIdContentErrors];
+
+export type PutSharesByTokenFilesByFileIdContentResponses = {
+    /**
+     * File replaced successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'File replaced successfully';
+        data: {
+            id: number;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            updated_at: number;
+            content_url: string | null;
+        };
+    };
+};
+
+export type PutSharesByTokenFilesByFileIdContentResponse = PutSharesByTokenFilesByFileIdContentResponses[keyof PutSharesByTokenFilesByFileIdContentResponses];
+
+export type GetSharesByTokenFilesByFileIdContentByFilenameData = {
+    body?: never;
+    path: {
+        token: string;
+        fileId: number;
+        filename: string;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/shares/{token}/files/{fileId}/content/{filename}';
+};
+
+export type GetSharesByTokenFilesByFileIdContentByFilenameErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetSharesByTokenFilesByFileIdContentByFilenameError = GetSharesByTokenFilesByFileIdContentByFilenameErrors[keyof GetSharesByTokenFilesByFileIdContentByFilenameErrors];
+
+export type GetSharesByTokenFilesByFileIdContentByFilenameResponses = {
+    /**
+     * The file content
+     */
+    200: Blob | File;
+};
+
+export type GetSharesByTokenFilesByFileIdContentByFilenameResponse = GetSharesByTokenFilesByFileIdContentByFilenameResponses[keyof GetSharesByTokenFilesByFileIdContentByFilenameResponses];
+
+export type PostSharesByTokenFilesData = {
+    body: {
+        /**
+         * The file to upload
+         */
+        file: Blob | File;
+        parent_id?: number;
+    };
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/shares/{token}/files';
+};
+
+export type PostSharesByTokenFilesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow uploads
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow uploads';
+    };
+    /**
+     * Folder not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Folder not found';
+    };
+};
+
+export type PostSharesByTokenFilesError = PostSharesByTokenFilesErrors[keyof PostSharesByTokenFilesErrors];
+
+export type PostSharesByTokenFilesResponses = {
+    /**
+     * File uploaded successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'File uploaded successfully';
+        data: {
+            id: number;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            updated_at: number;
+            content_url: string | null;
+        };
+    };
+};
+
+export type PostSharesByTokenFilesResponse = PostSharesByTokenFilesResponses[keyof PostSharesByTokenFilesResponses];
+
+export type PostSharesByTokenFoldersData = {
+    body: {
+        name: string;
+        parent_id?: number;
+    };
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/shares/{token}/folders';
+};
+
+export type PostSharesByTokenFoldersErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow uploads
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow uploads';
+    };
+    /**
+     * Folder not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Folder not found';
+    };
+};
+
+export type PostSharesByTokenFoldersError = PostSharesByTokenFoldersErrors[keyof PostSharesByTokenFoldersErrors];
+
+export type PostSharesByTokenFoldersResponses = {
+    /**
+     * Folder created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Folder created successfully';
+        data: {
+            id: number;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            updated_at: number;
+            content_url: string | null;
+        };
+    };
+};
+
+export type PostSharesByTokenFoldersResponse = PostSharesByTokenFoldersResponses[keyof PostSharesByTokenFoldersResponses];
+
+export type DeleteSharesByTokenFilesByFileIdData = {
+    body?: never;
+    path: {
+        token: string;
+        fileId: number;
+    };
+    query?: never;
+    url: '/shares/{token}/files/{fileId}';
+};
+
+export type DeleteSharesByTokenFilesByFileIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow deleting
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow deleting';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type DeleteSharesByTokenFilesByFileIdError = DeleteSharesByTokenFilesByFileIdErrors[keyof DeleteSharesByTokenFilesByFileIdErrors];
+
+export type DeleteSharesByTokenFilesByFileIdResponses = {
+    /**
+     * Deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteSharesByTokenFilesByFileIdResponse = DeleteSharesByTokenFilesByFileIdResponses[keyof DeleteSharesByTokenFilesByFileIdResponses];
+
+export type PutSharesByTokenFilesByFileIdData = {
+    body: {
+        name: string;
+    };
+    path: {
+        token: string;
+        fileId: number;
+    };
+    query?: never;
+    url: '/shares/{token}/files/{fileId}';
+};
+
+export type PutSharesByTokenFilesByFileIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * This link doesn't allow editing
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'This link doesn\'t allow editing';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type PutSharesByTokenFilesByFileIdError = PutSharesByTokenFilesByFileIdErrors[keyof PutSharesByTokenFilesByFileIdErrors];
+
+export type PutSharesByTokenFilesByFileIdResponses = {
+    /**
+     * Renamed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Renamed successfully';
+        data: {
+            id: number;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            updated_at: number;
+            content_url: string | null;
+        };
+    };
+};
+
+export type PutSharesByTokenFilesByFileIdResponse = PutSharesByTokenFilesByFileIdResponses[keyof PutSharesByTokenFilesByFileIdResponses];
 
 export type GetEventsData = {
     body?: never;
@@ -7667,7 +8746,8 @@ export type GetEventsByEventIdProgramResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             is_mine: boolean;
         }>;
@@ -7765,7 +8845,8 @@ export type PostEventsByEventIdProgramResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             is_mine: boolean;
         };
@@ -7917,7 +8998,8 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             is_mine: boolean;
         };
@@ -8008,7 +9090,8 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             is_mine: boolean;
         };
@@ -9285,7 +10368,8 @@ export type GetEventsByEventIdFilesResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             path: Array<{
                 id: number;
@@ -9299,7 +10383,8 @@ export type GetEventsByEventIdFilesResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             items: Array<{
                 id: number;
@@ -9313,7 +10398,8 @@ export type GetEventsByEventIdFilesResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
         };
     };
@@ -9385,7 +10471,8 @@ export type PostEventsByEventIdFilesResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };
@@ -9453,7 +10540,8 @@ export type PostEventsByEventIdFilesFoldersResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };
@@ -9552,7 +10640,8 @@ export type GetEventsByEventIdExpensesResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -9658,7 +10747,8 @@ export type PostEventsByEventIdExpensesResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -9894,7 +10984,8 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -10000,7 +11091,8 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -10104,7 +11196,8 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -10885,7 +11978,8 @@ export type GetOrgDocumentsResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             } | null;
             path: Array<{
                 id: number;
@@ -10899,7 +11993,8 @@ export type GetOrgDocumentsResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
             items: Array<{
                 id: number;
@@ -10913,7 +12008,8 @@ export type GetOrgDocumentsResponses = {
                 uploaded_by: number | null;
                 created_at: number;
                 updated_at: number;
-                download_token: string | null;
+                content_url: string | null;
+                shared: boolean;
             }>;
         };
     };
@@ -10975,7 +12071,8 @@ export type PostOrgDocumentsResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };
@@ -11033,7 +12130,8 @@ export type PostOrgDocumentsFoldersResponses = {
             uploaded_by: number | null;
             created_at: number;
             updated_at: number;
-            download_token: string | null;
+            content_url: string | null;
+            shared: boolean;
         };
     };
 };

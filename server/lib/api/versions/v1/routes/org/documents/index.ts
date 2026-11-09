@@ -65,7 +65,7 @@ router.get(
 		return APIResponse.success(c, "Documents retrieved successfully", {
 			folder: folder ? FileService.toResponse(folder) : null,
 			path: path.map((entry) => FileService.toResponse(entry)),
-			items: items.map((entry) => FileService.toResponse(entry)),
+			items: await FileService.toResponses(items),
 		} satisfies OrgDocumentsModel.GetAll.Response);
 	},
 );

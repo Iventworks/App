@@ -117,11 +117,33 @@ CMP (Crossover Management Portal) before; the repository still is.
   where millisecond ordering matters (chat messages vs. read markers do this).
 - **File uploads** (not covered by the guide): blobs on disk under `IVENTWORKS_UPLOAD_DIR` via
   `FileStorage`, metadata in `files`, all access through `FileService` / `FileAccess`. Upload
-  routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Downloads use
-  signed short-lived tokens (`GET /files/download/{token}`) instead of the bearer header. Uploaded
-  MIME types are client-controlled: only `FileService.INLINE_MIME_TYPES` (raster images, PDF, plain
-  text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as an
-  `application/octet-stream` attachment so it can never run script on the app origin.
+  routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Contents are
+  plain paths with an access check on every request: `GET /files/{fileId}/content/{name}`
+  (`content_url` of every item, `?download=1` forces a download). It is the one route where the
+  API accepts the session cookie instead of the `Authorization` header, so `<img src>`, links and
+  new tabs work — read-only, SameSite=Lax (`COOKIE_AUTH_PATH` in `middleware/auth.ts`); every
+  other route needs the header. Responses are `Cache-Control: private, no-store`. Uploaded MIME
+  types are client-controlled: only `FileService.INLINE_MIME_TYPES` (raster images, PDF, plain
+  text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as
+  an `application/octet-stream` attachment so it can never run script on the app origin.
+  Housekeeping deletes stored files no `files` row references (after a day's grace).
+- **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
+  `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
+  account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace
+  contents), delete; optional password (hashed; unlocked per browser by a cookie derived from it)
+  and expiry. Rules:
+  - Every request through a link resolves its file ids with `FileShares.resolveInShare` — the
+    shared item or something below the shared folder, nothing else. The shared item itself is
+    never renamed or deleted through its link. Receipts are never shared.
+  - Only people who manage the whole library create links (`FileAccess.canShare`: org documents →
+    `org_documents:write`, event documents → `files:manage_all`), so a link never grants more than
+    its creator has.
+  - Unknown, expired and disabled links all answer 404; org admins can switch sharing off
+    (`orgs.file_sharing_enabled`, also stops existing links) and set a default expiry.
+  - Changes through a link are audited without a user ("über Freigabelink …"); creating, changing
+    and revoking links are audited as `file_share`. Admins see all links under
+    *Administration → Freigabelinks*. Public API: `/shares/{token}/…`; page: `pages/s/[token].vue`
+    (layout `public`).
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`).
 - **Messaging** is REST + polling, no WebSocket: an open chat polls
