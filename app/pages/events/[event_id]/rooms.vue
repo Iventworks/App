@@ -185,6 +185,17 @@ const roomCards = computed(() =>
 	}),
 );
 
+const search = ref("");
+const visibleRoomCards = computed(() => {
+	const term = search.value.trim().toLowerCase();
+	if (!term) return roomCards.value;
+	return roomCards.value.filter(
+		(card) =>
+			card.room.name.toLowerCase().includes(term) ||
+			card.people.some((person) => person.name.toLowerCase().includes(term)),
+	);
+});
+
 // --- assignment mode ----------------------------------------------------------------------
 
 const assigning = ref(false);
@@ -424,34 +435,52 @@ function roomMenu(room: Room) {
 <template>
 	<UDashboardPanel id="event-rooms">
 		<template #header>
-			<DashboardPageHeader title="Zimmer" icon="i-lucide-bed-double" :description="event.name">
-				<template v-if="can('rooms:manage')" #right>
-					<template v-if="assigning">
-						<UButton label="Abbrechen" color="neutral" variant="ghost" @click="cancelAssigning" />
-						<UButton
-							:label="changeCount ? `Speichern (${changeCount})` : 'Fertig'"
-							icon="i-lucide-save"
-							:loading="savingAssignments"
-							@click="saveAssignments"
-						/>
-					</template>
-					<template v-else>
-						<UButton
-							label="Zimmer einteilen"
-							icon="i-lucide-move"
-							color="neutral"
-							variant="subtle"
-							:disabled="!rooms?.length"
-							@click="startAssigning"
-						/>
-						<UButton label="Zimmer" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Zimmer" icon="i-lucide-bed-double" :description="event.name" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<p v-if="assigning" class="text-sm text-slate-400">
+							{{
+								changeCount
+									? `${changeCount} ungespeicherte Änderung${changeCount === 1 ? "" : "en"}`
+									: "Noch keine Änderungen"
+							}}
+						</p>
+						<UInput
+							v-else
+							v-model="search"
+							icon="i-lucide-search"
+							placeholder="Zimmer oder Person suchen …"
+							class="w-full sm:w-64"
+						/>
+					</template>
+					<template v-if="can('rooms:manage')" #right>
+						<template v-if="assigning">
+							<UButton label="Abbrechen" color="neutral" variant="ghost" @click="cancelAssigning" />
+							<UButton
+								:label="changeCount ? `Speichern (${changeCount})` : 'Fertig'"
+								icon="i-lucide-save"
+								:loading="savingAssignments"
+								@click="saveAssignments"
+							/>
+						</template>
+						<template v-else>
+							<UButton
+								label="Zimmer einteilen"
+								icon="i-lucide-move"
+								color="neutral"
+								variant="subtle"
+								:disabled="!rooms?.length"
+								@click="startAssigning"
+							/>
+							<UButton label="Zimmer anlegen" icon="i-lucide-plus" @click="openCreate" />
+						</template>
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !rooms" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -461,11 +490,7 @@ function roomMenu(room: Room) {
 					icon="i-lucide-bed-double"
 					title="Noch keine Zimmer"
 					description="Lege die Zimmer der Unterkunft an, um Teilnehmende und Team einzuteilen."
-				>
-					<template v-if="can('rooms:manage')" #actions>
-						<UButton label="Zimmer anlegen" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</UEmpty>
+				/>
 
 				<!-- Assignment board -->
 				<template v-else-if="assigning">
@@ -569,9 +594,16 @@ function roomMenu(room: Room) {
 						/>
 					</div>
 
-					<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+					<UEmpty
+						v-if="!visibleRoomCards.length"
+						icon="i-lucide-search-x"
+						title="Nichts gefunden"
+						description="Kein Zimmer und keine Person passt zur Suche."
+					/>
+
+					<div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 						<UCard
-							v-for="card in roomCards"
+							v-for="card in visibleRoomCards"
 							:key="card.room.id"
 							class="border-slate-800 bg-slate-900/60"
 							:ui="{ body: 'space-y-3 p-4 sm:p-4' }"

@@ -58,6 +58,18 @@ const sortedGroups = computed(() =>
 	[...(groups.value ?? [])].sort((a, b) => a.name.localeCompare(b.name, "de")),
 );
 
+const search = ref("");
+const visibleGroups = computed(() => {
+	const term = search.value.trim().toLowerCase();
+	if (!term) return sortedGroups.value;
+	return sortedGroups.value.filter(
+		(group) =>
+			group.name.toLowerCase().includes(term) ||
+			group.description?.toLowerCase().includes(term) ||
+			group.members.some((member) => member.display_name.toLowerCase().includes(term)),
+	);
+});
+
 function isMyGroup(group: Group) {
 	return group.members.some((member) => member.id === userInfo.value?.id);
 }
@@ -178,15 +190,25 @@ function groupMenu(group: Group) {
 <template>
 	<UDashboardPanel id="event-groups">
 		<template #header>
-			<DashboardPageHeader title="Gruppen" icon="i-lucide-users-round" :description="event.name">
-				<template v-if="can('groups:manage')" #right>
-					<UButton label="Neue Gruppe" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Gruppen" icon="i-lucide-users-round" :description="event.name" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<UInput
+							v-model="search"
+							icon="i-lucide-search"
+							placeholder="Gruppe oder Person suchen …"
+							class="w-full sm:w-64"
+						/>
+					</template>
+					<template v-if="can('groups:manage')" #right>
+						<UButton label="Neue Gruppe" icon="i-lucide-plus" @click="openCreate" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !groups" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -196,15 +218,18 @@ function groupMenu(group: Group) {
 					icon="i-lucide-users-round"
 					title="Noch keine Gruppen"
 					description="Gruppen wie Leitungsteam, Küchenteam oder Musikteam bekommen einen eigenen Chat und eigene Notizen."
-				>
-					<template v-if="can('groups:manage')" #actions>
-						<UButton label="Gruppe anlegen" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</UEmpty>
+				/>
+
+				<UEmpty
+					v-else-if="!visibleGroups.length"
+					icon="i-lucide-search-x"
+					title="Nichts gefunden"
+					description="Passe die Suche an."
+				/>
 
 				<div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 					<UCard
-						v-for="group in sortedGroups"
+						v-for="group in visibleGroups"
 						:key="group.id"
 						class="overflow-hidden border-slate-800 bg-slate-900/60"
 						:ui="{ body: 'space-y-4 p-4 sm:p-4' }"
