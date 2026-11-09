@@ -9,6 +9,10 @@ build-and-push:
     BUN_INSTALL_CACHE_DIR: .bun/install/cache
     NUXT_TELEMETRY_DISABLED: "1"
     BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+
+  tags:
+    - glar-linux-medium-amd64
+
   cache:
     key:
       files:
