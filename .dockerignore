@@ -1,18 +1,5 @@
-# The image only needs the built .output/ and drizzle/migrations (see docker/Dockerfile).
-# Keep local state and secrets out of the build context.
-data/
-config/
-docker/data/
-docker/config/
-docker/.env
-.env
-.env.*
-!example.env
-node_modules/
-.nuxt/
-.nitro/
-.cache/
-.git/
-tmp-data-*/
-coverage/
-junit.xml
+# Allowlist: the build context holds only what docker/Dockerfile copies — the .output/ bundle and
+# the Drizzle migrations. Everything else (node_modules/, .env files, local data/ and config/) stays out.
+*
+!.output/
+!drizzle/migrations/

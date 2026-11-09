@@ -174,7 +174,10 @@ CMP (Crossover Management Portal) before; the repository still is.
 - **Backups** (`server/lib/backup/`, README › Backups): encrypted tar.gz of a `VACUUM INTO`
   snapshot plus `uploads/`, scheduled by `CronJobHandler`, CLI `scripts/backup.ts` (bundled to
   `.output/backup.mjs`). New data on disk outside the database or `uploads/` must be added to
-  `BackupService` to be backed up.
+  `BackupService` to be backed up. The image declares a third volume, `/opt/iventworks/backups`
+  (`IVENTWORKS_BACKUP_DIR`), beside the guide's `data/` + `config/`, so losing the data disk
+  doesn't take the local backups along. Otherwise `docker/Dockerfile` is the guide's full-stack
+  template (root user, allowlist `.dockerignore`).
 - **Branding** per org: name, primary colour (a Tailwind palette from `ORG_PRIMARY_COLORS`, default
   `fuchsia`; `plugins/instance.ts` sets `appConfig.ui.colors.primary` at runtime), logo and icon
   (stored in `org_assets`, type sniffed from the bytes, SVGs only without script/external

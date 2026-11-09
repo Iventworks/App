@@ -218,17 +218,17 @@ bun run api-client:generate
 CI (`.gitlab/ci/build.yml`) builds the image from the default branch and pushes
 `$CI_REGISTRY_IMAGE:latest`; `docker/docker-compose.yml` runs it.
 
-1. On the host, create the volumes for the image's non-root `bun` user (uid 1000):
-   `sudo mkdir -p /opt/iventworks/{data,config} && sudo chown -R 1000:1000 /opt/iventworks`.
-2. Put the SMTP credentials into `docker/.env` (gitignored): `IVENTWORKS_SMTP_HOST`,
-   `IVENTWORKS_SMTP_USERNAME`, `IVENTWORKS_SMTP_PASSWORD`. Without `IVENTWORKS_SMTP_HOST`, email
-   (reset links, invitations) is off and invitation links are shown in the UI instead.
-3. Set `IVENTWORKS_APP_URL` (and `IVENTWORKS_MULTI_ORG`) in the compose file, then
-   `docker compose -f docker/docker-compose.yml up -d`.
-4. The app listens on `127.0.0.1:31316`; point the reverse proxy (TLS) at it, in multi-org mode
+1. Put the SMTP credentials and `IVENTWORKS_BACKUP_PASSPHRASE` into `docker/.env` (gitignored):
+   `IVENTWORKS_SMTP_HOST`, `IVENTWORKS_SMTP_USERNAME`, `IVENTWORKS_SMTP_PASSWORD`. Without
+   `IVENTWORKS_SMTP_HOST`, email (reset links, invitations) is off and invitation links are shown
+   in the UI instead.
+2. Set `IVENTWORKS_APP_URL` (and `IVENTWORKS_MULTI_ORG`) in the compose file, then
+   `docker compose -f docker/docker-compose.yml up -d`. The container runs as root, like the style
+   guide's images; Docker creates `/opt/iventworks/{data,config,backups}` on the host if missing.
+3. The app listens on `127.0.0.1:31316`; point the reverse proxy (TLS) at it, in multi-org mode
    for the wildcard and the custom domains too. With that setup `IVENTWORKS_TRUST_PROXY=true` is
    correct; set it to `false` if the port is ever published directly.
-5. First start only: open the reset link from
+4. First start only: open the reset link from
    `/opt/iventworks/config/initial_admin_password_reset_token.txt` (also in the logs), set the
    `admin` password, then change the admin's email in the profile. Single-org: invite everyone
    else. Multi-org: that is the first system admin; create the orgs at `<APP_URL>/admin`.

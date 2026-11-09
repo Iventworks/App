@@ -2,7 +2,7 @@
 # the Bun runtime. Build it first (CI does this): `bun run build`. .output/ is self-contained;
 # only the Drizzle migrations are copied next to it — DB.init applies them on startup
 # (IVENTWORKS_DB_AUTO_MIGRATE) from IVENTWORKS_DB_MIGRATION_DIR. Layout: app under app/, data/
-# and config/ are volumes beside it.
+# and config/ are volumes beside it (plus backups/, see below).
 # Runtime config comes from the prefixed env: one `IVENTWORKS_APP_URL` drives both the API side
 # (CORS, links in emails) and the browser's config — the Nitro banner in nuxt.config.ts maps it
 # onto `NUXT_PUBLIC_APP_URL` at server start; NUXT_PUBLIC_* remains a pure override.
@@ -35,12 +35,6 @@ ENV IVENTWORKS_UPLOAD_DIR=/opt/iventworks/data/uploads
 # them along. The CLI: `bun /opt/iventworks/app/.output/backup.mjs list|create|verify|restore`.
 ENV IVENTWORKS_BACKUP_DIR=/opt/iventworks/backups
 
-
-# Run as the image's unprivileged `bun` user. On the host, the bind-mounted directories must be
-# writable for it: `sudo chown -R 1000:1000 /opt/iventworks/data /opt/iventworks/config`.
-RUN mkdir -p /opt/iventworks/data /opt/iventworks/config /opt/iventworks/backups \
-	&& chown -R bun:bun /opt/iventworks
-USER bun
 
 VOLUME /opt/iventworks/data
 VOLUME /opt/iventworks/config
