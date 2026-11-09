@@ -4,7 +4,7 @@ definePageMeta({ layout: "dashboard" });
 
 const { event, eventId, can } = await useCurrentEvent();
 
-useSeoMeta({ title: `Audit-Log | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Audit-Log | ${event.value.name}` });
 
 if (!can("audit_log:view")) {
 	throw createError({

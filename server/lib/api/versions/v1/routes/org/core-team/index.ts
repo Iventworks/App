@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -32,7 +33,9 @@ async function loadEvents(year?: number) {
 	return await DB.instance()
 		.select()
 		.from(DB.Tables.events)
-		.where(year ? like(DB.Tables.events.start_date, `${year}-%`) : undefined)
+		.where(
+			and(inOrg(DB.Tables.events), year ? like(DB.Tables.events.start_date, `${year}-%`) : undefined),
+		)
 		.orderBy(desc(DB.Tables.events.start_date))
 		.all();
 }
@@ -51,6 +54,7 @@ async function loadParticipants(eventIds: number[]) {
 		.from(DB.Tables.participants)
 		.where(
 			and(
+				inOrg(DB.Tables.participants),
 				inArray(DB.Tables.participants.event_id, eventIds),
 				ne(DB.Tables.participants.status, "cancelled"),
 			),
@@ -63,7 +67,7 @@ async function loadMembers(eventIds: number[]) {
 	return await DB.instance()
 		.select()
 		.from(DB.Tables.eventMembers)
-		.where(inArray(DB.Tables.eventMembers.event_id, eventIds))
+		.where(and(inOrg(DB.Tables.eventMembers), inArray(DB.Tables.eventMembers.event_id, eventIds)))
 		.all();
 }
 
@@ -135,6 +139,7 @@ router.get(
 					.from(DB.Tables.eventMembers)
 					.where(
 						and(
+							inOrg(DB.Tables.eventMembers),
 							inArray(
 								DB.Tables.eventMembers.event_id,
 								upcoming.map((event) => event.id),
@@ -151,7 +156,7 @@ router.get(
 				await db
 					.select({ value: count() })
 					.from(DB.Tables.participants)
-					.where(ne(DB.Tables.participants.status, "cancelled"))
+					.where(and(inOrg(DB.Tables.participants), ne(DB.Tables.participants.status, "cancelled")))
 					.get()
 			)?.value ?? 0;
 
@@ -160,7 +165,7 @@ router.get(
 				await db
 					.select({ value: count() })
 					.from(DB.Tables.users)
-					.where(inArray(DB.Tables.users.role, [...ACTIVE_VOLUNTEER_ROLES]))
+					.where(and(inOrg(DB.Tables.users), inArray(DB.Tables.users.role, [...ACTIVE_VOLUNTEER_ROLES])))
 					.get()
 			)?.value ?? 0;
 
@@ -169,14 +174,14 @@ router.get(
 				await db
 					.select({ value: count() })
 					.from(DB.Tables.users)
-					.where(eq(DB.Tables.users.role, "unverified"))
+					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.role, "unverified")))
 					.get()
 			)?.value ?? 0;
 
 		const pending = await db
 			.select({ amount_cents: DB.Tables.expenses.amount_cents })
 			.from(DB.Tables.expenses)
-			.where(eq(DB.Tables.expenses.status, "submitted"))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.status, "submitted")))
 			.all();
 
 		return APIResponse.success(c, "Overview retrieved successfully", {
@@ -232,12 +237,12 @@ router.get(
 					DB.instance()
 						.select()
 						.from(DB.Tables.budgetItems)
-						.where(inArray(DB.Tables.budgetItems.event_id, ids))
+						.where(and(inOrg(DB.Tables.budgetItems), inArray(DB.Tables.budgetItems.event_id, ids)))
 						.all(),
 					DB.instance()
 						.select()
 						.from(DB.Tables.expenses)
-						.where(inArray(DB.Tables.expenses.event_id, ids))
+						.where(and(inOrg(DB.Tables.expenses), inArray(DB.Tables.expenses.event_id, ids)))
 						.all(),
 					loadParticipants(ids),
 				])
@@ -457,7 +462,7 @@ router.get(
 		const volunteers = await DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(inArray(DB.Tables.users.role, [...ACTIVE_VOLUNTEER_ROLES]))
+			.where(and(inOrg(DB.Tables.users), inArray(DB.Tables.users.role, [...ACTIVE_VOLUNTEER_ROLES])))
 			.all();
 
 		const users: CoreTeamModel.StaffPlanning.Response["users"] = [];
@@ -540,7 +545,7 @@ router.get(
 		const notes = await DB.instance()
 			.select()
 			.from(DB.Tables.notes)
-			.where(eq(DB.Tables.notes.scope, "core_team"))
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.scope, "core_team")))
 			.orderBy(desc(DB.Tables.notes.pinned), desc(DB.Tables.notes.updated_at))
 			.all();
 
@@ -572,7 +577,13 @@ router.post(
 
 		const note = await DB.instance()
 			.insert(DB.Tables.notes)
-			.values({ ...body, scope: "core_team", created_by: userId, updated_by: userId })
+			.values({
+				...body,
+				org_id: OrgContext.id(),
+				scope: "core_team",
+				created_by: userId,
+				updated_by: userId,
+			})
 			.returning()
 			.get();
 
@@ -598,7 +609,13 @@ router.use("/notes/:noteId/*", zValidator("param", CoreTeamModel.Notes.Params), 
 	const note = await DB.instance()
 		.select()
 		.from(DB.Tables.notes)
-		.where(and(eq(DB.Tables.notes.id, noteId.data), eq(DB.Tables.notes.scope, "core_team")))
+		.where(
+			and(
+				inOrg(DB.Tables.notes),
+				eq(DB.Tables.notes.id, noteId.data),
+				eq(DB.Tables.notes.scope, "core_team"),
+			),
+		)
 		.get();
 
 	if (!note) return APIResponse.notFound(c, "Note not found");
@@ -632,7 +649,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.notes)
 			.set({ ...body, updated_by: userId, updated_at: Date.now() })
-			.where(eq(DB.Tables.notes.id, note.id))
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, note.id)))
 			.returning()
 			.get();
 
@@ -672,7 +689,10 @@ router.delete(
 			return APIResponse.forbidden(c, "Only the creator or an admin can delete this note");
 		}
 
-		await DB.instance().delete(DB.Tables.notes).where(eq(DB.Tables.notes.id, note.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.notes)
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, note.id)))
+			.run();
 
 		await AuditLog.record({
 			userId: authContext.user_id,

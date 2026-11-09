@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -52,12 +53,18 @@ async function loadBookings(filter: { resourceIds?: number[]; eventId?: number }
 			},
 		})
 		.from(DB.Tables.resourceBookings)
-		.innerJoin(DB.Tables.events, eq(DB.Tables.events.id, DB.Tables.resourceBookings.event_id))
+		.innerJoin(
+			DB.Tables.events,
+			and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.resourceBookings.event_id)),
+		)
 		.innerJoin(
 			DB.Tables.orgResources,
-			eq(DB.Tables.orgResources.id, DB.Tables.resourceBookings.resource_id),
+			and(
+				inOrg(DB.Tables.orgResources),
+				eq(DB.Tables.orgResources.id, DB.Tables.resourceBookings.resource_id),
+			),
 		)
-		.where(conditions.length ? and(...conditions) : undefined)
+		.where(and(inOrg(DB.Tables.resourceBookings), conditions.length ? and(...conditions) : undefined))
 		.orderBy(asc(DB.Tables.events.start_date), asc(DB.Tables.resourceBookings.id))
 		.all();
 }
@@ -119,6 +126,7 @@ router.get(
 		const resources = await DB.instance()
 			.select()
 			.from(DB.Tables.orgResources)
+			.where(inOrg(DB.Tables.orgResources))
 			.orderBy(asc(DB.Tables.orgResources.category), asc(DB.Tables.orgResources.name))
 			.all();
 
@@ -148,7 +156,7 @@ router.post(
 		const body = c.req.valid("json") as OrgResourcesModel.Create.Body;
 		const resource = await DB.instance()
 			.insert(DB.Tables.orgResources)
-			.values(body)
+			.values({ ...body, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -225,16 +233,19 @@ router.delete(
 			.from(DB.Tables.resourceBookings)
 			.innerJoin(
 				DB.Tables.orgResources,
-				eq(DB.Tables.orgResources.id, DB.Tables.resourceBookings.resource_id),
+				and(
+					inOrg(DB.Tables.orgResources),
+					eq(DB.Tables.orgResources.id, DB.Tables.resourceBookings.resource_id),
+				),
 			)
-			.where(eq(DB.Tables.resourceBookings.id, bookingId))
+			.where(and(inOrg(DB.Tables.resourceBookings), eq(DB.Tables.resourceBookings.id, bookingId)))
 			.all();
 
 		if (!row) return APIResponse.notFound(c, "Booking not found");
 
 		await DB.instance()
 			.delete(DB.Tables.resourceBookings)
-			.where(eq(DB.Tables.resourceBookings.id, bookingId))
+			.where(and(inOrg(DB.Tables.resourceBookings), eq(DB.Tables.resourceBookings.id, bookingId)))
 			.run();
 
 		await AuditLog.record({
@@ -257,7 +268,7 @@ router.use("/:resourceId/*", zValidator("param", OrgResourcesModel.Params), asyn
 	const resource = await DB.instance()
 		.select()
 		.from(DB.Tables.orgResources)
-		.where(eq(DB.Tables.orgResources.id, resourceId.data))
+		.where(and(inOrg(DB.Tables.orgResources), eq(DB.Tables.orgResources.id, resourceId.data)))
 		.get();
 
 	if (!resource) return APIResponse.notFound(c, "Resource not found");
@@ -292,7 +303,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.orgResources)
 			.set(body)
-			.where(eq(DB.Tables.orgResources.id, resource.id))
+			.where(and(inOrg(DB.Tables.orgResources), eq(DB.Tables.orgResources.id, resource.id)))
 			.returning()
 			.get();
 
@@ -331,7 +342,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.orgResources)
-			.where(eq(DB.Tables.orgResources.id, resource.id))
+			.where(and(inOrg(DB.Tables.orgResources), eq(DB.Tables.orgResources.id, resource.id)))
 			.run();
 
 		await AuditLog.record({
@@ -378,7 +389,7 @@ router.post(
 		const event = await DB.instance()
 			.select()
 			.from(DB.Tables.events)
-			.where(eq(DB.Tables.events.id, body.event_id))
+			.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, body.event_id)))
 			.get();
 		if (!event) return APIResponse.badRequest(c, "Event not found");
 
@@ -386,9 +397,13 @@ router.post(
 		const overlapping = await DB.instance()
 			.select({ quantity: DB.Tables.resourceBookings.quantity })
 			.from(DB.Tables.resourceBookings)
-			.innerJoin(DB.Tables.events, eq(DB.Tables.events.id, DB.Tables.resourceBookings.event_id))
+			.innerJoin(
+				DB.Tables.events,
+				and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.resourceBookings.event_id)),
+			)
 			.where(
 				and(
+					inOrg(DB.Tables.resourceBookings),
 					eq(DB.Tables.resourceBookings.resource_id, resource.id),
 					lte(DB.Tables.events.start_date, event.end_date),
 					gte(DB.Tables.events.end_date, event.start_date),
@@ -404,6 +419,7 @@ router.post(
 		const booking = await DB.instance()
 			.insert(DB.Tables.resourceBookings)
 			.values({
+				org_id: OrgContext.id(),
 				resource_id: resource.id,
 				event_id: event.id,
 				quantity: body.quantity,

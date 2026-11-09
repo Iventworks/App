@@ -71,7 +71,7 @@ const fullName = computed(() =>
 	participant.value ? `${participant.value.first_name} ${participant.value.last_name}` : "",
 );
 
-useSeoMeta({ title: () => `${fullName.value} | Teilnehmende | ${event.value.name} | CMP` });
+useSeoMeta({ title: () => `${fullName.value} | Teilnehmende | ${event.value.name}` });
 
 const breadcrumb = computed(() => [
 	{ label: "Teilnehmende", icon: "i-lucide-users", to: `/events/${eventId.value}/participants` },

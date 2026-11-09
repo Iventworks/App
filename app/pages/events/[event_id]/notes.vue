@@ -22,7 +22,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-useSeoMeta({ title: `Notizen | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Notizen | ${event.value.name}` });
 
 // --- data ---------------------------------------------------------------------------------
 

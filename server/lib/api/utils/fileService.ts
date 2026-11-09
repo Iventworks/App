@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
+import { inOrg, OrgContext } from "../../orgs/context";
 import { LCrypt } from "../../utils/crypto/lcrypt";
 import { FileStorage } from "../../utils/fileStorage";
 
@@ -83,7 +84,11 @@ export class FileService {
 
 	static async get(fileId: number, tx: DrizzleDB = DB.instance()) {
 		return (
-			(await tx.select().from(DB.Tables.files).where(eq(DB.Tables.files.id, fileId)).get()) ?? null
+			(await tx
+				.select()
+				.from(DB.Tables.files)
+				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, fileId)))
+				.get()) ?? null
 		);
 	}
 
@@ -98,6 +103,7 @@ export class FileService {
 			.from(DB.Tables.files)
 			.where(
 				and(
+					inOrg(DB.Tables.files),
 					eq(DB.Tables.files.scope, location.scope),
 					location.eventId === null
 						? isNull(DB.Tables.files.event_id)
@@ -156,6 +162,7 @@ export class FileService {
 		return await tx
 			.insert(DB.Tables.files)
 			.values({
+				org_id: OrgContext.id(),
 				scope: location.scope,
 				event_id: location.eventId,
 				parent_id: parentId,
@@ -185,6 +192,7 @@ export class FileService {
 			return await tx
 				.insert(DB.Tables.files)
 				.values({
+					org_id: OrgContext.id(),
 					scope: location.scope,
 					event_id: location.eventId,
 					parent_id: parentId,
@@ -215,7 +223,7 @@ export class FileService {
 				...(changes.parent_id !== undefined ? { parent_id: changes.parent_id } : {}),
 				updated_at: Date.now(),
 			})
-			.where(eq(DB.Tables.files.id, file.id))
+			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
 			.returning()
 			.get();
 	}
@@ -240,7 +248,7 @@ export class FileService {
 			const children = await tx
 				.select()
 				.from(DB.Tables.files)
-				.where(inArray(DB.Tables.files.parent_id, frontier))
+				.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.parent_id, frontier)))
 				.all();
 			ids.push(...children.map((child) => child.id));
 			storageKeys.push(...children.map((child) => child.storage_key));
@@ -249,7 +257,10 @@ export class FileService {
 
 		// Children go via ON DELETE CASCADE; deleting them explicitly keeps it correct even if
 		// foreign keys were ever disabled.
-		await tx.delete(DB.Tables.files).where(inArray(DB.Tables.files.id, ids)).run();
+		await tx
+			.delete(DB.Tables.files)
+			.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.id, ids)))
+			.run();
 		await FileStorage.remove(storageKeys);
 	}
 
@@ -258,9 +269,12 @@ export class FileService {
 		const rows = await tx
 			.select({ storage_key: DB.Tables.files.storage_key })
 			.from(DB.Tables.files)
-			.where(eq(DB.Tables.files.event_id, eventId))
+			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
 			.all();
-		await tx.delete(DB.Tables.files).where(eq(DB.Tables.files.event_id, eventId)).run();
+		await tx
+			.delete(DB.Tables.files)
+			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
+			.run();
 		await FileStorage.remove(rows.map((row) => row.storage_key));
 	}
 

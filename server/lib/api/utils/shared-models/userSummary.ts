@@ -1,7 +1,8 @@
-import { inArray } from "drizzle-orm";
+import { and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../../db";
 import type { DrizzleDB } from "../../../db/utils";
+import { inOrg } from "../../../orgs/context";
 import { UserAccountSettings } from "./accountData";
 
 /** The public face of a user inside the organisation (lists, assignees, chat senders). */
@@ -38,7 +39,7 @@ export namespace UserSummary {
 		const rows = await tx
 			.select()
 			.from(DB.Tables.users)
-			.where(inArray(DB.Tables.users.id, unique))
+			.where(and(inOrg(DB.Tables.users), inArray(DB.Tables.users.id, unique)))
 			.all();
 
 		return new Map(rows.map((row) => [row.id, from(row)]));

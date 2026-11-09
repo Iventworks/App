@@ -4,7 +4,9 @@ import { EventsModel } from "../server/lib/api/versions/v1/routes/events/model";
 import { EventParticipantsModel } from "../server/lib/api/versions/v1/routes/events/participants/model";
 import { EventProgramModel } from "../server/lib/api/versions/v1/routes/events/program/model";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
+import { hostHeaders, TEST_HOST } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -48,13 +50,25 @@ async function createEvent(name: string, extra: Record<string, unknown> = {}) {
 }
 
 function insertRoom(event_id: number, name: string) {
-	return DB.instance().insert(DB.Tables.rooms).values({ event_id, name }).returning().get().id;
+	return DB.instance()
+		.insert(DB.Tables.rooms)
+		.values({ org_id: OrgContext.id(), event_id, name })
+		.returning()
+		.get().id;
 }
 
 function insertFile(scope: "event" | "org" | "receipt", event_id: number | null, name: string) {
 	return DB.instance()
 		.insert(DB.Tables.files)
-		.values({ scope, event_id, kind: "file", name, mime_type: "application/pdf", size: 10 })
+		.values({
+			org_id: OrgContext.id(),
+			scope,
+			event_id,
+			kind: "file",
+			name,
+			mime_type: "application/pdf",
+			size: 10,
+		})
 		.returning()
 		.get().id;
 }
@@ -146,7 +160,7 @@ describe("Event participants", () => {
 
 		const csv = await (
 			await API.getApp().request(`/v1/events/${eventId}/participants/export`, {
-				headers: { Authorization: `Bearer ${coreSession.token}` },
+				headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${coreSession.token}` },
 			})
 		).text();
 		expect(csv).not.toContain("Erdnüsse");
@@ -343,7 +357,7 @@ describe("Event participants", () => {
 
 	test("CSV export", async () => {
 		const res = await API.getApp().request(`/v1/events/${eventId}/participants/export`, {
-			headers: { Authorization: `Bearer ${staffSession.token}` },
+			headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${staffSession.token}` },
 		});
 		expect(res.status).toBe(200);
 		expect(res.headers.get("content-type")).toContain("text/csv");
@@ -359,7 +373,7 @@ describe("Event participants", () => {
 		expect(text).toContain("Erdnüsse");
 
 		const forbidden = await API.getApp().request(`/v1/events/${eventId}/participants/export`, {
-			headers: { Authorization: `Bearer ${outsiderSession.token}` },
+			headers: { ...hostHeaders(TEST_HOST), Authorization: `Bearer ${outsiderSession.token}` },
 		});
 		expect(forbidden.status).toBe(403);
 	});

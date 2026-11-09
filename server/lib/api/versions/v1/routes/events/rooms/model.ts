@@ -14,12 +14,14 @@ export namespace EventRoomsModel {
 	});
 	export type Occupant = z.infer<typeof Occupant>;
 
-	export const Room = createSelectSchema(DB.Tables.rooms).extend({
-		participants: z.array(Occupant),
-		staff: z.array(UserSummary.Schema),
-		/** Participants + staff sleeping in the room. */
-		occupancy: z.number(),
-	});
+	export const Room = createSelectSchema(DB.Tables.rooms)
+		.omit({ org_id: true })
+		.extend({
+			participants: z.array(Occupant),
+			staff: z.array(UserSummary.Schema),
+			/** Participants + staff sleeping in the room. */
+			occupancy: z.number(),
+		});
 	export type Room = z.infer<typeof Room>;
 
 	export const Params = z.object({

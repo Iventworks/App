@@ -38,6 +38,6 @@ class AppCookie<T extends string | null | undefined> {
 
 export function useAppCookies() {
 	return {
-		sessionToken: new AppCookie<string | null>("cmp_session_token", SESSION_COOKIE_OPTIONS),
+		sessionToken: new AppCookie<string | null>("iventworks_session_token", SESSION_COOKIE_OPTIONS),
 	} as const;
 }

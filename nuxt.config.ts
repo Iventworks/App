@@ -20,7 +20,9 @@ export default defineNuxtConfig({
 
 			output: {
 				banner: (() => {
+					// The first one set wins (CMP_* is the name before the rename to Iventworks).
 					const mappings = {
+						IVENTWORKS_APP_URL: "APP_URL",
 						CMP_APP_URL: "APP_URL",
 					};
 
@@ -51,7 +53,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
 			//@ts-ignore
-			appUrl: process.env.CMP_APP_URL || "http://localhost:31316",
+			appUrl: process.env.IVENTWORKS_APP_URL || process.env.CMP_APP_URL || "http://localhost:31316",
 		},
 	},
 
@@ -63,15 +65,16 @@ export default defineNuxtConfig({
 	app: {
 		head: {
 			htmlAttrs: { lang: "de" },
-			meta: [
-				{ name: "theme-color", content: "#020617" },
-				{ name: "apple-mobile-web-app-title", content: "CMP" },
-			],
+			title: "Iventworks",
+			meta: [{ name: "theme-color", content: "#020617" }],
+			// Per host: every org has its own name, icons and installable app (served by the API
+			// from the org of the request's host, see routes/instance). The instance plugin swaps the
+			// favicon for the org's icon once it knows it.
 			link: [
-				{ rel: "manifest", href: "/manifest.webmanifest" },
-				{ rel: "icon", href: "/favicon.ico" },
+				{ rel: "manifest", href: "/api/v1/instance/manifest.webmanifest" },
+				{ rel: "icon", href: "/api/v1/instance/favicon" },
 				// iOS home-screen icon (Safari ignores the manifest icons).
-				{ rel: "apple-touch-icon", href: "/static/logo/apple-touch-icon.png" },
+				{ rel: "apple-touch-icon", href: "/api/v1/instance/apple-touch-icon" },
 			],
 			script: [
 				{
@@ -94,42 +97,8 @@ export default defineNuxtConfig({
 	pwa: {
 		registerType: "autoUpdate",
 		injectRegister: false,
-		manifest: {
-			name: "Crossover Management Portal",
-			short_name: "CMP",
-			start_url: "/",
-			description: "Crossover Management Portal",
-
-			id: "info.crossover.cmp.app",
-
-			// 192 + 512 are what Chrome requires for installability.
-			icons: [
-				{
-					src: "/static/logo/crossover-favicon-192x192.png",
-					sizes: "192x192",
-					type: "image/png",
-				},
-				{
-					src: "/static/logo/crossover-favicon-512x512.png",
-					sizes: "512x512",
-					type: "image/png",
-				},
-				{
-					src: "/static/logo/crossover-favicon.png",
-					sizes: "1067x1067",
-					type: "image/png",
-				},
-			],
-
-			display: "standalone",
-			// Not locked: the week schedule and tables need landscape on tablets and desktops.
-			orientation: "any",
-
-			lang: "de",
-
-			theme_color: "#020617",
-			background_color: "#020617",
-		},
+		// The manifest depends on the host's org: `/api/v1/instance/manifest.webmanifest`.
+		manifest: false,
 		// The API lives under /api on the same origin: never let the service worker answer those
 		// requests from its navigation fallback.
 		workbox: {

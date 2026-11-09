@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
@@ -31,10 +32,14 @@ async function getMyGroupIds(eventId: number, userId: number) {
 		.from(DB.Tables.eventGroupMembers)
 		.innerJoin(
 			DB.Tables.eventGroups,
-			eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			and(
+				inOrg(DB.Tables.eventGroups),
+				eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			),
 		)
 		.where(
 			and(
+				inOrg(DB.Tables.eventGroupMembers),
 				eq(DB.Tables.eventGroups.event_id, eventId),
 				eq(DB.Tables.eventGroupMembers.user_id, userId),
 			),
@@ -54,6 +59,7 @@ async function validateRefs(
 			.from(DB.Tables.eventMembers)
 			.where(
 				and(
+					inOrg(DB.Tables.eventMembers),
 					eq(DB.Tables.eventMembers.event_id, eventId),
 					eq(DB.Tables.eventMembers.user_id, refs.assignee_id),
 				),
@@ -66,7 +72,11 @@ async function validateRefs(
 			.select({ id: DB.Tables.eventGroups.id })
 			.from(DB.Tables.eventGroups)
 			.where(
-				and(eq(DB.Tables.eventGroups.event_id, eventId), eq(DB.Tables.eventGroups.id, refs.group_id)),
+				and(
+					inOrg(DB.Tables.eventGroups),
+					eq(DB.Tables.eventGroups.event_id, eventId),
+					eq(DB.Tables.eventGroups.id, refs.group_id),
+				),
 			)
 			.get();
 		if (!group) return "The group does not belong to this event";
@@ -96,7 +106,7 @@ async function toResponse(
 					color: DB.Tables.eventGroups.color,
 				})
 				.from(DB.Tables.eventGroups)
-				.where(inArray(DB.Tables.eventGroups.id, groupIds))
+				.where(and(inOrg(DB.Tables.eventGroups), inArray(DB.Tables.eventGroups.id, groupIds)))
 				.all()
 		: [];
 
@@ -136,7 +146,7 @@ router.get(
 		const { userId } = c.get("eventAccess");
 		const { filter } = c.req.valid("query") as EventTasksModel.GetAll.Query;
 
-		const conditions = [eq(DB.Tables.tasks.event_id, event.id)];
+		const conditions = [inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.event_id, event.id)];
 		if (filter === "open") {
 			conditions.push(ne(DB.Tables.tasks.status, "done"));
 		}
@@ -198,6 +208,7 @@ router.post(
 				event_id: event.id,
 				created_by: userId,
 				completed_at: body.status === "done" ? Date.now() : null,
+				org_id: OrgContext.id(),
 			})
 			.returning()
 			.get();
@@ -235,7 +246,13 @@ router.use("/:taskId/*", zValidator("param", EventTasksModel.Params), async (c, 
 	const task = await DB.instance()
 		.select()
 		.from(DB.Tables.tasks)
-		.where(and(eq(DB.Tables.tasks.id, taskId.data), eq(DB.Tables.tasks.event_id, event.id)))
+		.where(
+			and(
+				inOrg(DB.Tables.tasks),
+				eq(DB.Tables.tasks.id, taskId.data),
+				eq(DB.Tables.tasks.event_id, event.id),
+			),
+		)
 		.get();
 
 	if (!task) return APIResponse.notFound(c, "Task not found");
@@ -296,7 +313,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.tasks)
 			.set({ ...body, completed_at: completedAt, updated_at: Date.now() })
-			.where(eq(DB.Tables.tasks.id, task.id))
+			.where(and(inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.id, task.id)))
 			.returning()
 			.get();
 
@@ -351,7 +368,10 @@ router.delete(
 			return APIResponse.forbidden(c, "You are not allowed to delete this task");
 		}
 
-		await DB.instance().delete(DB.Tables.tasks).where(eq(DB.Tables.tasks.id, task.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.tasks)
+			.where(and(inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.id, task.id)))
+			.run();
 
 		await AuditLog.record({
 			userId: c.get("eventAccess").userId,

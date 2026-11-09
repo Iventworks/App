@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { DB } from "../../db";
+import { inOrg } from "../../orgs/context";
 
 /**
  * Personal scope helpers shared by `/tasks`, `/dashboard` and `/calendar`: the caller's events,
@@ -30,8 +31,11 @@ export namespace PersonalScope {
 		const rows = await DB.instance()
 			.select({ event: DB.Tables.events, role: DB.Tables.eventMembers.role })
 			.from(DB.Tables.eventMembers)
-			.innerJoin(DB.Tables.events, eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id))
-			.where(eq(DB.Tables.eventMembers.user_id, userId))
+			.innerJoin(
+				DB.Tables.events,
+				and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id)),
+			)
+			.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.user_id, userId)))
 			.all();
 		return rows;
 	}
@@ -43,10 +47,14 @@ export namespace PersonalScope {
 			.from(DB.Tables.eventGroupMembers)
 			.innerJoin(
 				DB.Tables.eventGroups,
-				eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+				and(
+					inOrg(DB.Tables.eventGroups),
+					eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+				),
 			)
 			.where(
 				and(
+					inOrg(DB.Tables.eventGroupMembers),
 					eq(DB.Tables.eventGroupMembers.user_id, userId),
 					inArray(DB.Tables.eventGroups.event_id, eventIds),
 				),
@@ -83,7 +91,13 @@ export namespace PersonalScope {
 		const tasks = await DB.instance()
 			.select()
 			.from(DB.Tables.tasks)
-			.where(and(scopeCondition, options.includeDone ? undefined : ne(DB.Tables.tasks.status, "done")))
+			.where(
+				and(
+					inOrg(DB.Tables.tasks),
+					scopeCondition,
+					options.includeDone ? undefined : ne(DB.Tables.tasks.status, "done"),
+				),
+			)
 			.all();
 
 		const taskGroupIds = [
@@ -97,7 +111,7 @@ export namespace PersonalScope {
 						color: DB.Tables.eventGroups.color,
 					})
 					.from(DB.Tables.eventGroups)
-					.where(inArray(DB.Tables.eventGroups.id, taskGroupIds))
+					.where(and(inOrg(DB.Tables.eventGroups), inArray(DB.Tables.eventGroups.id, taskGroupIds)))
 					.all()
 			: [];
 

@@ -8,9 +8,10 @@ definePageMeta({
 	layout: "auth",
 });
 
+const brandName = useBrandName();
 useSeoMeta({
-	title: "Anmelden | CMP",
-	description: "Melde dich im Crossover Management Portal an",
+	title: "Anmelden",
+	description: () => `Bei ${brandName.value} anmelden`,
 });
 
 const route = useRoute();
@@ -19,7 +20,11 @@ const toast = useToast();
 // Only follow internal redirects (`/…`, not protocol-relative `//evil.example`).
 const requestedUrl = route.query.url?.toString() ?? "";
 const redirectUrl =
-	requestedUrl.startsWith("/") && !requestedUrl.startsWith("//") ? requestedUrl : "/";
+	requestedUrl.startsWith("/") && !requestedUrl.startsWith("//")
+		? requestedUrl
+		: useInstance().value?.kind === "system"
+			? "/admin"
+			: "/";
 
 const fields: AuthFormField[] = [
 	{
@@ -118,7 +123,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 	<UAuthForm
 		:schema="schema"
 		title="Anmelden"
-		description="Melde dich mit deinem CMP-Konto an."
+		:description="`Melde dich mit deinem Konto bei ${brandName} an.`"
 		icon="i-lucide-log-in"
 		:fields="fields"
 		:submit="{ label: 'Anmelden', loading, disabled: loading }"

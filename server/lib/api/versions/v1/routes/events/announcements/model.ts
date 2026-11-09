@@ -5,9 +5,11 @@ import { ANNOUNCEMENT_PRIORITIES } from "../../../../../../db/schema";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventAnnouncementsModel {
-	export const Announcement = createSelectSchema(DB.Tables.announcements).extend({
-		creator: UserSummary.Schema.nullable(),
-	});
+	export const Announcement = createSelectSchema(DB.Tables.announcements)
+		.omit({ org_id: true })
+		.extend({
+			creator: UserSummary.Schema.nullable(),
+		});
 	export type Announcement = z.infer<typeof Announcement>;
 
 	export const Params = z.object({

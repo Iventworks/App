@@ -3,7 +3,8 @@
  * The portal shell: one `UDashboardSidebar` whose content switches with the route (Delivr
  * pattern) — the main sidebar (personal space + selected event + organisation), and separate
  * sidebars for /settings, /admin and /core-team with a "Zurück zum Portal" link. The user menu
- * sits in the footer of every variant.
+ * sits in the footer of every variant. On the multi-org base domain (system host) the shell is the
+ * system admin dashboard: organisations, system admins, their invitations and audit log.
  */
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { useMyEventsStore } from "~/composables/stores/useMyEventsStore";
@@ -11,8 +12,13 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { EventPermission } from "~/utils/types";
 
 const route = useRoute();
+const instance = useInstance();
+const isSystem = computed(() => instance.value?.kind === "system");
+const homeRoute = computed(() => (isSystem.value ? "/admin" : "/"));
+
 const user = await useUserInfoStore().use();
-const myEvents = await useMyEventsStore().use();
+// The system host has no events, messages or notifications.
+const myEvents = isSystem.value ? ref([]) : await useMyEventsStore().use();
 
 const role = computed(() => user.value?.role);
 const isCoreTeam = computed(() => hasOrgRole(role.value, "core_team"));
@@ -26,7 +32,9 @@ const {
 	stopBadgePolling,
 } = useDashboard();
 
-onMounted(startBadgePolling);
+onMounted(() => {
+	if (!isSystem.value) startBadgePolling();
+});
 onBeforeUnmount(stopBadgePolling);
 
 // --- selected event -------------------------------------------------------------------------
@@ -35,7 +43,7 @@ const selectedEventId = useSelectedEventId();
 const selectedEvent = useEventDetailsRef(selectedEventId);
 
 // Fall back to the first running/upcoming event when nothing was picked yet.
-if (!selectedEventId.value && myEvents.value?.length) {
+if (!isSystem.value && !selectedEventId.value && myEvents.value?.length) {
 	const today = toDayString();
 	const fallback =
 		myEvents.value.find((e) => e.start_date <= today && today <= e.end_date) ??
@@ -47,7 +55,7 @@ if (!selectedEventId.value && myEvents.value?.length) {
 watch(
 	selectedEventId,
 	async (id) => {
-		if (!id) return;
+		if (!id || isSystem.value) return;
 		const { event } = await loadEventDetails(id);
 		// A stale cookie (removed from the event, event deleted): forget it.
 		if (!event && !route.params.event_id) selectedEventId.value = null;
@@ -59,8 +67,9 @@ const can = (permission: EventPermission) => canInEvent(selectedEvent.value, per
 
 // --- sidebar variants -----------------------------------------------------------------------
 
-const section = computed<"main" | "settings" | "admin" | "coreTeam">(() => {
+const section = computed<"main" | "settings" | "admin" | "coreTeam" | "system">(() => {
 	if (route.path.startsWith("/settings")) return "settings";
+	if (isSystem.value) return "system";
 	if (route.path.startsWith("/admin")) return "admin";
 	if (route.path.startsWith("/core-team")) return "coreTeam";
 	return "main";
@@ -166,6 +175,15 @@ const adminItems: NavigationMenuItem[] = [
 	{ label: "Administration", icon: "i-lucide-shield", type: "label" },
 	{ label: "Benutzer", icon: "i-lucide-users", to: "/admin/users" },
 	{ label: "Einladungen", icon: "i-lucide-mail-plus", to: "/admin/invitations" },
+	{ label: "Organisation", icon: "i-lucide-palette", to: "/admin/organization" },
+	{ label: "Audit-Log", icon: "i-lucide-scroll-text", to: "/admin/audit-log" },
+];
+
+const systemItems: NavigationMenuItem[] = [
+	{ label: "Systemverwaltung", icon: "i-lucide-server-cog", type: "label" },
+	{ label: "Organisationen", icon: "i-lucide-building", to: "/admin/orgs" },
+	{ label: "System-Admins", icon: "i-lucide-users", to: "/admin/users" },
+	{ label: "Einladungen", icon: "i-lucide-mail-plus", to: "/admin/invitations" },
 	{ label: "Audit-Log", icon: "i-lucide-scroll-text", to: "/admin/audit-log" },
 ];
 
@@ -183,36 +201,50 @@ const coreTeamItems: NavigationMenuItem[] = [
 	{ label: "Kernteam-Chat", icon: "i-lucide-messages-square", to: "/messages?channel=core_team" },
 ];
 
-const backItem: NavigationMenuItem[] = [
-	{ label: "Zurück zum Portal", icon: "i-lucide-arrow-left", to: "/" },
-];
+const backItem = computed<NavigationMenuItem[]>(() => [
+	isSystem.value
+		? { label: "Zurück zur Systemverwaltung", icon: "i-lucide-arrow-left", to: "/admin" }
+		: { label: "Zurück zum Portal", icon: "i-lucide-arrow-left", to: "/" },
+]);
 
 // --- search ---------------------------------------------------------------------------------
 
-const searchGroups = computed(() => [
-	{
-		id: "pages",
-		label: "Seiten",
-		items: [
-			...personalItems.value.filter((item) => item.to),
-			...eventItems.value.flatMap((item) => (item.children ? item.children : [item])),
-			...organisationItems.value.filter((item) => item.to),
-			...settingsItems.filter((item) => item.to),
-			...(isCoreTeam.value ? coreTeamItems.filter((item) => item.to) : []),
-			...(isAdmin.value ? adminItems.filter((item) => item.to) : []),
-		].map(({ badge, chip, children, defaultOpen, type, ...item }) => item),
-	},
-	{
-		id: "events",
-		label: "Meine Events",
-		items: (myEvents.value ?? []).map((event) => ({
-			label: event.name,
-			suffix: formatDayRange(event.start_date, event.end_date),
-			icon: event.type === "camp" ? "i-lucide-tent" : "i-lucide-calendar-days",
-			to: `/events/${event.id}`,
-		})),
-	},
-]);
+const searchGroups = computed(() =>
+	isSystem.value
+		? [
+				{
+					id: "pages",
+					label: "Seiten",
+					items: [...systemItems, ...settingsItems]
+						.filter((item) => item.to)
+						.map(({ badge, chip, children, defaultOpen, type, ...item }) => item),
+				},
+			]
+		: [
+				{
+					id: "pages",
+					label: "Seiten",
+					items: [
+						...personalItems.value.filter((item) => item.to),
+						...eventItems.value.flatMap((item) => (item.children ? item.children : [item])),
+						...organisationItems.value.filter((item) => item.to),
+						...settingsItems.filter((item) => item.to),
+						...(isCoreTeam.value ? coreTeamItems.filter((item) => item.to) : []),
+						...(isAdmin.value ? adminItems.filter((item) => item.to) : []),
+					].map(({ badge, chip, children, defaultOpen, type, ...item }) => item),
+				},
+				{
+					id: "events",
+					label: "Meine Events",
+					items: (myEvents.value ?? []).map((event) => ({
+						label: event.name,
+						suffix: formatDayRange(event.start_date, event.end_date),
+						icon: event.type === "camp" ? "i-lucide-tent" : "i-lucide-calendar-days",
+						to: `/events/${event.id}`,
+					})),
+				},
+			],
+);
 </script>
 
 <template>
@@ -237,14 +269,23 @@ const searchGroups = computed(() => [
 			:max-size="30"
 		>
 			<template #header="{ collapsed }">
-				<NuxtLink to="/" :class="`${!collapsed ? 'ms-2.5' : ''} flex items-center gap-1.5`">
+				<NuxtLink :to="homeRoute" :class="`${!collapsed ? 'ms-2.5' : ''} flex items-center gap-1.5`">
 					<ImgAppLogo v-if="!collapsed" class="h-8" />
 					<ImgAppIcon v-else class="h-8 w-8" />
 				</NuxtLink>
 			</template>
 
 			<template #default="{ collapsed }">
-				<template v-if="section === 'main'">
+				<template v-if="section === 'system'">
+					<UDashboardSearchButton
+						:collapsed="collapsed"
+						label="Suchen…"
+						class="bg-transparent ring-default"
+					/>
+					<UNavigationMenu :collapsed="collapsed" :items="withSubpageActive(systemItems)" orientation="vertical" />
+				</template>
+
+				<template v-else-if="section === 'main'">
 					<UDashboardSearchButton
 						:collapsed="collapsed"
 						label="Suchen…"

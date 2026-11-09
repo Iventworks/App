@@ -14,7 +14,7 @@ const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 const user = await useUserInfoStore().use();
 
-useSeoMeta({ title: `Einstellungen | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Einstellungen | ${event.value.name}` });
 
 const canEdit = computed(() => can("event:edit"));
 const isCoreTeam = computed(() => hasOrgRole(user.value?.role, "core_team"));

@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
-import { ConfigHandler } from "../../../../../../utils/config";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { LCrypt } from "../../../../../../utils/crypto/lcrypt";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -26,10 +26,9 @@ export function hashInvitationToken(token: string) {
 	return LCrypt.sha256(token).toHex();
 }
 
-/** The frontend page that accepts an invitation. */
+/** The frontend page that accepts an invitation, on the current org's own domain. */
 export function getInviteURL(token: string) {
-	const appUrl = (ConfigHandler.getConfig()?.APP_URL ?? "").replace(/\/+$/, "");
-	return `${appUrl}/auth/accept-invite?token=${encodeURIComponent(token)}`;
+	return `${OrgContext.current().url}/auth/accept-invite?token=${encodeURIComponent(token)}`;
 }
 
 // --- rate limiting -----------------------------------------------------------------------------
@@ -67,7 +66,11 @@ async function findPendingInvitation(tokenHash: string, tx: DrizzleDB = DB.insta
 		.select()
 		.from(DB.Tables.invitations)
 		.where(
-			and(eq(DB.Tables.invitations.token_hash, tokenHash), isNull(DB.Tables.invitations.accepted_at)),
+			and(
+				inOrg(DB.Tables.invitations),
+				eq(DB.Tables.invitations.token_hash, tokenHash),
+				isNull(DB.Tables.invitations.accepted_at),
+			),
 		)
 		.get();
 
@@ -172,9 +175,12 @@ router.post(
 					.select({ id: DB.Tables.users.id })
 					.from(DB.Tables.users)
 					.where(
-						or(
-							eq(DB.Tables.users.username, body.username),
-							sql`lower(${DB.Tables.users.email}) = ${invitation.email.toLowerCase()}`,
+						and(
+							inOrg(DB.Tables.users),
+							or(
+								eq(DB.Tables.users.username, body.username),
+								sql`lower(${DB.Tables.users.email}) = ${invitation.email.toLowerCase()}`,
+							),
 						),
 					)
 					.get();
@@ -183,6 +189,7 @@ router.post(
 				const user = await tx
 					.insert(DB.Tables.users)
 					.values({
+						org_id: OrgContext.id(),
 						username: body.username,
 						display_name: body.display_name,
 						email: invitation.email,
@@ -195,7 +202,7 @@ router.post(
 				await tx
 					.update(DB.Tables.invitations)
 					.set({ accepted_at: Date.now(), accepted_user_id: user.id })
-					.where(eq(DB.Tables.invitations.id, invitation.id))
+					.where(and(inOrg(DB.Tables.invitations), eq(DB.Tables.invitations.id, invitation.id)))
 					.run();
 
 				const session = await SessionHandler.createSession(user.id, tx);

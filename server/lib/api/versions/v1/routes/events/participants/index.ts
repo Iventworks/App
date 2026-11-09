@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -46,7 +47,13 @@ async function validateRoom(eventId: number, roomId: number | null | undefined) 
 	const room = await DB.instance()
 		.select({ id: DB.Tables.rooms.id })
 		.from(DB.Tables.rooms)
-		.where(and(eq(DB.Tables.rooms.id, roomId), eq(DB.Tables.rooms.event_id, eventId)))
+		.where(
+			and(
+				inOrg(DB.Tables.rooms),
+				eq(DB.Tables.rooms.id, roomId),
+				eq(DB.Tables.rooms.event_id, eventId),
+			),
+		)
 		.get();
 	return room ? null : "The room does not belong to this event";
 }
@@ -58,7 +65,12 @@ async function replaceEmergencyContacts(
 ) {
 	await tx
 		.delete(DB.Tables.participantEmergencyContacts)
-		.where(eq(DB.Tables.participantEmergencyContacts.participant_id, participantId))
+		.where(
+			and(
+				inOrg(DB.Tables.participantEmergencyContacts),
+				eq(DB.Tables.participantEmergencyContacts.participant_id, participantId),
+			),
+		)
 		.run();
 
 	if (contacts.length > 0) {
@@ -66,6 +78,7 @@ async function replaceEmergencyContacts(
 			.insert(DB.Tables.participantEmergencyContacts)
 			.values(
 				contacts.map((contact) => ({
+					org_id: OrgContext.id(),
 					participant_id: participantId,
 					name: contact.name,
 					relation: contact.relation ?? null,
@@ -114,21 +127,28 @@ async function toResponse(
 		? await DB.instance()
 				.select({ id: DB.Tables.rooms.id, name: DB.Tables.rooms.name })
 				.from(DB.Tables.rooms)
-				.where(inArray(DB.Tables.rooms.id, roomIds))
+				.where(and(inOrg(DB.Tables.rooms), inArray(DB.Tables.rooms.id, roomIds)))
 				.all()
 		: [];
 
 	const contacts = await DB.instance()
 		.select()
 		.from(DB.Tables.participantEmergencyContacts)
-		.where(inArray(DB.Tables.participantEmergencyContacts.participant_id, ids))
+		.where(
+			and(
+				inOrg(DB.Tables.participantEmergencyContacts),
+				inArray(DB.Tables.participantEmergencyContacts.participant_id, ids),
+			),
+		)
 		.orderBy(asc(DB.Tables.participantEmergencyContacts.id))
 		.all();
 
 	const noteCounts = await DB.instance()
 		.select({ participant_id: DB.Tables.participantNotes.participant_id, value: count() })
 		.from(DB.Tables.participantNotes)
-		.where(inArray(DB.Tables.participantNotes.participant_id, ids))
+		.where(
+			and(inOrg(DB.Tables.participantNotes), inArray(DB.Tables.participantNotes.participant_id, ids)),
+		)
 		.groupBy(DB.Tables.participantNotes.participant_id)
 		.all();
 
@@ -173,7 +193,12 @@ async function toDetailResponse(
 	const staffNotes = await DB.instance()
 		.select()
 		.from(DB.Tables.participantNotes)
-		.where(eq(DB.Tables.participantNotes.participant_id, participant.id))
+		.where(
+			and(
+				inOrg(DB.Tables.participantNotes),
+				eq(DB.Tables.participantNotes.participant_id, participant.id),
+			),
+		)
 		.orderBy(asc(DB.Tables.participantNotes.created_at), asc(DB.Tables.participantNotes.id))
 		.all();
 
@@ -218,7 +243,7 @@ router.get(
 		const event = c.get("event");
 		const query = c.req.valid("query") as EventParticipantsModel.GetAll.Query;
 
-		const conditions = [eq(DB.Tables.participants.event_id, event.id)];
+		const conditions = [inOrg(DB.Tables.participants), eq(DB.Tables.participants.event_id, event.id)];
 		if (query.status) {
 			conditions.push(eq(DB.Tables.participants.status, query.status));
 		}
@@ -295,6 +320,7 @@ router.post(
 				.from(DB.Tables.participants)
 				.where(
 					and(
+						inOrg(DB.Tables.participants),
 						eq(DB.Tables.participants.event_id, event.id),
 						inArray(DB.Tables.participants.status, ACTIVE_STATUSES),
 					),
@@ -310,7 +336,7 @@ router.post(
 			participant = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.participants)
-					.values({ ...body, status, event_id: event.id })
+					.values({ ...body, status, event_id: event.id, org_id: OrgContext.id() })
 					.returning()
 					.get();
 				await replaceEmergencyContacts(created.id, emergency_contacts, tx);
@@ -375,7 +401,7 @@ router.get(
 			await DB.instance()
 				.select()
 				.from(DB.Tables.participants)
-				.where(eq(DB.Tables.participants.event_id, event.id))
+				.where(and(inOrg(DB.Tables.participants), eq(DB.Tables.participants.event_id, event.id)))
 				.orderBy(asc(DB.Tables.participants.last_name), asc(DB.Tables.participants.first_name))
 				.all(),
 			// Health columns stay empty for callers outside the event's team.
@@ -467,6 +493,7 @@ router.use(
 			.from(DB.Tables.participants)
 			.where(
 				and(
+					inOrg(DB.Tables.participants),
 					eq(DB.Tables.participants.id, participantId.data),
 					eq(DB.Tables.participants.event_id, event.id),
 				),
@@ -560,7 +587,7 @@ router.put(
 				const row = await tx
 					.update(DB.Tables.participants)
 					.set({ ...body, updated_at: Date.now() })
-					.where(eq(DB.Tables.participants.id, participant.id))
+					.where(and(inOrg(DB.Tables.participants), eq(DB.Tables.participants.id, participant.id)))
 					.returning()
 					.get();
 				if (emergency_contacts !== undefined) {
@@ -621,7 +648,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.participants)
-			.where(eq(DB.Tables.participants.id, participant.id))
+			.where(and(inOrg(DB.Tables.participants), eq(DB.Tables.participants.id, participant.id)))
 			.run();
 
 		await AuditLog.record({
@@ -665,7 +692,7 @@ router.post(
 
 		const note = await DB.instance()
 			.insert(DB.Tables.participantNotes)
-			.values({ participant_id: participant.id, author_id: userId, content })
+			.values({ participant_id: participant.id, author_id: userId, content, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -709,6 +736,7 @@ router.delete(
 			.from(DB.Tables.participantNotes)
 			.where(
 				and(
+					inOrg(DB.Tables.participantNotes),
 					eq(DB.Tables.participantNotes.id, noteId),
 					eq(DB.Tables.participantNotes.participant_id, participant.id),
 				),
@@ -723,7 +751,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.participantNotes)
-			.where(eq(DB.Tables.participantNotes.id, note.id))
+			.where(and(inOrg(DB.Tables.participantNotes), eq(DB.Tables.participantNotes.id, note.id)))
 			.run();
 
 		await AuditLog.record({

@@ -3,41 +3,45 @@
 # are baked into the image (docker/Dockerfile ENV) — set only what differs for this deployment.
 services:
   
-  cmp:
+  iventworks:
     image: gcr.leicraftmc.de/crossover/cmp:latest
-    container_name: cmp
+    container_name: iventworks
     restart: unless-stopped
-    # Loopback only: the reverse proxy on this host terminates TLS for CMP_APP_URL and forwards
+    # Loopback only: the reverse proxy on this host terminates TLS for IVENTWORKS_APP_URL and forwards
     # here (docs/14). Publish on all interfaces only if the proxy runs on another machine.
     ports:
       - "127.0.0.1:31316:31316"
     environment:
-      CMP_LOG_LEVEL: info
+      IVENTWORKS_LOG_LEVEL: info
 
       # The interactive API docs (/api/docs/v1) stay off on the public host.
-      CMP_API_DISABLE_DOCS: true
+      IVENTWORKS_API_DISABLE_DOCS: true
 
-      CMP_APP_URL: https://cmp.crossover.is-on.net
+      IVENTWORKS_APP_URL: https://app.iventworks.de
+
+      # Many orgs on this installation: <slug>.app.iventworks.de (wildcard DNS + certificate, or
+      # on-demand TLS with `ask` → /api/v1/instance/tls-check), system admins at /admin.
+      IVENTWORKS_MULTI_ORG: true
 
       # true because the port above is bound to loopback, so every request comes through the one
       # reverse proxy, which appends the client address to X-Forwarded-For (login rate limiting
       # uses the last entry). Set to false if the port is ever published publicly.
-      CMP_TRUST_PROXY: true
-      CMP_TIMEZONE: Europe/Berlin
-      CMP_MAX_UPLOAD_SIZE_MB: 25
+      IVENTWORKS_TRUST_PROXY: true
+      IVENTWORKS_TIMEZONE: Europe/Berlin
+      IVENTWORKS_MAX_UPLOAD_SIZE_MB: 25
 
       # SMTP credentials come from a `.env` file next to this compose file (gitignored), e.g.
-      #   CMP_SMTP_HOST=mail.example.com
-      #   CMP_SMTP_USERNAME=…
-      #   CMP_SMTP_PASSWORD=…
-      # Without CMP_SMTP_HOST, email (password-reset links) is disabled.
-      CMP_SMTP_HOST: ${CMP_SMTP_HOST:-}
-      CMP_SMTP_PORT: 465
-      CMP_SMTP_USERNAME: ${CMP_SMTP_USERNAME:-}
-      CMP_SMTP_PASSWORD: ${CMP_SMTP_PASSWORD:-}
-      CMP_SMTP_FROM: '"CMP" <noreply@crossover.info>'
-      CMP_SMTP_SECURE: true
+      #   IVENTWORKS_SMTP_HOST=mail.example.com
+      #   IVENTWORKS_SMTP_USERNAME=…
+      #   IVENTWORKS_SMTP_PASSWORD=…
+      # Without IVENTWORKS_SMTP_HOST, email (password-reset links) is disabled.
+      IVENTWORKS_SMTP_HOST: ${IVENTWORKS_SMTP_HOST:-}
+      IVENTWORKS_SMTP_PORT: 465
+      IVENTWORKS_SMTP_USERNAME: ${IVENTWORKS_SMTP_USERNAME:-}
+      IVENTWORKS_SMTP_PASSWORD: ${IVENTWORKS_SMTP_PASSWORD:-}
+      IVENTWORKS_SMTP_FROM: '"Iventworks" <noreply@iventworks.de>'
+      IVENTWORKS_SMTP_SECURE: true
 
     volumes:
-      - /opt/crossover/cmp/data:/opt/crossover/cmp/data
-      - /opt/crossover/cmp/config:/opt/crossover/cmp/config
+      - /opt/iventworks/data:/opt/iventworks/data
+      - /opt/iventworks/config:/opt/iventworks/config

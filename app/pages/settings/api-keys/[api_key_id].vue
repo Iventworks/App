@@ -73,7 +73,7 @@ function getRoutesConfig(): UseSubrouterPathDynamics.RoutesConfig {
 }
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: "API-Schlüssel | Einstellungen | CMP",
+	baseTitle: "API-Schlüssel | Einstellungen",
 	basebreadcrumbItems: [{ label: "API-Schlüssel", to: "/settings/api-keys" }],
 	routes: getRoutesConfig(),
 });

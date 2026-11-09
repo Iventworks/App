@@ -54,6 +54,8 @@ async function logout() {
 	await navigateTo("/auth/login");
 }
 
+const isSystem = computed(() => useInstance().value?.kind === "system");
+
 const items = computed<DropdownMenuItem[][]>(() => [
 	[
 		{
@@ -68,7 +70,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 			icon: "i-lucide-settings",
 			to: "/settings",
 		},
-		...(hasOrgRole(role.value, "core_team")
+		...(hasOrgRole(role.value, "core_team") && !isSystem.value
 			? [
 					{
 						label: "Kernteam-Bereich",
@@ -80,8 +82,8 @@ const items = computed<DropdownMenuItem[][]>(() => [
 		...(hasOrgRole(role.value, "admin")
 			? [
 					{
-						label: "Administration",
-						icon: "i-lucide-shield",
+						label: isSystem.value ? "Systemverwaltung" : "Administration",
+						icon: isSystem.value ? "i-lucide-server-cog" : "i-lucide-shield",
 						to: "/admin",
 					},
 				]

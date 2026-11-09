@@ -1,8 +1,11 @@
 import type { Transporter } from "nodemailer";
 import nodemailer from "nodemailer";
+import type { ORG_PRIMARY_COLORS } from "../../db/schema";
+import { OrgContext } from "../../orgs/context";
 import { ConfigHandler } from "../../utils/config";
 import { AppConstants } from "../../utils/constants";
 import { Logger } from "../../utils/logger";
+import { PasswordLinks } from "./passwordLinks";
 
 export interface CapturedEmail {
 	from: string;
@@ -10,6 +13,51 @@ export interface CapturedEmail {
 	subject: string;
 	html: string;
 	text: string;
+}
+
+/** Tailwind `-600` shades: the button colour of the org's palette, readable with white text. */
+const BUTTON_COLORS: Record<(typeof ORG_PRIMARY_COLORS)[number], string> = {
+	red: "#dc2626",
+	orange: "#ea580c",
+	amber: "#d97706",
+	yellow: "#ca8a04",
+	lime: "#65a30d",
+	green: "#16a34a",
+	emerald: "#059669",
+	teal: "#0d9488",
+	cyan: "#0891b2",
+	sky: "#0284c7",
+	blue: "#2563eb",
+	indigo: "#4f46e5",
+	violet: "#7c3aed",
+	purple: "#9333ea",
+	fuchsia: "#c026d3",
+	pink: "#db2777",
+	rose: "#e11d48",
+};
+
+function escapeHtml(value: string) {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
+}
+
+/**
+ * The org the mail is sent for (the request's org): its name for subjects and texts, how to say
+ * "to <org>" ("zu Crossover auf Iventworks", "zur Iventworks-Systemverwaltung") and its colour.
+ */
+function mailOrg() {
+	const org = OrgContext.maybeCurrent();
+	const name = org?.display_name ?? AppConstants.APP_NAME;
+	const joinPhrase =
+		org?.kind === "system"
+			? `zur ${AppConstants.APP_NAME}-Systemverwaltung`
+			: name === AppConstants.APP_NAME
+				? `zu ${name}`
+				: `zu ${name} auf ${AppConstants.APP_NAME}`;
+	return { name, joinPhrase, color: BUTTON_COLORS[org?.primary_color ?? "fuchsia"] };
 }
 
 export class EmailService {
@@ -97,11 +145,9 @@ export class EmailService {
 			return;
 		}
 
-		const config = ConfigHandler.getConfig() as NonNullable<
-			ReturnType<typeof ConfigHandler.getConfig>
-		>;
-		const appUrl = config.APP_URL;
-		const resetUrl = `${appUrl}/auth/reset-password?token=${encodeURIComponent(rawToken)}`;
+		// The org's own domain: the token only works there.
+		const resetUrl = PasswordLinks.url(rawToken);
+		const org = mailOrg();
 
 		const html = [
 			"<!DOCTYPE html>",
@@ -110,10 +156,10 @@ export class EmailService {
 			"",
 			'  <h2 style="color:#1a1a2e">Passwort zurücksetzen</h2>',
 			"",
-			`  <p>Wir haben eine Anfrage erhalten, das Passwort für dein ${AppConstants.APP_NAME}-Konto zurückzusetzen.`,
+			`  <p>Wir haben eine Anfrage erhalten, das Passwort für dein Konto bei ${escapeHtml(org.name)} zurückzusetzen.`,
 			"  Wenn du das warst, klicke auf den Button, um ein neues Passwort festzulegen.</p>",
 			"",
-			`  <a href="${resetUrl}" style="display:inline-block;padding:12px 28px;margin:20px 0;background:#f97316;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Neues Passwort festlegen</a>`,
+			`  <a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:12px 28px;margin:20px 0;background:${org.color};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Neues Passwort festlegen</a>`,
 			"",
 			'  <p style="color:#666;font-size:14px">Der Link ist <strong>1 Stunde</strong> gültig.</p>',
 			"",
@@ -131,7 +177,7 @@ export class EmailService {
 			const info = await this.transporter.sendMail({
 				from: this._from,
 				to,
-				subject: `${AppConstants.APP_NAME} — Passwort zurücksetzen`,
+				subject: `${org.name} — Passwort zurücksetzen`,
 				html,
 			});
 			Logger.log(`Password reset email sent to ${to} (message-id: ${info.messageId})`);
@@ -156,9 +202,7 @@ export class EmailService {
 			return false;
 		}
 
-		const escapeHtml = (value: string) =>
-			value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
+		const org = mailOrg();
 		const greeting = options.displayName ? `Hallo ${escapeHtml(options.displayName)},` : "Hallo,";
 		const inviter = options.inviterName
 			? `${escapeHtml(options.inviterName)} hat dich`
@@ -174,13 +218,13 @@ export class EmailService {
 			'<html><head><meta charset="utf-8"></head><body>',
 			"<div style=\"max-width:560px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif\">",
 			"",
-			`  <h2 style="color:#1a1a2e">Einladung zum ${AppConstants.APP_NAME}</h2>`,
+			`  <h2 style="color:#1a1a2e">Einladung ${escapeHtml(org.joinPhrase)}</h2>`,
 			"",
 			`  <p>${greeting}</p>`,
-			`  <p>${inviter} zum Crossover Management Portal (${AppConstants.APP_NAME}) eingeladen.`,
+			`  <p>${inviter} ${escapeHtml(org.joinPhrase)} eingeladen.`,
 			"  Über den folgenden Button kannst du dein Konto anlegen.</p>",
 			"",
-			`  <a href="${escapeHtml(inviteUrl)}" style="display:inline-block;padding:12px 28px;margin:20px 0;background:#f97316;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Konto anlegen</a>`,
+			`  <a href="${escapeHtml(inviteUrl)}" style="display:inline-block;padding:12px 28px;margin:20px 0;background:${org.color};color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Konto anlegen</a>`,
 			"",
 			`  <p style="color:#666;font-size:14px">Die Einladung ist gültig bis <strong>${expiry}</strong>.</p>`,
 			"",
@@ -196,7 +240,7 @@ export class EmailService {
 		const text = [
 			greeting.replace(/&[a-z]+;/g, ""),
 			"",
-			`Du wurdest zum ${AppConstants.APP_NAME} eingeladen. Konto anlegen: ${inviteUrl}`,
+			`${options.inviterName ? `${options.inviterName} hat dich` : "Du wurdest"} ${org.joinPhrase} eingeladen. Konto anlegen: ${inviteUrl}`,
 			`Die Einladung ist gültig bis ${expiry}.`,
 		].join("\n");
 
@@ -204,7 +248,7 @@ export class EmailService {
 			const info = await this.transporter.sendMail({
 				from: this._from,
 				to,
-				subject: `Einladung zum ${AppConstants.APP_NAME}`,
+				subject: `Einladung ${org.joinPhrase}`,
 				html,
 				text,
 			});

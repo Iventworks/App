@@ -12,7 +12,7 @@ const { event, eventId, can } = await useCurrentEvent();
 const user = await useUserInfoStore().use();
 const toast = useToast();
 
-useSeoMeta({ title: `Dokumente | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Dokumente | ${event.value.name}` });
 
 async function load(parentId: number | null) {
 	const result = await useAPI((api) =>

@@ -8,15 +8,16 @@ definePageMeta({
 	layout: "auth",
 });
 
+const brandName = useBrandName();
 useSeoMeta({
-	title: "Einladung annehmen | CMP",
-	description: "Lege dein Konto für das Crossover Management Portal an",
+	title: "Einladung annehmen",
+	description: () => `Lege dein Konto bei ${brandName.value} an`,
 });
 
 const route = useRoute();
 const toast = useToast();
 
-// The invitation link is `{APP_URL}/auth/accept-invite?token=…`.
+// The invitation link is `<org url>/auth/accept-invite?token=…`.
 const token = route.query.token?.toString() ?? "";
 
 const invitation = ref<{ email: string; display_name: string | null; role: string } | null>(null);
@@ -122,13 +123,13 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 	await useUserInfoStore().refresh();
 
 	toast.add({
-		title: "Willkommen bei Crossover!",
+		title: `Willkommen bei ${brandName.value}!`,
 		description: "Dein Konto wurde angelegt.",
 		icon: "i-lucide-party-popper",
 		color: "success",
 	});
 
-	await navigateTo("/");
+	await navigateTo(useInstance().value?.kind === "system" ? "/admin" : "/");
 }
 </script>
 

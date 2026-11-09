@@ -19,6 +19,10 @@ Defined in `.claude/settings.json`:
 
 ## Backend in `server/`
 
+Orgs first: every query on an org table needs `inOrg(table)`, every insert `org_id:
+OrgContext.id()` — the tenant guard throws otherwise (AGENTS.md › Orgs). After schema changes run
+`bun test tests/cross-org-security.test.ts`.
+
 This is the full-stack shape: Hono lives in `server/lib/api`, mounted at `/api` by
 `server/routes/api/[...].ts`, and initialized by `server/plugins/startup.ts`. After changing a
 backend route, regenerate the client with `bun run api-client:generate`. Never hand-edit
@@ -46,6 +50,9 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 - Per-user stores live in `app/composables/stores/` (`useUserInfoStore`, `useMyEventsStore`) plus
   the event details cache (`clearEventDetails()` in `useCurrentEvent.ts`). Clear them on logout;
   the login page refreshes them for the new session.
+- The host's org: `useInstance()` (`kind`: `org` / `system` / `unknown`, the org's branding) and
+  `useBrandName()`. System-dashboard pages live under `/admin/orgs`; the layout and
+  `auth.global.ts` switch on `kind`.
 - Event pages start with `const { event, can } = await useCurrentEvent();` and hide controls with
   `can("participants:manage")` etc. — the API enforces the same permissions.
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
@@ -60,7 +67,7 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 - Password and username fields: `newPasswordField()`, `usernameField()`, `PASSWORD_HINT`
   (`app/utils/passwords.ts`) — the German rule-by-rule messages.
 
-## CMP-specific notes
+## Iventworks-specific notes
 
 Project-wide rules and deviations from the style guide (prefixes, port, roles, SSR/PWA) live in
-the "CMP-specific rules and exceptions" section of `AGENTS.md`.
+the "Iventworks-specific rules and exceptions" section of `AGENTS.md`.

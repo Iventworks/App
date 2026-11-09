@@ -19,7 +19,7 @@ const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 const userInfo = await useUserInfoStore().use();
 
-useSeoMeta({ title: `Gruppen | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Gruppen | ${event.value.name}` });
 
 const FALLBACK_COLOR = "#64748b";
 

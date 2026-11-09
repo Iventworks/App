@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
+import { inOrg } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
@@ -47,7 +48,7 @@ router.get(
 		const user = DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(eq(DB.Tables.users.id, authContext.user_id))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 			.get();
 
 		if (!user) {
@@ -89,7 +90,7 @@ router.put(
 		const user = await DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(eq(DB.Tables.users.id, authContext.user_id))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 			.get();
 
 		if (!user) {
@@ -107,7 +108,7 @@ router.put(
 			const usernameConflict = await DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.username, updates.username))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.username, updates.username)))
 				.get();
 			if (usernameConflict) {
 				return APIResponse.conflict(c, "Username already in use");
@@ -118,7 +119,7 @@ router.put(
 			const emailConflict = await DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.email, updates.email))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.email, updates.email)))
 				.get();
 			if (emailConflict) {
 				return APIResponse.conflict(c, "Email already in use");
@@ -128,7 +129,7 @@ router.put(
 		await DB.instance()
 			.update(DB.Tables.users)
 			.set(updates)
-			.where(eq(DB.Tables.users.id, authContext.user_id))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 			.run();
 
 		return APIResponse.successNoData(c, "Account information updated successfully");
@@ -163,7 +164,7 @@ router.put(
 			const user = DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.id, authContext.user_id))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 				.get();
 
 			if (!user) {
@@ -182,7 +183,7 @@ router.put(
 					.set({
 						password_hash: newPasswordHash,
 					})
-					.where(eq(DB.Tables.users.id, authContext.user_id))
+					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 					.run();
 
 				await SessionHandler.inValidateAllSessionsForUser(authContext.user_id, tx);
@@ -221,14 +222,22 @@ router.delete(
 				// delete password resets
 				await tx
 					.delete(DB.Tables.passwordResets)
-					.where(eq(DB.Tables.passwordResets.user_id, authContext.user_id))
+					.where(
+						and(
+							inOrg(DB.Tables.passwordResets),
+							eq(DB.Tables.passwordResets.user_id, authContext.user_id),
+						),
+					)
 					.run();
 
 				// delete stored preferences
 				await UserPreferencesHandler.deleteAllForUser(authContext.user_id, tx);
 
 				// finally, delete the user account
-				await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, authContext.user_id)).run();
+				await tx
+					.delete(DB.Tables.users)
+					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
+					.run();
 			});
 
 			return APIResponse.successNoData(c, "Account deleted successfully");

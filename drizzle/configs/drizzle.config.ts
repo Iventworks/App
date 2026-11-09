@@ -6,7 +6,7 @@ export default defineConfig({
 	dialect: "sqlite",
 	dbCredentials: {
 		//@ts-expect-error
-		url: process.env.CMP_DB_PATH || "./data/db.sqlite",
+		url: process.env.IVENTWORKS_DB_PATH || process.env.CMP_DB_PATH || "./data/db.sqlite",
 	},
 	verbose: true,
 	strict: true,

@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import { CONVERSATION_TYPES } from "../../db/schema";
+import { inOrg, OrgContext } from "../../orgs/context";
 import { PermissionHelper } from "./permissions";
 import type { UserAccountSettings } from "./shared-models/accountData";
 import { UserSummary } from "./shared-models/userSummary";
@@ -28,7 +29,7 @@ export class ConversationAccess {
 		return DB.instance()
 			.select({ event_id: DB.Tables.eventMembers.event_id })
 			.from(DB.Tables.eventMembers)
-			.where(eq(DB.Tables.eventMembers.user_id, userId))
+			.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.user_id, userId)))
 			.all()
 			.map((row) => row.event_id);
 	}
@@ -38,7 +39,7 @@ export class ConversationAccess {
 		return DB.instance()
 			.select({ group_id: DB.Tables.eventGroupMembers.group_id })
 			.from(DB.Tables.eventGroupMembers)
-			.where(eq(DB.Tables.eventGroupMembers.user_id, userId))
+			.where(and(inOrg(DB.Tables.eventGroupMembers), eq(DB.Tables.eventGroupMembers.user_id, userId)))
 			.all()
 			.map((row) => row.group_id);
 	}
@@ -58,6 +59,7 @@ export class ConversationAccess {
 						.from(DB.Tables.conversationMembers)
 						.where(
 							and(
+								inOrg(DB.Tables.conversationMembers),
 								eq(DB.Tables.conversationMembers.conversation_id, conversation.id),
 								eq(DB.Tables.conversationMembers.user_id, userId),
 								eq(DB.Tables.conversationMembers.is_member, true),
@@ -74,6 +76,7 @@ export class ConversationAccess {
 							.from(DB.Tables.eventMembers)
 							.where(
 								and(
+									inOrg(DB.Tables.eventMembers),
 									eq(DB.Tables.eventMembers.event_id, conversation.event_id),
 									eq(DB.Tables.eventMembers.user_id, userId),
 								),
@@ -90,6 +93,7 @@ export class ConversationAccess {
 							.from(DB.Tables.eventGroupMembers)
 							.where(
 								and(
+									inOrg(DB.Tables.eventGroupMembers),
 									eq(DB.Tables.eventGroupMembers.group_id, conversation.group_id),
 									eq(DB.Tables.eventGroupMembers.user_id, userId),
 								),
@@ -116,6 +120,7 @@ export class ConversationAccess {
 					.from(DB.Tables.conversations)
 					.where(
 						and(
+							inOrg(DB.Tables.conversations),
 							eq(DB.Tables.conversations.type, "event"),
 							inArray(DB.Tables.conversations.event_id, eventIds),
 						),
@@ -128,13 +133,18 @@ export class ConversationAccess {
 				const events = db
 					.select({ id: DB.Tables.events.id, name: DB.Tables.events.name })
 					.from(DB.Tables.events)
-					.where(inArray(DB.Tables.events.id, missing))
+					.where(and(inOrg(DB.Tables.events), inArray(DB.Tables.events.id, missing)))
 					.all();
 				if (events.length > 0) {
 					db
 						.insert(DB.Tables.conversations)
 						.values(
-							events.map((event) => ({ type: "event" as const, name: event.name, event_id: event.id })),
+							events.map((event) => ({
+								org_id: OrgContext.id(),
+								type: "event" as const,
+								name: event.name,
+								event_id: event.id,
+							})),
 						)
 						.run();
 				}
@@ -147,7 +157,9 @@ export class ConversationAccess {
 				db
 					.select({ group_id: DB.Tables.conversations.group_id })
 					.from(DB.Tables.conversations)
-					.where(inArray(DB.Tables.conversations.group_id, groupIds))
+					.where(
+						and(inOrg(DB.Tables.conversations), inArray(DB.Tables.conversations.group_id, groupIds)),
+					)
 					.all()
 					.map((row) => row.group_id),
 			);
@@ -160,13 +172,14 @@ export class ConversationAccess {
 						event_id: DB.Tables.eventGroups.event_id,
 					})
 					.from(DB.Tables.eventGroups)
-					.where(inArray(DB.Tables.eventGroups.id, missing))
+					.where(and(inOrg(DB.Tables.eventGroups), inArray(DB.Tables.eventGroups.id, missing)))
 					.all();
 				if (groups.length > 0) {
 					db
 						.insert(DB.Tables.conversations)
 						.values(
 							groups.map((group) => ({
+								org_id: OrgContext.id(),
 								type: "event_group" as const,
 								name: group.name,
 								event_id: group.event_id,
@@ -183,12 +196,16 @@ export class ConversationAccess {
 			const existing = db
 				.select({ id: DB.Tables.conversations.id })
 				.from(DB.Tables.conversations)
-				.where(eq(DB.Tables.conversations.type, "core_team"))
+				.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.type, "core_team")))
 				.get();
 			if (!existing) {
 				db
 					.insert(DB.Tables.conversations)
-					.values({ type: "core_team", name: ConversationAccess.CORE_TEAM_CHANNEL_NAME })
+					.values({
+						org_id: OrgContext.id(),
+						type: "core_team",
+						name: ConversationAccess.CORE_TEAM_CHANNEL_NAME,
+					})
 					.run();
 			}
 		}
@@ -205,10 +222,14 @@ export class ConversationAccess {
 			.from(DB.Tables.conversationMembers)
 			.innerJoin(
 				DB.Tables.conversations,
-				eq(DB.Tables.conversations.id, DB.Tables.conversationMembers.conversation_id),
+				and(
+					inOrg(DB.Tables.conversations),
+					eq(DB.Tables.conversations.id, DB.Tables.conversationMembers.conversation_id),
+				),
 			)
 			.where(
 				and(
+					inOrg(DB.Tables.conversationMembers),
 					eq(DB.Tables.conversationMembers.user_id, userId),
 					eq(DB.Tables.conversationMembers.is_member, true),
 					inArray(DB.Tables.conversations.type, ["direct", "group"]),
@@ -239,7 +260,7 @@ export class ConversationAccess {
 			? db
 					.select({ id: DB.Tables.conversations.id })
 					.from(DB.Tables.conversations)
-					.where(or(...derivedConditions))
+					.where(and(inOrg(DB.Tables.conversations), or(...derivedConditions)))
 					.all()
 					.map((row) => row.id)
 			: [];
@@ -259,12 +280,14 @@ export class ConversationAccess {
 			.leftJoin(
 				DB.Tables.conversationMembers,
 				and(
+					inOrg(DB.Tables.conversationMembers),
 					eq(DB.Tables.conversationMembers.conversation_id, DB.Tables.messages.conversation_id),
 					eq(DB.Tables.conversationMembers.user_id, userId),
 				),
 			)
 			.where(
 				and(
+					inOrg(DB.Tables.messages),
 					inArray(DB.Tables.messages.conversation_id, conversationIds),
 					isNull(DB.Tables.messages.deleted_at),
 					sql`${DB.Tables.messages.created_at} > coalesce(${DB.Tables.conversationMembers.last_read_at}, 0)`,
@@ -287,7 +310,13 @@ export class ConversationAccess {
 	static markRead(conversationId: number, userId: number, at: number = Date.now()) {
 		DB.instance()
 			.insert(DB.Tables.conversationMembers)
-			.values({ conversation_id: conversationId, user_id: userId, is_member: false, last_read_at: at })
+			.values({
+				org_id: OrgContext.id(),
+				conversation_id: conversationId,
+				user_id: userId,
+				is_member: false,
+				last_read_at: at,
+			})
 			.onConflictDoUpdate({
 				target: [DB.Tables.conversationMembers.conversation_id, DB.Tables.conversationMembers.user_id],
 				set: { last_read_at: at },
@@ -304,10 +333,14 @@ export class ConversationAccess {
 				.from(DB.Tables.conversationMembers)
 				.innerJoin(
 					DB.Tables.conversations,
-					eq(DB.Tables.conversations.id, DB.Tables.conversationMembers.conversation_id),
+					and(
+						inOrg(DB.Tables.conversations),
+						eq(DB.Tables.conversations.id, DB.Tables.conversationMembers.conversation_id),
+					),
 				)
 				.where(
 					and(
+						inOrg(DB.Tables.conversationMembers),
 						eq(DB.Tables.conversations.type, "direct"),
 						eq(DB.Tables.conversationMembers.user_id, userId),
 						eq(DB.Tables.conversationMembers.is_member, true),
@@ -324,7 +357,7 @@ export class ConversationAccess {
 			db
 				.select()
 				.from(DB.Tables.conversations)
-				.where(eq(DB.Tables.conversations.id, sharedId))
+				.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, sharedId)))
 				.get() ?? null
 		);
 	}
@@ -350,6 +383,7 @@ export class ConversationAccess {
 					.from(DB.Tables.conversationMembers)
 					.where(
 						and(
+							inOrg(DB.Tables.conversationMembers),
 							inArray(DB.Tables.conversationMembers.conversation_id, explicitIds),
 							eq(DB.Tables.conversationMembers.is_member, true),
 						),
@@ -361,7 +395,11 @@ export class ConversationAccess {
 			.select({ id: sql<number>`max(${DB.Tables.messages.id})` })
 			.from(DB.Tables.messages)
 			.where(
-				and(inArray(DB.Tables.messages.conversation_id, ids), isNull(DB.Tables.messages.deleted_at)),
+				and(
+					inOrg(DB.Tables.messages),
+					inArray(DB.Tables.messages.conversation_id, ids),
+					isNull(DB.Tables.messages.deleted_at),
+				),
 			)
 			.groupBy(DB.Tables.messages.conversation_id)
 			.all()
@@ -370,7 +408,7 @@ export class ConversationAccess {
 			? db
 					.select()
 					.from(DB.Tables.messages)
-					.where(inArray(DB.Tables.messages.id, lastMessageIds))
+					.where(and(inOrg(DB.Tables.messages), inArray(DB.Tables.messages.id, lastMessageIds)))
 					.all()
 			: [];
 
@@ -385,7 +423,7 @@ export class ConversationAccess {
 			? db
 					.select({ id: DB.Tables.events.id, name: DB.Tables.events.name })
 					.from(DB.Tables.events)
-					.where(inArray(DB.Tables.events.id, eventIds))
+					.where(and(inOrg(DB.Tables.events), inArray(DB.Tables.events.id, eventIds)))
 					.all()
 			: [];
 
@@ -404,7 +442,7 @@ export class ConversationAccess {
 						color: DB.Tables.eventGroups.color,
 					})
 					.from(DB.Tables.eventGroups)
-					.where(inArray(DB.Tables.eventGroups.id, groupIds))
+					.where(and(inOrg(DB.Tables.eventGroups), inArray(DB.Tables.eventGroups.id, groupIds)))
 					.all()
 			: [];
 
@@ -478,7 +516,7 @@ export class ConversationAccess {
 		return DB.instance()
 			.select()
 			.from(DB.Tables.conversations)
-			.where(inArray(DB.Tables.conversations.id, ids))
+			.where(and(inOrg(DB.Tables.conversations), inArray(DB.Tables.conversations.id, ids)))
 			.orderBy(desc(DB.Tables.conversations.last_message_at))
 			.all();
 	}

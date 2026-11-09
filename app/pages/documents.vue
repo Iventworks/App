@@ -8,7 +8,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Dokumente & Leitfäden | CMP",
+	title: "Dokumente & Leitfäden",
 	description: "Leitfäden, Vorlagen und Werkzeuge für alle in der Organisation",
 });
 

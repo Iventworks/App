@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { DB } from "../../db";
+import { inOrg } from "../../orgs/context";
 import type { AuthHandler } from "./authHandler";
 import { EventAccess } from "./eventAccess";
 import { PermissionHelper } from "./permissions";
@@ -69,7 +70,7 @@ export class FileAccess {
 		const expense = await DB.instance()
 			.select()
 			.from(DB.Tables.expenses)
-			.where(eq(DB.Tables.expenses.receipt_file_id, file.id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.receipt_file_id, file.id)))
 			.get();
 
 		const eventId = expense?.event_id ?? file.event_id;

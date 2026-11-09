@@ -1,6 +1,7 @@
 import { and, count, desc, eq, gte, inArray, isNotNull, lt, type SQL, sql } from "drizzle-orm";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
+import { inOrg, OrgContext } from "../../orgs/context";
 import { Logger } from "../../utils/logger";
 import type { AuditLogModel } from "./shared-models/auditLog";
 import { UserSummary } from "./shared-models/userSummary";
@@ -15,6 +16,7 @@ export class AuditLog {
 			await tx
 				.insert(DB.Tables.auditLogs)
 				.values({
+					org_id: OrgContext.id(),
 					user_id: entry.userId,
 					event_id: entry.eventId ?? null,
 					action: entry.action,
@@ -43,7 +45,7 @@ export class AuditLog {
 		const scopeCondition =
 			scope.eventId !== undefined ? eq(table.event_id, scope.eventId) : undefined;
 
-		const conditions: (SQL | undefined)[] = [scopeCondition];
+		const conditions: (SQL | undefined)[] = [inOrg(table), scopeCondition];
 		if (filters.event_id) conditions.push(eq(table.event_id, filters.event_id));
 		if (filters.user_id) conditions.push(eq(table.user_id, filters.user_id));
 		if (filters.action) conditions.push(eq(table.action, filters.action));
@@ -71,7 +73,7 @@ export class AuditLog {
 			DB.instance()
 				.selectDistinct({ id: table.user_id })
 				.from(table)
-				.where(and(scopeCondition, isNotNull(table.user_id)))
+				.where(and(inOrg(table), scopeCondition, isNotNull(table.user_id)))
 				.all(),
 		]);
 
@@ -87,7 +89,7 @@ export class AuditLog {
 			? await DB.instance()
 					.select({ id: DB.Tables.events.id, name: DB.Tables.events.name })
 					.from(DB.Tables.events)
-					.where(inArray(DB.Tables.events.id, eventIds))
+					.where(and(inOrg(DB.Tables.events), inArray(DB.Tables.events.id, eventIds)))
 					.all()
 			: [];
 

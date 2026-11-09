@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler } from "../../../../../utils/authHandler";
@@ -101,7 +102,9 @@ router.post(
 			const checkToken = DB.instance()
 				.select()
 				.from(DB.Tables.passwordResets)
-				.where(eq(DB.Tables.passwordResets.token, hashedResetToken))
+				.where(
+					and(inOrg(DB.Tables.passwordResets), eq(DB.Tables.passwordResets.token, hashedResetToken)),
+				)
 				.get();
 
 			if (!checkToken) {
@@ -115,7 +118,7 @@ router.post(
 			const user = DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.id, checkToken.user_id))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, checkToken.user_id)))
 				.get();
 
 			if (!user) {
@@ -130,14 +133,14 @@ router.post(
 					.set({
 						password_hash: newPasswordHash,
 					})
-					.where(eq(DB.Tables.users.id, user.id))
+					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
 					.run();
 
 				await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);
 
 				await tx
 					.delete(DB.Tables.passwordResets)
-					.where(eq(DB.Tables.passwordResets.user_id, user.id))
+					.where(and(inOrg(DB.Tables.passwordResets), eq(DB.Tables.passwordResets.user_id, user.id)))
 					.run();
 			});
 
@@ -172,11 +175,11 @@ router.post(
 
 		const requestData = c.req.valid("json");
 
-		// Rate limit: max 1 reset request per email per 15 minutes
+		// Rate limit: max 1 reset request per email (and org: accounts are per org) per 15 minutes
 		if (
 			!checkRateLimit(
 				resetRequestAttempts,
-				requestData.email.toLowerCase(),
+				`${OrgContext.id()}:${requestData.email.toLowerCase()}`,
 				RESET_REQUEST_MAX_PER_EMAIL,
 				RESET_REQUEST_WINDOW_MS,
 			)
@@ -190,7 +193,7 @@ router.post(
 		const user = DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(eq(DB.Tables.users.email, requestData.email))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.email, requestData.email)))
 			.get();
 
 		if (user) {

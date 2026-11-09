@@ -9,7 +9,7 @@ type Row = EventFinances & { name: string; remaining_cents: number };
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Finanzen | Kernteam | CMP" });
+useSeoMeta({ title: "Finanzen | Kernteam" });
 
 const toast = useToast();
 const year = ref<number | null>(new Date().getFullYear());

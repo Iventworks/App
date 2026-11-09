@@ -53,7 +53,7 @@ const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() => ({
 }));
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: `Zuständigkeiten | ${event.value.name} | CMP`,
+	baseTitle: `Zuständigkeiten | ${event.value.name}`,
 	routes,
 });
 

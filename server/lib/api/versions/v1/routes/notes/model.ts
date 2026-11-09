@@ -3,7 +3,7 @@ import { z } from "zod";
 import { DB } from "../../../../../db";
 
 export namespace PersonalNotesModel {
-	export const Note = createSelectSchema(DB.Tables.notes);
+	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true });
 	export type Note = z.infer<typeof Note>;
 
 	export const Params = z.object({

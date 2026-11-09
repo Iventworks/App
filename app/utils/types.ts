@@ -6,6 +6,8 @@
 import type {
 	GetAccountApikeysResponses,
 	GetAccountResponses,
+	GetAdminOrganizationDomainsResponses,
+	GetAdminOrganizationResponses,
 	GetAdminUsersByUserIdResponses,
 	GetAdminUsersResponses,
 	GetEventsByEventIdFilesResponses,
@@ -13,6 +15,7 @@ import type {
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
 	GetNotificationsResponses,
+	GetSystemOrgsResponses,
 	GetUsersResponses,
 	PostAccountApikeysData,
 	PostAdminUsersByUserIdPasswordLinkResponses,
@@ -25,6 +28,15 @@ export namespace UtilityTypes {
 export type UserInfo = GetAccountResponses["200"]["data"];
 
 export type APIKey = GetAccountApikeysResponses["200"]["data"][number];
+
+/** The org's own settings (`/admin/organization`): branding, domains in multi-org mode. */
+export type OrgSettings = GetAdminOrganizationResponses["200"]["data"];
+export type OrgInfo = OrgSettings["org"];
+export type OrgPrimaryColor = OrgInfo["primary_color"];
+/** A custom domain with its verification state and the DNS records to create. */
+export type OrgDomain = GetAdminOrganizationDomainsResponses["200"]["data"][number];
+/** An org as the system admins see it (`/system/orgs`). */
+export type SystemOrg = GetSystemOrgsResponses["200"]["data"][number];
 export type NewAPIKey = NonNullable<PostAccountApikeysData["body"]>;
 
 /** A user as shown in lists, assignee pickers and chat (`UserSummary` on the server). */

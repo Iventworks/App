@@ -12,7 +12,7 @@ export namespace EventTasksModel {
 	});
 	export type GroupRef = z.infer<typeof GroupRef>;
 
-	export const Task = createSelectSchema(DB.Tables.tasks).extend({
+	export const Task = createSelectSchema(DB.Tables.tasks).omit({ org_id: true }).extend({
 		assignee: UserSummary.Schema.nullable(),
 		creator: UserSummary.Schema.nullable(),
 		group: GroupRef.nullable(),

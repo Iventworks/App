@@ -55,5 +55,14 @@ export const DOCS_TAGS = {
 		USERS: "Admin / Users",
 		INVITATIONS: "Admin / Invitations",
 		AUDIT_LOG: "Admin / Audit Log",
+		ORGANIZATION: "Admin / Organisation",
+	},
+
+	INSTANCE: "Instance",
+
+	SYSTEM: {
+		BASE: "System",
+
+		ORGS: "System / Organisations",
 	},
 };

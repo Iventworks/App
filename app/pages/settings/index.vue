@@ -8,7 +8,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Profil | Einstellungen | CMP",
+	title: "Profil | Einstellungen",
 	description: "Verwalte dein Profil",
 });
 

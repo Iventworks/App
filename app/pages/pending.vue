@@ -4,7 +4,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 definePageMeta({ layout: "auth" });
 
 useSeoMeta({
-	title: "Konto noch nicht freigeschaltet | CMP",
+	title: "Konto noch nicht freigeschaltet",
 	description: "Dein Konto wartet auf die Freischaltung",
 });
 

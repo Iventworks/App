@@ -7,7 +7,7 @@ type Announcement = GetOrgAnnouncementsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Neuigkeiten verwalten | Kernteam | CMP" });
+useSeoMeta({ title: "Neuigkeiten verwalten | Kernteam" });
 
 const toast = useToast();
 

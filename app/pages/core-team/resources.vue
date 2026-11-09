@@ -16,7 +16,7 @@ type Booking = Resource["bookings"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Material & Ressourcen | Kernteam | CMP" });
+useSeoMeta({ title: "Material & Ressourcen | Kernteam" });
 
 const toast = useToast();
 

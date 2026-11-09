@@ -4,7 +4,7 @@ import { DB } from "../../../../../../db";
 import { BUDGET_ITEM_KINDS } from "../../../../../../db/schema";
 
 export namespace EventBudgetModel {
-	export const BudgetItem = createSelectSchema(DB.Tables.budgetItems);
+	export const BudgetItem = createSelectSchema(DB.Tables.budgetItems).omit({ org_id: true });
 	export type BudgetItem = z.infer<typeof BudgetItem>;
 
 	export const Params = z.object({

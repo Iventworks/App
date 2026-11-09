@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
@@ -45,7 +46,7 @@ router.get(
 		const items = await DB.instance()
 			.select()
 			.from(DB.Tables.budgetItems)
-			.where(eq(DB.Tables.budgetItems.event_id, event.id))
+			.where(and(inOrg(DB.Tables.budgetItems), eq(DB.Tables.budgetItems.event_id, event.id)))
 			.orderBy(asc(DB.Tables.budgetItems.kind), asc(DB.Tables.budgetItems.category))
 			.all();
 
@@ -56,7 +57,7 @@ router.get(
 				status: DB.Tables.expenses.status,
 			})
 			.from(DB.Tables.expenses)
-			.where(eq(DB.Tables.expenses.event_id, event.id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.event_id, event.id)))
 			.all();
 
 		let plannedExpense = 0;
@@ -133,7 +134,7 @@ router.post(
 
 		const item = await DB.instance()
 			.insert(DB.Tables.budgetItems)
-			.values({ ...body, event_id: event.id })
+			.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -162,6 +163,7 @@ router.use("/:budgetItemId/*", zValidator("param", EventBudgetModel.Params), asy
 		.from(DB.Tables.budgetItems)
 		.where(
 			and(
+				inOrg(DB.Tables.budgetItems),
 				eq(DB.Tables.budgetItems.id, budgetItemId.data),
 				eq(DB.Tables.budgetItems.event_id, event.id),
 			),
@@ -202,7 +204,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.budgetItems)
 			.set(body)
-			.where(eq(DB.Tables.budgetItems.id, item.id))
+			.where(and(inOrg(DB.Tables.budgetItems), eq(DB.Tables.budgetItems.id, item.id)))
 			.returning()
 			.get();
 
@@ -243,7 +245,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.budgetItems)
-			.where(eq(DB.Tables.budgetItems.id, item.id))
+			.where(and(inOrg(DB.Tables.budgetItems), eq(DB.Tables.budgetItems.id, item.id)))
 			.run();
 
 		await AuditLog.record({

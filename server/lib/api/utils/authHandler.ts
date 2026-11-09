@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
+import { inOrg, OrgContext } from "../../orgs/context";
 import { AppConstants } from "../../utils/constants";
 import { LCrypt } from "../../utils/crypto/lcrypt";
 import type { UserAccountSettings } from "./shared-models/accountData";
@@ -15,7 +16,11 @@ import type { UserAccountSettings } from "./shared-models/accountData";
 
 export class AuthUtils {
 	static async getUserRole(userID: number, tx: DrizzleDB = DB.instance()) {
-		const user = await tx.select().from(DB.Tables.users).where(eq(DB.Tables.users.id, userID)).get();
+		const user = await tx
+			.select()
+			.from(DB.Tables.users)
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, userID)))
+			.get();
 		if (!user) {
 			return null;
 		}
@@ -80,6 +85,7 @@ export class SessionHandler {
 		const result = await tx
 			.insert(DB.Tables.sessions)
 			.values({
+				org_id: OrgContext.id(),
 				id: tokenID,
 				hashed_token: await AuthUtils.hashTokenBase(tokenBase),
 				user_id: userID,
@@ -95,7 +101,7 @@ export class SessionHandler {
 			user_role: result.user_role,
 			created_at: result.created_at,
 			expires_at: result.expires_at,
-		} satisfies Omit<DB.Models.Session, "id" | "hashed_token"> & { token: string };
+		} satisfies Omit<DB.Models.Session, "id" | "hashed_token" | "org_id"> & { token: string };
 	}
 
 	static async getSession(tokenParts: AuthHandler.TokenParts, tx: DrizzleDB = DB.instance()) {
@@ -106,7 +112,7 @@ export class SessionHandler {
 		const session = await tx
 			.select()
 			.from(DB.Tables.sessions)
-			.where(eq(DB.Tables.sessions.id, tokenParts.id))
+			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.id, tokenParts.id)))
 			.get();
 		if (!session) {
 			return null;
@@ -126,7 +132,9 @@ export class SessionHandler {
 
 		if (session.expires_at < Date.now()) {
 			// Delete expired session
-			await tx.delete(DB.Tables.sessions).where(eq(DB.Tables.sessions.id, session.id));
+			await tx
+				.delete(DB.Tables.sessions)
+				.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.id, session.id)));
 
 			return false;
 		}
@@ -135,11 +143,15 @@ export class SessionHandler {
 	}
 
 	static async inValidateAllSessionsForUser(userID: number, tx: DrizzleDB = DB.instance()) {
-		await tx.delete(DB.Tables.sessions).where(eq(DB.Tables.sessions.user_id, userID));
+		await tx
+			.delete(DB.Tables.sessions)
+			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.user_id, userID)));
 	}
 
 	static async inValidateSession(tokenID: string, tx: DrizzleDB = DB.instance()) {
-		await tx.delete(DB.Tables.sessions).where(eq(DB.Tables.sessions.id, tokenID));
+		await tx
+			.delete(DB.Tables.sessions)
+			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.id, tokenID)));
 	}
 
 	static async changeUserRoleInSessions(
@@ -152,7 +164,7 @@ export class SessionHandler {
 			.set({
 				user_role: newRole,
 			})
-			.where(eq(DB.Tables.sessions.user_id, userID));
+			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.user_id, userID)));
 	}
 }
 
@@ -177,6 +189,7 @@ export class APIKeyHandler {
 		const result = await tx
 			.insert(DB.Tables.apiKeys)
 			.values({
+				org_id: OrgContext.id(),
 				id: tokenID,
 				hashed_token: await AuthUtils.hashTokenBase(tokenBase),
 				user_id: userID,
@@ -194,7 +207,7 @@ export class APIKeyHandler {
 			created_at: result.created_at,
 			expires_at: result.expires_at,
 			description: result.description,
-		} satisfies Omit<DB.Models.ApiKey, "id" | "hashed_token"> & { token: string };
+		} satisfies Omit<DB.Models.ApiKey, "id" | "hashed_token" | "org_id"> & { token: string };
 	}
 
 	static async getApiKey(tokenParts: AuthHandler.TokenParts, tx: DrizzleDB = DB.instance()) {
@@ -205,7 +218,7 @@ export class APIKeyHandler {
 		const key = await tx
 			.select()
 			.from(DB.Tables.apiKeys)
-			.where(eq(DB.Tables.apiKeys.id, tokenParts.id))
+			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.id, tokenParts.id)))
 			.get();
 
 		if (!key) {
@@ -232,11 +245,15 @@ export class APIKeyHandler {
 	}
 
 	static async deleteAllApiKeysForUser(userID: number, tx: DrizzleDB = DB.instance()) {
-		await tx.delete(DB.Tables.apiKeys).where(eq(DB.Tables.apiKeys.user_id, userID));
+		await tx
+			.delete(DB.Tables.apiKeys)
+			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.user_id, userID)));
 	}
 
 	static async deleteApiKey(apiKeyID: string, tx: DrizzleDB = DB.instance()) {
-		await tx.delete(DB.Tables.apiKeys).where(eq(DB.Tables.apiKeys.id, apiKeyID));
+		await tx
+			.delete(DB.Tables.apiKeys)
+			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.id, apiKeyID)));
 	}
 
 	static async changeUserRoleInApiKeys(
@@ -249,7 +266,7 @@ export class APIKeyHandler {
 			.set({
 				user_role: newRole,
 			})
-			.where(eq(DB.Tables.apiKeys.user_id, userID));
+			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.user_id, userID)));
 	}
 }
 

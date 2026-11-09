@@ -4,10 +4,12 @@ import { DB } from "../../../../../../db";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventGroupsModel {
-	export const Group = createSelectSchema(DB.Tables.eventGroups).extend({
-		members: z.array(UserSummary.Schema),
-		member_count: z.number(),
-	});
+	export const Group = createSelectSchema(DB.Tables.eventGroups)
+		.omit({ org_id: true })
+		.extend({
+			members: z.array(UserSummary.Schema),
+			member_count: z.number(),
+		});
 	export type Group = z.infer<typeof Group>;
 
 	export const Params = z.object({

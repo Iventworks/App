@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import { DB } from "../../../../../db";
+import { inOrg } from "../../../../../orgs/context";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
@@ -58,6 +59,7 @@ router.get(
 					.from(DB.Tables.programItems)
 					.where(
 						and(
+							inOrg(DB.Tables.programItems),
 							inArray(DB.Tables.programItems.event_id, runningIds),
 							lt(DB.Tables.programItems.start_at, dayEnd),
 							gte(DB.Tables.programItems.end_at, dayStart),
@@ -75,7 +77,12 @@ router.get(
 				await db
 					.select({ id: DB.Tables.programItemResponsibles.program_item_id })
 					.from(DB.Tables.programItemResponsibles)
-					.where(eq(DB.Tables.programItemResponsibles.user_id, userId))
+					.where(
+						and(
+							inOrg(DB.Tables.programItemResponsibles),
+							eq(DB.Tables.programItemResponsibles.user_id, userId),
+						),
+					)
 					.all()
 			).map((row) => row.id),
 		);
@@ -84,7 +91,9 @@ router.get(
 			? await db
 					.select()
 					.from(DB.Tables.announcements)
-					.where(inArray(DB.Tables.announcements.event_id, runningIds))
+					.where(
+						and(inOrg(DB.Tables.announcements), inArray(DB.Tables.announcements.event_id, runningIds)),
+					)
 					.orderBy(desc(DB.Tables.announcements.pinned), desc(DB.Tables.announcements.created_at))
 					.all()
 			: [];
@@ -163,6 +172,7 @@ router.get(
 						.from(DB.Tables.programItems)
 						.where(
 							and(
+								inOrg(DB.Tables.programItems),
 								inArray(DB.Tables.programItems.id, [...myResponsibleIds]),
 								inArray(DB.Tables.programItems.event_id, memberEventIds),
 								gte(DB.Tables.programItems.end_at, now),
@@ -202,14 +212,20 @@ router.get(
 		const unreadNotifications = await db
 			.select({ value: count() })
 			.from(DB.Tables.notifications)
-			.where(and(eq(DB.Tables.notifications.user_id, userId), isNull(DB.Tables.notifications.read_at)))
+			.where(
+				and(
+					inOrg(DB.Tables.notifications),
+					eq(DB.Tables.notifications.user_id, userId),
+					isNull(DB.Tables.notifications.read_at),
+				),
+			)
 			.get();
 
 		// --- organisation news & personal calendar -------------------------------------------
 		const orgAnnouncements = await db
 			.select()
 			.from(DB.Tables.announcements)
-			.where(isNull(DB.Tables.announcements.event_id))
+			.where(and(inOrg(DB.Tables.announcements), isNull(DB.Tables.announcements.event_id)))
 			.orderBy(desc(DB.Tables.announcements.pinned), desc(DB.Tables.announcements.created_at))
 			.limit(3)
 			.all();
@@ -220,6 +236,7 @@ router.get(
 			.from(DB.Tables.calendarEntries)
 			.where(
 				and(
+					inOrg(DB.Tables.calendarEntries),
 					eq(DB.Tables.calendarEntries.user_id, userId),
 					lt(DB.Tables.calendarEntries.start_at, dayEnd),
 					gte(DB.Tables.calendarEntries.end_at, dayStart),

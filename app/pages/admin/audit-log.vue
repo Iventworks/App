@@ -3,7 +3,7 @@
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Audit-Log | Administration | CMP",
+	title: "Audit-Log | Administration",
 	description: "Wer hat wann was geändert",
 });
 </script>

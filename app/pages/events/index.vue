@@ -4,7 +4,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { EventWithAccess } from "~/utils/types";
 
 definePageMeta({ layout: "dashboard" });
-useSeoMeta({ title: "Freizeiten & Events | CMP" });
+useSeoMeta({ title: "Freizeiten & Events" });
 
 const toast = useToast();
 const user = await useUserInfoStore().use();

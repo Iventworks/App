@@ -23,7 +23,7 @@ export namespace AdminInvitationsModel {
 	/** Returned on create/resend: the link is only ever shown once. */
 	export const IssuedInvitation = z.object({
 		invitation: Invitation,
-		/** `<APP_URL>/auth/accept-invite?token=…` — share it if no email was sent. */
+		/** `<org URL>/auth/accept-invite?token=…` — share it if no email was sent. */
 		invite_url: z.string(),
 		email_sent: z.boolean(),
 	});
@@ -47,7 +47,8 @@ export namespace AdminInvitationsModel.Create {
 	export const Body = z.object({
 		email: z.email(),
 		display_name: z.string().trim().min(1).max(64).optional(),
-		role: UserAccountSettings.Role.default("volunteer"),
+		/** Defaults to "volunteer" — and to "admin", the only role there, on the system host. */
+		role: UserAccountSettings.Role.optional(),
 		expires_in_days: AdminInvitationsModel.ExpiresInDays.default(7),
 	});
 	export type Body = z.infer<typeof Body>;

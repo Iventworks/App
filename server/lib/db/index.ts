@@ -1,16 +1,25 @@
+import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { mkdir as fs_mkdir } from "fs/promises";
 import { dirname as path_dirname, join as path_join } from "path";
-import { ConfigHandler } from "../utils/config";
-import { AppConstants } from "../utils/constants";
-import { LCrypt } from "../utils/crypto/lcrypt";
+import { OrgContext } from "../orgs/context";
+import { TenantGuard } from "../orgs/guard";
 import { Logger } from "../utils/logger";
 import * as TableSchema from "./schema";
 import type { DrizzleDB } from "./utils";
 
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
+
+	/** Names of the tables that carry `org_id` — the ones the tenant guard checks. */
+	static orgTableNames(): Set<string> {
+		const names = new Set<string>();
+		for (const table of Object.values(DB.Tables)) {
+			if ("org_id" in getTableColumns(table)) names.add(getTableName(table));
+		}
+		return names;
+	}
 
 	static async init(
 		path: string,
@@ -28,6 +37,9 @@ export class DB {
 		this.db.$client.exec("PRAGMA foreign_keys = ON;");
 		this.db.$client.exec("PRAGMA journal_mode = WAL;");
 
+		// Every statement on an org table must filter by the current org (server/lib/orgs/guard.ts).
+		TenantGuard.install(this.db.$client, DB.orgTableNames());
+
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
 
@@ -38,74 +50,13 @@ export class DB {
 				migrationsFolder = path_join(import.meta.dir, "migrations");
 			}
 
-			await migrate(this.db, { migrationsFolder });
+			// Migrations copy whole tables (`insert into "__new_x" select … from "x"`): no org filter.
+			await OrgContext.unscoped(() => migrate(this.db, { migrationsFolder }));
 
 			Logger.info("Database migrations completed.");
 		}
 
-		await this.createInitialAdminUserIfNeeded(configBaseDir);
-
 		Logger.info(`Database initialized at ${path}`);
-	}
-
-	private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
-		const usersTableEmpty = (await this.db.select().from(DB.Tables.users).limit(1)).length === 0;
-		if (!usersTableEmpty) return;
-
-		const username = "admin";
-		const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
-
-		let admin_user_id: number;
-
-		try {
-			admin_user_id = await this.db.transaction(async (tx) => {
-				const admin_user_id = await tx
-					.insert(DB.Tables.users)
-					.values({
-						username,
-						// Reserved TLD (RFC 2606): no real mailbox receives mail for the seed admin.
-						// The admin sets their own address in the profile after the first login.
-						email: `${username}@cmp.invalid`,
-						password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
-						display_name: "Default Administrator",
-						role: "admin",
-					})
-					.returning()
-					.get().id;
-
-				await tx.insert(DB.Tables.passwordResets).values({
-					token: LCrypt.sha256(passwordResetToken).toHex(),
-					user_id: admin_user_id,
-					expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
-				});
-
-				return admin_user_id;
-			});
-		} catch (error) {
-			Logger.critical("Failed to create initial admin user:", error);
-			throw error;
-		}
-
-		// APP_URL is a required config value; the fallback only covers the
-		// impossible-after-loadConfig undefined case so the token file is still usable.
-		const APP_URL = ConfigHandler.getConfig()?.APP_URL || "https://<app-url>";
-
-		await Bun.write(
-			`${configBaseDir}/initial_admin_password_reset_token.txt`,
-			`${APP_URL}/auth/reset-password?token=${passwordResetToken}`,
-			{
-				mode: 0o600,
-				createPath: true,
-			},
-		);
-
-		Logger.info(
-			`Initial admin user created with username: ${username}.\n` +
-				`You can set the password under ${APP_URL}/auth/reset-password?token=${passwordResetToken}\n` +
-				`The url is also saved at ${configBaseDir}/initial_admin_password_reset_token.txt\n`,
-		);
-
-		return admin_user_id;
 	}
 
 	static instance() {
@@ -131,6 +82,10 @@ export class DB {
 }
 
 export namespace DB.Tables {
+	export const orgs = TableSchema.orgs;
+	export const orgDomains = TableSchema.orgDomains;
+	export const orgAssets = TableSchema.orgAssets;
+
 	export const users = TableSchema.users;
 	export const sessions = TableSchema.sessions;
 	export const passwordResets = TableSchema.passwordResets;
@@ -183,6 +138,10 @@ export namespace DB.Tables {
 }
 
 export namespace DB.Models {
+	export type Org = typeof DB.Tables.orgs.$inferSelect;
+	export type OrgDomain = typeof DB.Tables.orgDomains.$inferSelect;
+	export type OrgAsset = typeof DB.Tables.orgAssets.$inferSelect;
+
 	export type User = typeof DB.Tables.users.$inferSelect;
 	export type Session = typeof DB.Tables.sessions.$inferSelect;
 	export type PasswordReset = typeof DB.Tables.passwordResets.$inferSelect;

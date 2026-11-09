@@ -40,7 +40,7 @@ const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() =>
 );
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: `Finanzen | ${event.value.name} | CMP`,
+	baseTitle: `Finanzen | ${event.value.name}`,
 	routes,
 });
 

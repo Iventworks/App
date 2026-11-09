@@ -1,4 +1,6 @@
 import type { CronJob as BunCronJob } from "bun";
+import { DomainService } from "../orgs/domains";
+import { OrgRegistry } from "../orgs/registry";
 import { Housekeeping } from "./housekeeping";
 import { Logger } from "./logger";
 
@@ -40,6 +42,13 @@ export class CronJobHandler {
 			// Nightly at 03:30: drop expired sessions, reset links, invitations and old notifications.
 			new CronJob("30 3 * * *", async () => {
 				await Housekeeping.run();
+			}),
+			// Multi-org mode: check pending custom domains, so nobody has to click "Prüfen" after
+			// the DNS records propagated.
+			new CronJob("*/15 * * * *", async () => {
+				if (!OrgRegistry.isMultiOrg()) return;
+				const verified = await DomainService.verifyPending();
+				if (verified) Logger.info(`Verified ${verified} custom domain(s).`);
 			}),
 		);
 	}

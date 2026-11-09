@@ -1,5 +1,6 @@
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
+import { OrgContext } from "../../orgs/context";
 import { Logger } from "../../utils/logger";
 
 /**
@@ -22,6 +23,7 @@ export class Notifier {
 				.insert(DB.Tables.notifications)
 				.values(
 					recipients.map((user_id) => ({
+						org_id: OrgContext.id(),
 						user_id,
 						type: notification.type,
 						title: notification.title,

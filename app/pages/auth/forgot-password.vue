@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Passwort vergessen | CMP",
+	title: "Passwort vergessen",
 	description: "Setze dein Passwort zurück",
 });
 

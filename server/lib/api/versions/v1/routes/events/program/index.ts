@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -36,6 +37,7 @@ async function validateRefs(
 			.from(DB.Tables.eventMembers)
 			.where(
 				and(
+					inOrg(DB.Tables.eventMembers),
 					eq(DB.Tables.eventMembers.event_id, eventId),
 					inArray(DB.Tables.eventMembers.user_id, userIds),
 				),
@@ -51,7 +53,7 @@ async function validateRefs(
 		const files = await DB.instance()
 			.select()
 			.from(DB.Tables.files)
-			.where(inArray(DB.Tables.files.id, fileIds))
+			.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.id, fileIds)))
 			.all();
 		const allowed = files.filter(
 			(file) =>
@@ -69,13 +71,20 @@ async function validateRefs(
 async function replaceResponsibles(programItemId: number, userIds: number[], tx: DrizzleDB) {
 	await tx
 		.delete(DB.Tables.programItemResponsibles)
-		.where(eq(DB.Tables.programItemResponsibles.program_item_id, programItemId))
+		.where(
+			and(
+				inOrg(DB.Tables.programItemResponsibles),
+				eq(DB.Tables.programItemResponsibles.program_item_id, programItemId),
+			),
+		)
 		.run();
 	const unique = [...new Set(userIds)];
 	if (unique.length > 0) {
 		await tx
 			.insert(DB.Tables.programItemResponsibles)
-			.values(unique.map((user_id) => ({ program_item_id: programItemId, user_id })))
+			.values(
+				unique.map((user_id) => ({ org_id: OrgContext.id(), program_item_id: programItemId, user_id })),
+			)
 			.run();
 	}
 }
@@ -83,13 +92,20 @@ async function replaceResponsibles(programItemId: number, userIds: number[], tx:
 async function replaceFiles(programItemId: number, fileIds: number[], tx: DrizzleDB) {
 	await tx
 		.delete(DB.Tables.programItemFiles)
-		.where(eq(DB.Tables.programItemFiles.program_item_id, programItemId))
+		.where(
+			and(
+				inOrg(DB.Tables.programItemFiles),
+				eq(DB.Tables.programItemFiles.program_item_id, programItemId),
+			),
+		)
 		.run();
 	const unique = [...new Set(fileIds)];
 	if (unique.length > 0) {
 		await tx
 			.insert(DB.Tables.programItemFiles)
-			.values(unique.map((file_id) => ({ program_item_id: programItemId, file_id })))
+			.values(
+				unique.map((file_id) => ({ org_id: OrgContext.id(), program_item_id: programItemId, file_id })),
+			)
 			.run();
 	}
 }
@@ -98,7 +114,12 @@ async function getResponsibleIds(programItemId: number) {
 	const rows = await DB.instance()
 		.select({ user_id: DB.Tables.programItemResponsibles.user_id })
 		.from(DB.Tables.programItemResponsibles)
-		.where(eq(DB.Tables.programItemResponsibles.program_item_id, programItemId))
+		.where(
+			and(
+				inOrg(DB.Tables.programItemResponsibles),
+				eq(DB.Tables.programItemResponsibles.program_item_id, programItemId),
+			),
+		)
 		.all();
 	return rows.map((row) => row.user_id);
 }
@@ -107,7 +128,12 @@ async function getFileIds(programItemId: number) {
 	const rows = await DB.instance()
 		.select({ file_id: DB.Tables.programItemFiles.file_id })
 		.from(DB.Tables.programItemFiles)
-		.where(eq(DB.Tables.programItemFiles.program_item_id, programItemId))
+		.where(
+			and(
+				inOrg(DB.Tables.programItemFiles),
+				eq(DB.Tables.programItemFiles.program_item_id, programItemId),
+			),
+		)
 		.all();
 	return rows.map((row) => row.file_id);
 }
@@ -123,7 +149,12 @@ async function toResponse(
 	const responsibles = await DB.instance()
 		.select()
 		.from(DB.Tables.programItemResponsibles)
-		.where(inArray(DB.Tables.programItemResponsibles.program_item_id, ids))
+		.where(
+			and(
+				inOrg(DB.Tables.programItemResponsibles),
+				inArray(DB.Tables.programItemResponsibles.program_item_id, ids),
+			),
+		)
 		.all();
 
 	const fileLinks = await DB.instance()
@@ -132,8 +163,13 @@ async function toResponse(
 			file: DB.Tables.files,
 		})
 		.from(DB.Tables.programItemFiles)
-		.innerJoin(DB.Tables.files, eq(DB.Tables.files.id, DB.Tables.programItemFiles.file_id))
-		.where(inArray(DB.Tables.programItemFiles.program_item_id, ids))
+		.innerJoin(
+			DB.Tables.files,
+			and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, DB.Tables.programItemFiles.file_id)),
+		)
+		.where(
+			and(inOrg(DB.Tables.programItemFiles), inArray(DB.Tables.programItemFiles.program_item_id, ids)),
+		)
 		.orderBy(asc(DB.Tables.files.kind), asc(DB.Tables.files.name))
 		.all();
 
@@ -204,7 +240,7 @@ router.get(
 		const event = c.get("event");
 		const { from, to } = c.req.valid("query") as EventProgramModel.GetAll.Query;
 
-		const conditions = [eq(DB.Tables.programItems.event_id, event.id)];
+		const conditions = [inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.event_id, event.id)];
 		if (from !== undefined) conditions.push(gt(DB.Tables.programItems.end_at, from));
 		if (to !== undefined) conditions.push(lt(DB.Tables.programItems.start_at, to));
 
@@ -257,7 +293,7 @@ router.post(
 			item = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.programItems)
-					.values({ ...body, event_id: event.id, created_by: userId })
+					.values({ ...body, event_id: event.id, created_by: userId, org_id: OrgContext.id() })
 					.returning()
 					.get();
 				await replaceResponsibles(created.id, responsible_user_ids, tx);
@@ -297,6 +333,7 @@ router.use("/:programItemId/*", zValidator("param", EventProgramModel.Params), a
 		.from(DB.Tables.programItems)
 		.where(
 			and(
+				inOrg(DB.Tables.programItems),
 				eq(DB.Tables.programItems.id, programItemId.data),
 				eq(DB.Tables.programItems.event_id, event.id),
 			),
@@ -357,7 +394,7 @@ router.put(
 				const row = await tx
 					.update(DB.Tables.programItems)
 					.set({ ...body, updated_at: Date.now() })
-					.where(eq(DB.Tables.programItems.id, item.id))
+					.where(and(inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.id, item.id)))
 					.returning()
 					.get();
 				if (responsible_user_ids !== undefined) {
@@ -436,7 +473,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.programItems)
-			.where(eq(DB.Tables.programItems.id, item.id))
+			.where(and(inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.id, item.id)))
 			.run();
 
 		await AuditLog.record({
@@ -492,6 +529,7 @@ router.post(
 				const created = await tx
 					.insert(DB.Tables.programItems)
 					.values({
+						org_id: OrgContext.id(),
 						event_id: event.id,
 						title: item.title,
 						description: item.description,

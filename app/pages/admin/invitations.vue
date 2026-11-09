@@ -11,7 +11,7 @@ type InvitationStatus = Invitation["status"];
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Einladungen | Administration | CMP",
+	title: "Einladungen | Administration",
 	description: "Neue Mitglieder einladen",
 });
 

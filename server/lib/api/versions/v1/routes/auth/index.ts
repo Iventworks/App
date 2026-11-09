@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
@@ -21,6 +22,8 @@ const DUMMY_PASSWORD_HASH = await Bun.password.hash("dummy-timing-constant");
 // There is deliberately NO hard per-username lock across all clients: that would let anyone keep
 // a known account (e.g. `admin`) locked out. Instead, repeated failures for a username from many
 // clients only slow responses down (argon2 hashing already makes guessing expensive).
+// Usernames are per org, so the username counters are keyed by org; the per-client failure
+// counter is not (spraying usernames across many orgs from one client is still spraying).
 const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const LOGIN_MAX_ATTEMPTS_PER_CLIENT_AND_USER = 5;
 const LOGIN_MAX_ATTEMPTS_PER_CLIENT = 30;
@@ -92,7 +95,7 @@ router.post(
 
 		try {
 			const clientIP = getClientIP(c);
-			const usernameKey = username.toLowerCase();
+			const usernameKey = `${OrgContext.id()}:${username.toLowerCase()}`;
 			const clientUserKey = `${clientIP}:${usernameKey}`;
 
 			// Increment the per-account counter FIRST, then check limits — eliminates TOCTOU race.
@@ -116,7 +119,7 @@ router.post(
 			const user = DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.username, username))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.username, username)))
 				.get();
 			if (!user) {
 				// Timing-normalized: always run a bcrypt call to prevent username enumeration
@@ -145,7 +148,7 @@ router.post(
 				await tx
 					.update(DB.Tables.users)
 					.set({ last_login_at: Date.now() })
-					.where(eq(DB.Tables.users.id, user.id))
+					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
 					.run();
 				return await SessionHandler.createSession(user.id, tx);
 			});

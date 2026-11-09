@@ -12,7 +12,7 @@ type PlanningEvent = Planning["events"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Personalplanung | Kernteam | CMP" });
+useSeoMeta({ title: "Personalplanung | Kernteam" });
 
 const toast = useToast();
 

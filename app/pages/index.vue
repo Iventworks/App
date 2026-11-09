@@ -11,7 +11,7 @@ type DashboardTask = Dashboard["tasks"]["overdue"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Übersicht | CMP", description: "Deine persönliche Übersicht" });
+useSeoMeta({ title: "Übersicht", description: "Deine persönliche Übersicht" });
 
 const toast = useToast();
 const user = await useUserInfoStore().use();

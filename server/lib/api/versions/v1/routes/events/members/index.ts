@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -46,10 +47,14 @@ async function toResponse(
 		.from(DB.Tables.eventGroupMembers)
 		.innerJoin(
 			DB.Tables.eventGroups,
-			eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			and(
+				inOrg(DB.Tables.eventGroups),
+				eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			),
 		)
 		.where(
 			and(
+				inOrg(DB.Tables.eventGroupMembers),
 				eq(DB.Tables.eventGroups.event_id, event.id),
 				inArray(DB.Tables.eventGroupMembers.user_id, userIds),
 			),
@@ -64,13 +69,13 @@ async function toResponse(
 		? await DB.instance()
 				.select({ id: DB.Tables.rooms.id, name: DB.Tables.rooms.name })
 				.from(DB.Tables.rooms)
-				.where(inArray(DB.Tables.rooms.id, roomIds))
+				.where(and(inOrg(DB.Tables.rooms), inArray(DB.Tables.rooms.id, roomIds)))
 				.all()
 		: [];
 
 	return members
 		.filter((member) => users.has(member.user_id))
-		.map((member) => ({
+		.map(({ org_id: _orgId, ...member }) => ({
 			...member,
 			leader_notes: showLeaderNotes ? member.leader_notes : "",
 			user: users.get(member.user_id)!,
@@ -105,7 +110,9 @@ router.get(
 		const members = await DB.instance()
 			.select()
 			.from(DB.Tables.eventMembers)
-			.where(eq(DB.Tables.eventMembers.event_id, c.get("event").id))
+			.where(
+				and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.event_id, c.get("event").id)),
+			)
 			.orderBy(asc(DB.Tables.eventMembers.role), asc(DB.Tables.eventMembers.id))
 			.all();
 
@@ -146,7 +153,7 @@ router.post(
 		const user = await DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(eq(DB.Tables.users.id, body.user_id))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, body.user_id)))
 			.get();
 		if (!user) return APIResponse.notFound(c, "User not found");
 		if (user.role === "unverified") {
@@ -157,7 +164,11 @@ router.post(
 			.select({ id: DB.Tables.eventMembers.id })
 			.from(DB.Tables.eventMembers)
 			.where(
-				and(eq(DB.Tables.eventMembers.event_id, event.id), eq(DB.Tables.eventMembers.user_id, user.id)),
+				and(
+					inOrg(DB.Tables.eventMembers),
+					eq(DB.Tables.eventMembers.event_id, event.id),
+					eq(DB.Tables.eventMembers.user_id, user.id),
+				),
 			)
 			.get();
 		if (existing) return APIResponse.conflict(c, "The user is already a member of this event");
@@ -165,6 +176,7 @@ router.post(
 		const member = await DB.instance()
 			.insert(DB.Tables.eventMembers)
 			.values({
+				org_id: OrgContext.id(),
 				event_id: event.id,
 				user_id: user.id,
 				role: body.role,
@@ -213,7 +225,11 @@ router.use("/:memberId/*", zValidator("param", EventMembersModel.Params), async 
 		.select()
 		.from(DB.Tables.eventMembers)
 		.where(
-			and(eq(DB.Tables.eventMembers.id, memberId.data), eq(DB.Tables.eventMembers.event_id, event.id)),
+			and(
+				inOrg(DB.Tables.eventMembers),
+				eq(DB.Tables.eventMembers.id, memberId.data),
+				eq(DB.Tables.eventMembers.event_id, event.id),
+			),
 		)
 		.get();
 
@@ -257,7 +273,13 @@ router.put(
 			const room = await DB.instance()
 				.select({ id: DB.Tables.rooms.id })
 				.from(DB.Tables.rooms)
-				.where(and(eq(DB.Tables.rooms.id, body.room_id), eq(DB.Tables.rooms.event_id, event.id)))
+				.where(
+					and(
+						inOrg(DB.Tables.rooms),
+						eq(DB.Tables.rooms.id, body.room_id),
+						eq(DB.Tables.rooms.event_id, event.id),
+					),
+				)
 				.get();
 			if (!room) return APIResponse.badRequest(c, "The room does not belong to this event");
 		}
@@ -265,7 +287,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.eventMembers)
 			.set(body)
-			.where(eq(DB.Tables.eventMembers.id, member.id))
+			.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.id, member.id)))
 			.returning()
 			.get();
 
@@ -321,7 +343,7 @@ router.delete(
 					await tx
 						.select({ id: DB.Tables.eventGroups.id })
 						.from(DB.Tables.eventGroups)
-						.where(eq(DB.Tables.eventGroups.event_id, event.id))
+						.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.event_id, event.id)))
 						.all()
 				).map((row) => row.id);
 				if (groupIds.length) {
@@ -329,6 +351,7 @@ router.delete(
 						.delete(DB.Tables.eventGroupMembers)
 						.where(
 							and(
+								inOrg(DB.Tables.eventGroupMembers),
 								inArray(DB.Tables.eventGroupMembers.group_id, groupIds),
 								eq(DB.Tables.eventGroupMembers.user_id, member.user_id),
 							),
@@ -340,7 +363,7 @@ router.delete(
 					await tx
 						.select({ id: DB.Tables.programItems.id })
 						.from(DB.Tables.programItems)
-						.where(eq(DB.Tables.programItems.event_id, event.id))
+						.where(and(inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.event_id, event.id)))
 						.all()
 				).map((row) => row.id);
 				if (programIds.length) {
@@ -348,6 +371,7 @@ router.delete(
 						.delete(DB.Tables.programItemResponsibles)
 						.where(
 							and(
+								inOrg(DB.Tables.programItemResponsibles),
 								inArray(DB.Tables.programItemResponsibles.program_item_id, programIds),
 								eq(DB.Tables.programItemResponsibles.user_id, member.user_id),
 							),
@@ -359,7 +383,9 @@ router.delete(
 					await tx
 						.select({ id: DB.Tables.responsibilities.id })
 						.from(DB.Tables.responsibilities)
-						.where(eq(DB.Tables.responsibilities.event_id, event.id))
+						.where(
+							and(inOrg(DB.Tables.responsibilities), eq(DB.Tables.responsibilities.event_id, event.id)),
+						)
 						.all()
 				).map((row) => row.id);
 				if (responsibilityIds.length) {
@@ -367,6 +393,7 @@ router.delete(
 						.delete(DB.Tables.responsibilityAssignees)
 						.where(
 							and(
+								inOrg(DB.Tables.responsibilityAssignees),
 								inArray(DB.Tables.responsibilityAssignees.responsibility_id, responsibilityIds),
 								eq(DB.Tables.responsibilityAssignees.user_id, member.user_id),
 							),
@@ -378,11 +405,18 @@ router.delete(
 					.update(DB.Tables.tasks)
 					.set({ assignee_id: null, updated_at: Date.now() })
 					.where(
-						and(eq(DB.Tables.tasks.event_id, event.id), eq(DB.Tables.tasks.assignee_id, member.user_id)),
+						and(
+							inOrg(DB.Tables.tasks),
+							eq(DB.Tables.tasks.event_id, event.id),
+							eq(DB.Tables.tasks.assignee_id, member.user_id),
+						),
 					)
 					.run();
 
-				await tx.delete(DB.Tables.eventMembers).where(eq(DB.Tables.eventMembers.id, member.id)).run();
+				await tx
+					.delete(DB.Tables.eventMembers)
+					.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.id, member.id)))
+					.run();
 			});
 		} catch (error: any) {
 			Logger.error("Failed to remove event member", error.stack || error.message || error);

@@ -14,8 +14,10 @@ import { CoreTeamModel } from "../server/lib/api/versions/v1/routes/org/core-tea
 import { OrgDocumentsModel } from "../server/lib/api/versions/v1/routes/org/documents/model";
 import { OrgResourcesModel } from "../server/lib/api/versions/v1/routes/org/resources/model";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
 import { createMemoryTransport } from "./helpers/memory-transport";
+import { hostHeaders, TEST_HOST } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -43,7 +45,7 @@ function seedEvent(
 ) {
 	return DB.instance()
 		.insert(DB.Tables.events)
-		.values({ name, start_date, end_date, ...extra })
+		.values({ org_id: OrgContext.id(), name, start_date, end_date, ...extra })
 		.returning()
 		.get();
 }
@@ -212,6 +214,7 @@ describe("Invitations", () => {
 		const expired = DB.instance()
 			.insert(DB.Tables.invitations)
 			.values({
+				org_id: OrgContext.id(),
 				token_hash: hashInvitationToken(token),
 				email: `expired-${randomUUID().slice(0, 8)}@example.com`,
 				role: "volunteer",
@@ -608,7 +611,7 @@ describe("Login rate limiting", () => {
 			"/v1/auth/login",
 			{
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				headers: { "Content-Type": "application/json", ...hostHeaders(TEST_HOST) },
 				body: JSON.stringify({ username, password }),
 			},
 			{ clientIP },
@@ -889,6 +892,7 @@ describe("Core team area", () => {
 			.insert(DB.Tables.participants)
 			.values([
 				{
+					org_id: OrgContext.id(),
 					event_id: event.id,
 					first_name: "Mia",
 					last_name: "Muster",
@@ -896,6 +900,7 @@ describe("Core team area", () => {
 					gender: "female",
 				},
 				{
+					org_id: OrgContext.id(),
 					event_id: event.id,
 					first_name: "Ben",
 					last_name: "Beispiel",
@@ -904,21 +909,40 @@ describe("Core team area", () => {
 					status: "confirmed",
 				},
 				{
+					org_id: OrgContext.id(),
 					event_id: overlappingEvent.id,
 					first_name: "Mia",
 					last_name: "Muster",
 					birth_date: "2018-05-01",
 					gender: "female",
 				},
-				{ event_id: event.id, first_name: "Abgesagt", last_name: "X", status: "cancelled" },
+				{
+					org_id: OrgContext.id(),
+					event_id: event.id,
+					first_name: "Abgesagt",
+					last_name: "X",
+					status: "cancelled",
+				},
 			])
 			.run();
 
 		DB.instance()
 			.insert(DB.Tables.budgetItems)
 			.values([
-				{ event_id: event.id, kind: "expense", category: "Essen", planned_cents: 200_000 },
-				{ event_id: event.id, kind: "income", category: "Zuschuss", planned_cents: 50_000 },
+				{
+					org_id: OrgContext.id(),
+					event_id: event.id,
+					kind: "expense",
+					category: "Essen",
+					planned_cents: 200_000,
+				},
+				{
+					org_id: OrgContext.id(),
+					event_id: event.id,
+					kind: "income",
+					category: "Zuschuss",
+					planned_cents: 50_000,
+				},
 			])
 			.run();
 
@@ -926,6 +950,7 @@ describe("Core team area", () => {
 			.insert(DB.Tables.expenses)
 			.values([
 				{
+					org_id: OrgContext.id(),
 					event_id: event.id,
 					title: "Einkauf",
 					category: "Essen",
@@ -934,6 +959,7 @@ describe("Core team area", () => {
 					status: "approved",
 				},
 				{
+					org_id: OrgContext.id(),
 					event_id: event.id,
 					title: "Bastelmaterial",
 					category: "Material",
@@ -942,6 +968,7 @@ describe("Core team area", () => {
 					status: "submitted",
 				},
 				{
+					org_id: OrgContext.id(),
 					event_id: event.id,
 					title: "Fahrt",
 					category: "Fahrtkosten",
@@ -1093,6 +1120,7 @@ describe("Housekeeping", () => {
 		db
 			.insert(DB.Tables.sessions)
 			.values({
+				org_id: OrgContext.id(),
 				id: "expired-session",
 				hashed_token: "x",
 				user_id: volunteer.id,
@@ -1102,17 +1130,33 @@ describe("Housekeeping", () => {
 			.run();
 		db
 			.insert(DB.Tables.passwordResets)
-			.values({ token: "expired-reset", user_id: volunteer.id, expires_at: now - 1 })
+			.values({
+				org_id: OrgContext.id(),
+				token: "expired-reset",
+				user_id: volunteer.id,
+				expires_at: now - 1,
+			})
 			.run();
 		db
 			.insert(DB.Tables.invitations)
-			.values({ token_hash: "expired-invite", email: "alt@example.com", expires_at: now - 1 })
+			.values({
+				org_id: OrgContext.id(),
+				token_hash: "expired-invite",
+				email: "alt@example.com",
+				expires_at: now - 1,
+			})
 			.run();
 		db
 			.insert(DB.Tables.notifications)
 			.values([
-				{ user_id: volunteer.id, type: "system", title: "alt", read_at: now - 100 * day },
-				{ user_id: volunteer.id, type: "system", title: "ungelesen" },
+				{
+					org_id: OrgContext.id(),
+					user_id: volunteer.id,
+					type: "system",
+					title: "alt",
+					read_at: now - 100 * day,
+				},
+				{ org_id: OrgContext.id(), user_id: volunteer.id, type: "system", title: "ungelesen" },
 			])
 			.run();
 

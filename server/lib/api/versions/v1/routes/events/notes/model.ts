@@ -11,7 +11,7 @@ export namespace EventNotesModel {
 	});
 	export type GroupRef = z.infer<typeof GroupRef>;
 
-	export const Note = createSelectSchema(DB.Tables.notes).extend({
+	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true }).extend({
 		creator: UserSummary.Schema.nullable(),
 		updater: UserSummary.Schema.nullable(),
 		group: GroupRef.nullable(),

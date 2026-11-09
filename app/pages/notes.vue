@@ -9,7 +9,7 @@ type Note = GetNotesResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Notizen | CMP", description: "Deine persönlichen Notizen" });
+useSeoMeta({ title: "Notizen", description: "Deine persönlichen Notizen" });
 
 const route = useRoute();
 const router = useRouter();

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { SessionHandler } from "../../server/lib/api/utils/authHandler";
 import { DB } from "../../server/lib/db";
+import { OrgContext } from "../../server/lib/orgs/context";
 
 export type SeededUser = Omit<DB.Models.User, "password_hash"> & { password: string };
 export type SeededSession = Awaited<ReturnType<typeof SessionHandler.createSession>>;
@@ -15,6 +16,7 @@ export async function seedUser(
 	const user = DB.instance()
 		.insert(DB.Tables.users)
 		.values({
+			org_id: overrides.org_id ?? OrgContext.id(),
 			username: overrides.username ?? `user_${randomUUID().slice(0, 8)}`,
 			display_name: overrides.display_name ?? "Test User",
 			email: overrides.email ?? `${randomUUID()}@example.com`,
@@ -39,7 +41,7 @@ export async function addEventMember(
 ) {
 	return DB.instance()
 		.insert(DB.Tables.eventMembers)
-		.values({ event_id, user_id, role })
+		.values({ org_id: OrgContext.id(), event_id, user_id, role })
 		.returning()
 		.get();
 }

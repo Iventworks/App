@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
-import { ConfigHandler } from "../../utils/config";
+import { inOrg, OrgContext } from "../../orgs/context";
 import { LCrypt } from "../../utils/crypto/lcrypt";
 
 /**
@@ -27,11 +27,16 @@ export class PasswordLinks {
 
 		await tx
 			.delete(DB.Tables.passwordResets)
-			.where(eq(DB.Tables.passwordResets.user_id, userID))
+			.where(and(inOrg(DB.Tables.passwordResets), eq(DB.Tables.passwordResets.user_id, userID)))
 			.run();
 		await tx
 			.insert(DB.Tables.passwordResets)
-			.values({ user_id: userID, token: PasswordLinks.hashToken(token), expires_at: expiresAt })
+			.values({
+				org_id: OrgContext.id(),
+				user_id: userID,
+				token: PasswordLinks.hashToken(token),
+				expires_at: expiresAt,
+			})
 			.run();
 
 		return { token, url: PasswordLinks.url(token), expires_at: expiresAt };
@@ -40,12 +45,12 @@ export class PasswordLinks {
 	static async revokeAll(userID: number, tx: DrizzleDB = DB.instance()) {
 		await tx
 			.delete(DB.Tables.passwordResets)
-			.where(eq(DB.Tables.passwordResets.user_id, userID))
+			.where(and(inOrg(DB.Tables.passwordResets), eq(DB.Tables.passwordResets.user_id, userID)))
 			.run();
 	}
 
+	/** The link on the current org's own domain: the token only works there. */
 	static url(token: string) {
-		const appUrl = ConfigHandler.getConfig()?.APP_URL ?? "";
-		return `${appUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
+		return `${OrgContext.current().url}/auth/reset-password?token=${encodeURIComponent(token)}`;
 	}
 }

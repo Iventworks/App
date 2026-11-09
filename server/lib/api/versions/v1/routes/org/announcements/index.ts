@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler } from "../../../../../utils/authHandler";
@@ -61,7 +62,7 @@ router.get(
 		const query = DB.instance()
 			.select()
 			.from(DB.Tables.announcements)
-			.where(isNull(DB.Tables.announcements.event_id))
+			.where(and(inOrg(DB.Tables.announcements), isNull(DB.Tables.announcements.event_id)))
 			.orderBy(desc(DB.Tables.announcements.pinned), desc(DB.Tables.announcements.created_at))
 			.$dynamic();
 
@@ -101,7 +102,7 @@ router.post(
 
 		const announcement = await DB.instance()
 			.insert(DB.Tables.announcements)
-			.values({ ...body, event_id: null, created_by: userId })
+			.values({ ...body, org_id: OrgContext.id(), event_id: null, created_by: userId })
 			.returning()
 			.get();
 
@@ -116,7 +117,9 @@ router.post(
 		const recipients = await DB.instance()
 			.select({ id: DB.Tables.users.id })
 			.from(DB.Tables.users)
-			.where(inArray(DB.Tables.users.role, ["volunteer", "core_team", "admin"]))
+			.where(
+				and(inOrg(DB.Tables.users), inArray(DB.Tables.users.role, ["volunteer", "core_team", "admin"])),
+			)
 			.all();
 
 		await Notifier.notify(
@@ -149,6 +152,7 @@ router.use(
 			.from(DB.Tables.announcements)
 			.where(
 				and(
+					inOrg(DB.Tables.announcements),
 					eq(DB.Tables.announcements.id, announcementId.data),
 					isNull(DB.Tables.announcements.event_id),
 				),
@@ -193,7 +197,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.announcements)
 			.set(body)
-			.where(eq(DB.Tables.announcements.id, announcement.id))
+			.where(and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.id, announcement.id)))
 			.returning()
 			.get();
 
@@ -234,7 +238,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.announcements)
-			.where(eq(DB.Tables.announcements.id, announcement.id))
+			.where(and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.id, announcement.id)))
 			.run();
 
 		await AuditLog.record({

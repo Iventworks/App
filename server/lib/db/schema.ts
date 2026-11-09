@@ -2,6 +2,7 @@ import type { TaskHandler } from "@cleverjs/utils";
 import { sql } from "drizzle-orm";
 import {
 	type AnySQLiteColumn,
+	blob,
 	index,
 	integer,
 	primaryKey,
@@ -17,41 +18,152 @@ import { SQLUtils } from "./utils";
 // Foreign keys are enforced (`PRAGMA foreign_keys = ON` in DB.init), so `onDelete` actions apply.
 
 // ---------------------------------------------------------------------------
+// Organisations (tenants)
+// ---------------------------------------------------------------------------
+
+export const ORG_KINDS = ["org", "system"] as const;
+
+/**
+ * Tailwind palettes an org can pick as its primary colour (Nuxt UI `ui.colors.primary`).
+ * Neutral greys are left out: they would look like the slate UI around them.
+ */
+export const ORG_PRIMARY_COLORS = [
+	"red",
+	"orange",
+	"amber",
+	"yellow",
+	"lime",
+	"green",
+	"emerald",
+	"teal",
+	"cyan",
+	"sky",
+	"blue",
+	"indigo",
+	"violet",
+	"purple",
+	"fuchsia",
+	"pink",
+	"rose",
+] as const;
+
+export const ORG_ASSET_KINDS = ["logo", "icon"] as const;
+
+/**
+ * Every tenant. All org data carries `org_id` (see `orgIdColumn`) and every query filters by it
+ * (`inOrg`, enforced by the tenant guard in `server/lib/orgs/guard.ts`).
+ * `kind = "system"` is the one internal org of the system admins (multi-org mode): it owns no
+ * events, only its users, sessions, invitations and audit log.
+ * @deprecated Use DB.Tables.orgs to access this table.
+ */
+export const orgs = sqliteTable("orgs", {
+	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+	// Lower-case DNS label used in the default domain `<slug>.<base host>`. Never changes.
+	slug: text().notNull().unique(),
+	kind: text({ enum: ORG_KINDS }).notNull().default("org"),
+	display_name: text().notNull(),
+	primary_color: text({ enum: ORG_PRIMARY_COLORS }).notNull().default("fuchsia"),
+	created_at: SQLUtils.getCreatedAtColumn(),
+	updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+});
+
+/** `org_id` of an org-owned table: required, and deleting the org deletes the row. */
+function orgIdColumn() {
+	return integer()
+		.notNull()
+		.references(() => orgs.id, { onDelete: "cascade" });
+}
+
+/**
+ * Custom domains of an org (multi-org mode). A domain only serves the org once both DNS checks
+ * passed: the TXT record `_iventworks-challenge.<domain>` with `verification_token`, and a CNAME
+ * to the org's default domain. While a verified primary domain exists, every other domain of the
+ * org redirects page loads to it.
+ * @deprecated Use DB.Tables.orgDomains to access this table.
+ */
+export const orgDomains = sqliteTable(
+	"org_domains",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		org_id: orgIdColumn(),
+		// Lower-case, no port, no trailing dot. One org per domain.
+		domain: text().notNull().unique(),
+		verification_token: text().notNull(),
+		verified_at: integer(),
+		is_primary: integer({ mode: "boolean" }).notNull().default(false),
+		last_checked_at: integer(),
+		// German explanation of the last failed check, shown next to the domain.
+		last_check_error: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("org_domains_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * Branding images of an org: the logo (sidebar, login) and the square icon (favicon, app icon).
+ * Small enough (see `OrgBranding.MAX_ASSET_BYTES`) to live in the database.
+ * @deprecated Use DB.Tables.orgAssets to access this table.
+ */
+export const orgAssets = sqliteTable(
+	"org_assets",
+	{
+		org_id: orgIdColumn(),
+		kind: text({ enum: ORG_ASSET_KINDS }).notNull(),
+		mime_type: text().notNull(),
+		data: blob({ mode: "buffer" }).notNull(),
+		// Square icons: the PNG's width in px (manifest `sizes`); null for SVG.
+		size_px: integer(),
+		updated_at: integer().notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.org_id, table.kind] })],
+);
+
+// ---------------------------------------------------------------------------
 // Accounts & auth
 // ---------------------------------------------------------------------------
 
 /**
  * @deprecated Use DB.Tables.users to access this table.
  */
-export const users = sqliteTable("users", {
-	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+export const users = sqliteTable(
+	"users",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		org_id: orgIdColumn(),
 
-	username: text().notNull().unique(),
-	display_name: text().notNull(),
-	email: text().notNull().unique(),
-	password_hash: text().notNull(),
+		// Unique per org (see the indexes below): every org has its own accounts.
+		username: text().notNull(),
+		display_name: text().notNull(),
+		email: text().notNull(),
+		password_hash: text().notNull(),
 
-	role: text({
-		enum: UserAccountSettings.Roles,
-	})
-		.default("unverified")
-		.notNull(),
+		role: text({
+			enum: UserAccountSettings.Roles,
+		})
+			.default("unverified")
+			.notNull(),
 
-	phone: text(),
+		phone: text(),
 
-	// Set while an admin has suspended the account: no login, all sessions and API keys revoked.
-	suspended_at: integer(),
-	suspended_reason: text(),
+		// Set while an admin has suspended the account: no login, all sessions and API keys revoked.
+		suspended_at: integer(),
+		suspended_reason: text(),
 
-	last_login_at: integer(),
+		last_login_at: integer(),
 
-	created_at: SQLUtils.getCreatedAtColumn(),
-});
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		uniqueIndex("users_org_username_unique").on(table.org_id, table.username),
+		uniqueIndex("users_org_email_unique").on(table.org_id, table.email),
+	],
+);
 
 /**
  * @deprecated Use DB.Tables.passwordResets to access this table.
  */
 export const passwordResets = sqliteTable("password_resets", {
+	org_id: orgIdColumn(),
 	token: text().primaryKey(),
 	user_id: integer()
 		.notNull()
@@ -64,6 +176,7 @@ export const passwordResets = sqliteTable("password_resets", {
  * @deprecated Use DB.Tables.sessions to access this table.
  */
 export const sessions = sqliteTable("sessions", {
+	org_id: orgIdColumn(),
 	id: text().primaryKey(),
 	hashed_token: text().notNull(),
 	user_id: integer()
@@ -81,6 +194,7 @@ export const sessions = sqliteTable("sessions", {
  * @deprecated Use DB.Tables.apiKeys to access this table.
  */
 export const apiKeys = sqliteTable("api_keys", {
+	org_id: orgIdColumn(),
 	id: text().primaryKey(),
 	hashed_token: text().notNull(),
 	user_id: integer()
@@ -101,6 +215,7 @@ export const apiKeys = sqliteTable("api_keys", {
 export const userPreferences = sqliteTable(
 	"user_preferences",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		user_id: integer()
 			.notNull()
@@ -119,18 +234,23 @@ export const userPreferences = sqliteTable(
  * pick a username and password once.
  * @deprecated Use DB.Tables.invitations to access this table.
  */
-export const invitations = sqliteTable("invitations", {
-	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
-	token_hash: text().notNull().unique(),
-	email: text().notNull(),
-	display_name: text(),
-	role: text({ enum: UserAccountSettings.Roles }).notNull().default("volunteer"),
-	invited_by: integer().references(() => users.id, { onDelete: "set null" }),
-	created_at: SQLUtils.getCreatedAtColumn(),
-	expires_at: integer().notNull(),
-	accepted_at: integer(),
-	accepted_user_id: integer().references(() => users.id, { onDelete: "set null" }),
-});
+export const invitations = sqliteTable(
+	"invitations",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		token_hash: text().notNull().unique(),
+		email: text().notNull(),
+		display_name: text(),
+		role: text({ enum: UserAccountSettings.Roles }).notNull().default("volunteer"),
+		invited_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		expires_at: integer().notNull(),
+		accepted_at: integer(),
+		accepted_user_id: integer().references(() => users.id, { onDelete: "set null" }),
+	},
+	(table) => [index("invitations_org_id_idx").on(table.org_id)],
+);
 
 // ---------------------------------------------------------------------------
 // Events (camps & events) and their staff
@@ -143,24 +263,29 @@ export const EVENT_MEMBER_ROLES = ["leader", "staff"] as const;
 /**
  * @deprecated Use DB.Tables.events to access this table.
  */
-export const events = sqliteTable("events", {
-	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
-	name: text().notNull(),
-	type: text({ enum: EVENT_TYPES }).notNull().default("camp"),
-	status: text({ enum: EVENT_STATUSES }).notNull().default("planning"),
-	description: text().notNull().default(""),
-	location: text(),
-	// Date-only, inclusive: `YYYY-MM-DD`.
-	start_date: text().notNull(),
-	end_date: text().notNull(),
-	color: text(),
-	max_participants: integer(),
-	participant_fee_cents: integer(),
-	budget_cents: integer().notNull().default(0),
-	created_by: integer().references(() => users.id, { onDelete: "set null" }),
-	created_at: SQLUtils.getCreatedAtColumn(),
-	updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
-});
+export const events = sqliteTable(
+	"events",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		name: text().notNull(),
+		type: text({ enum: EVENT_TYPES }).notNull().default("camp"),
+		status: text({ enum: EVENT_STATUSES }).notNull().default("planning"),
+		description: text().notNull().default(""),
+		location: text(),
+		// Date-only, inclusive: `YYYY-MM-DD`.
+		start_date: text().notNull(),
+		end_date: text().notNull(),
+		color: text(),
+		max_participants: integer(),
+		participant_fee_cents: integer(),
+		budget_cents: integer().notNull().default(0),
+		created_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [index("events_org_id_idx").on(table.org_id)],
+);
 
 /**
  * @deprecated Use DB.Tables.rooms to access this table.
@@ -168,6 +293,7 @@ export const events = sqliteTable("events", {
 export const rooms = sqliteTable(
 	"rooms",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -187,6 +313,7 @@ export const rooms = sqliteTable(
 export const eventMembers = sqliteTable(
 	"event_members",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -216,6 +343,7 @@ export const eventMembers = sqliteTable(
 export const eventGroups = sqliteTable(
 	"event_groups",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -234,6 +362,7 @@ export const eventGroups = sqliteTable(
 export const eventGroupMembers = sqliteTable(
 	"event_group_members",
 	{
+		org_id: orgIdColumn(),
 		group_id: integer()
 			.notNull()
 			.references(() => eventGroups.id, { onDelete: "cascade" }),
@@ -258,6 +387,7 @@ export const GENDERS = ["female", "male", "diverse"] as const;
 export const participants = sqliteTable(
 	"participants",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -295,6 +425,7 @@ export const participants = sqliteTable(
  * @deprecated Use DB.Tables.participantEmergencyContacts to access this table.
  */
 export const participantEmergencyContacts = sqliteTable("participant_emergency_contacts", {
+	org_id: orgIdColumn(),
 	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 	participant_id: integer()
 		.notNull()
@@ -310,6 +441,7 @@ export const participantEmergencyContacts = sqliteTable("participant_emergency_c
  * @deprecated Use DB.Tables.participantNotes to access this table.
  */
 export const participantNotes = sqliteTable("participant_notes", {
+	org_id: orgIdColumn(),
 	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 	participant_id: integer()
 		.notNull()
@@ -335,6 +467,7 @@ export const FILE_KINDS = ["folder", "file"] as const;
 export const files = sqliteTable(
 	"files",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		scope: text({ enum: FILE_SCOPES }).notNull(),
 		event_id: integer().references(() => events.id, { onDelete: "cascade" }),
@@ -349,6 +482,7 @@ export const files = sqliteTable(
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
 	(table) => [
+		index("files_org_id_idx").on(table.org_id),
 		index("files_scope_event_idx").on(table.scope, table.event_id),
 		index("files_parent_id_idx").on(table.parent_id),
 	],
@@ -365,6 +499,7 @@ export const files = sqliteTable(
 export const programItems = sqliteTable(
 	"program_items",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -389,6 +524,7 @@ export const programItems = sqliteTable(
 export const programItemResponsibles = sqliteTable(
 	"program_item_responsibles",
 	{
+		org_id: orgIdColumn(),
 		program_item_id: integer()
 			.notNull()
 			.references(() => programItems.id, { onDelete: "cascade" }),
@@ -406,6 +542,7 @@ export const programItemResponsibles = sqliteTable(
 export const programItemFiles = sqliteTable(
 	"program_item_files",
 	{
+		org_id: orgIdColumn(),
 		program_item_id: integer()
 			.notNull()
 			.references(() => programItems.id, { onDelete: "cascade" }),
@@ -423,6 +560,7 @@ export const programItemFiles = sqliteTable(
 export const responsibilities = sqliteTable(
 	"responsibilities",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -441,6 +579,7 @@ export const responsibilities = sqliteTable(
 export const responsibilityAssignees = sqliteTable(
 	"responsibility_assignees",
 	{
+		org_id: orgIdColumn(),
 		responsibility_id: integer()
 			.notNull()
 			.references(() => responsibilities.id, { onDelete: "cascade" }),
@@ -466,6 +605,7 @@ export const TASK_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export const tasks = sqliteTable(
 	"tasks",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer().references(() => events.id, { onDelete: "cascade" }),
 		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
@@ -482,6 +622,7 @@ export const tasks = sqliteTable(
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
 	(table) => [
+		index("tasks_org_id_idx").on(table.org_id),
 		index("tasks_event_id_idx").on(table.event_id),
 		index("tasks_user_id_idx").on(table.user_id),
 		index("tasks_assignee_id_idx").on(table.assignee_id),
@@ -498,6 +639,7 @@ export const NOTE_SCOPES = ["personal", "event", "group", "core_team"] as const;
 export const notes = sqliteTable(
 	"notes",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		scope: text({ enum: NOTE_SCOPES }).notNull(),
 		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
@@ -512,6 +654,7 @@ export const notes = sqliteTable(
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
 	(table) => [
+		index("notes_org_id_idx").on(table.org_id),
 		index("notes_scope_idx").on(table.scope),
 		index("notes_user_id_idx").on(table.user_id),
 		index("notes_event_id_idx").on(table.event_id),
@@ -527,6 +670,7 @@ export const ANNOUNCEMENT_PRIORITIES = ["normal", "important"] as const;
 export const announcements = sqliteTable(
 	"announcements",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer().references(() => events.id, { onDelete: "cascade" }),
 		title: text().notNull(),
@@ -536,7 +680,10 @@ export const announcements = sqliteTable(
 		created_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
-	(table) => [index("announcements_event_id_idx").on(table.event_id)],
+	(table) => [
+		index("announcements_org_id_idx").on(table.org_id),
+		index("announcements_event_id_idx").on(table.event_id),
+	],
 );
 
 // ---------------------------------------------------------------------------
@@ -553,6 +700,7 @@ export const BUDGET_ITEM_KINDS = ["expense", "income"] as const;
 export const expenses = sqliteTable(
 	"expenses",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -581,6 +729,7 @@ export const expenses = sqliteTable(
 export const budgetItems = sqliteTable(
 	"budget_items",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
@@ -601,15 +750,20 @@ export const budgetItems = sqliteTable(
 /**
  * @deprecated Use DB.Tables.orgResources to access this table.
  */
-export const orgResources = sqliteTable("org_resources", {
-	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
-	name: text().notNull(),
-	category: text().notNull().default("Allgemein"),
-	quantity: integer().notNull().default(1),
-	location: text(),
-	notes: text().notNull().default(""),
-	created_at: SQLUtils.getCreatedAtColumn(),
-});
+export const orgResources = sqliteTable(
+	"org_resources",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		name: text().notNull(),
+		category: text().notNull().default("Allgemein"),
+		quantity: integer().notNull().default(1),
+		location: text(),
+		notes: text().notNull().default(""),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("org_resources_org_id_idx").on(table.org_id)],
+);
 
 /**
  * A resource reserved for an event (for the event's date range).
@@ -618,6 +772,7 @@ export const orgResources = sqliteTable("org_resources", {
 export const resourceBookings = sqliteTable(
 	"resource_bookings",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		resource_id: integer()
 			.notNull()
@@ -649,6 +804,7 @@ export const CONVERSATION_TYPES = ["direct", "group", "event", "event_group", "c
 export const conversations = sqliteTable(
 	"conversations",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		type: text({ enum: CONVERSATION_TYPES }).notNull(),
 		name: text(),
@@ -659,6 +815,7 @@ export const conversations = sqliteTable(
 		last_message_at: integer(),
 	},
 	(table) => [
+		index("conversations_org_id_idx").on(table.org_id),
 		index("conversations_event_id_idx").on(table.event_id),
 		uniqueIndex("conversations_group_id_unique").on(table.group_id),
 	],
@@ -671,6 +828,7 @@ export const conversations = sqliteTable(
 export const conversationMembers = sqliteTable(
 	"conversation_members",
 	{
+		org_id: orgIdColumn(),
 		conversation_id: integer()
 			.notNull()
 			.references(() => conversations.id, { onDelete: "cascade" }),
@@ -694,6 +852,7 @@ export const conversationMembers = sqliteTable(
 export const messages = sqliteTable(
 	"messages",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		conversation_id: integer()
 			.notNull()
@@ -720,6 +879,7 @@ export const messages = sqliteTable(
 export const calendarEntries = sqliteTable(
 	"calendar_entries",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		user_id: integer()
 			.notNull()
@@ -733,7 +893,10 @@ export const calendarEntries = sqliteTable(
 		color: text(),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
-	(table) => [index("calendar_entries_user_start_idx").on(table.user_id, table.start_at)],
+	(table) => [
+		index("calendar_entries_org_id_idx").on(table.org_id),
+		index("calendar_entries_user_start_idx").on(table.user_id, table.start_at),
+	],
 );
 
 /**
@@ -742,6 +905,7 @@ export const calendarEntries = sqliteTable(
 export const notifications = sqliteTable(
 	"notifications",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		user_id: integer()
 			.notNull()
@@ -753,7 +917,10 @@ export const notifications = sqliteTable(
 		read_at: integer(),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
-	(table) => [index("notifications_user_created_idx").on(table.user_id, table.created_at)],
+	(table) => [
+		index("notifications_org_id_idx").on(table.org_id),
+		index("notifications_user_created_idx").on(table.user_id, table.created_at),
+	],
 );
 
 // ---------------------------------------------------------------------------
@@ -768,6 +935,7 @@ export const notifications = sqliteTable(
 export const auditLogs = sqliteTable(
 	"audit_logs",
 	{
+		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		user_id: integer().references(() => users.id, { onDelete: "set null" }),
 		event_id: integer().references(() => events.id, { onDelete: "set null" }),
@@ -779,6 +947,7 @@ export const auditLogs = sqliteTable(
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
 	(table) => [
+		index("audit_logs_org_id_idx").on(table.org_id),
 		index("audit_logs_event_created_idx").on(table.event_id, table.created_at),
 		index("audit_logs_created_idx").on(table.created_at),
 		index("audit_logs_entity_idx").on(table.entity_type, table.entity_id),

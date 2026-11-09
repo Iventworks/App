@@ -4,9 +4,11 @@ import { DB } from "../../../../../../db";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventResponsibilitiesModel {
-	export const Responsibility = createSelectSchema(DB.Tables.responsibilities).extend({
-		assignees: z.array(UserSummary.Schema),
-	});
+	export const Responsibility = createSelectSchema(DB.Tables.responsibilities)
+		.omit({ org_id: true })
+		.extend({
+			assignees: z.array(UserSummary.Schema),
+		});
 	export type Responsibility = z.infer<typeof Responsibility>;
 
 	export const Params = z.object({

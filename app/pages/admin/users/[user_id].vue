@@ -60,7 +60,7 @@ const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() => ({
 }));
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: "Benutzer | Administration | CMP",
+	baseTitle: "Benutzer | Administration",
 	basebreadcrumbItems: [{ label: "Benutzer", to: "/admin/users" }],
 	routes,
 });

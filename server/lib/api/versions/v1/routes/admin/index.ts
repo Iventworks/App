@@ -21,3 +21,4 @@ router.use("*", async (c, next) => {
 router.route("/", (await import("./users")).router);
 router.route("/", (await import("./invitations")).router);
 router.route("/", (await import("./audit-log")).router);
+router.route("/", (await import("./organization")).router);

@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
@@ -53,7 +54,9 @@ router.get(
 		const announcements = await DB.instance()
 			.select()
 			.from(DB.Tables.announcements)
-			.where(eq(DB.Tables.announcements.event_id, c.get("event").id))
+			.where(
+				and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.event_id, c.get("event").id)),
+			)
 			.orderBy(desc(DB.Tables.announcements.pinned), desc(DB.Tables.announcements.created_at))
 			.all();
 
@@ -96,7 +99,7 @@ router.post(
 
 		const announcement = await DB.instance()
 			.insert(DB.Tables.announcements)
-			.values({ ...body, event_id: event.id, created_by: userId })
+			.values({ ...body, event_id: event.id, created_by: userId, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -112,7 +115,7 @@ router.post(
 		const members = await DB.instance()
 			.select({ user_id: DB.Tables.eventMembers.user_id })
 			.from(DB.Tables.eventMembers)
-			.where(eq(DB.Tables.eventMembers.event_id, event.id))
+			.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.event_id, event.id)))
 			.all();
 
 		await Notifier.notify(
@@ -147,6 +150,7 @@ router.use(
 			.from(DB.Tables.announcements)
 			.where(
 				and(
+					inOrg(DB.Tables.announcements),
 					eq(DB.Tables.announcements.id, announcementId.data),
 					eq(DB.Tables.announcements.event_id, event.id),
 				),
@@ -191,7 +195,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.announcements)
 			.set(body)
-			.where(eq(DB.Tables.announcements.id, announcement.id))
+			.where(and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.id, announcement.id)))
 			.returning()
 			.get();
 
@@ -233,7 +237,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.announcements)
-			.where(eq(DB.Tables.announcements.id, announcement.id))
+			.where(and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.id, announcement.id)))
 			.run();
 
 		await AuditLog.record({

@@ -161,7 +161,7 @@ export namespace CoreTeamModel.StaffPlanning {
 }
 
 export namespace CoreTeamModel.Notes {
-	export const Note = createSelectSchema(DB.Tables.notes).extend({
+	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true }).extend({
 		creator: UserSummary.Schema.nullable(),
 		updater: UserSummary.Schema.nullable(),
 		can_delete: z.boolean(),

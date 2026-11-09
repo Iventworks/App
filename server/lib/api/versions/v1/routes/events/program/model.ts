@@ -5,13 +5,15 @@ import { FileService } from "../../../../../utils/fileService";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventProgramModel {
-	export const ProgramItem = createSelectSchema(DB.Tables.programItems).extend({
-		responsible: z.array(UserSummary.Schema),
-		/** Linked documents/folders (event documents or the organisation library). */
-		files: z.array(FileService.ItemSchema),
-		/** True when the caller is one of the responsible staff members. */
-		is_mine: z.boolean(),
-	});
+	export const ProgramItem = createSelectSchema(DB.Tables.programItems)
+		.omit({ org_id: true })
+		.extend({
+			responsible: z.array(UserSummary.Schema),
+			/** Linked documents/folders (event documents or the organisation library). */
+			files: z.array(FileService.ItemSchema),
+			/** True when the caller is one of the responsible staff members. */
+			is_mine: z.boolean(),
+		});
 	export type ProgramItem = z.infer<typeof ProgramItem>;
 
 	export const Params = z.object({

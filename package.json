@@ -1,9 +1,9 @@
 {
-	"name": "cmp-website",
+	"name": "iventworks",
 	"version": "1.0.2",
 	"private": true,
 	"type": "module",
-	"description": "Crossover Management Portal (full-stack Nuxt app)",
+	"description": "Iventworks — planning camps and events for organisations (full-stack Nuxt app)",
 	"scripts": {
 		"check": "bunx --bun biome check",
 		"check:ci": "bunx --bun biome ci",

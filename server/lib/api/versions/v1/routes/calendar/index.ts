@@ -2,6 +2,7 @@ import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
@@ -53,6 +54,7 @@ router.get(
 			.from(DB.Tables.calendarEntries)
 			.where(
 				and(
+					inOrg(DB.Tables.calendarEntries),
 					eq(DB.Tables.calendarEntries.user_id, userId),
 					lt(DB.Tables.calendarEntries.start_at, to),
 					gte(DB.Tables.calendarEntries.end_at, from),
@@ -106,6 +108,7 @@ router.get(
 				.from(DB.Tables.programItems)
 				.where(
 					and(
+						inOrg(DB.Tables.programItems),
 						inArray(DB.Tables.programItems.event_id, eventIds),
 						lt(DB.Tables.programItems.start_at, to),
 						gte(DB.Tables.programItems.end_at, from),
@@ -122,6 +125,7 @@ router.get(
 								.from(DB.Tables.programItemResponsibles)
 								.where(
 									and(
+										inOrg(DB.Tables.programItemResponsibles),
 										eq(DB.Tables.programItemResponsibles.user_id, userId),
 										inArray(
 											DB.Tables.programItemResponsibles.program_item_id,
@@ -204,6 +208,7 @@ router.get(
 			.from(DB.Tables.calendarEntries)
 			.where(
 				and(
+					inOrg(DB.Tables.calendarEntries),
 					eq(DB.Tables.calendarEntries.user_id, getAuthUserId(c)),
 					to !== undefined ? lt(DB.Tables.calendarEntries.start_at, to) : undefined,
 					from !== undefined ? gte(DB.Tables.calendarEntries.end_at, from) : undefined,
@@ -239,7 +244,7 @@ router.post(
 
 		const entry = await DB.instance()
 			.insert(DB.Tables.calendarEntries)
-			.values({ ...body, user_id: getAuthUserId(c) })
+			.values({ ...body, org_id: OrgContext.id(), user_id: getAuthUserId(c) })
 			.returning()
 			.get();
 
@@ -256,6 +261,7 @@ router.use("/entries/:entryId/*", zValidator("param", CalendarModel.Params), asy
 		.from(DB.Tables.calendarEntries)
 		.where(
 			and(
+				inOrg(DB.Tables.calendarEntries),
 				eq(DB.Tables.calendarEntries.id, entryId.data),
 				eq(DB.Tables.calendarEntries.user_id, getAuthUserId(c)),
 			),
@@ -301,7 +307,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.calendarEntries)
 			.set(body)
-			.where(eq(DB.Tables.calendarEntries.id, entry.id))
+			.where(and(inOrg(DB.Tables.calendarEntries), eq(DB.Tables.calendarEntries.id, entry.id)))
 			.returning()
 			.get();
 
@@ -326,7 +332,9 @@ router.delete(
 	async (c) => {
 		await DB.instance()
 			.delete(DB.Tables.calendarEntries)
-			.where(eq(DB.Tables.calendarEntries.id, c.get("entry").id))
+			.where(
+				and(inOrg(DB.Tables.calendarEntries), eq(DB.Tables.calendarEntries.id, c.get("entry").id)),
+			)
 			.run();
 		return APIResponse.successNoData(c, "Calendar entry deleted successfully");
 	},

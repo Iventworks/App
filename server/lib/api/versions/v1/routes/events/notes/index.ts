@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
@@ -24,7 +25,7 @@ async function getVisibleGroupIds(c: Context<NotesEnv>) {
 		const rows = await DB.instance()
 			.select({ id: DB.Tables.eventGroups.id })
 			.from(DB.Tables.eventGroups)
-			.where(eq(DB.Tables.eventGroups.event_id, event.id))
+			.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.event_id, event.id)))
 			.all();
 		return rows.map((row) => row.id);
 	}
@@ -37,10 +38,14 @@ async function getMyGroupIds(eventId: number, userId: number) {
 		.from(DB.Tables.eventGroupMembers)
 		.innerJoin(
 			DB.Tables.eventGroups,
-			eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			and(
+				inOrg(DB.Tables.eventGroups),
+				eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+			),
 		)
 		.where(
 			and(
+				inOrg(DB.Tables.eventGroupMembers),
 				eq(DB.Tables.eventGroups.event_id, eventId),
 				eq(DB.Tables.eventGroupMembers.user_id, userId),
 			),
@@ -77,7 +82,7 @@ async function toResponse(
 					color: DB.Tables.eventGroups.color,
 				})
 				.from(DB.Tables.eventGroups)
-				.where(inArray(DB.Tables.eventGroups.id, groupIds))
+				.where(and(inOrg(DB.Tables.eventGroups), inArray(DB.Tables.eventGroups.id, groupIds)))
 				.all()
 		: [];
 	const myGroupIds = await getMyGroupIds(c.get("event").id, c.get("eventAccess").userId);
@@ -145,7 +150,7 @@ router.get(
 		const notes = await DB.instance()
 			.select()
 			.from(DB.Tables.notes)
-			.where(condition)
+			.where(and(inOrg(DB.Tables.notes), condition))
 			.orderBy(desc(DB.Tables.notes.pinned), desc(DB.Tables.notes.updated_at))
 			.all();
 
@@ -189,7 +194,11 @@ router.post(
 				.select()
 				.from(DB.Tables.eventGroups)
 				.where(
-					and(eq(DB.Tables.eventGroups.id, body.group_id), eq(DB.Tables.eventGroups.event_id, event.id)),
+					and(
+						inOrg(DB.Tables.eventGroups),
+						eq(DB.Tables.eventGroups.id, body.group_id),
+						eq(DB.Tables.eventGroups.event_id, event.id),
+					),
 				)
 				.get();
 			if (!group) {
@@ -205,6 +214,7 @@ router.post(
 		const note = await DB.instance()
 			.insert(DB.Tables.notes)
 			.values({
+				org_id: OrgContext.id(),
 				scope: body.group_id !== null ? "group" : "event",
 				event_id: event.id,
 				group_id: body.group_id,
@@ -243,6 +253,7 @@ router.use("/:noteId/*", zValidator("param", EventNotesModel.Params), async (c, 
 		.from(DB.Tables.notes)
 		.where(
 			and(
+				inOrg(DB.Tables.notes),
 				eq(DB.Tables.notes.id, noteId.data),
 				eq(DB.Tables.notes.event_id, event.id),
 				inArray(DB.Tables.notes.scope, ["event", "group"]),
@@ -296,7 +307,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.notes)
 			.set({ ...body, updated_by: userId, updated_at: Date.now() })
-			.where(eq(DB.Tables.notes.id, note.id))
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, note.id)))
 			.returning()
 			.get();
 
@@ -335,7 +346,10 @@ router.delete(
 			return APIResponse.forbidden(c, "You are not allowed to delete this note");
 		}
 
-		await DB.instance().delete(DB.Tables.notes).where(eq(DB.Tables.notes.id, note.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.notes)
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, note.id)))
+			.run();
 
 		await AuditLog.record({
 			userId: c.get("eventAccess").userId,

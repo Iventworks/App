@@ -8,8 +8,12 @@ import { AccountPreferencesModel } from "../server/lib/api/versions/v1/routes/ac
 import { AuthModel } from "../server/lib/api/versions/v1/routes/auth/model";
 import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-password";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
+import { type OrgInfo, OrgRegistry } from "../server/lib/orgs/registry";
+import { OrgService } from "../server/lib/orgs/service";
 import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
+import { hostHeaders, SYSTEM_HOST, testOrg } from "./helpers/orgs";
 import { type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
 let testUser: SeededUser;
@@ -324,6 +328,7 @@ describe("Auth reset-password routes", async () => {
 		await DB.instance()
 			.insert(DB.Tables.passwordResets)
 			.values({
+				org_id: OrgContext.id(),
 				token: hashResetToken(validResetToken),
 				user_id: resetUser.id,
 				expires_at: Date.now() + 10 * 60 * 1000,
@@ -958,6 +963,7 @@ describe("Account Preferences Routes", async () => {
 		DB.instance()
 			.insert(DB.Tables.userPreferences)
 			.values({
+				org_id: OrgContext.id(),
 				user_id: allPrefsUser.id,
 				key: "legacy-preference",
 				data: { some: "value" },
@@ -984,6 +990,288 @@ describe("Account Preferences Routes", async () => {
 
 	test("GET /v1/account/preferences without auth fails", async () => {
 		await makeAPIRequest("/v1/account/preferences", {}, 401);
+	});
+});
+
+describe("Org isolation: auth, account and admin", async () => {
+	// A second org with an admin of the same username as the test org's admin.
+	let other: OrgInfo;
+	let otherHost: string;
+	let otherAdmin: SeededUser;
+	let otherAdminSession: string;
+	let adminSession: string;
+
+	const inOtherOrg = <T = any>(opts: Parameters<typeof makeAPIRequest<T>>[1] = {}) => ({
+		...opts,
+		additionalOptions: { ...opts.additionalOptions, headers: hostHeaders(otherHost) },
+	});
+
+	beforeAll(async () => {
+		other = await OrgService.create({
+			slug: `iso-${randomUUID().slice(0, 8)}`,
+			display_name: "Andere Org",
+		});
+		otherHost = `${other.slug}.localhost`;
+		otherAdmin = await OrgContext.run(other, () =>
+			seedUser("admin", { username: testAdmin.username }, "OtherP@ss1"),
+		);
+		otherAdminSession = (await OrgContext.run(other, () => seedSession(otherAdmin.id))).token;
+		adminSession = (await seedSession(testAdmin.id)).token;
+	});
+
+	test("a session only works on its own org's host", async () => {
+		await makeAPIRequest("/v1/auth/session", { authToken: adminSession }, 200);
+		await makeAPIRequest("/v1/auth/session", inOtherOrg({ authToken: adminSession }), 401);
+		await makeAPIRequest("/v1/auth/session", { authToken: otherAdminSession }, 401);
+		await makeAPIRequest("/v1/auth/session", inOtherOrg({ authToken: otherAdminSession }), 200);
+	});
+
+	test("an API key only works on its own org's host", async () => {
+		const key = await makeAPIRequest<{ id: string; token: string }>(
+			"/v1/account/apikeys",
+			{
+				method: "POST",
+				authToken: adminSession,
+				body: { description: "Isolation", expires_at: null },
+			},
+			200,
+		);
+
+		await makeAPIRequest("/v1/users", { authToken: key.token }, 200);
+		await makeAPIRequest("/v1/users", inOtherOrg({ authToken: key.token }), 401);
+	});
+
+	test("the same username signs in to its own org only", async () => {
+		// The test org's password does not open the other org's account of the same name …
+		await makeAPIRequest(
+			"/v1/auth/login",
+			inOtherOrg({
+				method: "POST",
+				body: { username: testAdmin.username, password: "AdminP@ss1" },
+			}),
+			401,
+		);
+
+		// … its own password does, and the session belongs to the other org's user.
+		const login = await makeAPIRequest<Record<string, unknown> & { token: string; user_id: number }>(
+			"/v1/auth/login",
+			inOtherOrg({
+				method: "POST",
+				body: { username: testAdmin.username, password: "OtherP@ss1" },
+			}),
+			200,
+		);
+		expect(login.user_id).toBe(otherAdmin.id);
+		expect(login).not.toHaveProperty("org_id");
+		await makeAPIRequest("/v1/auth/session", inOtherOrg({ authToken: login.token }), 200);
+		await makeAPIRequest("/v1/auth/session", { authToken: login.token }, 401);
+	});
+
+	test("failed logins in one org don't throttle the same username in another", async () => {
+		const wrongLogin = () =>
+			inOtherOrg({
+				method: "POST",
+				body: { username: testAdmin.username, password: "WrongPassword" },
+			});
+
+		for (let attempt = 0; attempt < 5; attempt++) {
+			await makeAPIRequest("/v1/auth/login", wrongLogin(), 401);
+		}
+		await makeAPIRequest("/v1/auth/login", wrongLogin(), 429);
+
+		await makeAPIRequest(
+			"/v1/auth/login",
+			{ method: "POST", body: { username: testAdmin.username, password: "AdminP@ss1" } },
+			200,
+		);
+	});
+
+	test("account responses don't expose org_id", async () => {
+		const account = await makeAPIRequest<Record<string, unknown>>("/v1/account", {
+			authToken: adminSession,
+		});
+		expect(account).not.toHaveProperty("org_id");
+		expect(account).not.toHaveProperty("password_hash");
+	});
+
+	test("an admin can neither see nor change another org's users", async () => {
+		const users = await makeAPIRequest<Record<string, unknown>[]>("/v1/admin/users", {
+			authToken: adminSession,
+		});
+		expect(users.map((user) => user.id)).not.toContain(otherAdmin.id);
+		expect(users[0]).not.toHaveProperty("org_id");
+
+		const target = `/v1/admin/users/${otherAdmin.id}`;
+		await makeAPIRequest(target, { authToken: adminSession }, 404);
+		await makeAPIRequest(
+			target,
+			{ method: "PUT", authToken: adminSession, body: { display_name: "Übernommen" } },
+			404,
+		);
+		await makeAPIRequest(`${target}/password-link`, { method: "POST", authToken: adminSession }, 404);
+		await makeAPIRequest(
+			`${target}/suspend`,
+			{ method: "POST", authToken: adminSession, body: {} },
+			404,
+		);
+		await makeAPIRequest(target, { method: "DELETE", authToken: adminSession }, 404);
+		await makeAPIRequest(`/v1/users/${otherAdmin.id}`, { authToken: adminSession }, 404);
+
+		const directory = await makeAPIRequest<{ id: number }[]>("/v1/users", {
+			authToken: adminSession,
+		});
+		expect(directory.map((user) => user.id)).not.toContain(otherAdmin.id);
+
+		// Still there, unchanged.
+		const still = await makeAPIRequest<{ display_name: string }>(
+			target,
+			inOtherOrg({ authToken: otherAdminSession }),
+		);
+		expect(still.display_name).toBe(otherAdmin.display_name);
+	});
+
+	test("org_id in a request body is ignored", async () => {
+		const created = await makeAPIRequest<{ user: { id: number } }>(
+			"/v1/admin/users",
+			{
+				method: "POST",
+				authToken: adminSession,
+				body: {
+					username: `orgid_${randomUUID().slice(0, 8)}`,
+					display_name: "Org-ID",
+					email: `${randomUUID()}@example.com`,
+					role: "volunteer",
+					org_id: other.id,
+				},
+			},
+			201,
+		);
+		const row = DB.instance()
+			.select({ org_id: DB.Tables.users.org_id })
+			.from(DB.Tables.users)
+			.where(eq(DB.Tables.users.id, created.user.id))
+			.get();
+		expect(row?.org_id).toBe(testOrg().id);
+	});
+
+	test("invitations and their links stay in their org", async () => {
+		const issued = await makeAPIRequest<{ invitation: { id: number }; invite_url: string }>(
+			"/v1/admin/invitations",
+			inOtherOrg({
+				method: "POST",
+				authToken: otherAdminSession,
+				body: { email: `${randomUUID()}@example.com`, role: "volunteer" },
+			}),
+			201,
+		);
+		const inviteUrl = new URL(issued.invite_url);
+		expect(inviteUrl.host).toBe(`${otherHost}:31316`);
+		const token = inviteUrl.searchParams.get("token")!;
+
+		const mine = await makeAPIRequest<{ id: number }[]>("/v1/admin/invitations", {
+			authToken: adminSession,
+		});
+		expect(mine.map((invitation) => invitation.id)).not.toContain(issued.invitation.id);
+		await makeAPIRequest(
+			`/v1/admin/invitations/${issued.invitation.id}`,
+			{ method: "DELETE", authToken: adminSession },
+			404,
+		);
+
+		// The token is only valid on the inviting org's host.
+		await makeAPIRequest("/v1/auth/invitations/inspect", { method: "POST", body: { token } }, 400);
+		await makeAPIRequest(
+			"/v1/auth/invitations/inspect",
+			inOtherOrg({ method: "POST", body: { token } }),
+			200,
+		);
+	});
+
+	test("password links point at the org's own domain", async () => {
+		const target = await OrgContext.run(other, () => seedUser("volunteer"));
+		const link = await makeAPIRequest<{ url: string }>(
+			`/v1/admin/users/${target.id}/password-link`,
+			inOtherOrg({ method: "POST", authToken: otherAdminSession }),
+			201,
+		);
+		expect(new URL(link.url).host).toBe(`${otherHost}:31316`);
+	});
+});
+
+describe("System org: system admins", async () => {
+	let systemSession: string;
+	const onSystemHost = <T = any>(opts: Parameters<typeof makeAPIRequest<T>>[1] = {}) => ({
+		...opts,
+		additionalOptions: { ...opts.additionalOptions, headers: hostHeaders(SYSTEM_HOST) },
+	});
+
+	beforeAll(async () => {
+		const systemOrg = OrgRegistry.systemOrg()!;
+		const systemAdmin = await OrgContext.run(systemOrg, () => seedUser("admin"));
+		systemSession = (await OrgContext.run(systemOrg, () => seedSession(systemAdmin.id))).token;
+	});
+
+	test("a system admin session only works on the system host", async () => {
+		await makeAPIRequest("/v1/auth/session", onSystemHost({ authToken: systemSession }), 200);
+		await makeAPIRequest("/v1/auth/session", { authToken: systemSession }, 401);
+
+		const orgSession = (await seedSession(testAdmin.id)).token;
+		await makeAPIRequest("/v1/auth/session", onSystemHost({ authToken: orgSession }), 401);
+	});
+
+	test("invitations on the system host are always for admins", async () => {
+		await makeAPIRequest(
+			"/v1/admin/invitations",
+			onSystemHost({
+				method: "POST",
+				authToken: systemSession,
+				body: { email: `${randomUUID()}@example.com`, role: "volunteer" },
+			}),
+			400,
+		);
+
+		const issued = await makeAPIRequest<{ invitation: { role: string }; invite_url: string }>(
+			"/v1/admin/invitations",
+			onSystemHost({
+				method: "POST",
+				authToken: systemSession,
+				body: { email: `${randomUUID()}@example.com` },
+			}),
+			201,
+		);
+		expect(issued.invitation.role).toBe("admin");
+		expect(new URL(issued.invite_url).host).toBe(`${SYSTEM_HOST}:31316`);
+	});
+
+	test("system admins created or changed directly keep the role admin", async () => {
+		const body = () => ({
+			username: `sys_${randomUUID().slice(0, 8)}`,
+			display_name: "System",
+			email: `${randomUUID()}@example.com`,
+		});
+
+		await makeAPIRequest(
+			"/v1/admin/users",
+			onSystemHost({
+				method: "POST",
+				authToken: systemSession,
+				body: { ...body(), role: "core_team" },
+			}),
+			400,
+		);
+
+		const created = await makeAPIRequest<{ user: { id: number; role: string } }>(
+			"/v1/admin/users",
+			onSystemHost({ method: "POST", authToken: systemSession, body: body() }),
+			201,
+		);
+		expect(created.user.role).toBe("admin");
+
+		await makeAPIRequest(
+			`/v1/admin/users/${created.user.id}`,
+			onSystemHost({ method: "PUT", authToken: systemSession, body: { role: "volunteer" } }),
+			400,
+		);
 	});
 });
 

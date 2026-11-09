@@ -1,9 +1,11 @@
 <script setup lang="ts">
 definePageMeta({ layout: "dashboard" });
 
+// Every org installs as its own app (name and icon from its branding).
+const brandName = useBrandName();
 useSeoMeta({
-	title: "App installieren | Einstellungen | CMP",
-	description: "CMP als App auf Handy, Tablet oder Computer installieren",
+	title: "App installieren | Einstellungen",
+	description: () => `${brandName.value} als App auf Handy, Tablet oder Computer installieren`,
 });
 
 const toast = useToast();
@@ -16,7 +18,7 @@ async function onInstall() {
 	installing.value = false;
 	if (outcome === "accepted") {
 		toast.add({
-			title: "CMP wird installiert",
+			title: `${brandName.value} wird installiert`,
 			description: "Du findest die App gleich auf deinem Startbildschirm bzw. im Startmenü.",
 			icon: "i-lucide-check",
 			color: "success",
@@ -43,7 +45,7 @@ const benefits = [
 			<DashboardPageHeader
 				title="App installieren"
 				icon="i-lucide-smartphone"
-				description="CMP wie eine App nutzen"
+				:description="`${brandName} wie eine App nutzen`"
 			/>
 		</template>
 
@@ -54,7 +56,7 @@ const benefits = [
 					icon="i-lucide-badge-check"
 					color="success"
 					variant="subtle"
-					title="Du nutzt CMP bereits als App"
+					:title="`Du nutzt ${brandName} bereits als App`"
 					description="Auf diesem Gerät ist alles eingerichtet."
 				/>
 
@@ -113,7 +115,7 @@ const benefits = [
 								<p class="mt-2 text-slate-300">
 									Klicke rechts in der Adressleiste auf das Installieren-Symbol
 									<UIcon name="i-lucide-monitor-down" class="inline size-4 align-text-bottom" />.
-									In Firefox und Safari am Mac geht das nicht – nutze CMP dort einfach im Browser.
+									In Firefox und Safari am Mac geht das nicht – nutze {{ brandName }} dort einfach im Browser.
 								</p>
 							</template>
 						</div>
@@ -122,7 +124,7 @@ const benefits = [
 
 				<DashboardSectionCard
 					title="Andere Geräte"
-					description="So installierst du CMP woanders"
+					:description="`So installierst du ${brandName} woanders`"
 					icon="i-lucide-monitor-smartphone"
 				>
 					<div class="grid gap-4 text-sm sm:grid-cols-3">

@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EmailService } from "../../../../../utils/email";
@@ -64,7 +65,7 @@ async function issue(
 		const inviter = await DB.instance()
 			.select({ display_name: DB.Tables.users.display_name })
 			.from(DB.Tables.users)
-			.where(eq(DB.Tables.users.id, getAuthUserId(c)))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, getAuthUserId(c))))
 			.get();
 
 		emailSent = await EmailService.sendInvitationEmail(
@@ -99,6 +100,7 @@ router.get(
 		const invitations = await DB.instance()
 			.select()
 			.from(DB.Tables.invitations)
+			.where(inOrg(DB.Tables.invitations))
 			.orderBy(desc(DB.Tables.invitations.created_at), desc(DB.Tables.invitations.id))
 			.all();
 
@@ -137,10 +139,17 @@ router.post(
 		const email = body.email.trim();
 		const emailLower = email.toLowerCase();
 
+		// The system org's users are the system admins: they all have the role "admin".
+		const isSystemOrg = OrgContext.current().kind === "system";
+		const role = body.role ?? (isSystemOrg ? "admin" : "volunteer");
+		if (isSystemOrg && role !== "admin") {
+			return APIResponse.badRequest(c, "System admins always have the role admin");
+		}
+
 		const existingUser = await DB.instance()
 			.select({ id: DB.Tables.users.id })
 			.from(DB.Tables.users)
-			.where(sql`lower(${DB.Tables.users.email}) = ${emailLower}`)
+			.where(and(inOrg(DB.Tables.users), sql`lower(${DB.Tables.users.email}) = ${emailLower}`))
 			.get();
 		if (existingUser) {
 			return APIResponse.conflict(c, "A user with this email already exists");
@@ -151,6 +160,7 @@ router.post(
 			.from(DB.Tables.invitations)
 			.where(
 				and(
+					inOrg(DB.Tables.invitations),
 					sql`lower(${DB.Tables.invitations.email}) = ${emailLower}`,
 					isNull(DB.Tables.invitations.accepted_at),
 					gt(DB.Tables.invitations.expires_at, Date.now()),
@@ -165,10 +175,11 @@ router.post(
 		const invitation = await DB.instance()
 			.insert(DB.Tables.invitations)
 			.values({
+				org_id: OrgContext.id(),
 				token_hash: hashInvitationToken(token),
 				email,
 				display_name: body.display_name ?? null,
-				role: body.role,
+				role,
 				invited_by: getAuthUserId(c),
 				expires_at: Date.now() + body.expires_in_days * DAY_MS,
 			})
@@ -203,7 +214,7 @@ router.use(
 		const invitation = await DB.instance()
 			.select()
 			.from(DB.Tables.invitations)
-			.where(eq(DB.Tables.invitations.id, invitationId.data))
+			.where(and(inOrg(DB.Tables.invitations), eq(DB.Tables.invitations.id, invitationId.data)))
 			.get();
 
 		if (!invitation) return APIResponse.notFound(c, "Invitation not found");
@@ -239,7 +250,7 @@ router.post(
 		const updated = await DB.instance()
 			.update(DB.Tables.invitations)
 			.set({ token_hash: hashInvitationToken(token), expires_at: Date.now() + 7 * DAY_MS })
-			.where(eq(DB.Tables.invitations.id, invitation.id))
+			.where(and(inOrg(DB.Tables.invitations), eq(DB.Tables.invitations.id, invitation.id)))
 			.returning()
 			.get();
 
@@ -278,7 +289,7 @@ router.delete(
 
 		await DB.instance()
 			.delete(DB.Tables.invitations)
-			.where(eq(DB.Tables.invitations.id, invitation.id))
+			.where(and(inOrg(DB.Tables.invitations), eq(DB.Tables.invitations.id, invitation.id)))
 			.run();
 
 		await AuditLog.record({

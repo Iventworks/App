@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
+import { inOrg, OrgContext } from "../../orgs/context";
 
 export namespace UserPreferences {
 	// Each preference key maps to a fixed zod schema, so clients can't store
@@ -38,7 +39,11 @@ export class UserPreferencesHandler {
 			.select()
 			.from(DB.Tables.userPreferences)
 			.where(
-				and(eq(DB.Tables.userPreferences.user_id, userID), eq(DB.Tables.userPreferences.key, key)),
+				and(
+					inOrg(DB.Tables.userPreferences),
+					eq(DB.Tables.userPreferences.user_id, userID),
+					eq(DB.Tables.userPreferences.key, key),
+				),
 			)
 			.get();
 
@@ -63,7 +68,7 @@ export class UserPreferencesHandler {
 		const records = await tx
 			.select()
 			.from(DB.Tables.userPreferences)
-			.where(eq(DB.Tables.userPreferences.user_id, userID))
+			.where(and(inOrg(DB.Tables.userPreferences), eq(DB.Tables.userPreferences.user_id, userID)))
 			.all();
 
 		const stored = new Map(records.map((record) => [record.key, record.data]));
@@ -87,6 +92,7 @@ export class UserPreferencesHandler {
 		await tx
 			.insert(DB.Tables.userPreferences)
 			.values({
+				org_id: OrgContext.id(),
 				user_id: userID,
 				key,
 				data: parsed,
@@ -109,6 +115,8 @@ export class UserPreferencesHandler {
 	}
 
 	static async deleteAllForUser(userID: number, tx: DrizzleDB = DB.instance()): Promise<void> {
-		await tx.delete(DB.Tables.userPreferences).where(eq(DB.Tables.userPreferences.user_id, userID));
+		await tx
+			.delete(DB.Tables.userPreferences)
+			.where(and(inOrg(DB.Tables.userPreferences), eq(DB.Tables.userPreferences.user_id, userID)));
 	}
 }

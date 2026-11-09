@@ -10,7 +10,7 @@ import type { APIKey } from "~/utils/types";
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "API-Schlüssel | Einstellungen | CMP",
+	title: "API-Schlüssel | Einstellungen",
 	description: "API-Schlüssel für Integrationen verwalten",
 });
 
@@ -95,7 +95,7 @@ async function onDeleteApiKey() {
 						},
 					]"
 					empty-title="Noch keine API-Schlüssel"
-					empty-description="Lege einen Schlüssel an, um die CMP-API aus eigenen Programmen zu nutzen."
+					empty-description="Lege einen Schlüssel an, um die API aus eigenen Programmen zu nutzen."
 					empty-icon="i-lucide-key"
 					@refresh="apiKeys.refresh()"
 				>

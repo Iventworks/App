@@ -2,6 +2,7 @@ import { and, desc, eq, gt, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler } from "../../../../../utils/authHandler";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
@@ -33,6 +34,7 @@ router.get(
 			.from(DB.Tables.sessions)
 			.where(
 				and(
+					inOrg(DB.Tables.sessions),
 					eq(DB.Tables.sessions.user_id, authContext.user_id),
 					gt(DB.Tables.sessions.expires_at, Date.now()),
 				),
@@ -77,6 +79,7 @@ router.delete(
 			.delete(DB.Tables.sessions)
 			.where(
 				and(
+					inOrg(DB.Tables.sessions),
 					eq(DB.Tables.sessions.user_id, authContext.user_id),
 					ne(DB.Tables.sessions.id, authContext.id),
 				),
@@ -115,7 +118,11 @@ router.delete(
 		const deleted = await DB.instance()
 			.delete(DB.Tables.sessions)
 			.where(
-				and(eq(DB.Tables.sessions.id, sessionId), eq(DB.Tables.sessions.user_id, authContext.user_id)),
+				and(
+					inOrg(DB.Tables.sessions),
+					eq(DB.Tables.sessions.id, sessionId),
+					eq(DB.Tables.sessions.user_id, authContext.user_id),
+				),
 			)
 			.returning({ id: DB.Tables.sessions.id })
 			.all();

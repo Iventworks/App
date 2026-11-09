@@ -14,13 +14,15 @@ export namespace PersonalTasksModel {
 	});
 	export type GroupRef = z.infer<typeof GroupRef>;
 
-	export const Task = createSelectSchema(DB.Tables.tasks).extend({
-		event: EventRef.nullable(),
-		group: GroupRef.nullable(),
-		/** `personal` = own to-do (editable here); `event` = edit via /events/{eventId}/tasks. */
-		source: z.enum(["personal", "event"]),
-		is_overdue: z.boolean(),
-	});
+	export const Task = createSelectSchema(DB.Tables.tasks)
+		.omit({ org_id: true })
+		.extend({
+			event: EventRef.nullable(),
+			group: GroupRef.nullable(),
+			/** `personal` = own to-do (editable here); `event` = edit via /events/{eventId}/tasks. */
+			source: z.enum(["personal", "event"]),
+			is_overdue: z.boolean(),
+		});
 	export type Task = z.infer<typeof Task>;
 
 	export const Params = z.object({

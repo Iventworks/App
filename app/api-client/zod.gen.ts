@@ -2,6 +2,481 @@
 
 import * as z from 'zod';
 
+/**
+ * Instance info retrieved successfully
+ */
+export const zGetInstanceResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Instance info retrieved successfully'),
+    data: z.object({
+        app_name: z.string(),
+        multi_org: z.boolean(),
+        kind: z.enum([
+            'org',
+            'system',
+            'unknown'
+        ]),
+        base_url: z.string(),
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable()
+        }).nullable(),
+        redirect_to: z.string().nullable()
+    })
+});
+
+export const zGetInstanceTlsCheckQuery = z.object({
+    domain: z.string().min(1).max(253)
+});
+
+/**
+ * Host is served
+ */
+export const zGetInstanceTlsCheckResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Host is served'),
+    data: z.null()
+});
+
+/**
+ * Organisations retrieved successfully
+ */
+export const zGetSystemOrgsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisations retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        slug: z.string(),
+        display_name: z.string(),
+        primary_color: z.enum([
+            'red',
+            'orange',
+            'amber',
+            'yellow',
+            'lime',
+            'green',
+            'emerald',
+            'teal',
+            'cyan',
+            'sky',
+            'blue',
+            'indigo',
+            'violet',
+            'purple',
+            'fuchsia',
+            'pink',
+            'rose'
+        ]),
+        url: z.string(),
+        default_domain: z.string(),
+        primary_domain: z.string().nullable(),
+        logo_url: z.string().nullable(),
+        icon_url: z.string().nullable(),
+        user_count: z.number(),
+        event_count: z.number(),
+        domain_count: z.number(),
+        created_at: z.number()
+    }))
+});
+
+export const zPostSystemOrgsBody = z.object({
+    slug: z.string().min(2).max(40),
+    display_name: z.string().min(2).max(80),
+    primary_color: z.enum([
+        'red',
+        'orange',
+        'amber',
+        'yellow',
+        'lime',
+        'green',
+        'emerald',
+        'teal',
+        'cyan',
+        'sky',
+        'blue',
+        'indigo',
+        'violet',
+        'purple',
+        'fuchsia',
+        'pink',
+        'rose'
+    ]).optional(),
+    admin_email: z.email().max(254).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).optional(),
+    admin_display_name: z.string().min(1).max(100).optional()
+});
+
+/**
+ * Organisation created successfully
+ */
+export const zPostSystemOrgsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Organisation created successfully'),
+    data: z.object({
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable(),
+            user_count: z.number(),
+            event_count: z.number(),
+            domain_count: z.number(),
+            created_at: z.number()
+        }),
+        invitation: z.object({
+            email: z.string(),
+            invite_url: z.string(),
+            email_sent: z.boolean(),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zDeleteSystemOrgsByOrgIdPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Organisation deleted successfully
+ */
+export const zDeleteSystemOrgsByOrgIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisation deleted successfully'),
+    data: z.null()
+});
+
+export const zGetSystemOrgsByOrgIdPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Organisation retrieved successfully
+ */
+export const zGetSystemOrgsByOrgIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisation retrieved successfully'),
+    data: z.object({
+        id: z.number(),
+        slug: z.string(),
+        display_name: z.string(),
+        primary_color: z.enum([
+            'red',
+            'orange',
+            'amber',
+            'yellow',
+            'lime',
+            'green',
+            'emerald',
+            'teal',
+            'cyan',
+            'sky',
+            'blue',
+            'indigo',
+            'violet',
+            'purple',
+            'fuchsia',
+            'pink',
+            'rose'
+        ]),
+        url: z.string(),
+        default_domain: z.string(),
+        primary_domain: z.string().nullable(),
+        logo_url: z.string().nullable(),
+        icon_url: z.string().nullable(),
+        user_count: z.number(),
+        event_count: z.number(),
+        domain_count: z.number(),
+        created_at: z.number()
+    })
+});
+
+export const zPutSystemOrgsByOrgIdBody = z.object({
+    display_name: z.string().min(2).max(80).optional(),
+    primary_color: z.enum([
+        'red',
+        'orange',
+        'amber',
+        'yellow',
+        'lime',
+        'green',
+        'emerald',
+        'teal',
+        'cyan',
+        'sky',
+        'blue',
+        'indigo',
+        'violet',
+        'purple',
+        'fuchsia',
+        'pink',
+        'rose'
+    ]).optional()
+});
+
+export const zPutSystemOrgsByOrgIdPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Organisation updated successfully
+ */
+export const zPutSystemOrgsByOrgIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisation updated successfully'),
+    data: z.object({
+        id: z.number(),
+        slug: z.string(),
+        display_name: z.string(),
+        primary_color: z.enum([
+            'red',
+            'orange',
+            'amber',
+            'yellow',
+            'lime',
+            'green',
+            'emerald',
+            'teal',
+            'cyan',
+            'sky',
+            'blue',
+            'indigo',
+            'violet',
+            'purple',
+            'fuchsia',
+            'pink',
+            'rose'
+        ]),
+        url: z.string(),
+        default_domain: z.string(),
+        primary_domain: z.string().nullable(),
+        logo_url: z.string().nullable(),
+        icon_url: z.string().nullable(),
+        user_count: z.number(),
+        event_count: z.number(),
+        domain_count: z.number(),
+        created_at: z.number()
+    })
+});
+
+export const zPostSystemOrgsByOrgIdInvitationsBody = z.object({
+    email: z.email().max(254).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/),
+    display_name: z.string().min(1).max(100).optional()
+});
+
+export const zPostSystemOrgsByOrgIdInvitationsPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Invitation created successfully
+ */
+export const zPostSystemOrgsByOrgIdInvitationsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Invitation created successfully'),
+    data: z.object({
+        email: z.string(),
+        invite_url: z.string(),
+        email_sent: z.boolean(),
+        expires_at: z.number()
+    })
+});
+
+export const zGetSystemOrgsByOrgIdDomainsPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domains retrieved successfully
+ */
+export const zGetSystemOrgsByOrgIdDomainsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domains retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    }))
+});
+
+export const zPostSystemOrgsByOrgIdDomainsBody = z.object({
+    domain: z.string().min(3).max(253)
+});
+
+export const zPostSystemOrgsByOrgIdDomainsPath = z.object({
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain added successfully
+ */
+export const zPostSystemOrgsByOrgIdDomainsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Domain added successfully'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zPostSystemOrgsByOrgIdDomainsByDomainIdVerifyPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991),
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain checked
+ */
+export const zPostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain checked'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zDeleteSystemOrgsByOrgIdDomainsByDomainIdPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991),
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain removed
+ */
+export const zDeleteSystemOrgsByOrgIdDomainsByDomainIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain removed'),
+    data: z.null()
+});
+
+export const zPutSystemOrgsByOrgIdDomainsByDomainIdBody = z.object({
+    is_primary: z.boolean()
+});
+
+export const zPutSystemOrgsByOrgIdDomainsByDomainIdPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991),
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain updated
+ */
+export const zPutSystemOrgsByOrgIdDomainsByDomainIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain updated'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
 export const zPostAuthLoginBody = z.object({
     username: z.string(),
     password: z.string()
@@ -180,9 +655,6 @@ export const zPutAccountBody = z.object({
     display_name: z.string().min(1).max(64).optional(),
     email: z.email().regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).optional(),
     phone: z.string().max(40).nullish(),
-    suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
-    suspended_reason: z.string().nullish(),
-    last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
     current_password: z.string().min(1)
 });
 
@@ -731,7 +1203,7 @@ export const zPostAdminInvitationsBody = z.object({
         'core_team',
         'volunteer',
         'unverified'
-    ]).optional().default('volunteer'),
+    ]).optional(),
     expires_in_days: z.int().gte(1).lte(30).optional().default(7)
 });
 
@@ -958,6 +1430,335 @@ export const zGetAdminAuditLogResponse = z.object({
                 'unverified'
             ])
         }))
+    })
+});
+
+/**
+ * Organisation retrieved successfully
+ */
+export const zGetAdminOrganizationResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisation retrieved successfully'),
+    data: z.object({
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable()
+        }),
+        multi_org: z.boolean()
+    })
+});
+
+export const zPutAdminOrganizationBody = z.object({
+    display_name: z.string().min(2).max(80).optional(),
+    primary_color: z.enum([
+        'red',
+        'orange',
+        'amber',
+        'yellow',
+        'lime',
+        'green',
+        'emerald',
+        'teal',
+        'cyan',
+        'sky',
+        'blue',
+        'indigo',
+        'violet',
+        'purple',
+        'fuchsia',
+        'pink',
+        'rose'
+    ]).optional()
+});
+
+/**
+ * Organisation updated successfully
+ */
+export const zPutAdminOrganizationResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Organisation updated successfully'),
+    data: z.object({
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable()
+        }),
+        multi_org: z.boolean()
+    })
+});
+
+export const zDeleteAdminOrganizationAssetsByKindPath = z.object({
+    kind: z.enum(['logo', 'icon'])
+});
+
+/**
+ * Image removed successfully
+ */
+export const zDeleteAdminOrganizationAssetsByKindResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Image removed successfully'),
+    data: z.object({
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable()
+        }),
+        multi_org: z.boolean()
+    })
+});
+
+export const zPutAdminOrganizationAssetsByKindBody = z.object({
+    file: z.string()
+});
+
+export const zPutAdminOrganizationAssetsByKindPath = z.object({
+    kind: z.enum(['logo', 'icon'])
+});
+
+/**
+ * Image saved successfully
+ */
+export const zPutAdminOrganizationAssetsByKindResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Image saved successfully'),
+    data: z.object({
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string(),
+            primary_color: z.enum([
+                'red',
+                'orange',
+                'amber',
+                'yellow',
+                'lime',
+                'green',
+                'emerald',
+                'teal',
+                'cyan',
+                'sky',
+                'blue',
+                'indigo',
+                'violet',
+                'purple',
+                'fuchsia',
+                'pink',
+                'rose'
+            ]),
+            url: z.string(),
+            default_domain: z.string(),
+            primary_domain: z.string().nullable(),
+            logo_url: z.string().nullable(),
+            icon_url: z.string().nullable()
+        }),
+        multi_org: z.boolean()
+    })
+});
+
+/**
+ * Domains retrieved successfully
+ */
+export const zGetAdminOrganizationDomainsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domains retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    }))
+});
+
+export const zPostAdminOrganizationDomainsBody = z.object({
+    domain: z.string().min(3).max(253)
+});
+
+/**
+ * Domain added successfully
+ */
+export const zPostAdminOrganizationDomainsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Domain added successfully'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zPostAdminOrganizationDomainsByDomainIdVerifyPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain checked
+ */
+export const zPostAdminOrganizationDomainsByDomainIdVerifyResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain checked'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zDeleteAdminOrganizationDomainsByDomainIdPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain removed
+ */
+export const zDeleteAdminOrganizationDomainsByDomainIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain removed'),
+    data: z.null()
+});
+
+export const zPutAdminOrganizationDomainsByDomainIdBody = z.object({
+    is_primary: z.boolean()
+});
+
+export const zPutAdminOrganizationDomainsByDomainIdPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain updated
+ */
+export const zPutAdminOrganizationDomainsByDomainIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain updated'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
     })
 });
 

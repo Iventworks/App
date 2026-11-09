@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -23,9 +24,11 @@ async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoom
 		.select()
 		.from(DB.Tables.rooms)
 		.where(
-			onlyIds
-				? and(eq(DB.Tables.rooms.event_id, eventId), inArray(DB.Tables.rooms.id, onlyIds))
-				: eq(DB.Tables.rooms.event_id, eventId),
+			and(
+				inOrg(DB.Tables.rooms),
+				eq(DB.Tables.rooms.event_id, eventId),
+				onlyIds ? inArray(DB.Tables.rooms.id, onlyIds) : undefined,
+			),
 		)
 		.orderBy(asc(DB.Tables.rooms.name))
 		.all();
@@ -44,6 +47,7 @@ async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoom
 		.from(DB.Tables.participants)
 		.where(
 			and(
+				inOrg(DB.Tables.participants),
 				eq(DB.Tables.participants.event_id, eventId),
 				inArray(DB.Tables.participants.room_id, roomIds),
 				ne(DB.Tables.participants.status, "cancelled"),
@@ -57,6 +61,7 @@ async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoom
 		.from(DB.Tables.eventMembers)
 		.where(
 			and(
+				inOrg(DB.Tables.eventMembers),
 				eq(DB.Tables.eventMembers.event_id, eventId),
 				inArray(DB.Tables.eventMembers.room_id, roomIds),
 			),
@@ -131,7 +136,7 @@ router.post(
 
 		const room = await DB.instance()
 			.insert(DB.Tables.rooms)
-			.values({ ...body, event_id: event.id })
+			.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -199,7 +204,13 @@ router.put(
 				? DB.instance()
 						.select({ id: DB.Tables.rooms.id })
 						.from(DB.Tables.rooms)
-						.where(and(eq(DB.Tables.rooms.event_id, event.id), inArray(DB.Tables.rooms.id, roomIds)))
+						.where(
+							and(
+								inOrg(DB.Tables.rooms),
+								eq(DB.Tables.rooms.event_id, event.id),
+								inArray(DB.Tables.rooms.id, roomIds),
+							),
+						)
 						.all()
 				: [],
 			participantIds.length
@@ -208,6 +219,7 @@ router.put(
 						.from(DB.Tables.participants)
 						.where(
 							and(
+								inOrg(DB.Tables.participants),
 								eq(DB.Tables.participants.event_id, event.id),
 								inArray(DB.Tables.participants.id, participantIds),
 							),
@@ -220,6 +232,7 @@ router.put(
 						.from(DB.Tables.eventMembers)
 						.where(
 							and(
+								inOrg(DB.Tables.eventMembers),
 								eq(DB.Tables.eventMembers.event_id, event.id),
 								inArray(DB.Tables.eventMembers.user_id, userIds),
 							),
@@ -244,6 +257,7 @@ router.put(
 						.set({ room_id: entry.room_id, updated_at: Date.now() })
 						.where(
 							and(
+								inOrg(DB.Tables.participants),
 								eq(DB.Tables.participants.id, entry.participant_id),
 								eq(DB.Tables.participants.event_id, event.id),
 							),
@@ -256,6 +270,7 @@ router.put(
 						.set({ room_id: entry.room_id })
 						.where(
 							and(
+								inOrg(DB.Tables.eventMembers),
 								eq(DB.Tables.eventMembers.user_id, entry.user_id),
 								eq(DB.Tables.eventMembers.event_id, event.id),
 							),
@@ -288,7 +303,13 @@ router.use("/:roomId/*", zValidator("param", EventRoomsModel.Params), async (c, 
 	const room = await DB.instance()
 		.select()
 		.from(DB.Tables.rooms)
-		.where(and(eq(DB.Tables.rooms.id, roomId.data), eq(DB.Tables.rooms.event_id, event.id)))
+		.where(
+			and(
+				inOrg(DB.Tables.rooms),
+				eq(DB.Tables.rooms.id, roomId.data),
+				eq(DB.Tables.rooms.event_id, event.id),
+			),
+		)
 		.get();
 
 	if (!room) return APIResponse.notFound(c, "Room not found");
@@ -326,7 +347,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.rooms)
 			.set(body)
-			.where(eq(DB.Tables.rooms.id, room.id))
+			.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, room.id)))
 			.returning()
 			.get();
 
@@ -365,7 +386,10 @@ router.delete(
 		}
 
 		const room = c.get("room");
-		await DB.instance().delete(DB.Tables.rooms).where(eq(DB.Tables.rooms.id, room.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.rooms)
+			.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, room.id)))
+			.run();
 
 		await AuditLog.record({
 			userId: c.get("eventAccess").userId,

@@ -1,3 +1,9 @@
+<script setup lang="ts">
+const instance = useInstance();
+const brandName = useBrandName();
+const appName = computed(() => instance.value?.app_name ?? "Iventworks");
+</script>
+
 <template>
 	<NuxtLoadingIndicator color="var(--ui-primary)" position="top" />
 
@@ -13,7 +19,10 @@
 		</UMain>
 
 		<footer class="py-6 text-center text-sm text-slate-500">
-			&copy; {{ new Date().getFullYear() }} Crossover · Crossover Management Portal
+			<template v-if="brandName !== appName">{{ brandName }} · </template>
+			<a href="https://www.iventworks.de" target="_blank" rel="noopener" class="hover:text-slate-300">
+				{{ appName }}
+			</a>
 		</footer>
 	</div>
 </template>

@@ -7,7 +7,7 @@ type Announcement = GetOrgAnnouncementsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Neuigkeiten | CMP", description: "Neuigkeiten aus der Organisation" });
+useSeoMeta({ title: "Neuigkeiten", description: "Neuigkeiten aus der Organisation" });
 
 const toast = useToast();
 const user = await useUserInfoStore().use();

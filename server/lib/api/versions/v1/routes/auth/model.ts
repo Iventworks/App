@@ -11,6 +11,7 @@ export namespace AuthModel.Login {
 
 	export const Response = createSelectSchema(DB.Tables.sessions)
 		.omit({
+			org_id: true,
 			id: true,
 			hashed_token: true,
 		})
@@ -22,6 +23,7 @@ export namespace AuthModel.Login {
 
 export namespace AuthModel.Session {
 	export const Response = createSelectSchema(DB.Tables.sessions).omit({
+		org_id: true,
 		id: true,
 		hashed_token: true,
 	});

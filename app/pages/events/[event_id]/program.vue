@@ -49,7 +49,7 @@ const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() => ({
 }));
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: `Programm | ${event.value.name} | CMP`,
+	baseTitle: `Programm | ${event.value.name}`,
 	routes,
 });
 

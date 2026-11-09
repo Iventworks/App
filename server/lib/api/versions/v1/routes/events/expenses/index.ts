@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -55,7 +56,7 @@ async function toResponse(
 		? await DB.instance()
 				.select()
 				.from(DB.Tables.files)
-				.where(inArray(DB.Tables.files.id, receiptIds))
+				.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.id, receiptIds)))
 				.all()
 		: [];
 
@@ -106,7 +107,7 @@ router.get(
 		const { userId } = c.get("eventAccess");
 		const { status } = c.req.valid("query") as EventExpensesModel.GetAll.Query;
 
-		const conditions = [eq(DB.Tables.expenses.event_id, event.id)];
+		const conditions = [inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.event_id, event.id)];
 		if (!EventAccess.can(c, "expenses:view_all")) {
 			conditions.push(eq(DB.Tables.expenses.submitted_by, userId));
 		}
@@ -152,7 +153,7 @@ router.get(
 		const expenses = await DB.instance()
 			.select()
 			.from(DB.Tables.expenses)
-			.where(eq(DB.Tables.expenses.event_id, c.get("event").id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.event_id, c.get("event").id)))
 			.all();
 
 		const totals = { submitted: 0, approved: 0, rejected: 0, reimbursed: 0 };
@@ -228,7 +229,7 @@ router.post(
 
 		const expense = await DB.instance()
 			.insert(DB.Tables.expenses)
-			.values({ ...body, event_id: event.id, submitted_by: userId })
+			.values({ ...body, event_id: event.id, submitted_by: userId, org_id: OrgContext.id() })
 			.returning()
 			.get();
 
@@ -245,7 +246,11 @@ router.post(
 			.select({ user_id: DB.Tables.eventMembers.user_id })
 			.from(DB.Tables.eventMembers)
 			.where(
-				and(eq(DB.Tables.eventMembers.event_id, event.id), eq(DB.Tables.eventMembers.role, "leader")),
+				and(
+					inOrg(DB.Tables.eventMembers),
+					eq(DB.Tables.eventMembers.event_id, event.id),
+					eq(DB.Tables.eventMembers.role, "leader"),
+				),
 			)
 			.all();
 
@@ -273,7 +278,13 @@ router.use("/:expenseId/*", zValidator("param", EventExpensesModel.Params), asyn
 	const expense = await DB.instance()
 		.select()
 		.from(DB.Tables.expenses)
-		.where(and(eq(DB.Tables.expenses.id, expenseId.data), eq(DB.Tables.expenses.event_id, event.id)))
+		.where(
+			and(
+				inOrg(DB.Tables.expenses),
+				eq(DB.Tables.expenses.id, expenseId.data),
+				eq(DB.Tables.expenses.event_id, event.id),
+			),
+		)
 		.get();
 
 	// Staff only ever see their own expenses.
@@ -317,7 +328,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.expenses)
 			.set({ ...body, updated_at: Date.now() })
-			.where(eq(DB.Tables.expenses.id, expense.id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, expense.id)))
 			.returning()
 			.get();
 
@@ -359,7 +370,10 @@ router.delete(
 
 		try {
 			await DB.instance().transaction(async (tx: DrizzleDB) => {
-				await tx.delete(DB.Tables.expenses).where(eq(DB.Tables.expenses.id, expense.id)).run();
+				await tx
+					.delete(DB.Tables.expenses)
+					.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, expense.id)))
+					.run();
 				await deleteReceipt(expense.receipt_file_id, tx);
 			});
 		} catch (error: any) {
@@ -431,7 +445,7 @@ router.post(
 		const updated = await DB.instance()
 			.update(DB.Tables.expenses)
 			.set({ receipt_file_id: receipt.id, updated_at: Date.now() })
-			.where(eq(DB.Tables.expenses.id, expense.id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, expense.id)))
 			.returning()
 			.get();
 
@@ -488,7 +502,7 @@ router.post(
 				reviewed_at: Date.now(),
 				updated_at: Date.now(),
 			})
-			.where(eq(DB.Tables.expenses.id, expense.id))
+			.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, expense.id)))
 			.returning()
 			.get();
 

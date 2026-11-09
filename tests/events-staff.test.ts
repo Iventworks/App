@@ -6,6 +6,7 @@ import { EventMembersModel } from "../server/lib/api/versions/v1/routes/events/m
 import { EventResponsibilitiesModel } from "../server/lib/api/versions/v1/routes/events/responsibilities/model";
 import { EventRoomsModel } from "../server/lib/api/versions/v1/routes/events/rooms/model";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
 import {
 	addEventMember,
@@ -35,6 +36,7 @@ function seedParticipant(event_id: number, overrides: Partial<DB.Models.Particip
 	return DB.instance()
 		.insert(DB.Tables.participants)
 		.values({
+			org_id: OrgContext.id(),
 			event_id,
 			first_name: "Max",
 			last_name: "Muster",
@@ -163,7 +165,7 @@ describe("Event members", () => {
 	test("rejects a room of another event", async () => {
 		const foreignRoom = DB.instance()
 			.insert(DB.Tables.rooms)
-			.values({ event_id: otherEventId, name: "Fremd" })
+			.values({ org_id: OrgContext.id(), event_id: otherEventId, name: "Fremd" })
 			.returning()
 			.get();
 		await makeAPIRequest(
@@ -194,16 +196,27 @@ describe("Event members", () => {
 		});
 		const program = DB.instance()
 			.insert(DB.Tables.programItems)
-			.values({ event_id: eventId, title: "Lobpreis", start_at: 1, end_at: 2 })
+			.values({
+				org_id: OrgContext.id(),
+				event_id: eventId,
+				title: "Lobpreis",
+				start_at: 1,
+				end_at: 2,
+			})
 			.returning()
 			.get();
 		DB.instance()
 			.insert(DB.Tables.programItemResponsibles)
-			.values({ program_item_id: program.id, user_id: newcomer.id })
+			.values({ org_id: OrgContext.id(), program_item_id: program.id, user_id: newcomer.id })
 			.run();
 		const task = DB.instance()
 			.insert(DB.Tables.tasks)
-			.values({ event_id: eventId, title: "Noten drucken", assignee_id: newcomer.id })
+			.values({
+				org_id: OrgContext.id(),
+				event_id: eventId,
+				title: "Noten drucken",
+				assignee_id: newcomer.id,
+			})
 			.returning()
 			.get();
 
@@ -520,6 +533,7 @@ describe("Event insights", () => {
 			.insert(DB.Tables.expenses)
 			.values([
 				{
+					org_id: OrgContext.id(),
 					event_id: eventId,
 					title: "Brot",
 					category: "Essen",
@@ -528,6 +542,7 @@ describe("Event insights", () => {
 					status: "approved",
 				},
 				{
+					org_id: OrgContext.id(),
 					event_id: eventId,
 					title: "Seile",
 					category: "Material",

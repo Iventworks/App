@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
@@ -18,8 +19,17 @@ const TARGET_USER_KEY = "adminTargetUser";
 
 const sanitizeUser = (user: DB.Models.User) => AdminUsersModel.SafeUser.parse(user);
 
+/** The system org's users are the system admins: there, "admin" is the only role. */
+function isRoleAllowedHere(role: UserAccountSettings.Role) {
+	return OrgContext.current().kind !== "system" || role === "admin";
+}
+
 function findUser(userID: number) {
-	return DB.instance().select().from(DB.Tables.users).where(eq(DB.Tables.users.id, userID)).get();
+	return DB.instance()
+		.select()
+		.from(DB.Tables.users)
+		.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, userID)))
+		.get();
 }
 
 export const router = new Hono().basePath("/users");
@@ -44,6 +54,7 @@ router.get(
 		const table = DB.Tables.users;
 
 		const conditions: (SQL | undefined)[] = [
+			inOrg(table),
 			filters.role ? eq(table.role, filters.role) : undefined,
 			filters.status === "suspended" ? isNotNull(table.suspended_at) : undefined,
 			filters.status === "active" ? isNull(table.suspended_at) : undefined,
@@ -96,10 +107,20 @@ router.post(
 	async (c) => {
 		const body = c.req.valid("json") as AdminUsersModel.Create.Body;
 
+		const role = body.role ?? (OrgContext.current().kind === "system" ? "admin" : undefined);
+		if (role && !isRoleAllowedHere(role)) {
+			return APIResponse.badRequest(c, "System admins always have the role admin");
+		}
+
 		const duplicate = DB.instance()
 			.select()
 			.from(DB.Tables.users)
-			.where(or(eq(DB.Tables.users.username, body.username), eq(DB.Tables.users.email, body.email)))
+			.where(
+				and(
+					inOrg(DB.Tables.users),
+					or(eq(DB.Tables.users.username, body.username), eq(DB.Tables.users.email, body.email)),
+				),
+			)
 			.get();
 
 		if (duplicate) {
@@ -117,7 +138,7 @@ router.post(
 		const { createdUser, passwordLink } = await DB.instance().transaction(async (tx: DrizzleDB) => {
 			const createdUser = await tx
 				.insert(DB.Tables.users)
-				.values({ ...userData, password_hash: passwordHash })
+				.values({ ...userData, role, org_id: OrgContext.id(), password_hash: passwordHash })
 				.returning()
 				.get();
 
@@ -201,25 +222,35 @@ router.get(
 					position: DB.Tables.eventMembers.position,
 				})
 				.from(DB.Tables.eventMembers)
-				.innerJoin(DB.Tables.events, eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id))
-				.where(eq(DB.Tables.eventMembers.user_id, user.id))
+				.innerJoin(
+					DB.Tables.events,
+					and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id)),
+				)
+				.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.user_id, user.id)))
 				.orderBy(desc(DB.Tables.events.start_date))
 				.all(),
 			DB.instance()
 				.select({ value: count() })
 				.from(DB.Tables.sessions)
-				.where(and(eq(DB.Tables.sessions.user_id, user.id), gt(DB.Tables.sessions.expires_at, now)))
+				.where(
+					and(
+						inOrg(DB.Tables.sessions),
+						eq(DB.Tables.sessions.user_id, user.id),
+						gt(DB.Tables.sessions.expires_at, now),
+					),
+				)
 				.get(),
 			DB.instance()
 				.select({ value: count() })
 				.from(DB.Tables.apiKeys)
-				.where(eq(DB.Tables.apiKeys.user_id, user.id))
+				.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.user_id, user.id)))
 				.get(),
 			DB.instance()
 				.select({ value: max(DB.Tables.passwordResets.expires_at) })
 				.from(DB.Tables.passwordResets)
 				.where(
 					and(
+						inOrg(DB.Tables.passwordResets),
 						eq(DB.Tables.passwordResets.user_id, user.id),
 						gt(DB.Tables.passwordResets.expires_at, now),
 					),
@@ -275,11 +306,15 @@ router.put(
 			return APIResponse.badRequest(c, "You cannot remove your own admin role");
 		}
 
+		if (updates.role && !isRoleAllowedHere(updates.role)) {
+			return APIResponse.badRequest(c, "System admins always have the role admin");
+		}
+
 		if (updates.username && updates.username !== user.username) {
 			const usernameConflict = DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.username, updates.username))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.username, updates.username)))
 				.get();
 
 			if (usernameConflict) {
@@ -291,7 +326,7 @@ router.put(
 			const emailConflict = DB.instance()
 				.select()
 				.from(DB.Tables.users)
-				.where(eq(DB.Tables.users.email, updates.email))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.email, updates.email)))
 				.get();
 
 			if (emailConflict) {
@@ -304,7 +339,11 @@ router.put(
 		// One transaction: the role on the user and the role cached on their sessions/API keys
 		// must never disagree.
 		await DB.instance().transaction(async (tx: DrizzleDB) => {
-			await tx.update(DB.Tables.users).set(updates).where(eq(DB.Tables.users.id, user.id)).run();
+			await tx
+				.update(DB.Tables.users)
+				.set(updates)
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
+				.run();
 			if (roleChanged && updates.role) {
 				await AuthHandler.changeUserRoleInAuthContexts(user.id, updates.role, tx);
 			}
@@ -362,7 +401,7 @@ router.put(
 			await tx
 				.update(DB.Tables.users)
 				.set({ password_hash: passwordHash })
-				.where(eq(DB.Tables.users.id, user.id))
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
 				.run();
 			await SessionHandler.inValidateAllSessionsForUser(user.id, tx);
 			await PasswordLinks.revokeAll(user.id, tx);
@@ -450,7 +489,7 @@ router.post(
 			const sessions = await tx
 				.select({ value: count() })
 				.from(DB.Tables.sessions)
-				.where(eq(DB.Tables.sessions.user_id, user.id))
+				.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.user_id, user.id)))
 				.get();
 			await SessionHandler.inValidateAllSessionsForUser(user.id, tx);
 			return sessions?.value ?? 0;
@@ -504,7 +543,11 @@ router.post(
 		const suspension = { suspended_at: Date.now(), suspended_reason: reason || null };
 
 		await DB.instance().transaction(async (tx: DrizzleDB) => {
-			await tx.update(DB.Tables.users).set(suspension).where(eq(DB.Tables.users.id, user.id)).run();
+			await tx
+				.update(DB.Tables.users)
+				.set(suspension)
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
+				.run();
 			await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);
 			await PasswordLinks.revokeAll(user.id, tx);
 		});
@@ -552,7 +595,7 @@ router.post(
 		await DB.instance()
 			.update(DB.Tables.users)
 			.set({ suspended_at: null, suspended_reason: null })
-			.where(eq(DB.Tables.users.id, user.id))
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
 			.run();
 
 		await AuditLog.record({
@@ -598,7 +641,10 @@ router.delete(
 			await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);
 			await PasswordLinks.revokeAll(user.id, tx);
 			await UserPreferencesHandler.deleteAllForUser(user.id, tx);
-			await tx.delete(DB.Tables.users).where(eq(DB.Tables.users.id, user.id)).run();
+			await tx
+				.delete(DB.Tables.users)
+				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
+				.run();
 		});
 
 		await AuditLog.record({

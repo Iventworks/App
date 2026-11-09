@@ -1,5 +1,5 @@
 /**
- * usePwaInstall — install CMP as a PWA ("App installieren").
+ * usePwaInstall — install the org's app as a PWA ("App installieren").
  *
  * Chromium browsers fire `beforeinstallprompt` once, early, when the app is installable; the
  * `pwaInstall.client` plugin catches it at startup and `install()` replays it on a user click.

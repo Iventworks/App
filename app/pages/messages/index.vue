@@ -16,7 +16,7 @@ import type { GetConversationsResponses } from "~/api-client";
 type Conversation = GetConversationsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
-useSeoMeta({ title: "Nachrichten | CMP" });
+useSeoMeta({ title: "Nachrichten" });
 
 const LIST_POLL_MS = 15_000;
 

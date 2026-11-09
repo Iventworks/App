@@ -2,6 +2,7 @@ import { expect } from "bun:test";
 import type { ZodType } from "zod";
 import { API } from "../../server/lib/api";
 import { Logger } from "../../server/lib/utils/logger";
+import { TEST_HOST } from "./orgs";
 
 type HeadersInit = RequestInit["headers"];
 
@@ -17,6 +18,8 @@ export async function makeAPIRequest<ReturnBody = any>(
 	expectedCode?: number,
 ) {
 	const baseHeaders: HeadersInit = {
+		// The test org, unless a test sends its own host header (cross-org tests).
+		"X-Iventworks-Host": TEST_HOST,
 		...(opts.body ? { "Content-Type": "application/json" } : {}),
 		...(opts.authToken ? { Authorization: `Bearer ${opts.authToken}` } : {}),
 	};

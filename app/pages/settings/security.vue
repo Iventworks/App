@@ -11,7 +11,7 @@ type Session = GetAccountSessionsResponses["200"]["data"][number];
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Sicherheit | Einstellungen | CMP",
+	title: "Sicherheit | Einstellungen",
 	description: "Passwort und angemeldete Geräte verwalten",
 });
 

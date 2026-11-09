@@ -1,5 +1,6 @@
 import { and, isNotNull, isNull, lt } from "drizzle-orm";
 import { DB } from "../db";
+import { OrgContext } from "../orgs/context";
 import { Logger } from "./logger";
 
 /**
@@ -9,7 +10,12 @@ import { Logger } from "./logger";
 export class Housekeeping {
 	static readonly READ_NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
+	/** Expired rows of every org at once: system code, so the tenant guard is off. */
 	static async run(now = Date.now()) {
+		return OrgContext.unscoped(() => Housekeeping.cleanUp(now));
+	}
+
+	private static async cleanUp(now: number) {
 		const db = DB.instance();
 
 		const sessions = await db

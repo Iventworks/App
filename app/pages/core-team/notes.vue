@@ -6,7 +6,7 @@ type Note = GetOrgCoreTeamNotesResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Interne Notizen | Kernteam | CMP" });
+useSeoMeta({ title: "Interne Notizen | Kernteam" });
 
 const toast = useToast();
 

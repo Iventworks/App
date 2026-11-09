@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { OrgContext } from "../../../../orgs/context";
 import { APIResponse } from "../../../utils/api-res";
 import { AuthHandler } from "../../../utils/authHandler";
 
@@ -16,7 +17,8 @@ function isPublicAuthPath(fullPath: string) {
 export const authMiddlewareV1 = createMiddleware(async (c, next) => {
 	const authHeader = c.req.header("Authorization");
 
-	if (!authHeader) {
+	// Unknown host (only the public instance info is reachable): no org to look a token up in.
+	if (!authHeader || !OrgContext.maybeCurrent()) {
 		AuthHandler.AuthContext.set(c, {
 			type: "unauthenticated",
 		} satisfies AuthHandler.UnauthenticatedAuthContext);

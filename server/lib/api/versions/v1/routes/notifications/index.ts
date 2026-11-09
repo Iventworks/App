@@ -2,6 +2,7 @@ import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { inOrg } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
@@ -41,6 +42,7 @@ router.get(
 			.from(DB.Tables.notifications)
 			.where(
 				and(
+					inOrg(DB.Tables.notifications),
 					eq(DB.Tables.notifications.user_id, userId),
 					unread_only ? isNull(DB.Tables.notifications.read_at) : undefined,
 				),
@@ -52,7 +54,13 @@ router.get(
 		const unread = await DB.instance()
 			.select({ value: count() })
 			.from(DB.Tables.notifications)
-			.where(and(eq(DB.Tables.notifications.user_id, userId), isNull(DB.Tables.notifications.read_at)))
+			.where(
+				and(
+					inOrg(DB.Tables.notifications),
+					eq(DB.Tables.notifications.user_id, userId),
+					isNull(DB.Tables.notifications.read_at),
+				),
+			)
 			.get();
 
 		return APIResponse.success(c, "Notifications retrieved successfully", {
@@ -81,6 +89,7 @@ router.post(
 			.set({ read_at: Date.now() })
 			.where(
 				and(
+					inOrg(DB.Tables.notifications),
 					eq(DB.Tables.notifications.user_id, getAuthUserId(c)),
 					isNull(DB.Tables.notifications.read_at),
 				),
@@ -105,6 +114,7 @@ router.use(
 			.from(DB.Tables.notifications)
 			.where(
 				and(
+					inOrg(DB.Tables.notifications),
 					eq(DB.Tables.notifications.id, notificationId.data),
 					eq(DB.Tables.notifications.user_id, getAuthUserId(c)),
 				),
@@ -138,7 +148,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.notifications)
 			.set({ read_at: notification.read_at ?? Date.now() })
-			.where(eq(DB.Tables.notifications.id, notification.id))
+			.where(and(inOrg(DB.Tables.notifications), eq(DB.Tables.notifications.id, notification.id)))
 			.returning()
 			.get();
 
@@ -163,7 +173,9 @@ router.delete(
 	async (c) => {
 		await DB.instance()
 			.delete(DB.Tables.notifications)
-			.where(eq(DB.Tables.notifications.id, c.get("notification").id))
+			.where(
+				and(inOrg(DB.Tables.notifications), eq(DB.Tables.notifications.id, c.get("notification").id)),
+			)
 			.run();
 		return APIResponse.successNoData(c, "Notification deleted successfully");
 	},

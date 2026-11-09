@@ -32,7 +32,7 @@ definePageMeta({ layout: "dashboard" });
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 
-useSeoMeta({ title: `Zimmer | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Zimmer | ${event.value.name}` });
 
 const GENDER_SHORT: Record<Gender, string> = { female: "w", male: "m", diverse: "d" };
 const GENDER_DOT: Record<Gender, string> = {

@@ -5,35 +5,43 @@ import fs from "fs/promises";
 import path from "path";
 import { API } from "../../server/lib/api";
 import { DB } from "../../server/lib/db";
+import { OrgBootstrap } from "../../server/lib/orgs/bootstrap";
+import { OrgContext } from "../../server/lib/orgs/context";
+import { OrgService } from "../../server/lib/orgs/service";
 import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
 import { FileStorage } from "../../server/lib/utils/fileStorage";
+import { findCrossOrgReferences } from "./crossOrg";
+import { TEST_ORG_SLUG } from "./orgs";
 
 function setTestEnv(rootDir: string) {
 	const envVars = {
-		CMP_LOG_LEVEL: "debug",
+		IVENTWORKS_LOG_LEVEL: "debug",
 
-		CMP_API_DISABLE_DOCS: false,
+		IVENTWORKS_API_DISABLE_DOCS: false,
 
-		CMP_DB_PATH: path.join(rootDir, "db.sqlite"),
-		CMP_DB_AUTO_MIGRATE: true,
-		CMP_DB_MIGRATION_DIR: "./drizzle/migrations",
+		IVENTWORKS_DB_PATH: path.join(rootDir, "db.sqlite"),
+		IVENTWORKS_DB_AUTO_MIGRATE: true,
+		IVENTWORKS_DB_MIGRATION_DIR: "./drizzle/migrations",
 
-		CMP_LOG_DIR: path.join(rootDir, "logs"),
-		CMP_CONFIG_BASE_DIR: rootDir,
+		IVENTWORKS_LOG_DIR: path.join(rootDir, "logs"),
+		IVENTWORKS_CONFIG_BASE_DIR: rootDir,
 
-		CMP_UPLOAD_DIR: path.join(rootDir, "uploads"),
-		CMP_MAX_UPLOAD_SIZE_MB: 5,
-		CMP_TRUST_PROXY: false,
+		IVENTWORKS_UPLOAD_DIR: path.join(rootDir, "uploads"),
+		IVENTWORKS_MAX_UPLOAD_SIZE_MB: 5,
+		IVENTWORKS_TRUST_PROXY: false,
 
-		CMP_APP_URL: "http://localhost:31316",
-		CMP_TIMEZONE: "Europe/Berlin",
+		IVENTWORKS_APP_URL: "http://localhost:31316",
+		// The tests run in multi-org mode: requests go to the "test" org (tests/helpers/orgs.ts),
+		// and the cross-org tests add more orgs.
+		IVENTWORKS_MULTI_ORG: true,
+		IVENTWORKS_TIMEZONE: "Europe/Berlin",
 
-		CMP_SMTP_HOST: "127.0.0.1",
-		CMP_SMTP_PORT: 12587,
-		CMP_SMTP_USERNAME: "",
-		CMP_SMTP_PASSWORD: "",
-		CMP_SMTP_FROM: '"App Test" <test@app.local>',
-		CMP_SMTP_SECURE: false,
+		IVENTWORKS_SMTP_HOST: "127.0.0.1",
+		IVENTWORKS_SMTP_PORT: 12587,
+		IVENTWORKS_SMTP_USERNAME: "",
+		IVENTWORKS_SMTP_PASSWORD: "",
+		IVENTWORKS_SMTP_FROM: '"App Test" <test@app.local>',
+		IVENTWORKS_SMTP_SECURE: false,
 	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {
@@ -97,6 +105,11 @@ beforeAll(async () => {
 	const config = await ConfigHandler.loadConfig();
 
 	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT, "./drizzle/migrations");
+	await OrgBootstrap.run(TMP_ROOT);
+
+	// Seeding code outside requests works in the test org; requests resolve it from TEST_HOST.
+	const testOrg = await OrgService.create({ slug: TEST_ORG_SLUG, display_name: "Test-Org" });
+	OrgContext.useTestFallback(testOrg);
 
 	await FileStorage.init(config.UPLOAD_DIR, config.MAX_UPLOAD_SIZE_MB);
 
@@ -109,11 +122,18 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+	// Whatever the test file did: no row may point at a row of another org.
+	const crossOrg = findCrossOrgReferences();
+
 	await API.stop();
 
 	await DB.close();
 
 	if (TMP_ROOT) {
 		await removeDirWithRetry(TMP_ROOT);
+	}
+
+	if (crossOrg.length) {
+		throw new Error(`Cross-org references in the test DB: ${crossOrg.join("; ")}`);
 	}
 });

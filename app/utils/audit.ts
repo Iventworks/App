@@ -44,6 +44,9 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	resource_booking: { label: "Reservierung", icon: "i-lucide-calendar-check" },
 	user: { label: "Benutzer", icon: "i-lucide-user" },
 	invitation: { label: "Einladung", icon: "i-lucide-mail" },
+	organization: { label: "Organisation", icon: "i-lucide-building" },
+	org_domain: { label: "Domain", icon: "i-lucide-globe" },
+	org: { label: "Organisation", icon: "i-lucide-building" },
 };
 
 export function auditEntity(type: string) {
@@ -95,6 +98,13 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 		case "resource":
 		case "resource_booking":
 			return "/core-team/resources";
+		case "organization":
+			return options.isAdmin ? "/admin/organization" : null;
+		case "org_domain":
+			return options.isAdmin ? "/admin/organization/domains" : null;
+		case "org":
+			// System log: the org's page on the system dashboard.
+			return options.isAdmin && id ? `/admin/orgs/${id}` : null;
 		default:
 			return null;
 	}

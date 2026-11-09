@@ -2,6 +2,7 @@ import { defineNitroPlugin } from "nitropack/runtime";
 import { API } from "../lib/api";
 import { EmailService } from "../lib/api/utils/email";
 import { DB } from "../lib/db";
+import { OrgBootstrap } from "../lib/orgs/bootstrap";
 import { TaskScheduler } from "../lib/tasks";
 import { Utils } from "../lib/utils";
 import { ConfigHandler } from "../lib/utils/config";
@@ -80,6 +81,9 @@ export default defineNitroPlugin(async (nitroApp) => {
 		config.CONFIG_BASE_DIR,
 		config.DB_MIGRATION_DIR,
 	);
+
+	// The orgs this mode needs, the in-memory host → org registry and the first admin account.
+	await OrgBootstrap.run(config.CONFIG_BASE_DIR);
 
 	await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 

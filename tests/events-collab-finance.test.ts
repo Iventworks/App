@@ -9,8 +9,10 @@ import { EventFilesModel } from "../server/lib/api/versions/v1/routes/events/fil
 import { EventNotesModel } from "../server/lib/api/versions/v1/routes/events/notes/model";
 import { FilesModel } from "../server/lib/api/versions/v1/routes/files/model";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
 import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
+import { hostHeaders, TEST_HOST } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -94,13 +96,13 @@ beforeAll(async () => {
 
 	const group = DB.instance()
 		.insert(DB.Tables.eventGroups)
-		.values({ event_id: eventId, name: "Küchenteam" })
+		.values({ org_id: OrgContext.id(), event_id: eventId, name: "Küchenteam" })
 		.returning()
 		.get();
 	kitchenGroupId = group.id;
 	DB.instance()
 		.insert(DB.Tables.eventGroupMembers)
-		.values({ group_id: kitchenGroupId, user_id: cook.id })
+		.values({ org_id: OrgContext.id(), group_id: kitchenGroupId, user_id: cook.id })
 		.run();
 });
 
@@ -297,26 +299,38 @@ describe("Event documents and /files", () => {
 	test("downloads via signed token; forged or expired tokens are rejected", async () => {
 		const token = FileService.createDownloadToken(fileId);
 
-		const res = await API.getApp().request(`/v1/files/download/${token}`);
+		const res = await API.getApp().request(`/v1/files/download/${token}`, {
+			headers: hostHeaders(TEST_HOST),
+		});
 		expect(res.status).toBe(200);
 		expect(res.headers.get("content-type")).toBe("image/png");
 		expect(res.headers.get("content-disposition")).toStartWith("inline;");
 		expect(res.headers.get("content-disposition")).toContain("filename*=UTF-8''Plan%20Tag%201.png");
 		expect(new Uint8Array(await res.arrayBuffer())).toEqual(PNG_BYTES);
 
-		const forced = await API.getApp().request(`/v1/files/download/${token}?download=1`);
+		const forced = await API.getApp().request(`/v1/files/download/${token}?download=1`, {
+			headers: hostHeaders(TEST_HOST),
+		});
 		expect(forced.headers.get("content-disposition")).toStartWith("attachment;");
 
 		const forged = `${fileId + 1}.${token.split(".").slice(1).join(".")}`;
-		expect((await API.getApp().request(`/v1/files/download/${forged}`)).status).toBe(404);
+		expect(
+			(await API.getApp().request(`/v1/files/download/${forged}`, { headers: hostHeaders(TEST_HOST) }))
+				.status,
+		).toBe(404);
 
 		const expired = FileService.createDownloadToken(fileId, -1000);
-		expect((await API.getApp().request(`/v1/files/download/${expired}`)).status).toBe(404);
+		expect(
+			(
+				await API.getApp().request(`/v1/files/download/${expired}`, { headers: hostHeaders(TEST_HOST) })
+			).status,
+		).toBe(404);
 	});
 
 	test("only safe types render inline; SVG and HTML are always downloaded as opaque bytes", async () => {
 		const png = await API.getApp().request(
 			`/v1/files/download/${FileService.createDownloadToken(fileId)}`,
+			{ headers: hostHeaders(TEST_HOST) },
 		);
 		expect(png.headers.get("content-security-policy")).toContain("sandbox");
 		expect(png.headers.get("x-content-type-options")).toBe("nosniff");
@@ -337,7 +351,9 @@ describe("Event documents and /files", () => {
 					201,
 				),
 			);
-			const res = await API.getApp().request(`/v1/files/download/${uploaded.download_token}`);
+			const res = await API.getApp().request(`/v1/files/download/${uploaded.download_token}`, {
+				headers: hostHeaders(TEST_HOST),
+			});
 			expect(res.status).toBe(200);
 			expect(res.headers.get("content-type")).toBe("application/octet-stream");
 			expect(res.headers.get("content-disposition")).toStartWith("attachment;");

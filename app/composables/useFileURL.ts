@@ -5,11 +5,11 @@
  * "open in new tab" work without the bearer header. `download: true` forces an attachment.
  */
 export function useFileURL() {
-	const appUrl = useRuntimeAppConfigs().appUrl.replace(/\/$/, "");
+	const origin = useAPIOrigin();
 
 	return function fileURL(token: string | null | undefined, download = false) {
 		if (!token) return undefined;
-		const url = `${appUrl}/api/v1/files/download/${encodeURIComponent(token)}`;
+		const url = `${origin}/api/v1/files/download/${encodeURIComponent(token)}`;
 		return download ? `${url}?download=1` : url;
 	};
 }

@@ -11,11 +11,20 @@
  * - everything else      any activated account (role ≥ volunteer). Event pages additionally check
  *                        the caller's event access via the API (`useCurrentEvent`).
  *
+ * Hosts (multi-org mode, see `useInstance`):
+ * - unknown host        nothing to guard: `app.vue` shows "no organisation here".
+ * - system host         the base domain: `/` shows the same notice with a link to `/admin`, the
+ *                       system admin dashboard (`/admin/*`, `/settings/*`, `/auth/*` only).
+ * - org host            everything above; the system pages (`/admin/orgs`) are not there.
+ *
  * These gates are UX only; the API enforces every permission itself.
  */
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const HOME_ROUTE = "/";
+const SYSTEM_HOME_ROUTE = "/admin";
+const SYSTEM_PREFIXES = ["/auth", "/settings", "/admin"];
+const SYSTEM_ONLY_PREFIXES = ["/admin/orgs"];
 const PENDING_ROUTE = "/pending";
 const ALWAYS_ALLOWED_FOR_UNVERIFIED = ["/settings", PENDING_ROUTE];
 const CORE_TEAM_PREFIXES = ["/core-team"];
@@ -28,13 +37,23 @@ function hasPrefix(path: string, prefixes: string[]) {
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
+	const kind = useInstance().value?.kind ?? "unknown";
+	if (kind === "unknown") return;
+	if (kind === "system") {
+		if (to.path === "/") return;
+		if (!hasPrefix(to.path, SYSTEM_PREFIXES)) return navigateTo(SYSTEM_HOME_ROUTE);
+	} else if (hasPrefix(to.path, SYSTEM_ONLY_PREFIXES)) {
+		return navigateTo(HOME_ROUTE);
+	}
+	const home = kind === "system" ? SYSTEM_HOME_ROUTE : HOME_ROUTE;
+
 	const sessionToken = useAppCookies().sessionToken;
 	const token = sessionToken.get().value;
 	const store = useUserInfoStore();
 
 	if (hasPrefix(to.path, ["/auth"])) {
 		if (!token) return;
-		if (store.isValid(await store.use())) return navigateTo(HOME_ROUTE);
+		if (store.isValid(await store.use())) return navigateTo(home);
 
 		// Token exists but is invalid or expired: clear it and stay on the auth page.
 		sessionToken.set(null);
@@ -58,13 +77,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
 		return;
 	}
 
-	if (to.path === PENDING_ROUTE) return navigateTo(HOME_ROUTE);
+	if (to.path === PENDING_ROUTE) return navigateTo(home);
 
 	if (hasPrefix(to.path, ADMIN_PREFIXES) && !hasOrgRole(role, "admin")) {
-		return navigateTo(HOME_ROUTE);
+		return navigateTo(home);
 	}
 
 	if (hasPrefix(to.path, CORE_TEAM_PREFIXES) && !hasOrgRole(role, "core_team")) {
-		return navigateTo(HOME_ROUTE);
+		return navigateTo(home);
 	}
 });

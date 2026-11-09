@@ -18,11 +18,13 @@ export namespace EventMembersModel {
 	});
 	export type RoomRef = z.infer<typeof RoomRef>;
 
-	export const Member = createSelectSchema(DB.Tables.eventMembers).extend({
-		user: UserSummary.Schema,
-		groups: z.array(GroupRef),
-		room: RoomRef.nullable(),
-	});
+	export const Member = createSelectSchema(DB.Tables.eventMembers)
+		.omit({ org_id: true })
+		.extend({
+			user: UserSummary.Schema,
+			groups: z.array(GroupRef),
+			room: RoomRef.nullable(),
+		});
 	export type Member = z.infer<typeof Member>;
 
 	export const Params = z.object({

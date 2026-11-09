@@ -20,7 +20,7 @@ definePageMeta({ layout: "dashboard" });
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 
-useSeoMeta({ title: `${event.value.name} | CMP` });
+useSeoMeta({ title: `${event.value.name}` });
 
 const base = computed(() => `/events/${eventId.value}`);
 

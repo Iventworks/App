@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -28,6 +29,7 @@ async function areEventMembers(eventId: number, userIds: number[]) {
 		.from(DB.Tables.eventMembers)
 		.where(
 			and(
+				inOrg(DB.Tables.eventMembers),
 				eq(DB.Tables.eventMembers.event_id, eventId),
 				inArray(DB.Tables.eventMembers.user_id, unique),
 			),
@@ -40,7 +42,12 @@ async function getAssigneeIds(responsibilityId: number, tx: DrizzleDB = DB.insta
 	const rows = await tx
 		.select({ user_id: DB.Tables.responsibilityAssignees.user_id })
 		.from(DB.Tables.responsibilityAssignees)
-		.where(eq(DB.Tables.responsibilityAssignees.responsibility_id, responsibilityId))
+		.where(
+			and(
+				inOrg(DB.Tables.responsibilityAssignees),
+				eq(DB.Tables.responsibilityAssignees.responsibility_id, responsibilityId),
+			),
+		)
 		.all();
 	return rows.map((row) => row.user_id);
 }
@@ -48,13 +55,24 @@ async function getAssigneeIds(responsibilityId: number, tx: DrizzleDB = DB.insta
 async function replaceAssignees(responsibilityId: number, userIds: number[], tx: DrizzleDB) {
 	await tx
 		.delete(DB.Tables.responsibilityAssignees)
-		.where(eq(DB.Tables.responsibilityAssignees.responsibility_id, responsibilityId))
+		.where(
+			and(
+				inOrg(DB.Tables.responsibilityAssignees),
+				eq(DB.Tables.responsibilityAssignees.responsibility_id, responsibilityId),
+			),
+		)
 		.run();
 	const unique = [...new Set(userIds)];
 	if (unique.length) {
 		await tx
 			.insert(DB.Tables.responsibilityAssignees)
-			.values(unique.map((user_id) => ({ responsibility_id: responsibilityId, user_id })))
+			.values(
+				unique.map((user_id) => ({
+					org_id: OrgContext.id(),
+					responsibility_id: responsibilityId,
+					user_id,
+				})),
+			)
 			.run();
 	}
 }
@@ -67,9 +85,12 @@ async function toResponse(
 		.select()
 		.from(DB.Tables.responsibilityAssignees)
 		.where(
-			inArray(
-				DB.Tables.responsibilityAssignees.responsibility_id,
-				responsibilities.map((entry) => entry.id),
+			and(
+				inOrg(DB.Tables.responsibilityAssignees),
+				inArray(
+					DB.Tables.responsibilityAssignees.responsibility_id,
+					responsibilities.map((entry) => entry.id),
+				),
 			),
 		)
 		.all();
@@ -129,7 +150,12 @@ router.get(
 		const rows = await DB.instance()
 			.select()
 			.from(DB.Tables.responsibilities)
-			.where(eq(DB.Tables.responsibilities.event_id, c.get("event").id))
+			.where(
+				and(
+					inOrg(DB.Tables.responsibilities),
+					eq(DB.Tables.responsibilities.event_id, c.get("event").id),
+				),
+			)
 			.orderBy(asc(DB.Tables.responsibilities.title))
 			.all();
 
@@ -181,7 +207,7 @@ router.post(
 			const responsibility = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.responsibilities)
-					.values({ ...body, event_id: event.id })
+					.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
 					.returning()
 					.get();
 				await replaceAssignees(created.id, assignee_ids, tx);
@@ -223,6 +249,7 @@ router.use(
 			.from(DB.Tables.responsibilities)
 			.where(
 				and(
+					inOrg(DB.Tables.responsibilities),
 					eq(DB.Tables.responsibilities.id, responsibilityId.data),
 					eq(DB.Tables.responsibilities.event_id, event.id),
 				),
@@ -286,7 +313,12 @@ router.put(
 						? await tx
 								.update(DB.Tables.responsibilities)
 								.set(fields)
-								.where(eq(DB.Tables.responsibilities.id, responsibility.id))
+								.where(
+									and(
+										inOrg(DB.Tables.responsibilities),
+										eq(DB.Tables.responsibilities.id, responsibility.id),
+									),
+								)
 								.returning()
 								.get()
 						: responsibility;
@@ -343,7 +375,9 @@ router.delete(
 		const responsibility = c.get("responsibility");
 		await DB.instance()
 			.delete(DB.Tables.responsibilities)
-			.where(eq(DB.Tables.responsibilities.id, responsibility.id))
+			.where(
+				and(inOrg(DB.Tables.responsibilities), eq(DB.Tables.responsibilities.id, responsibility.id)),
+			)
 			.run();
 
 		await AuditLog.record({

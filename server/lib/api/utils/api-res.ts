@@ -1,13 +1,29 @@
 import type { Context } from "hono";
 import { z } from "zod";
 
+/**
+ * Every org-owned row carries `org_id`; it is internal and never part of a response. Handlers
+ * often return rows as they come from the DB, so drop it here, once for all routes.
+ */
+function withoutOrgIds<T>(value: T): T {
+	if (Array.isArray(value)) return value.map(withoutOrgIds) as T;
+	if (value === null || typeof value !== "object") return value;
+	const proto = Object.getPrototypeOf(value);
+	if (proto !== Object.prototype && proto !== null) return value;
+	const result: Record<string, unknown> = {};
+	for (const [key, child] of Object.entries(value)) {
+		if (key !== "org_id") result[key] = withoutOrgIds(child);
+	}
+	return result as T;
+}
+
 export class APIResponse {
 	static success<Data extends APIResponse.Types.RequiredReturnData>(
 		c: Context,
 		message: string,
 		data: Data,
 	) {
-		return c.json({ success: true, code: 200, message, data }, 200);
+		return c.json({ success: true, code: 200, message, data: withoutOrgIds(data) }, 200);
 	}
 
 	static successNoData(c: Context, message: string) {
@@ -19,7 +35,7 @@ export class APIResponse {
 		message: string,
 		data: Data,
 	) {
-		return c.json({ success: true, code: 201, message, data }, 201);
+		return c.json({ success: true, code: 201, message, data: withoutOrgIds(data) }, 201);
 	}
 
 	static createdNoData(c: Context, message: string) {
@@ -31,7 +47,7 @@ export class APIResponse {
 		message: string,
 		data: Data,
 	) {
-		return c.json({ success: true, code: 202, message, data }, 202);
+		return c.json({ success: true, code: 202, message, data: withoutOrgIds(data) }, 202);
 	}
 
 	static serverError(c: Context, message: string) {

@@ -7,7 +7,7 @@ type Overview = GetOrgCoreTeamOverviewResponses["200"]["data"];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Kernteam | CMP" });
+useSeoMeta({ title: "Kernteam" });
 
 const toast = useToast();
 const user = await useUserInfoStore().use();

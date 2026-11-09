@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { PersonalScope } from "../../../../utils/personalScope";
@@ -86,6 +87,7 @@ router.post(
 			.insert(DB.Tables.tasks)
 			.values({
 				...body,
+				org_id: OrgContext.id(),
 				event_id: null,
 				user_id: userId,
 				created_by: userId,
@@ -108,6 +110,7 @@ router.use("/:taskId/*", zValidator("param", PersonalTasksModel.Params), async (
 		.from(DB.Tables.tasks)
 		.where(
 			and(
+				inOrg(DB.Tables.tasks),
 				eq(DB.Tables.tasks.id, taskId.data),
 				isNull(DB.Tables.tasks.event_id),
 				eq(DB.Tables.tasks.user_id, getAuthUserId(c)),
@@ -151,7 +154,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.tasks)
 			.set({ ...body, completed_at: completedAt, updated_at: Date.now() })
-			.where(eq(DB.Tables.tasks.id, task.id))
+			.where(and(inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.id, task.id)))
 			.returning()
 			.get();
 
@@ -175,7 +178,10 @@ router.delete(
 
 	async (c) => {
 		const task = c.get("task");
-		await DB.instance().delete(DB.Tables.tasks).where(eq(DB.Tables.tasks.id, task.id)).run();
+		await DB.instance()
+			.delete(DB.Tables.tasks)
+			.where(and(inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.id, task.id)))
+			.run();
 		return APIResponse.successNoData(c, "Task deleted successfully");
 	},
 );

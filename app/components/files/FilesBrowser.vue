@@ -203,7 +203,7 @@ const dropTargetId = ref<number | "root" | null>(null);
 function onItemDragStart(event: DragEvent, item: FileItem) {
 	if (!props.canManage(item)) return;
 	draggedItem.value = item;
-	event.dataTransfer?.setData("application/x-cmp-file", String(item.id));
+	event.dataTransfer?.setData("application/x-iventworks-file", String(item.id));
 	if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
 }
 

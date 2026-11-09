@@ -5,6 +5,7 @@ import { UserDataPolicies } from "../../../../utils/shared-models/accountData";
 
 export namespace AccountModel.GetInfo {
 	export const Response = createSelectSchema(DB.Tables.users).omit({
+		org_id: true,
 		password_hash: true,
 	});
 	export type Response = z.infer<typeof Response>;
@@ -17,11 +18,12 @@ export namespace AccountModel.UpdateInfo {
 		email: z.email("Invalid email"),
 		phone: z.string().trim().max(40).nullable(),
 	})
-		.omit({
-			id: true,
-			password_hash: true,
-			role: true,
-			created_at: true,
+		// Only the profile fields: never the org, role, suspension or login bookkeeping.
+		.pick({
+			username: true,
+			display_name: true,
+			email: true,
+			phone: true,
 		})
 		.partial()
 		.refine((data) => Object.values(data).some((value) => value !== undefined), {

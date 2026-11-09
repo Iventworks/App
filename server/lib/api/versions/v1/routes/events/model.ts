@@ -6,7 +6,7 @@ import { PermissionHelper } from "../../../../utils/permissions";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 
 export namespace EventsModel {
-	export const Event = createSelectSchema(DB.Tables.events);
+	export const Event = createSelectSchema(DB.Tables.events).omit({ org_id: true });
 	export type Event = z.infer<typeof Event>;
 
 	export const EventRole = z.enum(EVENT_MEMBER_ROLES);

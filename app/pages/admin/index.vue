@@ -1,8 +1,12 @@
 <script setup lang="ts">
-// The admin area has no landing page of its own: open the user management.
+// The admin area has no landing page of its own: open the user management — or, on the system
+// host, the organisations.
 definePageMeta({
 	layout: "dashboard",
-	middleware: () => navigateTo("/admin/users", { replace: true }),
+	middleware: () =>
+		navigateTo(useInstance().value?.kind === "system" ? "/admin/orgs" : "/admin/users", {
+			replace: true,
+		}),
 });
 </script>
 

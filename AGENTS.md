@@ -30,16 +30,43 @@ Follow the LeiCraftMC Style Guides: https://github.com/LeiCraftMC/Style-Guides.
   (`server/routes/ws/`) require `nitro.experimental.websocket = true` (Bun preset).
 - Format with Biome before finishing. Conventional Commits.
 
-## CMP-specific rules and exceptions
+## Iventworks-specific rules and exceptions
 
-Record every divergence from the style guide here (docs/17: "discuss, record").
+Record every divergence from the style guide here (docs/17: "discuss, record"). The app was called
+CMP (Crossover Management Portal) before; the repository still is.
 
-- Env prefix `CMP_`, token/cookie prefix `cmp` (`cmp_session_token`), see
-  `server/lib/utils/constants.ts`. Legacy `CMP_API_*` names (pre-merge CMP-API) are read as a
-  fallback by `ConfigHandler`; `bun run db:import-legacy` imports old user accounts.
+- Env prefix `IVENTWORKS_`, token/cookie prefix `iventworks` (`iventworks_session_token`,
+  `iventworks_sess_…`), see `server/lib/utils/constants.ts`. The old `CMP_*` names are read as a
+  fallback by `ConfigHandler`; `bun run db:import-legacy` imports pre-merge CMP-API accounts.
 - Port **31316** in dev and prod. This deviates from the guide's 12xxx rule (docs/02 › Ports): it is
   the port the pre-merge CMP web app already used.
-- **Roles / RBAC** (docs/10 › full RBAC): org roles `admin > core_team > volunteer > unverified`,
+- **Orgs (tenants) — every change must keep them apart.** All org data carries `org_id`
+  (`orgIdColumn()` in the schema); see README › Organisations for single- vs multi-org mode.
+  - Every `select`/`update`/`delete` on an org table has `inOrg(<table>)` in its `where`, every
+    join on an org table has `inOrg(<joined table>)` (or `eq(<joined>.org_id, <other>.org_id)`) in
+    its condition, every insert sets `org_id: OrgContext.id()` — after any spread of a request body,
+    so the body can't override it. Request bodies never accept `org_id`.
+  - Ids from a request (user ids, room ids, file ids, …) are looked up within the org before they
+    are written; with `inOrg` the existing existence checks do that.
+  - The **tenant guard** (`server/lib/orgs/guard.ts`) enforces this on every prepared statement:
+    a statement on an org table without an org filter bound to `OrgContext.id()` throws (500).
+    Only system code may use `OrgContext.unscoped(...)` (registry, migrations, housekeeping, org
+    deletion, the system API's org list). Work for one org from outside a request runs in
+    `OrgContext.run(org, …)`.
+  - The org comes from the host (`X-Iventworks-Host` > `X-Forwarded-Host` > `Host`) via the
+    in-memory `OrgRegistry`; `orgMiddlewareV1` runs before auth, so tokens only resolve within the
+    host's org. Call `OrgRegistry.reload()` after changing orgs, domains or branding.
+  - Links for emails and API responses use `OrgContext.current().url` (the org's primary or default
+    domain), never `APP_URL`. `APIResponse.success` strips `org_id` from every response. The
+    browser calls the API on its own origin (`useAPIOrigin()` in `updateAPIClient` /
+    `useFileURL`) instead of the template's `<appUrl>/api/v1`.
+  - System admins are the users of the internal `system` org (multi-org base domain). The system
+    host only serves `/instance`, `/system`, `/auth`, `/account`, `/admin/{users,invitations,
+    audit-log}`; their audit entries go to the system org's log.
+  - Tests run in multi-org mode against `test.localhost` (`tests/helpers/orgs.ts`); code outside
+    requests uses the test org with the guard off. `tests/cross-org-security.test.ts` must stay
+    green, and the preload fails the run if any row references a row of another org.
+- **Roles / RBAC** (docs/10 › full RBAC): org roles (per org) `admin > core_team > volunteer > unverified`,
   event roles `leader > staff` (`event_members`). `server/lib/api/utils/permissions.ts`
   (`PermissionHelper`) holds both permission matrices; checks live in handlers
   (`PermissionHelper.can`, `EventAccess.can(c, "…")`) and turn into `APIResponse.forbidden`.
@@ -78,13 +105,13 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
 - `PUT /api/v1/account` requires `current_password` (docs/10), like the template.
 - **Login rate limiting** is per client IP (+ username); there is no per-username lockout across
   clients (it let anyone lock the admin out). The Nitro bridge passes the client IP as Hono env
-  binding `clientIP` (`server/lib/api/utils/clientInfo.ts`); `CMP_TRUST_PROXY` uses the last
-  `X-Forwarded-For` entry.
+  binding `clientIP` (`server/lib/api/utils/clientInfo.ts`); `IVENTWORKS_TRUST_PROXY` uses the last
+  `X-Forwarded-For` entry. Counters are keyed per org.
 - **Foreign keys are enforced** (`PRAGMA foreign_keys = ON` in `DB.init`) — not in the guide. The
   schema's `onDelete` actions are relied on (e.g. deleting an event cascades to its rows).
   The `created_at` SQL default has second precision — set `created_at: Date.now()` explicitly
   where millisecond ordering matters (chat messages vs. read markers do this).
-- **File uploads** (not covered by the guide): blobs on disk under `CMP_UPLOAD_DIR` via
+- **File uploads** (not covered by the guide): blobs on disk under `IVENTWORKS_UPLOAD_DIR` via
   `FileStorage`, metadata in `files`, all access through `FileService` / `FileAccess`. Upload
   routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Downloads use
   signed short-lived tokens (`GET /files/download/{token}`) instead of the bearer header. Uploaded
@@ -92,7 +119,7 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as an
   `application/octet-stream` attachment so it can never run script on the app origin.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
-  `CMP_TIMEZONE` (`server/lib/utils/time.ts`).
+  `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`).
 - **Messaging** is REST + polling, no WebSocket: an open chat polls
   `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>` every few seconds and
   receives new messages plus other people's edits and deletions (messages are soft-deleted as
@@ -101,11 +128,19 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
   use `definePageMeta({ layout: "dashboard" })` (or `auth`).
 - **PWA** (`@vite-pwa/nuxt`) is kept (the guide ships none): it is the only mobile channel — no
-  native/TWA builds are shipped. `/settings/apps` offers the install (`usePwaInstall`, which
+  native/TWA builds are shipped. Every org is its own app: the manifest and icons come from the
+  API per host (`/api/v1/instance/manifest.webmanifest`, `/icon`, `/favicon`,
+  `/apple-touch-icon`); `pwa.manifest` is off. `/settings/apps` offers the install (`usePwaInstall`, which
   replays the `beforeinstallprompt` event caught by `plugins/pwaInstall.client.ts`) and the
   Safari steps for iOS.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
 - UI language is German, informal ("du").
+- **Branding** per org: name, primary colour (a Tailwind palette from `ORG_PRIMARY_COLORS`, default
+  `fuchsia`; `plugins/instance.ts` sets `appConfig.ui.colors.primary` at runtime), logo and icon
+  (stored in `org_assets`, type sniffed from the bytes, SVGs only without script/external
+  references and served with a sandbox CSP). Use `useBrandName()` / `ImgAppLogo` /
+  `ImgAppIcon` instead of hard-coded names; page titles are just the page (`"Aufgaben"`), the
+  title template appends the org. Default assets: `public/static/brand/`.
 - **Shared components extended** (copies of `shared/frontend`, deliberately changed):
   `DashboardStatCard` takes `to` (the whole card links) and `iconColor: "info"`;
   `DashboardDeleteModal` is German, its confirm word is `LÖSCHEN`, and `requireConfirmText` can
@@ -123,7 +158,7 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
     `api-keys/[api_key_id].vue` with `useSubrouterInjectedData(…, true)`). No filters,
     switches, date ranges or buttons in it, and no `UTabs` (inside modals they are fine).
   - Filters live with the content: `DashboardDataTable` `filters` / `#header-left`, or
-    `DashboardFilterBar` `#left` (CMP component with the same card and layout as the DataTable
+    `DashboardFilterBar` `#left` (our own component with the same card and layout as the DataTable
     header) above content that is not a table. A filter that used to be a tab ("Offen / Meine /
     Alle", role, status, scope) is a `USelect` bound to `useQueryFilter(key, options)`, which keeps
     the value in the query string. Page-wide periods (year, date range) go in a

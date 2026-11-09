@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { ConversationAccess } from "../../../../utils/conversations";
@@ -29,7 +30,13 @@ async function getChatableUserIds(userIds: number[]) {
 	const rows = await DB.instance()
 		.select({ id: DB.Tables.users.id })
 		.from(DB.Tables.users)
-		.where(and(inArray(DB.Tables.users.id, userIds), ne(DB.Tables.users.role, "unverified")))
+		.where(
+			and(
+				inOrg(DB.Tables.users),
+				inArray(DB.Tables.users.id, userIds),
+				ne(DB.Tables.users.role, "unverified"),
+			),
+		)
 		.all();
 	return rows.map((row) => row.id);
 }
@@ -145,14 +152,24 @@ router.post(
 			const created = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const conversation = await tx
 					.insert(DB.Tables.conversations)
-					.values({ type: "direct", created_by: userId })
+					.values({ org_id: OrgContext.id(), type: "direct", created_by: userId })
 					.returning()
 					.get();
 				await tx
 					.insert(DB.Tables.conversationMembers)
 					.values([
-						{ conversation_id: conversation.id, user_id: userId, is_member: true },
-						{ conversation_id: conversation.id, user_id: otherId, is_member: true },
+						{
+							org_id: OrgContext.id(),
+							conversation_id: conversation.id,
+							user_id: userId,
+							is_member: true,
+						},
+						{
+							org_id: OrgContext.id(),
+							conversation_id: conversation.id,
+							user_id: otherId,
+							is_member: true,
+						},
 					])
 					.run();
 				return conversation;
@@ -175,13 +192,14 @@ router.post(
 		const created = await DB.instance().transaction(async (tx: DrizzleDB) => {
 			const conversation = await tx
 				.insert(DB.Tables.conversations)
-				.values({ type: "group", name: body.name, created_by: userId })
+				.values({ org_id: OrgContext.id(), type: "group", name: body.name, created_by: userId })
 				.returning()
 				.get();
 			await tx
 				.insert(DB.Tables.conversationMembers)
 				.values(
 					[userId, ...others].map((memberId) => ({
+						org_id: OrgContext.id(),
 						conversation_id: conversation.id,
 						user_id: memberId,
 						is_member: true,
@@ -211,7 +229,7 @@ router.use(
 		const conversation = await DB.instance()
 			.select()
 			.from(DB.Tables.conversations)
-			.where(eq(DB.Tables.conversations.id, conversationId.data))
+			.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversationId.data)))
 			.get();
 
 		if (!conversation) return APIResponse.notFound(c, "Conversation not found");
@@ -291,14 +309,19 @@ router.put(
 				await tx
 					.update(DB.Tables.conversations)
 					.set({ name: body.name })
-					.where(eq(DB.Tables.conversations.id, conversation.id))
+					.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
 					.run();
 			}
 
 			for (const memberId of toAdd) {
 				await tx
 					.insert(DB.Tables.conversationMembers)
-					.values({ conversation_id: conversation.id, user_id: memberId, is_member: true })
+					.values({
+						org_id: OrgContext.id(),
+						conversation_id: conversation.id,
+						user_id: memberId,
+						is_member: true,
+					})
 					.onConflictDoUpdate({
 						target: [
 							DB.Tables.conversationMembers.conversation_id,
@@ -315,6 +338,7 @@ router.put(
 					.set({ is_member: false })
 					.where(
 						and(
+							inOrg(DB.Tables.conversationMembers),
 							eq(DB.Tables.conversationMembers.conversation_id, conversation.id),
 							inArray(DB.Tables.conversationMembers.user_id, body.remove_user_ids),
 						),
@@ -326,7 +350,7 @@ router.put(
 		const refreshed = await DB.instance()
 			.select()
 			.from(DB.Tables.conversations)
-			.where(eq(DB.Tables.conversations.id, conversation.id))
+			.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
 			.get();
 
 		return APIResponse.success(
@@ -364,6 +388,7 @@ router.delete(
 			.set({ is_member: false })
 			.where(
 				and(
+					inOrg(DB.Tables.conversationMembers),
 					eq(DB.Tables.conversationMembers.conversation_id, conversation.id),
 					eq(DB.Tables.conversationMembers.user_id, getCaller(c).userId),
 				),

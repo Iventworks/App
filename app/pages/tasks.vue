@@ -12,7 +12,7 @@ type MyTask = GetTasksResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Meine Aufgaben | CMP", description: "Alle deine Aufgaben an einem Ort" });
+useSeoMeta({ title: "Meine Aufgaben", description: "Alle deine Aufgaben an einem Ort" });
 
 const route = useRoute();
 const router = useRouter();

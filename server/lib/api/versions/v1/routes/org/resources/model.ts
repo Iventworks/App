@@ -30,11 +30,13 @@ export namespace OrgResourcesModel {
 	});
 	export type BookingWithResource = z.infer<typeof BookingWithResource>;
 
-	export const Resource = createSelectSchema(DB.Tables.orgResources).extend({
-		bookings: z.array(Booking),
-		/** Units booked by events that are running today. */
-		booked_now: z.number(),
-	});
+	export const Resource = createSelectSchema(DB.Tables.orgResources)
+		.omit({ org_id: true })
+		.extend({
+			bookings: z.array(Booking),
+			/** Units booked by events that are running today. */
+			booked_now: z.number(),
+		});
 	export type Resource = z.infer<typeof Resource>;
 
 	export const Params = z.object({

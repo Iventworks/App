@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -27,6 +28,7 @@ async function areEventMembers(eventId: number, userIds: number[]) {
 		.from(DB.Tables.eventMembers)
 		.where(
 			and(
+				inOrg(DB.Tables.eventMembers),
 				eq(DB.Tables.eventMembers.event_id, eventId),
 				inArray(DB.Tables.eventMembers.user_id, unique),
 			),
@@ -38,13 +40,13 @@ async function areEventMembers(eventId: number, userIds: number[]) {
 async function replaceMembers(groupId: number, userIds: number[], tx: DrizzleDB) {
 	await tx
 		.delete(DB.Tables.eventGroupMembers)
-		.where(eq(DB.Tables.eventGroupMembers.group_id, groupId))
+		.where(and(inOrg(DB.Tables.eventGroupMembers), eq(DB.Tables.eventGroupMembers.group_id, groupId)))
 		.run();
 	const unique = [...new Set(userIds)];
 	if (unique.length) {
 		await tx
 			.insert(DB.Tables.eventGroupMembers)
-			.values(unique.map((user_id) => ({ group_id: groupId, user_id })))
+			.values(unique.map((user_id) => ({ org_id: OrgContext.id(), group_id: groupId, user_id })))
 			.run();
 	}
 }
@@ -55,9 +57,12 @@ async function toResponse(groups: DB.Models.EventGroup[]): Promise<EventGroupsMo
 		.select()
 		.from(DB.Tables.eventGroupMembers)
 		.where(
-			inArray(
-				DB.Tables.eventGroupMembers.group_id,
-				groups.map((group) => group.id),
+			and(
+				inOrg(DB.Tables.eventGroupMembers),
+				inArray(
+					DB.Tables.eventGroupMembers.group_id,
+					groups.map((group) => group.id),
+				),
 			),
 		)
 		.all();
@@ -96,7 +101,7 @@ router.get(
 		const groups = await DB.instance()
 			.select()
 			.from(DB.Tables.eventGroups)
-			.where(eq(DB.Tables.eventGroups.event_id, c.get("event").id))
+			.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.event_id, c.get("event").id)))
 			.orderBy(asc(DB.Tables.eventGroups.name))
 			.all();
 
@@ -141,7 +146,7 @@ router.post(
 			const group = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.eventGroups)
-					.values({ ...body, event_id: event.id })
+					.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
 					.returning()
 					.get();
 				await replaceMembers(created.id, member_ids, tx);
@@ -175,7 +180,11 @@ router.use("/:groupId/*", zValidator("param", EventGroupsModel.Params), async (c
 		.select()
 		.from(DB.Tables.eventGroups)
 		.where(
-			and(eq(DB.Tables.eventGroups.id, groupId.data), eq(DB.Tables.eventGroups.event_id, event.id)),
+			and(
+				inOrg(DB.Tables.eventGroups),
+				eq(DB.Tables.eventGroups.id, groupId.data),
+				eq(DB.Tables.eventGroups.event_id, event.id),
+			),
 		)
 		.get();
 
@@ -226,7 +235,7 @@ router.put(
 						? await tx
 								.update(DB.Tables.eventGroups)
 								.set(fields)
-								.where(eq(DB.Tables.eventGroups.id, group.id))
+								.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.id, group.id)))
 								.returning()
 								.get()
 						: group;
@@ -276,7 +285,7 @@ router.delete(
 		const group = c.get("group");
 		await DB.instance()
 			.delete(DB.Tables.eventGroups)
-			.where(eq(DB.Tables.eventGroups.id, group.id))
+			.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.id, group.id)))
 			.run();
 
 		await AuditLog.record({

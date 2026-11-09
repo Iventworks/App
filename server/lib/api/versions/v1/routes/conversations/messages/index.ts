@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { ConversationAccess } from "../../../../../utils/conversations";
 import { getAuthUserId } from "../../../../../utils/guards";
@@ -62,7 +63,12 @@ router.get(
 				.select()
 				.from(table)
 				.where(
-					and(eq(table.conversation_id, conversation.id), gt(table.id, after), isNull(table.deleted_at)),
+					and(
+						inOrg(table),
+						eq(table.conversation_id, conversation.id),
+						gt(table.id, after),
+						isNull(table.deleted_at),
+					),
 				)
 				.orderBy(asc(table.id))
 				.limit(limit)
@@ -74,6 +80,7 @@ router.get(
 					.from(table)
 					.where(
 						and(
+							inOrg(table),
 							eq(table.conversation_id, conversation.id),
 							isNull(table.deleted_at),
 							before !== undefined ? lt(table.id, before) : undefined,
@@ -124,7 +131,12 @@ router.get(
 			.select()
 			.from(table)
 			.where(
-				and(eq(table.conversation_id, conversation.id), gt(table.id, after), isNull(table.deleted_at)),
+				and(
+					inOrg(table),
+					eq(table.conversation_id, conversation.id),
+					gt(table.id, after),
+					isNull(table.deleted_at),
+				),
 			)
 			.orderBy(asc(table.id))
 			.limit(200)
@@ -135,6 +147,7 @@ router.get(
 			.from(table)
 			.where(
 				and(
+					inOrg(table),
 					eq(table.conversation_id, conversation.id),
 					lte(table.id, after),
 					or(gte(table.edited_at, since), gte(table.deleted_at, since)),
@@ -185,6 +198,7 @@ router.post(
 				// Explicit ms timestamp: the column default `unixepoch() * 1000` only has second
 				// precision, which would hide messages sent right after someone's read marker.
 				.values({
+					org_id: OrgContext.id(),
 					conversation_id: conversation.id,
 					sender_id: userId,
 					content,
@@ -195,7 +209,7 @@ router.post(
 			await tx
 				.update(DB.Tables.conversations)
 				.set({ last_message_at: created.created_at })
-				.where(eq(DB.Tables.conversations.id, conversation.id))
+				.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
 				.run();
 			return created;
 		});
@@ -216,6 +230,7 @@ router.use("/:messageId/*", zValidator("param", MessagesModel.Params), async (c,
 		.from(DB.Tables.messages)
 		.where(
 			and(
+				inOrg(DB.Tables.messages),
 				eq(DB.Tables.messages.id, messageId.data),
 				eq(DB.Tables.messages.conversation_id, c.get("conversation").id),
 				isNull(DB.Tables.messages.deleted_at),
@@ -255,7 +270,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.messages)
 			.set({ content, edited_at: Date.now() })
-			.where(eq(DB.Tables.messages.id, c.get("message").id))
+			.where(and(inOrg(DB.Tables.messages), eq(DB.Tables.messages.id, c.get("message").id)))
 			.returning()
 			.get();
 
@@ -285,7 +300,7 @@ router.delete(
 		await DB.instance()
 			.update(DB.Tables.messages)
 			.set({ content: "", deleted_at: Date.now() })
-			.where(eq(DB.Tables.messages.id, c.get("message").id))
+			.where(and(inOrg(DB.Tables.messages), eq(DB.Tables.messages.id, c.get("message").id)))
 			.run();
 		return APIResponse.successNoData(c, "Message deleted successfully");
 	},

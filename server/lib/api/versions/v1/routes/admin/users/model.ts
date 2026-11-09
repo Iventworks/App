@@ -10,6 +10,7 @@ import {
 /** Columns only the server writes — never accepted from a request body. */
 const SERVER_MANAGED = {
 	id: true,
+	org_id: true,
 	password_hash: true,
 	created_at: true,
 	suspended_at: true,
@@ -20,7 +21,7 @@ const SERVER_MANAGED = {
 export namespace AdminUsersModel {
 	const BaseUser = createSelectSchema(DB.Tables.users);
 
-	export const SafeUser = BaseUser.omit({ password_hash: true });
+	export const SafeUser = BaseUser.omit({ org_id: true, password_hash: true });
 	export type SafeUser = z.infer<typeof SafeUser>;
 
 	/** A one-time `/auth/reset-password?token=…` link; the token is only ever shown once. */

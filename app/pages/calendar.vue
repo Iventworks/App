@@ -23,7 +23,7 @@ type Source = FeedItem["source"];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Kalender | CMP", description: "Dein persönlicher Kalender" });
+useSeoMeta({ title: "Kalender", description: "Dein persönlicher Kalender" });
 
 const toast = useToast();
 const timeZone = getLocalTimeZone();

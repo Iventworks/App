@@ -6,7 +6,7 @@ type Stats = GetOrgCoreTeamStatsResponses["200"]["data"];
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Statistiken | Kernteam | CMP" });
+useSeoMeta({ title: "Statistiken | Kernteam" });
 
 const toast = useToast();
 const year = ref<number | null>(new Date().getFullYear());

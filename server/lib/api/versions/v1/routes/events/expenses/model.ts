@@ -9,7 +9,7 @@ export namespace EventExpensesModel {
 	export const Status = z.enum(EXPENSE_STATUSES);
 	export type Status = z.infer<typeof Status>;
 
-	export const Expense = createSelectSchema(DB.Tables.expenses).extend({
+	export const Expense = createSelectSchema(DB.Tables.expenses).omit({ org_id: true }).extend({
 		submitter: UserSummary.Schema.nullable(),
 		reviewer: UserSummary.Schema.nullable(),
 		receipt: FileService.ItemSchema.nullable(),

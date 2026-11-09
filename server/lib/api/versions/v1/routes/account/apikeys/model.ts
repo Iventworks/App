@@ -4,6 +4,7 @@ import { DB } from "../../../../../../db";
 
 export namespace AccountAPIKeysModel.GetById {
 	export const Response = createSelectSchema(DB.Tables.apiKeys).omit({
+		org_id: true,
 		user_id: true,
 		user_role: true,
 		hashed_token: true,
@@ -32,6 +33,7 @@ export namespace AccountAPIKeysModel.Create {
 			.min(1, "Description cannot be empty")
 			.max(255, "Description cannot exceed 255 characters"),
 	}).omit({
+		org_id: true,
 		id: true,
 		user_id: true,
 		user_role: true,

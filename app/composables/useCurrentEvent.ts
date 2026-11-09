@@ -11,7 +11,7 @@
  */
 import type { EventPermission, EventWithAccess } from "~/utils/types";
 
-const LAST_EVENT_COOKIE = "cmp_last_event";
+const LAST_EVENT_COOKIE = "iventworks_last_event";
 
 function parseEventId(raw: unknown): number | null {
 	const value = Array.isArray(raw) ? raw[0] : raw;

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
@@ -34,7 +35,7 @@ async function withAccess(
 	const members = await tx
 		.select()
 		.from(DB.Tables.eventMembers)
-		.where(inArray(DB.Tables.eventMembers.event_id, eventIds))
+		.where(and(inOrg(DB.Tables.eventMembers), inArray(DB.Tables.eventMembers.event_id, eventIds)))
 		.all();
 
 	const participantCounts = await tx
@@ -42,6 +43,7 @@ async function withAccess(
 		.from(DB.Tables.participants)
 		.where(
 			and(
+				inOrg(DB.Tables.participants),
 				inArray(DB.Tables.participants.event_id, eventIds),
 				ne(DB.Tables.participants.status, "cancelled"),
 			),
@@ -54,7 +56,7 @@ async function withAccess(
 		tx,
 	);
 
-	return events.map((event) => {
+	return events.map(({ org_id: _orgId, ...event }) => {
 		const eventMembers = members.filter((member) => member.event_id === event.id);
 		const membership = eventMembers.find((member) => member.user_id === authContext.user_id);
 		const role = PermissionHelper.getEffectiveEventRole(authContext.user_role, membership);
@@ -111,14 +113,16 @@ router.get(
 			events = await DB.instance()
 				.select()
 				.from(DB.Tables.events)
-				.where(archivedFilter)
+				.where(and(inOrg(DB.Tables.events), archivedFilter))
 				.orderBy(desc(DB.Tables.events.start_date))
 				.all();
 		} else {
 			const memberships = await DB.instance()
 				.select({ event_id: DB.Tables.eventMembers.event_id })
 				.from(DB.Tables.eventMembers)
-				.where(eq(DB.Tables.eventMembers.user_id, authContext.user_id))
+				.where(
+					and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.user_id, authContext.user_id)),
+				)
 				.all();
 			const ids = memberships.map((membership) => membership.event_id);
 
@@ -128,7 +132,7 @@ router.get(
 					: await DB.instance()
 							.select()
 							.from(DB.Tables.events)
-							.where(and(inArray(DB.Tables.events.id, ids), archivedFilter))
+							.where(and(inOrg(DB.Tables.events), inArray(DB.Tables.events.id, ids), archivedFilter))
 							.orderBy(desc(DB.Tables.events.start_date))
 							.all();
 		}
@@ -171,7 +175,7 @@ router.post(
 			const event = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.events)
-					.values({ ...body, created_by: authContext.user_id })
+					.values({ ...body, created_by: authContext.user_id, org_id: OrgContext.id() })
 					.returning()
 					.get();
 
@@ -179,7 +183,13 @@ router.post(
 					? await tx
 							.select({ id: DB.Tables.users.id })
 							.from(DB.Tables.users)
-							.where(and(inArray(DB.Tables.users.id, leader_ids), ne(DB.Tables.users.role, "unverified")))
+							.where(
+								and(
+									inOrg(DB.Tables.users),
+									inArray(DB.Tables.users.id, leader_ids),
+									ne(DB.Tables.users.role, "unverified"),
+								),
+							)
 							.all()
 					: [];
 				leaderIds = validLeaders.map((leader) => leader.id);
@@ -189,6 +199,7 @@ router.post(
 						.insert(DB.Tables.eventMembers)
 						.values(
 							validLeaders.map((leader) => ({
+								org_id: OrgContext.id(),
 								event_id: created.id,
 								user_id: leader.id,
 								role: "leader" as const,
@@ -287,7 +298,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.events)
 			.set({ ...body, updated_at: Date.now() })
-			.where(eq(DB.Tables.events.id, event.id))
+			.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, event.id)))
 			.returning()
 			.get();
 
@@ -335,7 +346,10 @@ router.delete(
 			await DB.instance().transaction(async (tx: DrizzleDB) => {
 				// Blobs on disk first; every other row goes via ON DELETE CASCADE.
 				await FileService.deleteAllForEvent(event.id, tx);
-				await tx.delete(DB.Tables.events).where(eq(DB.Tables.events.id, event.id)).run();
+				await tx
+					.delete(DB.Tables.events)
+					.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, event.id)))
+					.run();
 			});
 		} catch (error: any) {
 			Logger.error("Failed to delete event", error.stack || error.message || error);
@@ -389,6 +403,7 @@ router.get(
 			.from(DB.Tables.programItems)
 			.where(
 				and(
+					inOrg(DB.Tables.programItems),
 					eq(DB.Tables.programItems.event_id, event.id),
 					lt(DB.Tables.programItems.start_at, dayEnd),
 					gte(DB.Tables.programItems.end_at, dayStart),
@@ -402,6 +417,7 @@ router.get(
 			.from(DB.Tables.programItems)
 			.where(
 				and(
+					inOrg(DB.Tables.programItems),
 					eq(DB.Tables.programItems.event_id, event.id),
 					gte(DB.Tables.programItems.start_at, Math.max(Date.now(), dayEnd)),
 				),
@@ -415,14 +431,19 @@ router.get(
 			? await db
 					.select()
 					.from(DB.Tables.programItemResponsibles)
-					.where(inArray(DB.Tables.programItemResponsibles.program_item_id, programIds))
+					.where(
+						and(
+							inOrg(DB.Tables.programItemResponsibles),
+							inArray(DB.Tables.programItemResponsibles.program_item_id, programIds),
+						),
+					)
 					.all()
 			: [];
 
 		const announcements = await db
 			.select()
 			.from(DB.Tables.announcements)
-			.where(eq(DB.Tables.announcements.event_id, event.id))
+			.where(and(inOrg(DB.Tables.announcements), eq(DB.Tables.announcements.event_id, event.id)))
 			.orderBy(desc(DB.Tables.announcements.pinned), desc(DB.Tables.announcements.created_at))
 			.limit(5)
 			.all();
@@ -436,10 +457,14 @@ router.get(
 			.from(DB.Tables.eventGroupMembers)
 			.innerJoin(
 				DB.Tables.eventGroups,
-				eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+				and(
+					inOrg(DB.Tables.eventGroups),
+					eq(DB.Tables.eventGroups.id, DB.Tables.eventGroupMembers.group_id),
+				),
 			)
 			.where(
 				and(
+					inOrg(DB.Tables.eventGroupMembers),
 					eq(DB.Tables.eventGroups.event_id, event.id),
 					eq(DB.Tables.eventGroupMembers.user_id, userId),
 				),
@@ -453,6 +478,7 @@ router.get(
 			.from(DB.Tables.tasks)
 			.where(
 				and(
+					inOrg(DB.Tables.tasks),
 					eq(DB.Tables.tasks.event_id, event.id),
 					ne(DB.Tables.tasks.status, "done"),
 					myGroupIds.length
@@ -473,10 +499,14 @@ router.get(
 			.from(DB.Tables.responsibilityAssignees)
 			.innerJoin(
 				DB.Tables.responsibilities,
-				eq(DB.Tables.responsibilities.id, DB.Tables.responsibilityAssignees.responsibility_id),
+				and(
+					inOrg(DB.Tables.responsibilities),
+					eq(DB.Tables.responsibilities.id, DB.Tables.responsibilityAssignees.responsibility_id),
+				),
 			)
 			.where(
 				and(
+					inOrg(DB.Tables.responsibilityAssignees),
 					eq(DB.Tables.responsibilities.event_id, event.id),
 					eq(DB.Tables.responsibilityAssignees.user_id, userId),
 				),
@@ -487,14 +517,20 @@ router.get(
 			? ((await db
 					.select({ id: DB.Tables.rooms.id, name: DB.Tables.rooms.name })
 					.from(DB.Tables.rooms)
-					.where(eq(DB.Tables.rooms.id, access.membership.room_id))
+					.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, access.membership.room_id)))
 					.get()) ?? null)
 			: null;
 
 		const openTasks = await db
 			.select({ value: count() })
 			.from(DB.Tables.tasks)
-			.where(and(eq(DB.Tables.tasks.event_id, event.id), ne(DB.Tables.tasks.status, "done")))
+			.where(
+				and(
+					inOrg(DB.Tables.tasks),
+					eq(DB.Tables.tasks.event_id, event.id),
+					ne(DB.Tables.tasks.status, "done"),
+				),
+			)
 			.get();
 
 		const pendingExpenses = EventAccess.can(c, "expenses:view_all")
@@ -503,7 +539,11 @@ router.get(
 						.select({ value: count() })
 						.from(DB.Tables.expenses)
 						.where(
-							and(eq(DB.Tables.expenses.event_id, event.id), eq(DB.Tables.expenses.status, "submitted")),
+							and(
+								inOrg(DB.Tables.expenses),
+								eq(DB.Tables.expenses.event_id, event.id),
+								eq(DB.Tables.expenses.status, "submitted"),
+							),
 						)
 						.get()
 				)?.value ?? 0)

@@ -7,7 +7,7 @@ definePageMeta({
 });
 
 useSeoMeta({
-	title: "Passwort festlegen | CMP",
+	title: "Passwort festlegen",
 	description: "Lege ein neues Passwort für dein Konto fest",
 });
 

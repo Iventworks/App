@@ -10,7 +10,7 @@ import type { AdminUser, PasswordLink } from "~/utils/types";
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({
-	title: "Benutzer | Administration | CMP",
+	title: "Benutzer | Administration",
 	description: "Benutzerkonten und Rollen verwalten",
 });
 

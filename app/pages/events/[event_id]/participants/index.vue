@@ -21,7 +21,7 @@ definePageMeta({ layout: "dashboard" });
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 
-useSeoMeta({ title: `Teilnehmende | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Teilnehmende | ${event.value.name}` });
 
 const NO_ROOM = -1;
 

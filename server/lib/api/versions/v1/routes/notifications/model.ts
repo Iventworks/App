@@ -3,7 +3,7 @@ import { z } from "zod";
 import { DB } from "../../../../../db";
 
 export namespace NotificationsModel {
-	export const Notification = createSelectSchema(DB.Tables.notifications);
+	export const Notification = createSelectSchema(DB.Tables.notifications).omit({ org_id: true });
 	export type Notification = z.infer<typeof Notification>;
 
 	export const Params = z.object({

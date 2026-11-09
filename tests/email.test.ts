@@ -4,9 +4,11 @@ import { eq } from "drizzle-orm";
 import { type CapturedEmail, EmailService } from "../server/lib/api/utils/email";
 import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-password";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
 import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
 import { createMemoryTransport } from "./helpers/memory-transport";
+import { TEST_HOST, testOrg } from "./helpers/orgs";
 import type { SeededSession, SeededUser } from "./helpers/seed";
 import { seedSession, seedUser } from "./helpers/seed";
 
@@ -63,7 +65,8 @@ describe("Password reset email integration", () => {
 
 		expect(capturedEmails).toHaveLength(1);
 		expect(capturedEmails[0]!.to).toBe(resetUser.email);
-		expect(capturedEmails[0]!.subject).toBe(`${AppConstants.APP_NAME} — Passwort zurücksetzen`);
+		// The org's name, not the product's: the mail comes from the org's own instance.
+		expect(capturedEmails[0]!.subject).toBe(`${testOrg().display_name} — Passwort zurücksetzen`);
 	});
 
 	test("Email contains a valid reset link with token", async () => {
@@ -89,6 +92,8 @@ describe("Password reset email integration", () => {
 
 		const resetUrl = urlMatch![1]!;
 		const urlObj = new URL(resetUrl);
+		// The link points at the org's own domain: the token only works there.
+		expect(urlObj.host).toBe(`${TEST_HOST}:31316`);
 		const token = urlObj.searchParams.get("token");
 		expect(token).not.toBeNull();
 		expect(token!.length).toBeGreaterThan(0);
@@ -228,6 +233,7 @@ describe("Password reset email integration", () => {
 		await DB.instance()
 			.insert(DB.Tables.passwordResets)
 			.values({
+				org_id: OrgContext.id(),
 				token: hashResetToken(expiredToken),
 				user_id: expiredUser.id,
 				expires_at: Date.now() - 1000, // 1 second in the past
@@ -257,8 +263,18 @@ describe("Password reset email integration", () => {
 		await DB.instance()
 			.insert(DB.Tables.passwordResets)
 			.values([
-				{ token: hashResetToken(token1), user_id: multiTokenUser.id, expires_at: Date.now() + 600_000 },
-				{ token: hashResetToken(token2), user_id: multiTokenUser.id, expires_at: Date.now() + 600_000 },
+				{
+					org_id: OrgContext.id(),
+					token: hashResetToken(token1),
+					user_id: multiTokenUser.id,
+					expires_at: Date.now() + 600_000,
+				},
+				{
+					org_id: OrgContext.id(),
+					token: hashResetToken(token2),
+					user_id: multiTokenUser.id,
+					expires_at: Date.now() + 600_000,
+				},
 			])
 			.run();
 

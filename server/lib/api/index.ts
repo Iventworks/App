@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { prettyJSON } from "hono/pretty-json";
 import { openAPIRouteHandler } from "hono-openapi";
+import { OrgRegistry } from "../orgs/registry";
 import { AppConstants } from "../utils/constants";
 import { Logger } from "../utils/logger";
 import type { APIVersionRouter } from "./utils/apiVersionRouter";
@@ -53,8 +54,24 @@ export class API {
 		this.app.use(
 			"*",
 			cors({
-				origin: frontendUrls,
-				allowHeaders: ["Content-Type", "Authorization"],
+				// APP_URL, and in multi-org mode every host of the org the request is for (its default
+				// and custom domains) — never a host of another org.
+				origin: (origin, c) => {
+					if (frontendUrls.includes(origin)) return origin;
+					if (!OrgRegistry.isMultiOrg()) return null;
+					let originHost: string;
+					try {
+						originHost = new URL(origin).host;
+					} catch {
+						return null;
+					}
+					const from = OrgRegistry.resolveHost(originHost);
+					const to = OrgRegistry.resolveHost(OrgRegistry.requestHost(c.req.raw.headers, c.req.url));
+					return from.kind !== "unknown" && to.kind !== "unknown" && from.org.id === to.org.id
+						? origin
+						: null;
+				},
+				allowHeaders: ["Content-Type", "Authorization", "X-Iventworks-Host"],
 				allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 				maxAge: 600,
 				credentials: true,

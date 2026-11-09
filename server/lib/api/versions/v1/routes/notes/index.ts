@@ -2,6 +2,7 @@ import { and, desc, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
@@ -38,6 +39,7 @@ router.get(
 			.from(DB.Tables.notes)
 			.where(
 				and(
+					inOrg(DB.Tables.notes),
 					eq(DB.Tables.notes.scope, "personal"),
 					eq(DB.Tables.notes.user_id, getAuthUserId(c)),
 					pattern
@@ -75,6 +77,7 @@ router.post(
 			.insert(DB.Tables.notes)
 			.values({
 				...body,
+				org_id: OrgContext.id(),
 				scope: "personal",
 				user_id: userId,
 				created_by: userId,
@@ -96,6 +99,7 @@ router.use("/:noteId/*", zValidator("param", PersonalNotesModel.Params), async (
 		.from(DB.Tables.notes)
 		.where(
 			and(
+				inOrg(DB.Tables.notes),
 				eq(DB.Tables.notes.id, noteId.data),
 				eq(DB.Tables.notes.scope, "personal"),
 				eq(DB.Tables.notes.user_id, getAuthUserId(c)),
@@ -151,7 +155,7 @@ router.put(
 		const updated = await DB.instance()
 			.update(DB.Tables.notes)
 			.set({ ...body, updated_by: getAuthUserId(c), updated_at: Date.now() })
-			.where(eq(DB.Tables.notes.id, note.id))
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, note.id)))
 			.returning()
 			.get();
 
@@ -176,7 +180,7 @@ router.delete(
 	async (c) => {
 		await DB.instance()
 			.delete(DB.Tables.notes)
-			.where(eq(DB.Tables.notes.id, c.get("note").id))
+			.where(and(inOrg(DB.Tables.notes), eq(DB.Tables.notes.id, c.get("note").id)))
 			.run();
 		return APIResponse.successNoData(c, "Note deleted successfully");
 	},

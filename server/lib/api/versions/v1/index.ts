@@ -4,6 +4,7 @@ import { AppConstants } from "../../../utils/constants";
 import { APIVersionRouter } from "../../utils/apiVersionRouter";
 import { DOCS_TAGS } from "./docs";
 import { authMiddlewareV1 } from "./middleware/auth";
+import { orgMiddlewareV1 } from "./middleware/org";
 import { router as accountRouter } from "./routes/account";
 import { router as adminRouter } from "./routes/admin";
 import { router as authRouter } from "./routes/auth";
@@ -12,9 +13,11 @@ import { router as conversationsRouter } from "./routes/conversations";
 import { router as dashboardRouter } from "./routes/dashboard";
 import { router as eventsRouter } from "./routes/events";
 import { router as filesRouter } from "./routes/files";
+import { router as instanceRouter } from "./routes/instance";
 import { router as notesRouter } from "./routes/notes";
 import { router as notificationsRouter } from "./routes/notifications";
 import { router as orgRouter } from "./routes/org";
+import { router as systemRouter } from "./routes/system";
 import { router as tasksRouter } from "./routes/tasks";
 import { router as usersRouter } from "./routes/users";
 
@@ -87,6 +90,21 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[DOCS_TAGS.ADMIN_API.USERS, "Endpoints for user management", DOCS_TAGS.ADMIN_API.BASE],
 	[DOCS_TAGS.ADMIN_API.INVITATIONS, "Invite new users", DOCS_TAGS.ADMIN_API.BASE],
 	[DOCS_TAGS.ADMIN_API.AUDIT_LOG, "Organisation-wide audit log", DOCS_TAGS.ADMIN_API.BASE],
+	[
+		DOCS_TAGS.ADMIN_API.ORGANIZATION,
+		"Your organisation's name, colour, logo, icon and custom domains",
+		DOCS_TAGS.ADMIN_API.BASE,
+	],
+
+	[
+		DOCS_TAGS.INSTANCE,
+		"Public info about the org of the request's host: branding, icons, web app manifest",
+	],
+	[
+		DOCS_TAGS.SYSTEM.ORGS,
+		"Create and manage organisations (multi-org mode, system admins on the base domain)",
+		DOCS_TAGS.SYSTEM.BASE,
+	],
 ];
 
 const openAPIConfig: Partial<GenerateSpecOptions> = {
@@ -173,7 +191,12 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 					DOCS_TAGS.ADMIN_API.USERS,
 					DOCS_TAGS.ADMIN_API.INVITATIONS,
 					DOCS_TAGS.ADMIN_API.AUDIT_LOG,
+					DOCS_TAGS.ADMIN_API.ORGANIZATION,
 				],
+			},
+			{
+				name: "Instance & System",
+				tags: [DOCS_TAGS.INSTANCE, DOCS_TAGS.SYSTEM.ORGS],
 			},
 		],
 
@@ -193,7 +216,12 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 
 const router = new Hono();
 
+// Org first: the auth middleware looks tokens up within the org of the request's host.
+router.use(orgMiddlewareV1);
 router.use(authMiddlewareV1);
+
+router.route("/", instanceRouter);
+router.route("/", systemRouter);
 
 router.route("/", authRouter);
 router.route("/", accountRouter);

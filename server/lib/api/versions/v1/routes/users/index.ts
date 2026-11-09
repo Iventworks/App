@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, like, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { inOrg } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { requireOrgRole } from "../../../../utils/guards";
@@ -42,6 +43,7 @@ router.get(
 			.from(DB.Tables.users)
 			.where(
 				and(
+					inOrg(DB.Tables.users),
 					ne(DB.Tables.users.role, "unverified"),
 					isNull(DB.Tables.users.suspended_at),
 					role ? eq(DB.Tables.users.role, role) : undefined,
@@ -68,7 +70,13 @@ router.use("/:userId/*", zValidator("param", UsersModel.Params), async (c, next)
 	const user = await DB.instance()
 		.select()
 		.from(DB.Tables.users)
-		.where(and(eq(DB.Tables.users.id, userId.data), ne(DB.Tables.users.role, "unverified")))
+		.where(
+			and(
+				inOrg(DB.Tables.users),
+				eq(DB.Tables.users.id, userId.data),
+				ne(DB.Tables.users.role, "unverified"),
+			),
+		)
 		.get();
 
 	if (!user) return APIResponse.notFound(c, "User not found");
@@ -105,8 +113,11 @@ router.get(
 				role: DB.Tables.eventMembers.role,
 			})
 			.from(DB.Tables.eventMembers)
-			.innerJoin(DB.Tables.events, eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id))
-			.where(eq(DB.Tables.eventMembers.user_id, target.id))
+			.innerJoin(
+				DB.Tables.events,
+				and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.eventMembers.event_id)),
+			)
+			.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.user_id, target.id)))
 			.orderBy(desc(DB.Tables.events.start_date))
 			.all();
 
@@ -121,6 +132,7 @@ router.get(
 						.from(DB.Tables.eventMembers)
 						.where(
 							and(
+								inOrg(DB.Tables.eventMembers),
 								eq(DB.Tables.eventMembers.user_id, authContext.user_id),
 								inArray(
 									DB.Tables.eventMembers.event_id,

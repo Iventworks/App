@@ -26,7 +26,7 @@ const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 const userInfo = await useUserInfoStore().use();
 
-useSeoMeta({ title: `Team | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Team | ${event.value.name}` });
 
 // --- data ---------------------------------------------------------------------------------
 

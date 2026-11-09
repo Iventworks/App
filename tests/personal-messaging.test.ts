@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { CalendarModel } from "../server/lib/api/versions/v1/routes/calendar/model";
 import { MessagesModel } from "../server/lib/api/versions/v1/routes/conversations/messages/model";
@@ -9,8 +10,12 @@ import { NotificationsModel } from "../server/lib/api/versions/v1/routes/notific
 import { PersonalTasksModel } from "../server/lib/api/versions/v1/routes/tasks/model";
 import { UsersModel } from "../server/lib/api/versions/v1/routes/users/model";
 import { DB } from "../server/lib/db";
+import { OrgContext } from "../server/lib/orgs/context";
+import type { OrgInfo } from "../server/lib/orgs/registry";
+import { OrgService } from "../server/lib/orgs/service";
 import { TimeUtils } from "../server/lib/utils/time";
 import { makeAPIRequest } from "./helpers/api";
+import { hostHeaders } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -85,21 +90,27 @@ beforeAll(async () => {
 	const db = DB.instance();
 	const group = db
 		.insert(DB.Tables.eventGroups)
-		.values({ event_id: runningEventId, name: "Küchenteam", color: "#22c55e" })
+		.values({
+			org_id: OrgContext.id(),
+			event_id: runningEventId,
+			name: "Küchenteam",
+			color: "#22c55e",
+		})
 		.returning()
 		.get();
 	groupId = group.id;
 	db
 		.insert(DB.Tables.eventGroupMembers)
 		.values([
-			{ group_id: groupId, user_id: alice.id },
-			{ group_id: groupId, user_id: bob.id },
+			{ org_id: OrgContext.id(), group_id: groupId, user_id: alice.id },
+			{ org_id: OrgContext.id(), group_id: groupId, user_id: bob.id },
 		])
 		.run();
 
 	const item = db
 		.insert(DB.Tables.programItems)
 		.values({
+			org_id: OrgContext.id(),
 			event_id: runningEventId,
 			title: "Morgenandacht",
 			start_at: dayStart + 9 * 60 * 60 * 1000,
@@ -110,12 +121,13 @@ beforeAll(async () => {
 	programItemId = item.id;
 	db
 		.insert(DB.Tables.programItemResponsibles)
-		.values({ program_item_id: programItemId, user_id: alice.id })
+		.values({ org_id: OrgContext.id(), program_item_id: programItemId, user_id: alice.id })
 		.run();
 
 	eventTaskId = db
 		.insert(DB.Tables.tasks)
 		.values({
+			org_id: OrgContext.id(),
 			event_id: runningEventId,
 			title: "Zelte aufbauen",
 			assignee_id: alice.id,
@@ -127,13 +139,20 @@ beforeAll(async () => {
 
 	groupTaskId = db
 		.insert(DB.Tables.tasks)
-		.values({ event_id: runningEventId, title: "Einkaufen", group_id: groupId, created_by: core.id })
+		.values({
+			org_id: OrgContext.id(),
+			event_id: runningEventId,
+			title: "Einkaufen",
+			group_id: groupId,
+			created_by: core.id,
+		})
 		.returning()
 		.get().id;
 
 	overdueTaskId = db
 		.insert(DB.Tables.tasks)
 		.values({
+			org_id: OrgContext.id(),
 			title: "Formular abgeben",
 			user_id: alice.id,
 			created_by: alice.id,
@@ -145,11 +164,21 @@ beforeAll(async () => {
 
 	db
 		.insert(DB.Tables.announcements)
-		.values({ title: "Neue Datenschutzregeln", content: "Bitte lesen.", created_by: core.id })
+		.values({
+			org_id: OrgContext.id(),
+			title: "Neue Datenschutzregeln",
+			content: "Bitte lesen.",
+			created_by: core.id,
+		})
 		.run();
 	db
 		.insert(DB.Tables.announcements)
-		.values({ event_id: runningEventId, title: "Essen um 12", created_by: alice.id })
+		.values({
+			org_id: OrgContext.id(),
+			event_id: runningEventId,
+			title: "Essen um 12",
+			created_by: alice.id,
+		})
 		.run();
 });
 
@@ -404,14 +433,14 @@ describe("Notifications", () => {
 		const db = DB.instance();
 		const aliceNote = db
 			.insert(DB.Tables.notifications)
-			.values({ user_id: alice.id, type: "system", title: "Hallo Alice" })
+			.values({ org_id: OrgContext.id(), user_id: alice.id, type: "system", title: "Hallo Alice" })
 			.returning()
 			.get();
 		db
 			.insert(DB.Tables.notifications)
 			.values([
-				{ user_id: alice.id, type: "system", title: "Zweite" },
-				{ user_id: bob.id, type: "system", title: "Hallo Bob" },
+				{ org_id: OrgContext.id(), user_id: alice.id, type: "system", title: "Zweite" },
+				{ org_id: OrgContext.id(), user_id: bob.id, type: "system", title: "Hallo Bob" },
 			])
 			.run();
 
@@ -846,6 +875,101 @@ describe("Users directory", () => {
 		});
 		expect(forCore.events.map((event: any) => event.id).sort()).toEqual(
 			[runningEventId, upcomingEventId].sort(),
+		);
+	});
+});
+
+describe("Cross-org isolation", () => {
+	let otherOrg: OrgInfo;
+	let otherHost: string;
+	let outsider: SeededUser;
+	let outsiderSession: SeededSession;
+
+	beforeAll(async () => {
+		otherOrg = await OrgService.create({
+			slug: `other-${randomUUID().slice(0, 8)}`,
+			display_name: "Andere Org",
+		});
+		otherHost = `${otherOrg.slug}.localhost`;
+		// Seeded through the guarded path: inside the other org's context.
+		outsider = await OrgContext.run(otherOrg, () =>
+			seedUser("volunteer", { display_name: "Olga Outsider" }),
+		);
+		outsiderSession = await OrgContext.run(otherOrg, () => seedSession(outsider.id));
+	});
+
+	test("a chat can't be started with or extended by a user of another org", async () => {
+		await makeAPIRequest(
+			"/v1/conversations",
+			{
+				method: "POST",
+				authToken: aliceSession.token,
+				body: { type: "direct", user_ids: [outsider.id] },
+			},
+			400,
+		);
+		await makeAPIRequest(
+			"/v1/conversations",
+			{
+				method: "POST",
+				authToken: aliceSession.token,
+				body: { type: "group", name: "Gemischt", user_ids: [bob.id, outsider.id] },
+			},
+			400,
+		);
+
+		const group = await makeAPIRequest(
+			"/v1/conversations",
+			{
+				method: "POST",
+				authToken: aliceSession.token,
+				body: { type: "group", name: "Nur intern", user_ids: [bob.id] },
+				expectedBodySchema: ConversationsModel.Create.Response,
+			},
+			201,
+		);
+		await makeAPIRequest(
+			`/v1/conversations/${group.id}`,
+			{ method: "PUT", authToken: aliceSession.token, body: { add_user_ids: [outsider.id] } },
+			400,
+		);
+
+		// The other org's member sees neither the chat nor works with their token on this host.
+		await makeAPIRequest("/v1/conversations", { authToken: outsiderSession.token }, 401);
+		const theirs = await makeAPIRequest("/v1/conversations", {
+			authToken: outsiderSession.token,
+			additionalOptions: { headers: hostHeaders(otherHost) },
+			expectedBodySchema: ConversationsModel.GetAll.Response,
+		});
+		expect(theirs.some((conversation) => conversation.id === group.id)).toBe(false);
+		await makeAPIRequest(
+			`/v1/conversations/${group.id}`,
+			{ authToken: outsiderSession.token, additionalOptions: { headers: hostHeaders(otherHost) } },
+			404,
+		);
+	});
+
+	test("a download token only works on the host of the file's org", async () => {
+		const form = new FormData();
+		form.append("file", new File(["Nur für uns"], "intern.txt", { type: "text/plain" }));
+		const file = await makeAPIRequest(
+			"/v1/org/documents",
+			{ authToken: coreSession.token, additionalOptions: { method: "POST", body: form } },
+			201,
+		);
+		expect(file.download_token).toBeString();
+
+		await makeAPIRequest(`/v1/files/download/${file.download_token}`, {}, 200);
+		await makeAPIRequest(
+			`/v1/files/download/${file.download_token}`,
+			{ additionalOptions: { headers: hostHeaders(otherHost) } },
+			404,
+		);
+		// Metadata by id is not reachable from the other org either.
+		await makeAPIRequest(
+			`/v1/files/${file.id}`,
+			{ authToken: outsiderSession.token, additionalOptions: { headers: hostHeaders(otherHost) } },
+			404,
 		);
 	});
 });

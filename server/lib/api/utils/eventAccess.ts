@@ -4,6 +4,7 @@ import { createMiddleware } from "hono/factory";
 import { validator as zValidator } from "hono-openapi";
 import { z } from "zod";
 import { DB } from "../../db";
+import { inOrg } from "../../orgs/context";
 import { APIResponse } from "./api-res";
 import { AuthHandler } from "./authHandler";
 import { PermissionHelper } from "./permissions";
@@ -37,6 +38,7 @@ export namespace EventAccess {
 				.from(DB.Tables.eventMembers)
 				.where(
 					and(
+						inOrg(DB.Tables.eventMembers),
 						eq(DB.Tables.eventMembers.event_id, eventId),
 						eq(DB.Tables.eventMembers.user_id, authContext.user_id),
 					),
@@ -71,7 +73,7 @@ export namespace EventAccess {
 			const event = await DB.instance()
 				.select()
 				.from(DB.Tables.events)
-				.where(eq(DB.Tables.events.id, eventId.data))
+				.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, eventId.data)))
 				.get();
 
 			if (!event) {

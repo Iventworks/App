@@ -88,9 +88,9 @@ class ConfigSchema<T extends ConfigSchemaSettings> {
 		for (const [key, settings] of Object.entries(this.schema)) {
 			let value = process.env[`${AppConstants.APP_ENV_PREFIX}_${key}`];
 
-			// Pre-merge CMP-API deployments used `CMP_API_*`. Accept those names as a fallback so an
-			// existing env file keeps working; `CMP_*` wins when both are set.
-			const legacyName = `${AppConstants.LEGACY_API_ENV_PREFIX}_${key}`;
+			// Before the rename to Iventworks the variables were called `CMP_*`. Accept those names as
+			// a fallback so an existing env file keeps working; `IVENTWORKS_*` wins when both are set.
+			const legacyName = `${AppConstants.LEGACY_ENV_PREFIX}_${key}`;
 			if (value === undefined && process.env[legacyName] !== undefined) {
 				value = process.env[legacyName];
 				Logger.warn(
@@ -147,7 +147,13 @@ export class ConfigHandler {
 		// Behind a reverse proxy: take the client IP (login rate limiting) from X-Forwarded-For.
 		TRUST_PROXY: CS.boolean().default(false),
 
+		// Single-org mode: the URL of the app. Multi-org mode: the base URL — orgs live at
+		// `<slug>.<host of APP_URL>`, the system admin dashboard at `<APP_URL>/admin`.
 		APP_URL: CS.string(),
+
+		// Host many orgs on one deployment (each with its own users, data, branding and domains).
+		// Off: one org answers on every host name, as before.
+		MULTI_ORG: CS.boolean().default(false),
 
 		// IANA time zone the organisation works in: decides what "today" means for dashboards.
 		TIMEZONE: CS.string().default("Europe/Berlin"),

@@ -16,7 +16,7 @@
 		},
 		"db": {
 			"description": "Run Drizzle migrations",
-			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate migrations from `server/lib/db/schema.ts` into `drizzle/migrations/`.\n2. Run `bun run db:migrate` to apply them (the app also auto-migrates on startup when `CMP_DB_AUTO_MIGRATE` is true — the default).\n3. Summarize what was generated or applied."
+			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate migrations from `server/lib/db/schema.ts` into `drizzle/migrations/`.\n2. Run `bun run db:migrate` to apply them (the app also auto-migrates on startup when `IVENTWORKS_DB_AUTO_MIGRATE` is true — the default).\n3. Summarize what was generated or applied."
 		},
 		"verify": {
 			"description": "Run the repo verification flow",

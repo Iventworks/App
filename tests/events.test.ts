@@ -1,8 +1,13 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { and, eq } from "drizzle-orm";
 import { EventsModel } from "../server/lib/api/versions/v1/routes/events/model";
 import { EventTasksModel } from "../server/lib/api/versions/v1/routes/events/tasks/model";
 import { DB } from "../server/lib/db";
+import { inOrg, OrgContext } from "../server/lib/orgs/context";
+import type { OrgInfo } from "../server/lib/orgs/registry";
+import { OrgService } from "../server/lib/orgs/service";
 import { makeAPIRequest } from "./helpers/api";
+import { hostHeaders } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -221,5 +226,132 @@ describe("Event tasks", () => {
 		});
 		const members = DB.instance().select().from(DB.Tables.eventMembers).all();
 		expect(members.filter((member) => member.event_id === eventId)).toEqual([]);
+	});
+});
+
+describe("Cross-org isolation", () => {
+	const OTHER_HOST = "other-events.localhost";
+	let otherOrg: OrgInfo;
+	let otherAdmin: SeededUser;
+	let otherUser: SeededUser;
+	let otherAdminSession: SeededSession;
+	let otherEventId: number;
+
+	let admin: SeededUser;
+	let adminSession: SeededSession;
+	let ownEventId: number;
+
+	const asOtherOrg = { additionalOptions: { headers: hostHeaders(OTHER_HOST) } };
+
+	beforeAll(async () => {
+		otherOrg = await OrgService.create({ slug: "other-events", display_name: "Andere Org" });
+		await OrgContext.run(otherOrg, async () => {
+			otherAdmin = await seedUser("admin");
+			otherUser = await seedUser("volunteer");
+			otherAdminSession = await seedSession(otherAdmin.id);
+			otherEventId = DB.instance()
+				.insert(DB.Tables.events)
+				.values({
+					org_id: OrgContext.id(),
+					name: "Geheime Freizeit",
+					start_date: "2027-08-01",
+					end_date: "2027-08-05",
+				})
+				.returning()
+				.get().id;
+			await addEventMember(otherEventId, otherUser.id, "staff");
+		});
+
+		admin = await seedUser("admin");
+		adminSession = await seedSession(admin.id);
+		const own = await makeAPIRequest("/v1/events", {
+			method: "POST",
+			authToken: adminSession.token,
+			body: { name: "Eigene Freizeit", start_date: "2027-09-01", end_date: "2027-09-05" },
+			expectedBodySchema: EventsModel.Create.Response,
+		});
+		ownEventId = own.id;
+	});
+
+	test("another org's event is 404 for this org's admin", async () => {
+		const auth = { authToken: adminSession.token };
+		await makeAPIRequest(`/v1/events/${otherEventId}`, auth, 404);
+		await makeAPIRequest(`/v1/events/${otherEventId}/overview`, auth, 404);
+		await makeAPIRequest(`/v1/events/${otherEventId}/members`, auth, 404);
+		await makeAPIRequest(`/v1/events/${otherEventId}/participants`, auth, 404);
+		await makeAPIRequest(
+			`/v1/events/${otherEventId}`,
+			{ ...auth, method: "PUT", body: { name: "Übernommen" } },
+			404,
+		);
+		await makeAPIRequest(`/v1/events/${otherEventId}`, { ...auth, method: "DELETE" }, 404);
+
+		const all = await makeAPIRequest("/v1/events?scope=all&include_archived=true", {
+			...auth,
+			expectedBodySchema: EventsModel.GetAll.Response,
+		});
+		expect(all.map((event) => event.id)).not.toContain(otherEventId);
+		expect(all.map((event) => event.id)).toContain(ownEventId);
+
+		const stillThere = await OrgContext.run(otherOrg, () =>
+			DB.instance()
+				.select()
+				.from(DB.Tables.events)
+				.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, otherEventId)))
+				.get(),
+		);
+		expect(stillThere?.name).toBe("Geheime Freizeit");
+	});
+
+	test("users of another org can't be added as members, leaders or assignees", async () => {
+		await makeAPIRequest(
+			`/v1/events/${ownEventId}/members`,
+			{
+				method: "POST",
+				authToken: adminSession.token,
+				body: { user_id: otherUser.id, role: "staff" },
+			},
+			404,
+		);
+
+		const created = await makeAPIRequest("/v1/events", {
+			method: "POST",
+			authToken: adminSession.token,
+			body: {
+				name: "Mit fremder Leitung",
+				start_date: "2027-10-01",
+				end_date: "2027-10-02",
+				leader_ids: [otherUser.id],
+			},
+			expectedBodySchema: EventsModel.Create.Response,
+		});
+		expect(created.leaders).toEqual([]);
+		expect(created.staff_count).toBe(0);
+
+		await makeAPIRequest(
+			`/v1/events/${ownEventId}/tasks`,
+			{
+				method: "POST",
+				authToken: adminSession.token,
+				body: { title: "Fremd zuweisen", assignee_id: otherUser.id },
+			},
+			400,
+		);
+	});
+
+	test("a token only works on its own org's host", async () => {
+		await makeAPIRequest(`/v1/events/${ownEventId}`, { authToken: otherAdminSession.token }, 401);
+
+		const mine = await makeAPIRequest(`/v1/events/${otherEventId}`, {
+			authToken: otherAdminSession.token,
+			...asOtherOrg,
+			expectedBodySchema: EventsModel.EventWithAccess,
+		});
+		expect(mine.name).toBe("Geheime Freizeit");
+		await makeAPIRequest(
+			`/v1/events/${ownEventId}`,
+			{ authToken: otherAdminSession.token, ...asOtherOrg },
+			404,
+		);
 	});
 });

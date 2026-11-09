@@ -8,7 +8,7 @@ import type { EventWithAccess, UserSummary } from "~/utils/types";
 
 definePageMeta({ layout: "dashboard" });
 
-useSeoMeta({ title: "Freizeiten & Events | Kernteam | CMP" });
+useSeoMeta({ title: "Freizeiten & Events | Kernteam" });
 
 const toast = useToast();
 const route = useRoute();

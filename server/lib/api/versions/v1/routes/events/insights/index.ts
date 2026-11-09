@@ -1,7 +1,8 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
+import { inOrg } from "../../../../../../orgs/context";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -54,12 +55,12 @@ router.get(
 				db
 					.select()
 					.from(DB.Tables.participants)
-					.where(eq(DB.Tables.participants.event_id, event.id))
+					.where(and(inOrg(DB.Tables.participants), eq(DB.Tables.participants.event_id, event.id)))
 					.all(),
 				db
 					.select({ role: DB.Tables.eventMembers.role })
 					.from(DB.Tables.eventMembers)
-					.where(eq(DB.Tables.eventMembers.event_id, event.id))
+					.where(and(inOrg(DB.Tables.eventMembers), eq(DB.Tables.eventMembers.event_id, event.id)))
 					.all(),
 				db
 					.select({
@@ -70,20 +71,23 @@ router.get(
 					.from(DB.Tables.eventGroups)
 					.leftJoin(
 						DB.Tables.eventGroupMembers,
-						eq(DB.Tables.eventGroupMembers.group_id, DB.Tables.eventGroups.id),
+						and(
+							inOrg(DB.Tables.eventGroupMembers),
+							eq(DB.Tables.eventGroupMembers.group_id, DB.Tables.eventGroups.id),
+						),
 					)
-					.where(eq(DB.Tables.eventGroups.event_id, event.id))
+					.where(and(inOrg(DB.Tables.eventGroups), eq(DB.Tables.eventGroups.event_id, event.id)))
 					.groupBy(DB.Tables.eventGroups.id)
 					.all(),
 				db
 					.select({ capacity: DB.Tables.rooms.capacity })
 					.from(DB.Tables.rooms)
-					.where(eq(DB.Tables.rooms.event_id, event.id))
+					.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.event_id, event.id)))
 					.all(),
 				db
 					.select({ status: DB.Tables.tasks.status, due_at: DB.Tables.tasks.due_at })
 					.from(DB.Tables.tasks)
-					.where(eq(DB.Tables.tasks.event_id, event.id))
+					.where(and(inOrg(DB.Tables.tasks), eq(DB.Tables.tasks.event_id, event.id)))
 					.all(),
 				db
 					.select({
@@ -92,7 +96,7 @@ router.get(
 						amount_cents: DB.Tables.expenses.amount_cents,
 					})
 					.from(DB.Tables.expenses)
-					.where(eq(DB.Tables.expenses.event_id, event.id))
+					.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.event_id, event.id)))
 					.all(),
 				db
 					.select({
@@ -100,7 +104,7 @@ router.get(
 						planned_cents: DB.Tables.budgetItems.planned_cents,
 					})
 					.from(DB.Tables.budgetItems)
-					.where(eq(DB.Tables.budgetItems.event_id, event.id))
+					.where(and(inOrg(DB.Tables.budgetItems), eq(DB.Tables.budgetItems.event_id, event.id)))
 					.all(),
 				db
 					.select({
@@ -108,7 +112,7 @@ router.get(
 						end_at: DB.Tables.programItems.end_at,
 					})
 					.from(DB.Tables.programItems)
-					.where(eq(DB.Tables.programItems.event_id, event.id))
+					.where(and(inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.event_id, event.id)))
 					.all(),
 			]);
 

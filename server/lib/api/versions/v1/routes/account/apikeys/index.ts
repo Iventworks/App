@@ -4,6 +4,7 @@ import { validator } from "hono-openapi";
 import z from "zod";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { inOrg } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { APIKeyHandler, AuthHandler, AuthUtils } from "../../../../../utils/authHandler";
@@ -35,7 +36,7 @@ router.get(
 		const apiKeys = DB.instance()
 			.select()
 			.from(DB.Tables.apiKeys)
-			.where(eq(DB.Tables.apiKeys.user_id, authContext.user_id))
+			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.user_id, authContext.user_id)))
 			.all();
 
 		const apiKeysWithoutSensitive = apiKeys.map((key) => ({
@@ -145,7 +146,11 @@ router.use(
 			.select()
 			.from(DB.Tables.apiKeys)
 			.where(
-				and(eq(DB.Tables.apiKeys.id, apiKeyID), eq(DB.Tables.apiKeys.user_id, authContext.user_id)),
+				and(
+					inOrg(DB.Tables.apiKeys),
+					eq(DB.Tables.apiKeys.id, apiKeyID),
+					eq(DB.Tables.apiKeys.user_id, authContext.user_id),
+				),
 			)
 			.get();
 

@@ -9,7 +9,7 @@ definePageMeta({ layout: "dashboard" });
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 
-useSeoMeta({ title: `Statistiken | ${event.value.name} | CMP` });
+useSeoMeta({ title: `Statistiken | ${event.value.name}` });
 
 if (!can("stats:view")) {
 	throw createError({

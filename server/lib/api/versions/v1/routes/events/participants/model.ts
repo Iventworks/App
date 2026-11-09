@@ -5,7 +5,9 @@ import { GENDERS, PARTICIPANT_STATUSES } from "../../../../../../db/schema";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventParticipantsModel {
-	export const EmergencyContact = createSelectSchema(DB.Tables.participantEmergencyContacts);
+	export const EmergencyContact = createSelectSchema(DB.Tables.participantEmergencyContacts).omit({
+		org_id: true,
+	});
 	export type EmergencyContact = z.infer<typeof EmergencyContact>;
 
 	export const RoomRef = z.object({
@@ -14,18 +16,20 @@ export namespace EventParticipantsModel {
 	});
 	export type RoomRef = z.infer<typeof RoomRef>;
 
-	export const Participant = createSelectSchema(DB.Tables.participants).extend({
-		/**
-		 * False for callers outside the event's team (e.g. core team): health fields are blanked and
-		 * staff notes withheld (`participants:view_medical`).
-		 */
-		medical_visible: z.boolean(),
-		/** Age in full years on the event's start date (null without birth date). */
-		age: z.number().nullable(),
-		room: RoomRef.nullable(),
-		emergency_contacts: z.array(EmergencyContact),
-		note_count: z.number(),
-	});
+	export const Participant = createSelectSchema(DB.Tables.participants)
+		.omit({ org_id: true })
+		.extend({
+			/**
+			 * False for callers outside the event's team (e.g. core team): health fields are blanked and
+			 * staff notes withheld (`participants:view_medical`).
+			 */
+			medical_visible: z.boolean(),
+			/** Age in full years on the event's start date (null without birth date). */
+			age: z.number().nullable(),
+			room: RoomRef.nullable(),
+			emergency_contacts: z.array(EmergencyContact),
+			note_count: z.number(),
+		});
 	export type Participant = z.infer<typeof Participant>;
 
 	export const Note = z.object({

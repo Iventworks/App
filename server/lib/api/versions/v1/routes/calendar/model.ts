@@ -3,7 +3,7 @@ import { z } from "zod";
 import { DB } from "../../../../../db";
 
 export namespace CalendarModel {
-	export const Entry = createSelectSchema(DB.Tables.calendarEntries);
+	export const Entry = createSelectSchema(DB.Tables.calendarEntries).omit({ org_id: true });
 	export type Entry = z.infer<typeof Entry>;
 
 	export const Params = z.object({
