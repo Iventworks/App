@@ -136,10 +136,46 @@ All settings are `IVENTWORKS_*` env vars — see `example.env`. The names before
 - `IVENTWORKS_MULTI_ORG` — many orgs on one installation (see above)
 - `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` (default `false`) — org admins' custom domains go live
   without a system admin's approval (see above)
-- `IVENTWORKS_UPLOAD_DIR`, `IVENTWORKS_MAX_UPLOAD_SIZE_MB` — file storage
+- `IVENTWORKS_UPLOAD_DIR`, `IVENTWORKS_MAX_UPLOAD_SIZE_MB` — file storage and the upload limit
+- `IVENTWORKS_BACKUP_*` — encrypted backups, optionally to S3 (see Backups)
 - `IVENTWORKS_TIMEZONE` (default `Europe/Berlin`) — what "today" means on dashboards
 - `IVENTWORKS_TRUST_PROXY` — behind exactly one reverse proxy, take the client IP for login rate
   limiting from the last `X-Forwarded-For` entry
+
+## Backups
+
+Encrypted backups of the database and the uploaded files, modelled on LeiCraft_MC Vault's backup
+tool (`server/lib/backup/`):
+
+- A consistent SQLite snapshot (`VACUUM INTO`, safe while the app runs) and `uploads/` go into a
+  tar.gz, streamed through AES-256-GCM with a key derived from `IVENTWORKS_BACKUP_PASSPHRASE`
+  (scrypt, fresh salt and IV per backup) into `iventworks-YYYYMMDD-HHMMSS.backup` (UTC).
+- `IVENTWORKS_BACKUP_ENABLED=true` runs them on `IVENTWORKS_BACKUP_SCHEDULE` (cron, in
+  `IVENTWORKS_TIMEZONE`, default daily 03:00). The app refuses to start with an incomplete
+  configuration (no or a short passphrase, half an S3 setup, an invalid schedule).
+- Stored in `IVENTWORKS_BACKUP_DIR`, and — with the S3 settings — off-site in a bucket (Bun's S3
+  client, multipart upload). Backups older than `IVENTWORKS_BACKUP_RETENTION_DAYS` are deleted, the
+  newest `IVENTWORKS_BACKUP_RETENTION_MIN_COUNT` always stay. With S3, retention applies there and
+  the local directory keeps only the newest `IVENTWORKS_BACKUP_LOCAL_COPIES`.
+- By hand: `bun run backup create | list | verify <name> | restore <name> <dir>` (in the image:
+  `docker exec iventworks bun /opt/iventworks/app/.output/backup.mjs …`). `restore` takes a local
+  file, a name in the backup directory or a name in S3, checks the GCM tag before writing anything,
+  and extracts `db.sqlite`, `uploads/` and `manifest.json` into an empty directory. Then stop the
+  app, replace the database (and delete its `-wal`/`-shm` files) and the uploads, and start it.
+- **Keep the passphrase outside the server.** Without it no backup can be restored.
+
+## Security headers and request limits
+
+- Every response: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,
+  `Permissions-Policy`, `Cross-Origin-Opener-Policy`, and HSTS when `IVENTWORKS_APP_URL` is https
+  (`server/middleware/00.security-headers.ts`).
+- Pages get a Content-Security-Policy with the hashes of their own inline scripts (no
+  `unsafe-inline`/`unsafe-eval` for scripts; `server/plugins/csp.ts`); API responses one that
+  allows nothing. Icons come from the local `/api/_nuxt_icon`, never from api.iconify.design.
+- Request bodies are checked before they are read (`server/runtime/bun.ts`, the Bun server entry):
+  file uploads up to `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, everything else up to 2 MB; larger ones get
+  413. Uploads are held in memory while they are processed, so keep the limit in proportion to the
+  server's RAM.
 
 ## Migrating from the standalone CMP-API
 
@@ -166,6 +202,7 @@ bun run api-client:generate
 - `docker/` — production image: `.output/` + `drizzle/migrations` on `oven/bun`
 - `bun run db:generate` / `db:migrate` — Drizzle migrations (`drizzle/migrations/`, committed)
 - `bun run db:import-legacy` — import users from a pre-merge CMP-API database (see above)
+- `bun run backup …` — create, list, verify and restore backups (see Backups)
 - `bun run check` / `check:ci` / `lint` / `format` — Biome
 - `bun run typecheck` — `nuxt typecheck` + `tsc` (includes `server/`)
 - `bun test` / `bun run test:ci` — API tests (CI: coverage + JUnit report)
@@ -190,7 +227,9 @@ CI (`.gitlab/ci/build.yml`) builds the image from the default branch and pushes
    `admin` password, then change the admin's email in the profile. Single-org: invite everyone
    else. Multi-org: that is the first system admin; create the orgs at `<APP_URL>/admin`.
 
-`/opt/iventworks/data` holds the database **and** the uploads — back it up as a whole. The API
+`/opt/iventworks/data` holds the database **and** the uploads; the built-in backups (see Backups)
+cover both and go to `/opt/iventworks/backups` and optionally S3. Don't copy the live database
+file: it may be mid-write (WAL). The API
 docs (`/api/docs/v1`) are disabled in the compose file; set `IVENTWORKS_API_DISABLE_DOCS=false` to enable
 them. Migrations run automatically on start.
 

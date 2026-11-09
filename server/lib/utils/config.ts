@@ -163,6 +163,25 @@ export class ConfigHandler {
 		// IANA time zone the organisation works in: decides what "today" means for dashboards.
 		TIMEZONE: CS.string().default("Europe/Berlin"),
 
+		// Encrypted backups of the database and uploads (server/lib/backup), on a cron schedule in
+		// TIMEZONE. Local copies in BACKUP_DIR; off-site in S3 when all four S3 settings are set.
+		BACKUP_ENABLED: CS.boolean().default(false),
+		BACKUP_SCHEDULE: CS.string().default("0 3 * * *"),
+		BACKUP_PASSPHRASE: CS.string().optional(),
+		BACKUP_DIR: CS.string().default("./data/backups"),
+		// Delete backups older than this many days (0: keep all) — but always keep the newest
+		// BACKUP_RETENTION_MIN_COUNT.
+		BACKUP_RETENTION_DAYS: CS.number().default(30),
+		BACKUP_RETENTION_MIN_COUNT: CS.number().default(3),
+		// With S3: how many of the newest backups also stay in BACKUP_DIR (0: none).
+		BACKUP_LOCAL_COPIES: CS.number().default(1),
+		BACKUP_S3_ENDPOINT: CS.string().optional(),
+		BACKUP_S3_REGION: CS.string().optional(),
+		BACKUP_S3_BUCKET: CS.string().optional(),
+		BACKUP_S3_ACCESS_KEY_ID: CS.string().optional(),
+		BACKUP_S3_SECRET_ACCESS_KEY: CS.string().optional(),
+		BACKUP_S3_PREFIX: CS.string().optional(),
+
 		SMTP_HOST: CS.string().optional(),
 		SMTP_PORT: CS.number().optional(),
 		SMTP_USERNAME: CS.string().optional(),

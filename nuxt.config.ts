@@ -1,8 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from "node:url";
 export default defineNuxtConfig({
 	compatibilityDate: "2026-09-01",
 	devtools: { enabled: true },
 	modules: ["@nuxt/ui", "@vite-pwa/nuxt"],
+
+	// Icons come from the installed collections only — never from api.iconify.design (privacy, and
+	// the Content-Security-Policy allows no third-party requests).
+	icon: {
+		fallbackToApi: false,
+		// Bundle the icons the code names, so most need no request at all.
+		clientBundle: { scan: true },
+	},
 
 	colorMode: {
 		preference: "dark",
@@ -15,6 +24,9 @@ export default defineNuxtConfig({
 	css: ["~/assets/css/main.css"],
 
 	nitro: {
+		// Nitro's Bun entry plus request size limits (uploads: IVENTWORKS_MAX_UPLOAD_SIZE_MB).
+		entry: fileURLToPath(new URL("./server/runtime/bun.ts", import.meta.url)),
+
 		rollupConfig: {
 			external: ["bun:sqlite"],
 
@@ -75,21 +87,6 @@ export default defineNuxtConfig({
 				{ rel: "icon", href: "/api/v1/instance/favicon" },
 				// iOS home-screen icon (Safari ignores the manifest icons).
 				{ rel: "apple-touch-icon", href: "/api/v1/instance/apple-touch-icon" },
-			],
-			script: [
-				{
-					innerHTML: `
-					if ('serviceWorker' in navigator) {
-					window.addEventListener('load', () => {
-						navigator.serviceWorker.register('/sw.js', { scope: '/' })
-						.catch(registrationError => {
-							console.error('Service worker registration failed:', registrationError);
-						});
-					});
-					}
-				`,
-					type: "text/javascript",
-				},
 			],
 		},
 	},

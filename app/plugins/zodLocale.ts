@@ -8,6 +8,8 @@ import * as z from "zod";
 
 export default defineNuxtPlugin(() => {
 	z.config({
+		// No `new Function` for compiled validators: the Content-Security-Policy forbids eval.
+		jitless: true,
 		...z.locales.de(),
 		customError: (issue) => {
 			if (issue.code === "too_small" && issue.origin === "string" && Number(issue.minimum) === 1) {

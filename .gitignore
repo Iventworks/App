@@ -42,6 +42,7 @@ yarn-error.log*
 
 #Tests
 tmp-data-*
+tmp-backup-*
 
 # Backend data & config (keep examples)
 data/

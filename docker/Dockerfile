@@ -31,16 +31,20 @@ ENV IVENTWORKS_LOG_DIR=/opt/iventworks/data/logs
 ENV IVENTWORKS_CONFIG_BASE_DIR=/opt/iventworks/config
 # Uploaded documents and receipts — part of the data volume, back it up together with db.sqlite.
 ENV IVENTWORKS_UPLOAD_DIR=/opt/iventworks/data/uploads
+# Encrypted backups (IVENTWORKS_BACKUP_ENABLED): their own volume, so a lost data disk doesn't take
+# them along. The CLI: `bun /opt/iventworks/app/.output/backup.mjs list|create|verify|restore`.
+ENV IVENTWORKS_BACKUP_DIR=/opt/iventworks/backups
 
 
 # Run as the image's unprivileged `bun` user. On the host, the bind-mounted directories must be
 # writable for it: `sudo chown -R 1000:1000 /opt/iventworks/data /opt/iventworks/config`.
-RUN mkdir -p /opt/iventworks/data /opt/iventworks/config \
+RUN mkdir -p /opt/iventworks/data /opt/iventworks/config /opt/iventworks/backups \
 	&& chown -R bun:bun /opt/iventworks
 USER bun
 
 VOLUME /opt/iventworks/data
 VOLUME /opt/iventworks/config
+VOLUME /opt/iventworks/backups
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
 	CMD curl -f http://localhost:31316/api/health || exit 1

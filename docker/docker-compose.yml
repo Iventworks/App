@@ -32,7 +32,22 @@ services:
       # uses the last entry). Set to false if the port is ever published publicly.
       IVENTWORKS_TRUST_PROXY: true
       IVENTWORKS_TIMEZONE: Europe/Berlin
+      # Largest file upload; other requests are limited to 2 MB.
       IVENTWORKS_MAX_UPLOAD_SIZE_MB: 25
+
+      # Encrypted backups of the database and uploads (keep the passphrase somewhere safe — without
+      # it no backup can be restored). Schedule: cron, in IVENTWORKS_TIMEZONE.
+      IVENTWORKS_BACKUP_ENABLED: true
+      IVENTWORKS_BACKUP_SCHEDULE: "0 3 * * *"
+      IVENTWORKS_BACKUP_PASSPHRASE: ${IVENTWORKS_BACKUP_PASSPHRASE:?set it in docker/.env}
+      IVENTWORKS_BACKUP_RETENTION_DAYS: 30
+      IVENTWORKS_BACKUP_RETENTION_MIN_COUNT: 3
+      # Off-site copies (optional; all four needed). Then only the newest local copy stays.
+      IVENTWORKS_BACKUP_S3_ENDPOINT: ${IVENTWORKS_BACKUP_S3_ENDPOINT:-}
+      IVENTWORKS_BACKUP_S3_BUCKET: ${IVENTWORKS_BACKUP_S3_BUCKET:-}
+      IVENTWORKS_BACKUP_S3_ACCESS_KEY_ID: ${IVENTWORKS_BACKUP_S3_ACCESS_KEY_ID:-}
+      IVENTWORKS_BACKUP_S3_SECRET_ACCESS_KEY: ${IVENTWORKS_BACKUP_S3_SECRET_ACCESS_KEY:-}
+      IVENTWORKS_BACKUP_S3_PREFIX: iventworks/
 
       # SMTP credentials come from a `.env` file next to this compose file (gitignored), e.g.
       #   IVENTWORKS_SMTP_HOST=mail.example.com
@@ -49,3 +64,4 @@ services:
     volumes:
       - /opt/iventworks/data:/opt/iventworks/data
       - /opt/iventworks/config:/opt/iventworks/config
+      - /opt/iventworks/backups:/opt/iventworks/backups

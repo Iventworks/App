@@ -139,6 +139,20 @@ CMP (Crossover Management Portal) before; the repository still is.
   Safari steps for iOS.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
 - UI language is German, informal ("du").
+- **Content-Security-Policy** (pages: `server/plugins/csp.ts`, everything else:
+  `server/middleware/00.security-headers.ts`): scripts only from our own files plus the page's
+  inline scripts by hash, computed per response. So: no inline scripts in `app.head` (use a client
+  plugin), nothing that evaluates strings (Zod runs `jitless`), no third-party requests (icons come
+  from the local `/api/_nuxt_icon` — `plugins/iconProvider.client.ts` works around @nuxt/icon not
+  doing so with @iconify/vue 5). Endpoints that serve files set their own CSP, which replaces the
+  default `default-src 'none'` of API responses.
+- **Server entry** `server/runtime/bun.ts` replaces the Bun preset's entry (`nitro.entry`): it
+  refuses oversized bodies before reading them (uploads: `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, other
+  requests 2 MB, `RequestLimits`). Keep it in step with nitropack's `presets/bun/runtime/bun.mjs`.
+- **Backups** (`server/lib/backup/`, README › Backups): encrypted tar.gz of a `VACUUM INTO`
+  snapshot plus `uploads/`, scheduled by `CronJobHandler`, CLI `scripts/backup.ts` (bundled to
+  `.output/backup.mjs`). New data on disk outside the database or `uploads/` must be added to
+  `BackupService` to be backed up.
 - **Branding** per org: name, primary colour (a Tailwind palette from `ORG_PRIMARY_COLORS`, default
   `fuchsia`; `plugins/instance.ts` sets `appConfig.ui.colors.primary` at runtime), logo and icon
   (stored in `org_assets`, type sniffed from the bytes, SVGs only without script/external

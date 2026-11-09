@@ -1,6 +1,7 @@
 import { defineNitroPlugin } from "nitropack/runtime";
 import { API } from "../lib/api";
 import { EmailService } from "../lib/api/utils/email";
+import { BackupService } from "../lib/backup/service";
 import { DB } from "../lib/db";
 import { OrgBootstrap } from "../lib/orgs/bootstrap";
 import { TaskScheduler } from "../lib/tasks";
@@ -73,6 +74,13 @@ export default defineNitroPlugin(async (nitroApp) => {
 	const config = await ConfigHandler.loadConfig();
 
 	Logger.setLogLevel(config.LOG_LEVEL ?? "info");
+
+	// Refuse to start with a backup configuration that would silently not work.
+	const backupErrors = BackupService.validate(config);
+	if (backupErrors.length) {
+		for (const error of backupErrors) Logger.error(`Backup configuration: ${error}`);
+		process.exit(1);
+	}
 	Logger.log(`Starting ${AppConstants.APP_NAME}...`);
 
 	await DB.init(

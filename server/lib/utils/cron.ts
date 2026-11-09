@@ -1,6 +1,8 @@
 import type { CronJob as BunCronJob } from "bun";
+import { BackupService } from "../backup/service";
 import { DomainService } from "../orgs/domains";
 import { OrgRegistry } from "../orgs/registry";
+import { ConfigHandler } from "./config";
 import { Housekeeping } from "./housekeeping";
 import { Logger } from "./logger";
 
@@ -10,17 +12,23 @@ class CronJob {
 	constructor(
 		private readonly cronExpression: string,
 		private readonly callback: () => Promise<void>,
+		/** IANA time zone the expression is meant in (default: the server's). */
+		private readonly timezone?: string,
 	) {}
 
 	start() {
 		// A rejected Bun.cron callback ends the process, so a failing run is logged instead.
-		this._job = Bun.cron(this.cronExpression, async () => {
-			try {
-				await this.callback();
-			} catch (err) {
-				Logger.error(`Cron job "${this.cronExpression}" failed:`, err);
-			}
-		});
+		this._job = Bun.cron(
+			this.cronExpression,
+			async () => {
+				try {
+					await this.callback();
+				} catch (err) {
+					Logger.error(`Cron job "${this.cronExpression}" failed:`, err);
+				}
+			},
+			this.timezone ? { tz: this.timezone } : undefined,
+		);
 	}
 
 	async stop() {
@@ -51,6 +59,18 @@ export class CronJobHandler {
 				if (verified) Logger.info(`Verified ${verified} custom domain(s).`);
 			}),
 		);
+
+		// Encrypted backups on IVENTWORKS_BACKUP_SCHEDULE, in the org's time zone.
+		const config = ConfigHandler.getConfig();
+		if (config?.BACKUP_ENABLED) {
+			const settings = BackupService.settings(config);
+			this.jobs.push(
+				new CronJob(settings.schedule, () => BackupService.runScheduled(settings), settings.timezone),
+			);
+			Logger.info(
+				`Backups scheduled: "${settings.schedule}" (${settings.timezone}) to ${settings.dir}${settings.s3 ? ` and ${settings.s3.label}` : ""}.`,
+			);
+		}
 	}
 
 	static async startAll() {

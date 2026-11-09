@@ -44,10 +44,26 @@ function setTestEnv(rootDir: string) {
 		IVENTWORKS_SMTP_PASSWORD: "",
 		IVENTWORKS_SMTP_FROM: '"App Test" <test@app.local>',
 		IVENTWORKS_SMTP_SECURE: false,
+
+		// Backups are created by the tests themselves (tests/backup.test.ts), not on a schedule.
+		IVENTWORKS_BACKUP_ENABLED: false,
+		IVENTWORKS_BACKUP_SCHEDULE: "0 3 * * *",
+		IVENTWORKS_BACKUP_PASSPHRASE: undefined,
+		IVENTWORKS_BACKUP_DIR: path.join(rootDir, "backups"),
+		IVENTWORKS_BACKUP_RETENTION_DAYS: 30,
+		IVENTWORKS_BACKUP_RETENTION_MIN_COUNT: 3,
+		IVENTWORKS_BACKUP_LOCAL_COPIES: 1,
+		IVENTWORKS_BACKUP_S3_ENDPOINT: undefined,
+		IVENTWORKS_BACKUP_S3_REGION: undefined,
+		IVENTWORKS_BACKUP_S3_BUCKET: undefined,
+		IVENTWORKS_BACKUP_S3_ACCESS_KEY_ID: undefined,
+		IVENTWORKS_BACKUP_S3_SECRET_ACCESS_KEY: undefined,
+		IVENTWORKS_BACKUP_S3_PREFIX: undefined,
 	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {
-		process.env[key] = String(value);
+		if (value === undefined) delete process.env[key];
+		else process.env[key] = String(value);
 	}
 }
 
