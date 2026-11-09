@@ -66,15 +66,17 @@ const filters = [{ column: "name" as const, type: "text" as const, placeholder: 
 <template>
 	<UDashboardPanel id="core-team-finances">
 		<template #header>
-			<DashboardPageHeader title="Finanzen" icon="i-lucide-wallet" description="Alle Events im Überblick">
-				<template #right>
-					<FinanceYearSelect v-model="year" />
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Finanzen" icon="i-lucide-wallet" description="Alle Events im Überblick" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<FinanceYearSelect v-model="year" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="!finances" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -131,7 +133,7 @@ const filters = [{ column: "name" as const, type: "text" as const, placeholder: 
 					>
 						<template #name-cell="{ row }">
 							<NuxtLink
-								:to="`/events/${row.original.event.id}/finances?tab=budget`"
+								:to="`/events/${row.original.event.id}/finances/budget`"
 								class="block min-w-40 hover:text-primary-400"
 							>
 								<span class="block font-medium text-white">{{ row.original.event.name }}</span>

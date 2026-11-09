@@ -206,19 +206,22 @@ onBeforeRouteLeave(() => {
 <template>
 	<UDashboardPanel id="notes">
 		<template #header>
-			<DashboardPageHeader title="Notizen" icon="i-lucide-notebook-pen" description="Nur für dich sichtbar">
-				<template #right>
-					<UButton label="Neue Notiz" icon="i-lucide-plus" :loading="creating" @click="createNote" />
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Notizen" icon="i-lucide-notebook-pen" description="Nur für dich sichtbar" />
 		</template>
 
 		<template #body>
+			<DashboardFilterBar :class="selectedNote ? 'hidden lg:block' : ''">
+				<template #left>
+					<UInput v-model="search" icon="i-lucide-search" placeholder="Notizen durchsuchen" class="w-full sm:w-64" />
+				</template>
+				<template #right>
+					<UButton label="Neue Notiz" icon="i-lucide-plus" :loading="creating" @click="createNote" />
+				</template>
+			</DashboardFilterBar>
+
 			<div class="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
 				<!-- List -->
 				<aside :class="['flex flex-col gap-3 lg:w-80 lg:shrink-0', selectedNote ? 'hidden lg:flex' : 'flex']">
-					<UInput v-model="search" icon="i-lucide-search" placeholder="Notizen durchsuchen" class="w-full" />
-
 					<div v-if="loading && !notes" class="flex justify-center py-12">
 						<UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-slate-400" />
 					</div>

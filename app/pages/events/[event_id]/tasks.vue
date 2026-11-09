@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * Event tasks — the reference page for event sub-pages: `useCurrentEvent()` for the event and
- * permissions, `useAPIAsyncData` with an event-specific key, header actions in `#right`,
- * `DashboardModal` + `UForm` for create/edit, `DashboardDeleteModal` for deletion.
+ * permissions, `useAPIAsyncData` with an event-specific key, filters and the create action in a
+ * `DashboardFilterBar` at the top of the body, `DashboardModal` + `UForm` for create/edit,
+ * `DashboardDeleteModal` for deletion.
  */
 import type { FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
@@ -20,7 +21,7 @@ useSeoMeta({ title: `Aufgaben | ${event.value.name} | CMP` });
 
 // --- data ---------------------------------------------------------------------------------
 
-const { active: filter, links: filterLinks } = useQueryTabs("filter", [
+const { value: filter, items: filterItems } = useQueryFilter("filter", [
 	{ value: "open", label: "Offen", icon: "i-lucide-circle-dashed" },
 	{ value: "mine", label: "Meine", icon: "i-lucide-user-check" },
 	{ value: "all", label: "Alle", icon: "i-lucide-list-checks" },
@@ -230,19 +231,26 @@ async function confirmDelete() {
 <template>
 	<UDashboardPanel id="event-tasks">
 		<template #header>
-			<DashboardPageHeader title="Aufgaben" icon="i-lucide-list-todo" :description="event.name">
-				<template #right>
-					<UButton v-if="can('tasks:create')" label="Neue Aufgabe" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<UNavigationMenu :items="filterLinks" highlight class="-mx-1 flex-1" />
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Aufgaben" icon="i-lucide-list-todo" :description="event.name" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<USelect
+							v-model="filter"
+							:items="filterItems"
+							:icon="filterItems.find((item) => item.value === filter)?.icon"
+							class="w-full sm:w-44"
+							aria-label="Aufgaben filtern"
+						/>
+					</template>
+					<template v-if="can('tasks:create')" #right>
+						<UButton label="Neue Aufgabe" icon="i-lucide-plus" @click="openCreate" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !tasks" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -252,11 +260,7 @@ async function confirmDelete() {
 					icon="i-lucide-list-checks"
 					title="Keine Aufgaben"
 					:description="filter === 'mine' ? 'Dir ist hier gerade nichts zugeteilt.' : 'Für dieses Event gibt es noch keine Aufgaben.'"
-				>
-					<template v-if="can('tasks:create')" #actions>
-						<UButton label="Aufgabe anlegen" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</UEmpty>
+				/>
 
 				<div v-else class="grid gap-4 lg:grid-cols-3">
 					<div v-for="column in columns" :key="column.status" class="space-y-3">

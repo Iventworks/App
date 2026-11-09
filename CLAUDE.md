@@ -49,11 +49,14 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
 - Event pages start with `const { event, can } = await useCurrentEvent();` and hide controls with
   `can("participants:manage")` etc. — the API enforces the same permissions.
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
-- `UDashboardToolbar`: its default slot *replaces* the `#left`/`#right` layout. As soon as you
-  need `#right`, put the rest in `#left` — content in the default slot plus `#right` silently
-  drops `#right`.
-- Toolbar view switches: `const { active: view, links: viewLinks } = useQueryTabs("view", [...])`
-  + `<UNavigationMenu :items="viewLinks" highlight class="-mx-1 flex-1" />`.
+- `UDashboardToolbar` is only for sub-route navigation
+  (`<UNavigationMenu :items="subrouterPathDynamics.links.value" highlight class="-mx-1 flex-1" />`,
+  see `app/pages/admin/users/[user_id].vue`). Filters go in `DashboardDataTable`
+  `filters`/`#header-left` or `DashboardFilterBar #left`; create buttons in DataTable
+  `#header-right`, `DashboardFilterBar #right` or a section card's `#actions` — not in the page
+  header (AGENTS.md, "Where page controls go").
+- Tab-like filters: `const { value: scope, items: scopeItems } = useQueryFilter("scope", [...])`
+  + `<USelect v-model="scope" :items="scopeItems" class="w-full sm:w-44" />` (URL-backed).
 - Password and username fields: `newPasswordField()`, `usernameField()`, `PASSWORD_HINT`
   (`app/utils/passwords.ts`) — the German rule-by-rule messages.
 

@@ -88,10 +88,10 @@ const counts = computed(() => ({
 	staff: members.value?.filter((member) => member.role === "staff").length ?? 0,
 }));
 
-const { active: roleFilter, links: roleLinks } = useQueryTabs<"all" | EventRole>("role", () => [
-	{ value: "all", label: "Alle", icon: "i-lucide-users", badge: counts.value.all },
-	{ value: "leader", label: "Leitung", icon: "i-lucide-crown", badge: counts.value.leader },
-	{ value: "staff", label: "Mitarbeitende", icon: "i-lucide-user", badge: counts.value.staff },
+const { value: roleFilter, items: roleItems } = useQueryFilter<"all" | EventRole>("role", () => [
+	{ value: "all", label: "Alle", icon: "i-lucide-users", count: counts.value.all },
+	{ value: "leader", label: "Leitung", icon: "i-lucide-crown", count: counts.value.leader },
+	{ value: "staff", label: "Mitarbeitende", icon: "i-lucide-user", count: counts.value.staff },
 ]);
 
 const roomOptions = computed(() => [
@@ -257,24 +257,27 @@ function memberMenu(member: Member) {
 <template>
 	<UDashboardPanel id="event-staff">
 		<template #header>
-			<DashboardPageHeader title="Team" icon="i-lucide-contact" :description="event.name">
-				<template v-if="can('members:manage')" #right>
-					<UButton label="Hinzufügen" icon="i-lucide-user-plus" @click="openAdd" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<template #left>
-					<UNavigationMenu :items="roleLinks" highlight class="-mx-1 flex-1" />
-				</template>
-				<template #right>
-					<UInput v-model="search" icon="i-lucide-search" placeholder="Name, Gruppe, Funktion …" size="sm" class="w-full sm:w-64" />
-				</template>
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Team" icon="i-lucide-contact" :description="event.name" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<UInput v-model="search" icon="i-lucide-search" placeholder="Name, Gruppe, Funktion …" class="w-full sm:w-64" />
+						<USelect
+							v-model="roleFilter"
+							:items="roleItems"
+							:icon="roleItems.find((item) => item.value === roleFilter)?.icon"
+							class="w-full sm:w-52"
+							aria-label="Nach Rolle filtern"
+						/>
+					</template>
+					<template v-if="can('members:manage')" #right>
+						<UButton label="Hinzufügen" icon="i-lucide-user-plus" @click="openAdd" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !members" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -284,11 +287,7 @@ function memberMenu(member: Member) {
 					icon="i-lucide-contact"
 					:title="members?.length ? 'Niemand gefunden' : 'Noch kein Team'"
 					:description="members?.length ? 'Passe Suche oder Filter an.' : 'Füge Leitung und Mitarbeitende hinzu.'"
-				>
-					<template v-if="can('members:manage') && !members?.length" #actions>
-						<UButton label="Person hinzufügen" icon="i-lucide-user-plus" @click="openAdd" />
-					</template>
-				</UEmpty>
+				/>
 
 				<div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 					<UCard

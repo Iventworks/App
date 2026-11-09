@@ -59,24 +59,27 @@ const counts = computed(() => {
 	};
 });
 
-const { active: statusFilter, links: statusLinks } = useQueryTabs<InvitationStatus | "all">(
+const { value: statusFilter, items: statusItems } = useQueryFilter<InvitationStatus | "all">(
 	"status",
 	() => [
-		{ value: "pending", label: "Offen", icon: STATUS_ICONS.pending, badge: counts.value.pending },
+		{ value: "pending", label: "Offen", icon: STATUS_ICONS.pending, count: counts.value.pending },
 		{
 			value: "accepted",
 			label: "Angenommen",
 			icon: STATUS_ICONS.accepted,
-			badge: counts.value.accepted,
+			count: counts.value.accepted,
 		},
 		{
 			value: "expired",
 			label: "Abgelaufen",
 			icon: STATUS_ICONS.expired,
-			badge: counts.value.expired,
+			count: counts.value.expired,
 		},
-		{ value: "all", label: "Alle", icon: "i-lucide-list" },
+		{ value: "all", label: "Alle Status", icon: "i-lucide-list" },
 	],
+);
+const statusIcon = computed(
+	() => statusItems.value.find((item) => item.value === statusFilter.value)?.icon,
 );
 
 const visibleInvitations = computed(() => {
@@ -252,22 +255,7 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 				title="Einladungen"
 				icon="i-lucide-mail-plus"
 				description="Per E-Mail einladen – Benutzername und Passwort wählt die Person selbst"
-			>
-				<template #right>
-					<UButton
-						label="Direkt anlegen"
-						icon="i-lucide-user-plus"
-						color="neutral"
-						variant="subtle"
-						to="/admin/users"
-					/>
-					<UButton label="Neue Einladung" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<UNavigationMenu :items="statusLinks" highlight class="-mx-1 flex-1" />
-			</UDashboardToolbar>
+			/>
 		</template>
 
 		<template #body>
@@ -283,8 +271,24 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 					empty-icon="i-lucide-mail"
 					@refresh="refresh"
 				>
-					<template #empty-actions>
-						<UButton label="Jemanden einladen" icon="i-lucide-plus" @click="openCreate" />
+					<template #header-left>
+						<USelect
+							v-model="statusFilter"
+							:items="statusItems"
+							:icon="statusIcon"
+							aria-label="Status"
+							class="w-full sm:w-48"
+						/>
+					</template>
+					<template #header-right>
+						<UButton
+							label="Direkt anlegen"
+							icon="i-lucide-user-plus"
+							color="neutral"
+							variant="subtle"
+							to="/admin/users"
+						/>
+						<UButton label="Neue Einladung" icon="i-lucide-plus" @click="openCreate" />
 					</template>
 
 					<template #email-cell="{ row }">

@@ -104,17 +104,7 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 <template>
 	<UDashboardPanel id="dashboard">
 		<template #header>
-			<DashboardPageHeader title="Übersicht" icon="i-lucide-layout-dashboard">
-				<template #right>
-					<UButton
-						label="Neue Aufgabe"
-						icon="i-lucide-plus"
-						color="neutral"
-						variant="subtle"
-						to="/tasks?new=1"
-					/>
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Übersicht" icon="i-lucide-layout-dashboard" />
 		</template>
 
 		<template #body>
@@ -355,6 +345,7 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 								flush
 							>
 								<template #actions>
+									<UButton label="Neue Aufgabe" icon="i-lucide-plus" color="neutral" variant="subtle" size="sm" to="/tasks?new=1" />
 									<UButton label="Alle" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-arrow-right" to="/tasks" />
 								</template>
 

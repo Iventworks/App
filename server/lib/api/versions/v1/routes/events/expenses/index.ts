@@ -255,7 +255,7 @@ router.post(
 				type: "expense_submitted",
 				title: `Neue Ausgabe: ${expense.title} (${formatEuro(expense.amount_cents)})`,
 				body: event.name,
-				link: `/events/${event.id}/finances`,
+				link: `/events/${event.id}/finances/all`,
 			},
 			{ excludeUserId: userId },
 		);

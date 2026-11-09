@@ -217,18 +217,7 @@ async function confirmDelete() {
 <template>
 	<UDashboardPanel id="admin-users">
 		<template #header>
-			<DashboardPageHeader title="Benutzer" icon="i-lucide-users" description="Konten, Rollen und Zugänge">
-				<template #right>
-					<UButton
-						label="Einladen"
-						icon="i-lucide-mail-plus"
-						color="neutral"
-						variant="subtle"
-						to="/admin/invitations?new=1"
-					/>
-					<UButton label="Benutzer anlegen" icon="i-lucide-user-plus" @click="createOpen = true" />
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Benutzer" icon="i-lucide-users" description="Konten, Rollen und Zugänge" />
 		</template>
 
 		<template #body>
@@ -257,6 +246,17 @@ async function confirmDelete() {
 					empty-icon="i-lucide-users"
 					@refresh="refresh"
 				>
+					<template #header-right>
+						<UButton
+							label="Einladen"
+							icon="i-lucide-mail-plus"
+							color="neutral"
+							variant="subtle"
+							to="/admin/invitations?new=1"
+						/>
+						<UButton label="Benutzer anlegen" icon="i-lucide-user-plus" @click="createOpen = true" />
+					</template>
+
 					<template #display_name-cell="{ row }">
 						<NuxtLink :to="`/admin/users/${row.original.id}`" class="group flex items-center gap-3">
 							<UAvatar :text="initials(row.original.display_name)" size="sm" />

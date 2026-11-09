@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
- * The event's schedule ("Wochenplan"). Leaders drag & drop, resize and create items directly in
+ * The event's schedule. Layout for the two views — "Wochenplan" (`/program`) and "Liste"
+ * (`/program/list`) — as toolbar sub-navigation (style guide 07: useSubrouterPathDynamics). It
+ * loads the items, owns the filters (`DashboardFilterBar`) and the item modal, and shares them with
+ * the views via `provideEventProgramView`. Leaders drag & drop, resize and create items directly in
  * the grid (changes are applied optimistically and rolled back if the API refuses); staff get a
- * read-only view with a "Nur meine" filter. Phones and the "Liste" view show an agenda per day.
+ * read-only view with a "Nur meine" filter. Phones get the agenda per day in both views.
  */
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import type { GetEventsByEventIdProgramResponses } from "~/api-client";
+import type { UseSubrouterPathDynamics } from "~/composables/useSubrouterPathDynamics";
 import type { EventMember } from "~/utils/types";
 
 type ProgramItem = GetEventsByEventIdProgramResponses["200"]["data"][number];
@@ -14,10 +18,46 @@ definePageMeta({ layout: "dashboard" });
 
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
-
-useSeoMeta({ title: `Programm | ${event.value.name} | CMP` });
+const route = useRoute();
+const router = useRouter();
 
 const editable = computed(() => can("program:manage"));
+const programPath = computed(() => `/events/${eventId.value}/program`);
+
+// --- sub-navigation -----------------------------------------------------------------------
+
+const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() => ({
+	[programPath.value]: {
+		isNavLink: true,
+		label: "Wochenplan",
+		icon: "i-lucide-calendar-range",
+		exact: true,
+		getDynamicValues: () => ({
+			seoSettings: { description: `Wochenplan von ${event.value.name}` },
+			breadcrumbItems: [],
+		}),
+	},
+	[`${programPath.value}/list`]: {
+		isNavLink: true,
+		label: "Liste",
+		icon: "i-lucide-list",
+		getDynamicValues: () => ({
+			seoSettings: { title: "Liste", description: `Programm von ${event.value.name} als Liste` },
+			breadcrumbItems: [],
+		}),
+	},
+}));
+
+const subrouterPathDynamics = useSubrouterPathDynamics({
+	baseTitle: `Programm | ${event.value.name} | CMP`,
+	routes,
+});
+
+await useAwaitedComputed(async () => {
+	const values = await subrouterPathDynamics.getPathDynamicValues(route.path);
+	useSeoMeta(values.seoSettings);
+	return values;
+});
 
 // --- data ---------------------------------------------------------------------------------
 
@@ -58,28 +98,27 @@ const days = computed(() => {
 	return result;
 });
 
-// --- view ---------------------------------------------------------------------------------
+// --- filters ------------------------------------------------------------------------------
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNarrow = breakpoints.smaller("md");
 
-const { active: view, links: viewLinks } = useQueryTabs("view", [
-	{ value: "grid", label: "Wochenplan", icon: "i-lucide-calendar-range" },
-	{ value: "list", label: "Liste", icon: "i-lucide-list" },
-]);
 const onlyMine = ref(false);
 const listDay = ref<string>(days.value.includes(toDayString()) ? toDayString() : "all");
-
-const effectiveView = computed(() => (isNarrow.value ? "list" : view.value));
 
 const visibleItems = computed(() =>
 	(items.value ?? []).filter((item) => !onlyMine.value || item.is_mine),
 );
 
+// The day buttons only exist on phones; elsewhere the agenda always shows every day.
 const listDays = computed(() =>
-	effectiveView.value === "list" && isNarrow.value && listDay.value !== "all"
+	isNarrow.value && listDay.value !== "all"
 		? days.value.filter((day) => day === listDay.value)
 		: days.value,
+);
+
+const showEmpty = computed(
+	() => !visibleItems.value.length && (!isNarrow.value || listDay.value === "all"),
 );
 
 const outsideCount = computed(() => {
@@ -164,9 +203,24 @@ async function onMove(item: ProgramItem, range: { start_at: number; end_at: numb
 	});
 }
 
-function print() {
-	view.value = "list";
-	nextTick(() => window.print());
+provideEventProgramView({
+	days,
+	listDays,
+	visibleItems,
+	showEmpty,
+	onlyMine,
+	isNarrow,
+	editable,
+	openItem,
+	openCreate,
+	onMove,
+});
+
+// Printing uses the agenda, so switch to the list view first.
+async function print() {
+	await router.push(`${programPath.value}/list`);
+	await nextTick();
+	requestAnimationFrame(() => window.print());
 }
 </script>
 
@@ -183,34 +237,39 @@ function print() {
 						class="hidden md:inline-flex"
 						@click="print"
 					/>
-					<UButton v-if="editable" label="Programmpunkt" icon="i-lucide-plus" @click="openCreate()" />
 				</template>
 			</DashboardPageHeader>
 
-			<UDashboardToolbar>
-				<template #left>
-					<UNavigationMenu v-if="!isNarrow" :items="viewLinks" highlight class="-mx-1 flex-1" />
-					<div v-else class="-mx-1 flex gap-1 overflow-x-auto pb-1">
-						<UButton
-							v-for="tab in dayTabs"
-							:key="tab.value"
-							:label="tab.label"
-							size="xs"
-							:color="listDay === tab.value ? 'primary' : 'neutral'"
-							:variant="listDay === tab.value ? 'soft' : 'ghost'"
-							class="shrink-0"
-							@click="listDay = tab.value"
-						/>
-					</div>
-				</template>
-				<template #right>
-					<USwitch v-model="onlyMine" label="Nur meine" size="sm" />
-				</template>
+			<!-- Phones get the agenda in both views, so the switch only exists from `md` up. -->
+			<UDashboardToolbar v-if="!isNarrow">
+				<!-- `-mx-1` aligns the menu with the sidebar collapse button. -->
+				<UNavigationMenu :items="subrouterPathDynamics.links.value" highlight class="-mx-1 flex-1" />
 			</UDashboardToolbar>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar class="program-no-print">
+					<template #left>
+						<div v-if="isNarrow" class="flex gap-1 overflow-x-auto pb-1">
+							<UButton
+								v-for="tab in dayTabs"
+								:key="tab.value"
+								:label="tab.label"
+								size="xs"
+								:color="listDay === tab.value ? 'primary' : 'neutral'"
+								:variant="listDay === tab.value ? 'soft' : 'ghost'"
+								class="shrink-0"
+								@click="listDay = tab.value"
+							/>
+						</div>
+						<USwitch v-model="onlyMine" label="Nur meine" />
+					</template>
+					<template v-if="editable" #right>
+						<UButton label="Programmpunkt" icon="i-lucide-plus" @click="openCreate()" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !items" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -221,38 +280,12 @@ function print() {
 						icon="i-lucide-calendar-x"
 						color="warning"
 						variant="subtle"
+						class="program-no-print"
 						:title="`${outsideCount} Programmpunkt(e) liegen außerhalb des Event-Zeitraums`"
 						description="Passe die Daten des Events oder der Programmpunkte an, damit sie im Plan erscheinen."
 					/>
 
-					<p v-if="editable && effectiveView === 'grid'" class="program-no-print text-sm text-slate-400">
-						Ziehe Programmpunkte, um sie zu verschieben, am unteren Rand, um die Dauer zu ändern, oder
-						in einen freien Bereich, um einen neuen anzulegen.
-					</p>
-
-					<ProgramWeekGrid
-						v-if="effectiveView === 'grid'"
-						:days="days"
-						:items="visibleItems"
-						:editable="editable"
-						@open="openItem"
-						@create="openCreate"
-						@move="onMove"
-					/>
-
-					<template v-else>
-						<UEmpty
-							v-if="!visibleItems.length && listDay === 'all'"
-							icon="i-lucide-calendar-range"
-							:title="onlyMine ? 'Dir ist kein Programmpunkt zugeteilt' : 'Noch kein Programm'"
-							:description="editable ? 'Lege den ersten Programmpunkt an.' : 'Die Leitung plant das Programm hier.'"
-						>
-							<template v-if="editable" #actions>
-								<UButton label="Programmpunkt anlegen" icon="i-lucide-plus" @click="openCreate()" />
-							</template>
-						</UEmpty>
-						<ProgramAgendaList v-else :days="listDays" :items="visibleItems" @open="openItem" />
-					</template>
+					<NuxtPage />
 				</template>
 			</DashboardPageBody>
 		</template>

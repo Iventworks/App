@@ -196,31 +196,30 @@ async function submitAssign() {
 <template>
 	<UDashboardPanel id="core-team-staff-planning">
 		<template #header>
-			<DashboardPageHeader title="Personalplanung" icon="i-lucide-calendar-cog" description="Wer ist wann wo im Einsatz?">
-				<template #right>
-					<UButton label="Person zuteilen" icon="i-lucide-user-plus" @click="openAssign()" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<div class="flex flex-wrap items-center gap-2">
-					<FormDayRangePicker
-						v-model:start="range.from"
-						v-model:end="range.to"
-						class="w-full sm:w-72"
-						@change="applyRange"
-					/>
-					<UFieldGroup>
-						<UButton label="3 Monate" color="neutral" variant="subtle" size="sm" @click="setPreset(90)" />
-						<UButton label="6 Monate" color="neutral" variant="subtle" size="sm" @click="setPreset(180)" />
-						<UButton label="1 Jahr" color="neutral" variant="subtle" size="sm" @click="setPreset(365)" />
-					</UFieldGroup>
-				</div>
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Personalplanung" icon="i-lucide-calendar-cog" description="Wer ist wann wo im Einsatz?" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<FormDayRangePicker
+							v-model:start="range.from"
+							v-model:end="range.to"
+							class="w-full sm:w-72"
+							@change="applyRange"
+						/>
+						<UFieldGroup>
+							<UButton label="3 Monate" color="neutral" variant="subtle" @click="setPreset(90)" />
+							<UButton label="6 Monate" color="neutral" variant="subtle" @click="setPreset(180)" />
+							<UButton label="1 Jahr" color="neutral" variant="subtle" @click="setPreset(365)" />
+						</UFieldGroup>
+					</template>
+					<template #right>
+						<UButton label="Person zuteilen" icon="i-lucide-user-plus" @click="openAssign()" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !planning" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>

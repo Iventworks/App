@@ -331,30 +331,31 @@ function onSelectDay(value: unknown) {
 <template>
 	<UDashboardPanel id="calendar">
 		<template #header>
-			<DashboardPageHeader title="Kalender" icon="i-lucide-calendar" description="Termine, Programm & Fristen">
-				<template #right>
-					<UButton label="Neuer Termin" icon="i-lucide-plus" @click="openCreate()" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<div class="flex flex-wrap items-center gap-2">
-					<UButton
-						v-for="source in SOURCES"
-						:key="source.value"
-						:label="source.label"
-						:icon="source.icon"
-						size="sm"
-						:color="activeSources.has(source.value) ? 'primary' : 'neutral'"
-						:variant="activeSources.has(source.value) ? 'subtle' : 'ghost'"
-						:aria-pressed="activeSources.has(source.value)"
-						@click="toggleSource(source.value)"
-					/>
-				</div>
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Kalender" icon="i-lucide-calendar" description="Termine, Programm & Fristen" />
 		</template>
 
 		<template #body>
+			<DashboardFilterBar>
+				<template #left>
+					<div class="flex flex-wrap items-center gap-2">
+						<UButton
+							v-for="source in SOURCES"
+							:key="source.value"
+							:label="source.label"
+							:icon="source.icon"
+							size="sm"
+							:color="activeSources.has(source.value) ? 'primary' : 'neutral'"
+							:variant="activeSources.has(source.value) ? 'subtle' : 'ghost'"
+							:aria-pressed="activeSources.has(source.value)"
+							@click="toggleSource(source.value)"
+						/>
+					</div>
+				</template>
+				<template #right>
+					<UButton label="Neuer Termin" icon="i-lucide-plus" @click="openCreate()" />
+				</template>
+			</DashboardFilterBar>
+
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
 				<UCard class="border-slate-800 bg-slate-900/60 xl:col-span-2">
 					<template #header>

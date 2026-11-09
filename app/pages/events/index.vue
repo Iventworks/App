@@ -10,7 +10,7 @@ const toast = useToast();
 const user = await useUserInfoStore().use();
 const isCoreTeam = computed(() => hasOrgRole(user.value?.role, "core_team"));
 
-const { active: scope, links: scopeLinks } = useQueryTabs("scope", [
+const { value: scope, items: scopeItems } = useQueryFilter("scope", [
 	{ value: "mine", label: "Meine Events", icon: "i-lucide-user-check" },
 	{ value: "all", label: "Alle Events", icon: "i-lucide-tent" },
 ]);
@@ -76,31 +76,32 @@ const sections = computed(() => {
 <template>
 	<UDashboardPanel id="events">
 		<template #header>
-			<DashboardPageHeader title="Freizeiten & Events" icon="i-lucide-tent">
-				<template #right>
-					<UButton
-						v-if="isCoreTeam"
-						to="/core-team/events?create=1"
-						label="Freizeit / Event anlegen"
-						icon="i-lucide-plus"
-						:ui="{ label: 'hidden sm:inline' }"
-					/>
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<template #left>
-					<UNavigationMenu v-if="isCoreTeam" :items="scopeLinks" highlight class="-mx-1 flex-1" />
-					<span v-else class="text-sm text-slate-400">Events, in denen du mitarbeitest</span>
-				</template>
-				<template #right>
-					<UCheckbox v-model="showArchived" label="Archivierte anzeigen" />
-				</template>
-			</UDashboardToolbar>
+			<DashboardPageHeader
+				title="Freizeiten & Events"
+				icon="i-lucide-tent"
+				:description="isCoreTeam ? undefined : 'Events, in denen du mitarbeitest'"
+			/>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<USelect
+							v-if="isCoreTeam"
+							v-model="scope"
+							:items="scopeItems"
+							:icon="scopeItems.find((item) => item.value === scope)?.icon"
+							class="w-full sm:w-44"
+							aria-label="Events filtern"
+						/>
+						<USwitch v-model="showArchived" label="Archivierte anzeigen" />
+					</template>
+					<template v-if="isCoreTeam" #right>
+						<UButton to="/core-team/events?create=1" label="Freizeit / Event anlegen" icon="i-lucide-plus" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !events" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -114,11 +115,7 @@ const sections = computed(() => {
 							? 'Es wurden noch keine Freizeiten oder Events angelegt.'
 							: 'Du bist noch keiner Freizeit und keinem Event zugeteilt. Sobald dich eine Leitung einträgt, erscheint es hier.'
 					"
-				>
-					<template v-if="isCoreTeam" #actions>
-						<UButton to="/core-team/events?create=1" label="Freizeit / Event anlegen" icon="i-lucide-plus" />
-					</template>
-				</UEmpty>
+				/>
 
 				<template v-else>
 					<section v-for="section in sections" :key="section.key" class="space-y-3">

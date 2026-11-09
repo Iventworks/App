@@ -137,19 +137,22 @@ defineShortcuts({
 				title="Interne Notizen"
 				icon="i-lucide-notebook-tabs"
 				description="Nur für das Kernteam sichtbar"
-			>
-				<template #right>
-					<UButton label="Neue Notiz" icon="i-lucide-plus" :loading="creating" @click="createNote" />
-				</template>
-			</DashboardPageHeader>
+			/>
 		</template>
 
 		<template #body>
-			<div class="grid h-full min-h-0 gap-6 lg:grid-cols-[18rem_1fr]">
+			<DashboardFilterBar :class="selected ? 'hidden lg:block' : ''">
+				<template #left>
+					<UInput v-model="search" icon="i-lucide-search" placeholder="Notizen durchsuchen" class="w-full sm:w-64" />
+				</template>
+				<template #right>
+					<UButton label="Neue Notiz" icon="i-lucide-plus" :loading="creating" @click="createNote" />
+				</template>
+			</DashboardFilterBar>
+
+			<div class="grid min-h-0 flex-1 gap-6 lg:grid-cols-[18rem_1fr]">
 				<!-- List -->
 				<div :class="['flex min-h-0 flex-col gap-3', selected ? 'hidden lg:flex' : '']">
-					<UInput v-model="search" icon="i-lucide-search" placeholder="Notizen durchsuchen" />
-
 					<div v-if="loading && !notes" class="flex justify-center py-12">
 						<UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-slate-400" />
 					</div>

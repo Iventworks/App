@@ -52,15 +52,17 @@ const averagePerEvent = computed(() => {
 <template>
 	<UDashboardPanel id="core-team-stats">
 		<template #header>
-			<DashboardPageHeader title="Statistiken" icon="i-lucide-chart-pie" description="Über alle Events">
-				<template #right>
-					<FinanceYearSelect v-model="year" />
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Statistiken" icon="i-lucide-chart-pie" description="Über alle Events" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<FinanceYearSelect v-model="year" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="!stats" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>

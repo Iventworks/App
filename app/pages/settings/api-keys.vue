@@ -150,11 +150,7 @@ function isExpired(key: ApiKey) {
 				title="API-Schlüssel"
 				icon="i-lucide-key"
 				description="Zugriff für Skripte und Integrationen"
-			>
-				<template #right>
-					<UButton label="Neuer Schlüssel" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
+			/>
 		</template>
 
 		<template #body>
@@ -168,6 +164,10 @@ function isExpired(key: ApiKey) {
 				/>
 
 				<DashboardSectionCard title="Deine Schlüssel" icon="i-lucide-key-round" flush>
+					<template #actions>
+						<UButton label="Neuer Schlüssel" icon="i-lucide-plus" size="sm" @click="openCreate" />
+					</template>
+
 					<div v-if="loading && !apiKeys" class="flex justify-center py-8">
 						<UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-slate-400" />
 					</div>
@@ -179,11 +179,7 @@ function isExpired(key: ApiKey) {
 						description="Lege einen Schlüssel an, um die CMP-API aus eigenen Programmen zu nutzen."
 						variant="naked"
 						class="py-8"
-					>
-						<template #actions>
-							<UButton label="Schlüssel anlegen" icon="i-lucide-plus" @click="openCreate" />
-						</template>
-					</UEmpty>
+					/>
 
 					<ul v-else class="divide-y divide-slate-800">
 						<li

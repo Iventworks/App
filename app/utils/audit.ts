@@ -85,8 +85,9 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 		case "note":
 			return eventPath && id ? `${eventPath}/notes?note=${id}` : null;
 		case "expense":
+			return eventPath ? `${eventPath}/finances/all` : null;
 		case "budget_item":
-			return eventPath ? `${eventPath}/finances` : null;
+			return eventPath ? `${eventPath}/finances/budget` : null;
 		case "file":
 			return eventPath ? `${eventPath}/documents` : "/documents";
 		case "announcement":

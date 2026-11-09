@@ -112,7 +112,20 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated.
   Date fields use `FormDatePicker` / `FormDateTimePicker` / `FormDayRangePicker` (Nuxt UI
   calendar), never native `type="date"` inputs.
-- **Views of one page** (filters like "Offen / Meine / Alle", "Nach Bereich / Nach Person") are
-  toolbar sub-navigation too: `useQueryTabs(key, tabs)` returns highlighted `UNavigationMenu`
-  links that keep the view in the query string. No `UTabs` in toolbars (inside modals they are
-  fine).
+- **Where page controls go** (as in the LeiOS Hub package list):
+  - `UDashboardToolbar` holds only sub-navigation between real sub-routes: a highlighted
+    `UNavigationMenu` from `useSubrouterPathDynamics` (parent page + `<NuxtPage />`, data shared
+    with `useSubrouterInjectedData`), e.g. `/admin/users/[id]` + `/activity`, event finances,
+    program (Wochenplan / Liste), responsibilities (Nach Bereich / Nach Person). No filters,
+    switches, date ranges or buttons in it, and no `UTabs` (inside modals they are fine).
+  - Filters live with the content: `DashboardDataTable` `filters` / `#header-left`, or
+    `DashboardFilterBar` `#left` (CMP component with the same card and layout as the DataTable
+    header) above content that is not a table. A filter that used to be a tab ("Offen / Meine /
+    Alle", role, status, scope) is a `USelect` bound to `useQueryFilter(key, options)`, which keeps
+    the value in the query string. Page-wide periods (year, date range) go in a
+    `DashboardFilterBar` at the top of the body.
+  - Create buttons ("Neue Aufgabe", "Anmelden") sit with the list they add to: DataTable
+    `#header-right`, `DashboardFilterBar` `#right`, or the `DashboardSectionCard` `#actions` of
+    that section. The page header's `#right` keeps only page-level actions (refresh, print,
+    settings, edit/delete on a detail page) — never create buttons or filters. Don't repeat the
+    create button as an empty-state action when the header-right one is visible.

@@ -28,6 +28,16 @@ const {
 	return result.data;
 });
 
+const search = ref("");
+const visibleAnnouncements = computed(() => {
+	const query = search.value.trim().toLowerCase();
+	const all = announcements.value ?? [];
+	if (!query) return all;
+	return all.filter((announcement) =>
+		`${announcement.title} ${announcement.content}`.toLowerCase().includes(query),
+	);
+});
+
 const schema = zPostOrgAnnouncementsBody;
 
 const formOpen = ref(false);
@@ -125,15 +135,25 @@ async function confirmDelete() {
 				title="Neuigkeiten verwalten"
 				icon="i-lucide-megaphone"
 				description="Infos an die ganze Organisation"
-			>
-				<template #right>
-					<UButton label="Neuigkeit verfassen" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
+			/>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<UInput
+							v-model="search"
+							icon="i-lucide-search"
+							placeholder="Neuigkeiten durchsuchen …"
+							class="w-full sm:w-64"
+						/>
+					</template>
+					<template #right>
+						<UButton label="Neuigkeit verfassen" icon="i-lucide-plus" @click="openCreate" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !announcements" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -143,15 +163,18 @@ async function confirmDelete() {
 					icon="i-lucide-megaphone"
 					title="Noch keine Neuigkeiten"
 					description="Neuigkeiten erscheinen auf der Startseite aller Mitarbeitenden und unter „Neuigkeiten“."
-				>
-					<template #actions>
-						<UButton label="Neuigkeit verfassen" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</UEmpty>
+				/>
+
+				<UEmpty
+					v-else-if="!visibleAnnouncements.length"
+					icon="i-lucide-search-x"
+					title="Nichts gefunden"
+					description="Passe die Suche an."
+				/>
 
 				<div v-else class="space-y-4">
 					<UCard
-						v-for="announcement in announcements"
+						v-for="announcement in visibleAnnouncements"
 						:key="announcement.id"
 						:class="[
 							'bg-slate-900/60',

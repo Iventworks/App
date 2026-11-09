@@ -223,15 +223,7 @@ function rowActions(event: EventRow) {
 <template>
 	<UDashboardPanel id="core-team-events">
 		<template #header>
-			<DashboardPageHeader title="Freizeiten & Events" icon="i-lucide-tent" description="Alle Events der Organisation">
-				<template #right>
-					<UButton label="Freizeit / Event anlegen" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<USwitch v-model="includeArchived" label="Archivierte anzeigen" />
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Freizeiten & Events" icon="i-lucide-tent" description="Alle Events der Organisation" />
 		</template>
 
 		<template #body>
@@ -246,7 +238,10 @@ function rowActions(event: EventRow) {
 					empty-icon="i-lucide-tent"
 					@refresh="refresh"
 				>
-					<template #empty-actions>
+					<template #header-left>
+						<USwitch v-model="includeArchived" label="Archivierte anzeigen" />
+					</template>
+					<template #header-right>
 						<UButton label="Freizeit / Event anlegen" icon="i-lucide-plus" @click="openCreate" />
 					</template>
 

@@ -245,7 +245,7 @@ const actualCents = computed(() => {
 						<template #actions>
 							<UButton
 								label="Zu den Finanzen"
-								:to="`/events/${eventId}/finances?tab=budget`"
+								:to="`/events/${eventId}/finances/budget`"
 								color="neutral"
 								variant="subtle"
 								size="sm"

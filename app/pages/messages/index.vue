@@ -172,28 +172,23 @@ async function onCreated(conversationId: number) {
 		:ui="{ body: 'gap-0 p-2 sm:gap-0 sm:p-2' }"
 	>
 		<template #header>
-			<DashboardPageHeader title="Nachrichten" icon="i-lucide-messages-square">
-				<template #right>
-					<UButton
-						icon="i-lucide-square-pen"
-						label="Neuer Chat"
-						:ui="{ label: 'hidden sm:inline' }"
-						@click="newOpen = true"
-					/>
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Nachrichten" icon="i-lucide-messages-square" />
+		</template>
 
-			<UDashboardToolbar>
+		<template #body>
+			<!-- The list column's own filter row: search + new chat stay on top while the list scrolls. -->
+			<div class="main-bg-color sticky top-0 z-10 flex items-center gap-2 pb-3">
 				<UInput
 					v-model="search"
 					icon="i-lucide-search"
 					placeholder="Chats durchsuchen"
-					class="w-full"
+					class="min-w-0 flex-1"
 				/>
-			</UDashboardToolbar>
-		</template>
+				<UTooltip text="Neuer Chat">
+					<UButton icon="i-lucide-square-pen" aria-label="Neuer Chat" @click="newOpen = true" />
+				</UTooltip>
+			</div>
 
-		<template #body>
 			<ChatConversationList
 				:conversations="filtered"
 				:selected-id="selectedId"
@@ -222,11 +217,7 @@ async function onCreated(conversationId: number) {
 				description="Links findest du die Kanäle deiner Events und Gruppen sowie deine Direkt- und Gruppenchats."
 				variant="naked"
 				class="my-auto"
-			>
-				<template #actions>
-					<UButton label="Neuer Chat" icon="i-lucide-square-pen" @click="newOpen = true" />
-				</template>
-			</UEmpty>
+			/>
 		</template>
 	</UDashboardPanel>
 

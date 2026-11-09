@@ -71,7 +71,6 @@ const unstaffedCount = computed(
 						:loading="loading"
 						@click="refresh()"
 					/>
-					<UButton label="Event anlegen" icon="i-lucide-plus" to="/core-team/events?create=1" />
 				</template>
 			</DashboardPageHeader>
 		</template>
@@ -183,6 +182,7 @@ const unstaffedCount = computed(
 
 					<DashboardSectionCard title="Als Nächstes" description="Die nächsten Events" icon="i-lucide-calendar-clock" flush>
 						<template #actions>
+							<UButton label="Event anlegen" icon="i-lucide-plus" size="sm" to="/core-team/events?create=1" />
 							<UButton
 								label="Alle Events"
 								to="/core-team/events"

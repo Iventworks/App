@@ -74,8 +74,10 @@ const tabs = computed(() => [
 	})),
 ]);
 
-// The group tab lives in `?group=`; switching it drops the open note (`?note=`).
-const { active: activeTab, links: tabLinks } = useQueryTabs("group", tabs, { resetKeys: ["note"] });
+// The group filter lives in `?group=`; switching it drops the open note (`?note=`).
+const { value: activeTab, items: tabItems } = useQueryFilter("group", tabs, {
+	resetKeys: ["note"],
+});
 
 onBeforeRouteUpdate((to, from) => {
 	if (to.query.group !== from.query.group && !confirmDiscard()) return false;
@@ -234,19 +236,27 @@ const activeGroup = computed(() =>
 <template>
 	<UDashboardPanel id="event-notes">
 		<template #header>
-			<DashboardPageHeader title="Notizen" icon="i-lucide-sticky-note" :description="event.name">
-				<template #right>
-					<UButton v-if="canCreate" label="Neue Notiz" icon="i-lucide-plus" @click="select('new')" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar v-if="tabs.length > 1">
-				<UNavigationMenu :items="tabLinks" highlight class="-mx-1 flex-1" />
-			</UDashboardToolbar>
+			<DashboardPageHeader title="Notizen" icon="i-lucide-sticky-note" :description="event.name" />
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar v-if="tabs.length > 1 || canCreate" :class="selectedId !== null ? 'hidden lg:block' : ''">
+					<template #left>
+						<USelect
+							v-if="tabs.length > 1"
+							v-model="activeTab"
+							:items="tabItems"
+							:icon="tabItems.find((item) => item.value === activeTab)?.icon"
+							class="w-full sm:w-56"
+							aria-label="Bereich wählen"
+						/>
+					</template>
+					<template v-if="canCreate" #right>
+						<UButton label="Neue Notiz" icon="i-lucide-plus" @click="select('new')" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !notes" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -265,11 +275,7 @@ const activeGroup = computed(() =>
 							title="Noch keine Notizen"
 							description="Halte Absprachen, Infos und Listen fürs Team fest."
 							variant="naked"
-						>
-							<template v-if="canCreate" #actions>
-								<UButton label="Notiz anlegen" icon="i-lucide-plus" @click="select('new')" />
-							</template>
-						</UEmpty>
+						/>
 
 						<button
 							v-for="note in tabNotes"

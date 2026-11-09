@@ -18,7 +18,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-const { active: scope, links: scopeLinks } = useQueryTabs("scope", [
+const { value: scope, items: scopeItems } = useQueryFilter("scope", [
 	{ value: "all", label: "Alle", icon: "i-lucide-list-checks" },
 	{ value: "personal", label: "Persönlich", icon: "i-lucide-user" },
 	{ value: "assigned", label: "Aus Events", icon: "i-lucide-tent" },
@@ -259,24 +259,27 @@ function taskActions(task: MyTask) {
 				title="Meine Aufgaben"
 				icon="i-lucide-list-checks"
 				:description="`${openCount} offen`"
-			>
-				<template #right>
-					<UButton label="Neue Aufgabe" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
-
-			<UDashboardToolbar>
-				<template #left>
-					<UNavigationMenu :items="scopeLinks" highlight class="-mx-1 flex-1" />
-				</template>
-				<template #right>
-					<USwitch v-model="showDone" label="Erledigte anzeigen" size="sm" />
-				</template>
-			</UDashboardToolbar>
+			/>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardFilterBar>
+					<template #left>
+						<USelect
+							v-model="scope"
+							:items="scopeItems"
+							:icon="scopeItems.find((item) => item.value === scope)?.icon"
+							class="w-full sm:w-44"
+							aria-label="Aufgaben filtern"
+						/>
+						<USwitch v-model="showDone" label="Erledigte anzeigen" />
+					</template>
+					<template #right>
+						<UButton label="Neue Aufgabe" icon="i-lucide-plus" @click="openCreate" />
+					</template>
+				</DashboardFilterBar>
+
 				<div v-if="loading && !tasks" class="flex justify-center py-12">
 					<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 				</div>
@@ -290,11 +293,7 @@ function taskActions(task: MyTask) {
 							? 'Dir ist in deinen Events gerade keine Aufgabe zugeteilt.'
 							: 'Du hast keine offenen Aufgaben. Leg dir eine persönliche Aufgabe an, wenn du an etwas denken willst.'
 					"
-				>
-					<template #actions>
-						<UButton label="Aufgabe anlegen" icon="i-lucide-plus" @click="openCreate" />
-					</template>
-				</UEmpty>
+				/>
 
 				<div v-else class="space-y-6">
 					<section v-for="group in grouped" :key="group.key">

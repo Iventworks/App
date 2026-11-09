@@ -232,11 +232,7 @@ async function removeBooking(entry: Booking) {
 				title="Material & Ressourcen"
 				icon="i-lucide-package"
 				description="Inventar der Organisation und Buchungen für Events"
-			>
-				<template #right>
-					<UButton label="Material anlegen" icon="i-lucide-plus" @click="openCreate" />
-				</template>
-			</DashboardPageHeader>
+			/>
 		</template>
 
 		<template #body>
@@ -251,7 +247,7 @@ async function removeBooking(entry: Booking) {
 					empty-icon="i-lucide-package"
 					@refresh="refresh"
 				>
-					<template #empty-actions>
+					<template #header-right>
 						<UButton label="Material anlegen" icon="i-lucide-plus" @click="openCreate" />
 					</template>
 

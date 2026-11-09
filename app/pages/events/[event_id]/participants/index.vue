@@ -244,34 +244,7 @@ async function exportCsv() {
 <template>
 	<UDashboardPanel id="event-participants">
 		<template #header>
-			<DashboardPageHeader title="Teilnehmende" icon="i-lucide-users" :description="event.name">
-				<template #right>
-					<UButton
-						label="CSV-Export"
-						icon="i-lucide-file-down"
-						color="neutral"
-						variant="subtle"
-						:loading="exporting"
-						class="hidden sm:inline-flex"
-						@click="exportCsv"
-					/>
-					<UButton
-						icon="i-lucide-file-down"
-						color="neutral"
-						variant="subtle"
-						:loading="exporting"
-						aria-label="CSV-Export"
-						class="sm:hidden"
-						@click="exportCsv"
-					/>
-					<UButton
-						v-if="can('participants:manage')"
-						label="Anmelden"
-						icon="i-lucide-user-plus"
-						@click="openCreate"
-					/>
-				</template>
-			</DashboardPageHeader>
+			<DashboardPageHeader title="Teilnehmende" icon="i-lucide-users" :description="event.name" />
 		</template>
 
 		<template #body>
@@ -328,6 +301,33 @@ async function exportCsv() {
 					empty-icon="i-lucide-users"
 					@refresh="refresh"
 				>
+					<template #header-right>
+						<UButton
+							label="CSV-Export"
+							icon="i-lucide-file-down"
+							color="neutral"
+							variant="subtle"
+							:loading="exporting"
+							class="hidden sm:inline-flex"
+							@click="exportCsv"
+						/>
+						<UButton
+							icon="i-lucide-file-down"
+							color="neutral"
+							variant="subtle"
+							:loading="exporting"
+							aria-label="CSV-Export"
+							class="sm:hidden"
+							@click="exportCsv"
+						/>
+						<UButton
+							v-if="can('participants:manage')"
+							label="Anmelden"
+							icon="i-lucide-user-plus"
+							@click="openCreate"
+						/>
+					</template>
+
 					<template #full_name-cell="{ row }">
 						<NuxtLink
 							:to="`/events/${eventId}/participants/${row.original.id}`"
@@ -404,9 +404,6 @@ async function exportCsv() {
 						</UDropdownMenu>
 					</template>
 
-					<template v-if="can('participants:manage')" #empty-actions>
-						<UButton label="Erste Anmeldung erfassen" icon="i-lucide-user-plus" @click="openCreate" />
-					</template>
 				</DashboardDataTable>
 			</DashboardPageBody>
 		</template>
