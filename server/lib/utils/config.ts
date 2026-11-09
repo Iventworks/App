@@ -155,6 +155,11 @@ export class ConfigHandler {
 		// Off: one org answers on every host name, as before.
 		MULTI_ORG: CS.boolean().default(false),
 
+		// Multi-org mode: org admins add custom domains themselves and they go live once the DNS
+		// checks pass. Off: a domain also needs a system admin's approval (after adding it to the
+		// reverse proxy) — for proxies that can't serve new domains on their own.
+		CUSTOM_DOMAINS_SELF_SERVICE: CS.boolean().default(false),
+
 		// IANA time zone the organisation works in: decides what "today" means for dashboards.
 		TIMEZONE: CS.string().default("Europe/Berlin"),
 

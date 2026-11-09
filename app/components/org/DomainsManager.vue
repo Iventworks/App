@@ -2,7 +2,9 @@
 /**
  * Custom domains of one org: add, see the DNS records to create, verify, choose the primary domain
  * (every other address of the org redirects to it), remove. Used by the org's admins
- * (`/admin/organization/domains`) and by the system admins (`/admin/orgs/:id/domains`, `orgId`).
+ * (`/admin/organization/domains`) and by the system admins (`/admin/orgs/:id/domains`, `orgId`),
+ * who also approve domains after adding them to the reverse proxy. A domain is active once it is
+ * verified and approved.
  */
 import type { TableColumn } from "@nuxt/ui";
 import { Utils } from "~/utils";
@@ -13,7 +15,11 @@ const props = defineProps<{
 	orgId?: number;
 	/** `<slug>.<base host>`, the address that always exists. */
 	defaultDomain: string;
+	/** Org admins' domains go live without approval (`IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE`). */
+	selfService?: boolean;
 }>();
+
+const isSystem = computed(() => props.orgId !== undefined);
 
 const emit = defineEmits<{ changed: [] }>();
 
@@ -108,6 +114,24 @@ async function verify(domain: OrgDomain) {
 	}
 }
 
+async function setApproval(domain: OrgDomain, approved: boolean) {
+	if (!props.orgId) return;
+	const path = { orgId: props.orgId, domainId: domain.id };
+	const result = approved
+		? await useAPI((api) => api.postSystemOrgsByOrgIdDomainsByDomainIdApproval({ path }))
+		: await useAPI((api) => api.deleteSystemOrgsByOrgIdDomainsByDomainIdApproval({ path }));
+	if (!result.success) return fail("Änderung fehlgeschlagen", result.message);
+	toast.add({
+		title: approved ? `${domain.domain} freigegeben` : `Freigabe für ${domain.domain} zurückgezogen`,
+		description:
+			approved && !result.data.verified ? "Sie wird aktiv, sobald die DNS-Prüfung klappt." : undefined,
+		icon: "i-lucide-check",
+		color: "success",
+	});
+	await load();
+	emit("changed");
+}
+
 async function setPrimary(domain: OrgDomain, isPrimary: boolean) {
 	const path = { domainId: domain.id };
 	const body = { is_primary: isPrimary };
@@ -178,8 +202,17 @@ const columns: TableColumn<OrgDomain>[] = [
 			:description="
 				primary
 					? `Alle anderen Adressen – auch ${defaultDomain} – leiten beim Öffnen auf ${primary.domain} weiter.`
-					: `Die Organisation ist unter ${defaultDomain} erreichbar. Mit einer eigenen, verifizierten Domain wird diese zur Hauptdomain.`
+					: `Die Organisation ist unter ${defaultDomain} erreichbar. Die erste aktive eigene Domain wird zur Hauptdomain.`
 			"
+		/>
+
+		<UAlert
+			v-if="!isSystem && !selfService"
+			color="info"
+			variant="subtle"
+			icon="i-lucide-shield-question"
+			title="Neue Domains gibt die Systemverwaltung frei"
+			description="Lege die DNS-Einträge an und lass die Domain prüfen. Danach richtet ein System-Admin sie im Reverse Proxy ein und gibt sie frei – erst dann ist sie aktiv."
 		/>
 
 		<DashboardDataTable
@@ -204,17 +237,7 @@ const columns: TableColumn<OrgDomain>[] = [
 			</template>
 
 			<template #status-cell="{ row }">
-				<UBadge
-					v-if="row.original.verified"
-					label="Verifiziert"
-					color="success"
-					variant="soft"
-					size="sm"
-					icon="i-lucide-badge-check"
-				/>
-				<UTooltip v-else :text="row.original.last_check_error ?? 'Noch nicht geprüft'">
-					<UBadge label="Ausstehend" color="warning" variant="soft" size="sm" icon="i-lucide-clock" />
-				</UTooltip>
+				<OrgDomainStatus :domain="row.original" />
 			</template>
 
 			<template #created_at-cell="{ row }">
@@ -233,7 +256,16 @@ const columns: TableColumn<OrgDomain>[] = [
 						@click="setupTarget = row.original"
 					/>
 					<UButton
-						v-else-if="!row.original.is_primary"
+						v-if="isSystem && !row.original.approved"
+						label="Freigeben"
+						icon="i-lucide-shield-check"
+						size="sm"
+						color="primary"
+						variant="subtle"
+						@click="setApproval(row.original, true)"
+					/>
+					<UButton
+						v-else-if="row.original.active && !row.original.is_primary"
 						label="Als Hauptdomain"
 						icon="i-lucide-star"
 						size="sm"
@@ -242,7 +274,7 @@ const columns: TableColumn<OrgDomain>[] = [
 						@click="setPrimary(row.original, true)"
 					/>
 					<UButton
-						v-else
+						v-else-if="row.original.is_primary"
 						label="Weiterleitung aufheben"
 						icon="i-lucide-star-off"
 						size="sm"
@@ -250,6 +282,16 @@ const columns: TableColumn<OrgDomain>[] = [
 						variant="ghost"
 						@click="setPrimary(row.original, false)"
 					/>
+					<UTooltip v-if="isSystem && row.original.approved" text="Freigabe zurückziehen">
+						<UButton
+							icon="i-lucide-shield-off"
+							size="sm"
+							color="neutral"
+							variant="ghost"
+							aria-label="Freigabe zurückziehen"
+							@click="setApproval(row.original, false)"
+						/>
+					</UTooltip>
 					<UButton
 						icon="i-lucide-trash-2"
 						size="sm"
@@ -269,7 +311,11 @@ const columns: TableColumn<OrgDomain>[] = [
 		<DashboardModal
 			v-model:open="addOpen"
 			title="Domain hinzufügen"
-			description="Eine Domain, die dir gehört. Danach legst du zwei DNS-Einträge an."
+			:description="
+				isSystem
+					? 'Richte die Domain zuerst im Reverse Proxy ein: Von dir hinzugefügte Domains sind direkt freigegeben und werden nach der DNS-Prüfung aktiv.'
+					: 'Eine Domain, die dir gehört. Danach legst du zwei DNS-Einträge an.'
+			"
 			icon="i-lucide-globe"
 		>
 			<UForm id="add-domain-form" :state="addState" @submit="onAdd">

@@ -1,0 +1,1 @@
+ALTER TABLE `org_domains` ADD `approved_at` integer;

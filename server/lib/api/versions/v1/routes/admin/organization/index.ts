@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { BrandingError, OrgBranding } from "../../../../../../orgs/branding";
 import { OrgContext } from "../../../../../../orgs/context";
+import { DomainService } from "../../../../../../orgs/domains";
 import { OrgRegistry } from "../../../../../../orgs/registry";
 import { OrgService } from "../../../../../../orgs/service";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -24,7 +25,11 @@ const ASSET_LABELS = { logo: "Logo", icon: "Icon" } as const;
 
 function settings(): AdminOrganizationModel.Settings {
 	const org = OrgContext.current();
-	return { org: OrgModel.from(org), multi_org: OrgRegistry.isMultiOrg() };
+	return {
+		org: OrgModel.from(org),
+		multi_org: OrgRegistry.isMultiOrg(),
+		domain_self_service: DomainService.selfService(),
+	};
 }
 
 router.get(
@@ -169,6 +174,8 @@ router.route(
 	"/",
 	createOrgDomainRouter({
 		tag: TAG,
+		// Without self-service, a system admin approves the domain after setting up the proxy.
+		approves: () => DomainService.selfService(),
 		onChange: async (c, change) => {
 			await AuditLog.record({
 				userId: getAuthUserId(c),

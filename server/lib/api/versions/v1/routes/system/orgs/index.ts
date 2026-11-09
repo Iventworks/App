@@ -327,6 +327,9 @@ router.route(
 	createOrgDomainRouter({
 		tag: TAG,
 		parentParams: SystemOrgsModel.Params,
+		// A system admin adds a domain after setting up the reverse proxy for it.
+		approves: () => true,
+		approvals: true,
 		onChange: async (c, change) => {
 			const target = (c as Context<SystemOrgsEnv>).get("targetOrg");
 			await audit(c, (c as Context<SystemOrgsEnv>).get("systemOrg"), {

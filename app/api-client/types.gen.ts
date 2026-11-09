@@ -505,6 +505,9 @@ export type GetSystemOrgsByOrgIdDomainsResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -566,6 +569,9 @@ export type PostSystemOrgsByOrgIdDomainsResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -626,6 +632,9 @@ export type PostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -641,6 +650,132 @@ export type PostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponses = {
 };
 
 export type PostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponse = PostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponses[keyof PostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponses];
+
+export type DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalData = {
+    body?: never;
+    path: {
+        domainId: number;
+        orgId: number;
+    };
+    query?: never;
+    url: '/system/orgs/{orgId}/domains/{domainId}/approval';
+};
+
+export type DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Domain not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Domain not found';
+    };
+};
+
+export type DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalError = DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors[keyof DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors];
+
+export type DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses = {
+    /**
+     * Approval revoked
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Approval revoked';
+        data: {
+            id: number;
+            domain: string;
+            verified: boolean;
+            verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
+            is_primary: boolean;
+            last_checked_at: number | null;
+            last_check_error: string | null;
+            created_at: number;
+            dns: {
+                txt_name: string;
+                txt_value: string;
+                cname_name: string;
+                cname_target: string;
+            };
+        };
+    };
+};
+
+export type DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalResponse = DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses[keyof DeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses];
+
+export type PostSystemOrgsByOrgIdDomainsByDomainIdApprovalData = {
+    body?: never;
+    path: {
+        domainId: number;
+        orgId: number;
+    };
+    query?: never;
+    url: '/system/orgs/{orgId}/domains/{domainId}/approval';
+};
+
+export type PostSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Domain not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Domain not found';
+    };
+};
+
+export type PostSystemOrgsByOrgIdDomainsByDomainIdApprovalError = PostSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors[keyof PostSystemOrgsByOrgIdDomainsByDomainIdApprovalErrors];
+
+export type PostSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses = {
+    /**
+     * Domain approved
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Domain approved';
+        data: {
+            id: number;
+            domain: string;
+            verified: boolean;
+            verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
+            is_primary: boolean;
+            last_checked_at: number | null;
+            last_check_error: string | null;
+            created_at: number;
+            dns: {
+                txt_name: string;
+                txt_value: string;
+                cname_name: string;
+                cname_target: string;
+            };
+        };
+    };
+};
+
+export type PostSystemOrgsByOrgIdDomainsByDomainIdApprovalResponse = PostSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses[keyof PostSystemOrgsByOrgIdDomainsByDomainIdApprovalResponses];
 
 export type DeleteSystemOrgsByOrgIdDomainsByDomainIdData = {
     body?: never;
@@ -733,6 +868,9 @@ export type PutSystemOrgsByOrgIdDomainsByDomainIdResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -748,6 +886,50 @@ export type PutSystemOrgsByOrgIdDomainsByDomainIdResponses = {
 };
 
 export type PutSystemOrgsByOrgIdDomainsByDomainIdResponse = PutSystemOrgsByOrgIdDomainsByDomainIdResponses[keyof PutSystemOrgsByOrgIdDomainsByDomainIdResponses];
+
+export type GetSystemDomainsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/system/domains';
+};
+
+export type GetSystemDomainsResponses = {
+    /**
+     * Domains retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Domains retrieved successfully';
+        data: Array<{
+            id: number;
+            domain: string;
+            verified: boolean;
+            verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
+            is_primary: boolean;
+            last_checked_at: number | null;
+            last_check_error: string | null;
+            created_at: number;
+            dns: {
+                txt_name: string;
+                txt_value: string;
+                cname_name: string;
+                cname_target: string;
+            };
+            org: {
+                id: number;
+                slug: string;
+                display_name: string;
+            };
+        }>;
+    };
+};
+
+export type GetSystemDomainsResponse = GetSystemDomainsResponses[keyof GetSystemDomainsResponses];
 
 export type PostAuthLoginData = {
     body: {
@@ -2569,6 +2751,7 @@ export type GetAdminOrganizationResponses = {
                 icon_url: string | null;
             };
             multi_org: boolean;
+            domain_self_service: boolean;
         };
     };
 };
@@ -2619,6 +2802,7 @@ export type PutAdminOrganizationResponses = {
                 icon_url: string | null;
             };
             multi_org: boolean;
+            domain_self_service: boolean;
         };
     };
 };
@@ -2668,6 +2852,7 @@ export type DeleteAdminOrganizationAssetsByKindResponses = {
                 icon_url: string | null;
             };
             multi_org: boolean;
+            domain_self_service: boolean;
         };
     };
 };
@@ -2722,6 +2907,7 @@ export type PutAdminOrganizationAssetsByKindResponses = {
                 icon_url: string | null;
             };
             multi_org: boolean;
+            domain_self_service: boolean;
         };
     };
 };
@@ -2761,6 +2947,9 @@ export type GetAdminOrganizationDomainsResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -2820,6 +3009,9 @@ export type PostAdminOrganizationDomainsResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -2879,6 +3071,9 @@ export type PostAdminOrganizationDomainsByDomainIdVerifyResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;
@@ -2984,6 +3179,9 @@ export type PutAdminOrganizationDomainsByDomainIdResponses = {
             domain: string;
             verified: boolean;
             verified_at: number | null;
+            approved: boolean;
+            approved_at: number | null;
+            active: boolean;
             is_primary: boolean;
             last_checked_at: number | null;
             last_check_error: string | null;

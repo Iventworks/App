@@ -352,6 +352,9 @@ export const zGetSystemOrgsByOrgIdDomainsResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -385,6 +388,9 @@ export const zPostSystemOrgsByOrgIdDomainsResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -415,6 +421,75 @@ export const zPostSystemOrgsByOrgIdDomainsByDomainIdVerifyResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zDeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991),
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Approval revoked
+ */
+export const zDeleteSystemOrgsByOrgIdDomainsByDomainIdApprovalResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Approval revoked'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        })
+    })
+});
+
+export const zPostSystemOrgsByOrgIdDomainsByDomainIdApprovalPath = z.object({
+    domainId: z.int().gt(0).lte(9007199254740991),
+    orgId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Domain approved
+ */
+export const zPostSystemOrgsByOrgIdDomainsByDomainIdApprovalResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domain approved'),
+    data: z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -464,6 +539,9 @@ export const zPutSystemOrgsByOrgIdDomainsByDomainIdResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -475,6 +553,39 @@ export const zPutSystemOrgsByOrgIdDomainsByDomainIdResponse = z.object({
             cname_target: z.string()
         })
     })
+});
+
+/**
+ * Domains retrieved successfully
+ */
+export const zGetSystemDomainsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Domains retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        domain: z.string(),
+        verified: z.boolean(),
+        verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
+        is_primary: z.boolean(),
+        last_checked_at: z.number().nullable(),
+        last_check_error: z.string().nullable(),
+        created_at: z.number(),
+        dns: z.object({
+            txt_name: z.string(),
+            txt_value: z.string(),
+            cname_name: z.string(),
+            cname_target: z.string()
+        }),
+        org: z.object({
+            id: z.number(),
+            slug: z.string(),
+            display_name: z.string()
+        })
+    }))
 });
 
 export const zPostAuthLoginBody = z.object({
@@ -1470,7 +1581,8 @@ export const zGetAdminOrganizationResponse = z.object({
             logo_url: z.string().nullable(),
             icon_url: z.string().nullable()
         }),
-        multi_org: z.boolean()
+        multi_org: z.boolean(),
+        domain_self_service: z.boolean()
     })
 });
 
@@ -1534,7 +1646,8 @@ export const zPutAdminOrganizationResponse = z.object({
             logo_url: z.string().nullable(),
             icon_url: z.string().nullable()
         }),
-        multi_org: z.boolean()
+        multi_org: z.boolean(),
+        domain_self_service: z.boolean()
     })
 });
 
@@ -1579,7 +1692,8 @@ export const zDeleteAdminOrganizationAssetsByKindResponse = z.object({
             logo_url: z.string().nullable(),
             icon_url: z.string().nullable()
         }),
-        multi_org: z.boolean()
+        multi_org: z.boolean(),
+        domain_self_service: z.boolean()
     })
 });
 
@@ -1628,7 +1742,8 @@ export const zPutAdminOrganizationAssetsByKindResponse = z.object({
             logo_url: z.string().nullable(),
             icon_url: z.string().nullable()
         }),
-        multi_org: z.boolean()
+        multi_org: z.boolean(),
+        domain_self_service: z.boolean()
     })
 });
 
@@ -1644,6 +1759,9 @@ export const zGetAdminOrganizationDomainsResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -1673,6 +1791,9 @@ export const zPostAdminOrganizationDomainsResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -1702,6 +1823,9 @@ export const zPostAdminOrganizationDomainsByDomainIdVerifyResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),
@@ -1749,6 +1873,9 @@ export const zPutAdminOrganizationDomainsByDomainIdResponse = z.object({
         domain: z.string(),
         verified: z.boolean(),
         verified_at: z.number().nullable(),
+        approved: z.boolean(),
+        approved_at: z.number().nullable(),
+        active: z.boolean(),
         is_primary: z.boolean(),
         last_checked_at: z.number().nullable(),
         last_check_error: z.string().nullable(),

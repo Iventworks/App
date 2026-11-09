@@ -50,11 +50,17 @@ org. `IVENTWORKS_MULTI_ORG` decides how many orgs a host can reach:
   - Each org lives at `<slug>.<APP_URL host>` (e.g. `crossover.app.iventworks.de`). The slug never
     changes; name, primary colour (a Tailwind palette, default fuchsia), logo and icon do.
   - Org admins (or system admins) add **custom domains** under *Organisation → Domains*. A domain
-    serves the org once two DNS records exist: `TXT _iventworks-challenge.<domain>` =
+    is **verified** once two DNS records exist: `TXT _iventworks-challenge.<domain>` =
     `iventworks-verification=<token>` (ownership) and a `CNAME` to `<slug>.<APP_URL host>`
     (apex domains: ALIAS/flattening to the same addresses). Pending domains are re-checked every
-    15 minutes. The first verified domain becomes the **primary domain**: page loads on every
-    other host of the org redirect there; the API answers on all of them.
+    15 minutes.
+  - A domain serves the org once it is verified **and approved**. By default
+    (`IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE=false`) a system admin adds the domain to the reverse
+    proxy and then approves it (*Systemverwaltung → Domains* lists what waits); domains a system
+    admin adds are approved right away. With self-service on (for proxies that serve new domains
+    by themselves), org admins' domains are approved automatically.
+  - The first active domain becomes the **primary domain**: page loads on every other host of the
+    org redirect there; the API answers on all of them.
   - The base domain (`APP_URL` itself) shows "no organisation here" with a link to the **system
     admin dashboard** at `<APP_URL>/admin`: create, rename, recolour and delete orgs, invite their
     admins, manage their domains. System admins are the users of the internal `system` org; the
@@ -128,6 +134,8 @@ All settings are `IVENTWORKS_*` env vars — see `example.env`. The names before
 - `IVENTWORKS_APP_URL` — the public origin (single-org), or the base URL whose host carries the
   orgs' subdomains (multi-org). Links in emails use the org's own address.
 - `IVENTWORKS_MULTI_ORG` — many orgs on one installation (see above)
+- `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` (default `false`) — org admins' custom domains go live
+  without a system admin's approval (see above)
 - `IVENTWORKS_UPLOAD_DIR`, `IVENTWORKS_MAX_UPLOAD_SIZE_MB` — file storage
 - `IVENTWORKS_TIMEZONE` (default `Europe/Berlin`) — what "today" means on dashboards
 - `IVENTWORKS_TRUST_PROXY` — behind exactly one reverse proxy, take the client IP for login rate

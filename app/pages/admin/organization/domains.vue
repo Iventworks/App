@@ -10,6 +10,7 @@ const settings = useSubrouterInjectedData<OrgSettings>("organization").inject();
 		<OrgDomainsManager
 			v-if="settings.data.value.multi_org"
 			:default-domain="settings.data.value.org.default_domain"
+			:self-service="settings.data.value.domain_self_service"
 			@changed="settings.refresh()"
 		/>
 		<UAlert

@@ -6,6 +6,8 @@ export namespace AdminOrganizationModel {
 		org: OrgModel.Org,
 		/** Custom domains are only available in multi-org mode. */
 		multi_org: z.boolean(),
+		/** Domains go live without a system admin's approval (`IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE`). */
+		domain_self_service: z.boolean(),
 	});
 	export type Settings = z.infer<typeof Settings>;
 

@@ -5,6 +5,7 @@ import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
 import { type DnsLookup, DomainService } from "../server/lib/orgs/domains";
 import { OrgRegistry } from "../server/lib/orgs/registry";
+import { ConfigHandler } from "../server/lib/utils/config";
 import { makeAPIRequest } from "./helpers/api";
 import { hostHeaders, SYSTEM_HOST, TEST_HOST, testOrg } from "./helpers/orgs";
 import { seedSession, seedUser } from "./helpers/seed";
@@ -403,7 +404,118 @@ describe("Organisation settings (org admins)", () => {
 	});
 });
 
+describe("Custom domains without self-service (default)", () => {
+	let domainId: number;
+
+	test("an org admin's verified domain waits for a system admin", async () => {
+		expect(ConfigHandler.getConfig()?.CUSTOM_DOMAINS_SELF_SERVICE).toBe(false);
+		const settings = await makeAPIRequest("/v1/admin/organization", { authToken: orgAdminToken });
+		expect(settings.domain_self_service).toBe(false);
+
+		const added = await makeAPIRequest(
+			"/v1/admin/organization/domains",
+			{ method: "POST", authToken: orgAdminToken, body: { domain: "approve.example.com" } },
+			201,
+		);
+		domainId = added.id;
+		expect(added.approved).toBe(false);
+		records.txt[added.dns.txt_name] = [added.dns.txt_value];
+		records.cname["approve.example.com"] = ["test.localhost"];
+
+		const checked = await makeAPIRequest(`/v1/admin/organization/domains/${domainId}/verify`, {
+			method: "POST",
+			authToken: orgAdminToken,
+		});
+		expect(checked.verified).toBe(true);
+		expect(checked.active).toBe(false);
+		expect(checked.is_primary).toBe(false);
+		expect(OrgRegistry.resolveHost("approve.example.com").kind).toBe("unknown");
+
+		// Not primary-able, and org admins can't approve.
+		await makeAPIRequest(
+			`/v1/admin/organization/domains/${domainId}`,
+			{ method: "PUT", authToken: orgAdminToken, body: { is_primary: true } },
+			400,
+		);
+		await makeAPIRequest(
+			`/v1/admin/organization/domains/${domainId}/approval`,
+			{ method: "POST", authToken: orgAdminToken },
+			404,
+		);
+	});
+
+	test("system admins see it in the list across orgs and approve it", async () => {
+		const all = await makeAPIRequest("/v1/system/domains", { ...SYSTEM, authToken: systemToken });
+		const entry = all.find((d: any) => d.id === domainId);
+		expect(entry.org.slug).toBe("test");
+		expect(entry.verified).toBe(true);
+		expect(entry.approved).toBe(false);
+
+		const org = testOrg();
+		const approved = await makeAPIRequest(`/v1/system/orgs/${org.id}/domains/${domainId}/approval`, {
+			...SYSTEM,
+			method: "POST",
+			authToken: systemToken,
+		});
+		expect(approved.active).toBe(true);
+		expect(approved.is_primary).toBe(true);
+		expect(OrgRegistry.resolveHost("approve.example.com").kind).toBe("org");
+		const info = await makeAPIRequest("/v1/instance");
+		expect(info.redirect_to).toBe("http://approve.example.com:31316");
+	});
+
+	test("revoking stops serving and the redirect", async () => {
+		const org = testOrg();
+		const revoked = await makeAPIRequest(`/v1/system/orgs/${org.id}/domains/${domainId}/approval`, {
+			...SYSTEM,
+			method: "DELETE",
+			authToken: systemToken,
+		});
+		expect(revoked.active).toBe(false);
+		expect(revoked.is_primary).toBe(false);
+		expect(OrgRegistry.resolveHost("approve.example.com").kind).toBe("unknown");
+		expect((await makeAPIRequest("/v1/instance")).redirect_to).toBeNull();
+		const log = await makeAPIRequest("/v1/admin/audit-log?search=approve.example.com", {
+			...SYSTEM,
+			authToken: systemToken,
+		});
+		expect(log.total).toBeGreaterThanOrEqual(2);
+	});
+
+	test("a domain a system admin adds is approved right away and goes live once verified", async () => {
+		const org = testOrg();
+		const added = await makeAPIRequest(
+			`/v1/system/orgs/${org.id}/domains`,
+			{ ...SYSTEM, method: "POST", authToken: systemToken, body: { domain: "operator.example.com" } },
+			201,
+		);
+		expect(added.approved).toBe(true);
+		expect(added.active).toBe(false);
+		records.txt[added.dns.txt_name] = [added.dns.txt_value];
+		records.cname["operator.example.com"] = ["test.localhost"];
+		const verified = await makeAPIRequest(`/v1/system/orgs/${org.id}/domains/${added.id}/verify`, {
+			...SYSTEM,
+			method: "POST",
+			authToken: systemToken,
+		});
+		expect(verified.active).toBe(true);
+
+		for (const id of [added.id, domainId]) {
+			await makeAPIRequest(`/v1/admin/organization/domains/${id}`, {
+				method: "DELETE",
+				authToken: orgAdminToken,
+			});
+		}
+	});
+});
+
 describe("Custom domains", () => {
+	beforeAll(() => {
+		ConfigHandler.getConfig()!.CUSTOM_DOMAINS_SELF_SERVICE = true;
+	});
+	afterAll(() => {
+		ConfigHandler.getConfig()!.CUSTOM_DOMAINS_SELF_SERVICE = false;
+	});
 	let domainId: number;
 	let txtName: string;
 	let txtValue: string;
@@ -446,7 +558,9 @@ describe("Custom domains", () => {
 		const other = await OrgService.create({ slug: "domain-rival", display_name: "Rival" });
 		try {
 			await OrgContext.run(other, async () => {
-				await expect(DomainService.add("plan.example.org")).rejects.toThrow(/another organisation/);
+				await expect(DomainService.add("plan.example.org", { approved: true })).rejects.toThrow(
+					/another organisation/,
+				);
 			});
 		} finally {
 			await OrgService.delete(other.id);

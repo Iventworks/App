@@ -1,10 +1,11 @@
 import { promises as dns } from "node:dns";
-import { and, asc, eq, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
 import { DB } from "../db";
+import { ConfigHandler } from "../utils/config";
 import { AppConstants } from "../utils/constants";
 import { LCrypt } from "../utils/crypto/lcrypt";
 import { inOrg, OrgContext } from "./context";
-import { normalizeHost, OrgRegistry } from "./registry";
+import { normalizeHost, type OrgInfo, OrgRegistry } from "./registry";
 
 /** The DNS queries the verification needs; swapped for a fake in the tests. */
 export interface DnsLookup {
@@ -42,7 +43,7 @@ export const systemDns: DnsLookup = {
 
 export class DomainError extends Error {
 	constructor(
-		readonly code: "invalid" | "reserved" | "taken" | "exists" | "not_found" | "not_verified",
+		readonly code: "invalid" | "reserved" | "taken" | "exists" | "not_found" | "not_active",
 		message: string,
 	) {
 		super(message);
@@ -58,6 +59,11 @@ export interface DomainView {
 	readonly domain: string;
 	readonly verified: boolean;
 	readonly verified_at: number | null;
+	/** Approved by a system admin (or automatically with self-service or when they added it). */
+	readonly approved: boolean;
+	readonly approved_at: number | null;
+	/** Verified and approved: the domain serves the org. */
+	readonly active: boolean;
 	readonly is_primary: boolean;
 	readonly last_checked_at: number | null;
 	readonly last_check_error: string | null;
@@ -72,16 +78,28 @@ export interface DomainView {
 }
 
 /**
- * Custom domains of the current org (multi-org mode). A domain only serves the org after both
- * checks passed: the TXT record `_iventworks-challenge.<domain>` = `iventworks-verification=<token>`
- * proves ownership, and a CNAME to the org's default domain (or, for apex domains with
- * CNAME flattening, the same addresses) proves it points at us. The first verified domain becomes
- * the primary one; while there is a primary domain, every other host of the org redirects to it.
+ * Custom domains of the current org (multi-org mode). A domain serves the org once it is
+ * - **verified**: the TXT record `_iventworks-challenge.<domain>` = `iventworks-verification=<token>`
+ *   proves ownership, and a CNAME to the org's default domain (or, for apex domains with CNAME
+ *   flattening, the same addresses) proves it points at us; and
+ * - **approved**: right away with `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` or when a system admin
+ *   adds the domain; otherwise a system admin approves it after adding it to the reverse proxy.
+ * The first active domain becomes the primary one; while there is a primary domain, every other
+ * host of the org redirects to it.
  *
  * Runs in the org's context (`OrgContext.run`), like every other org-scoped code.
  */
 export class DomainService {
 	private static lookup: DnsLookup = systemDns;
+
+	/** Whether org admins' domains go live without a system admin's approval. */
+	static selfService(): boolean {
+		return ConfigHandler.getConfig()?.CUSTOM_DOMAINS_SELF_SERVICE === true;
+	}
+
+	static isActive(row: Pick<DB.Models.OrgDomain, "verified_at" | "approved_at">) {
+		return row.verified_at !== null && row.approved_at !== null;
+	}
 
 	/** Tests: answer DNS queries from a fake. */
 	static useDns(lookup: DnsLookup | null) {
@@ -132,7 +150,8 @@ export class DomainService {
 		return row;
 	}
 
-	static async add(input: string): Promise<DomainView> {
+	/** `approved`: the caller vouches that the reverse proxy serves it (system admin, self-service). */
+	static async add(input: string, options: { approved: boolean }): Promise<DomainView> {
 		const domain = DomainService.normalize(input);
 
 		// One org per domain, across all orgs: the only cross-org read here.
@@ -155,6 +174,7 @@ export class DomainService {
 				org_id: OrgContext.id(),
 				domain,
 				verification_token: LCrypt.randomBytes(16).toString("hex"),
+				approved_at: options.approved ? Date.now() : null,
 			})
 			.returning()
 			.get();
@@ -168,23 +188,15 @@ export class DomainService {
 			.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.id, row.id)))
 			.run();
 
-		// The primary domain is gone: the oldest other verified domain takes over, if any.
-		if (row.is_primary) {
-			const next = await DB.instance()
-				.select({ id: DB.Tables.orgDomains.id })
-				.from(DB.Tables.orgDomains)
-				.where(and(inOrg(DB.Tables.orgDomains), isNotNull(DB.Tables.orgDomains.verified_at)))
-				.orderBy(asc(DB.Tables.orgDomains.verified_at))
-				.get();
-			if (next) await DomainService.markPrimary(next.id);
-		}
+		if (row.is_primary) await DomainService.promoteNext();
 		await OrgRegistry.reload();
 		return row;
 	}
 
 	/**
-	 * Run both DNS checks. A pending domain becomes verified when they pass (and primary, if the
-	 * org has none yet); a verified domain stays verified — the checks only gate activation.
+	 * Run both DNS checks. A pending domain becomes verified when they pass (and, once approved too,
+	 * primary if the org has none yet); a verified domain stays verified — the checks only gate
+	 * activation.
 	 */
 	static async verify(domainId: number): Promise<DomainView> {
 		const row = await DomainService.get(domainId);
@@ -202,24 +214,64 @@ export class DomainService {
 			.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.id, row.id)))
 			.run();
 
-		if (error === null) {
-			const primary = await DB.instance()
-				.select({ id: DB.Tables.orgDomains.id })
-				.from(DB.Tables.orgDomains)
-				.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.is_primary, true)))
-				.get();
-			if (!primary) await DomainService.markPrimary(row.id);
-			await OrgRegistry.reload();
-		}
+		if (error === null && row.approved_at !== null) await DomainService.activated(row.id);
 
 		return DomainService.view(await DomainService.get(row.id));
 	}
 
-	/** Make a verified domain the primary one, or (`primary = false`) stop redirecting to it. */
+	/**
+	 * System admins: the reverse proxy serves the domain now. It goes live as soon as it is (or
+	 * once it gets) verified.
+	 */
+	static async approve(domainId: number): Promise<DomainView> {
+		const row = await DomainService.get(domainId);
+		if (row.approved_at === null) {
+			await DB.instance()
+				.update(DB.Tables.orgDomains)
+				.set({ approved_at: Date.now() })
+				.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.id, row.id)))
+				.run();
+			if (row.verified_at !== null) await DomainService.activated(row.id);
+		}
+		return DomainService.view(await DomainService.get(row.id));
+	}
+
+	/** System admins: take the approval back; the domain stops serving the org. */
+	static async revoke(domainId: number): Promise<DomainView> {
+		const row = await DomainService.get(domainId);
+		await DB.instance()
+			.update(DB.Tables.orgDomains)
+			.set({ approved_at: null, is_primary: false })
+			.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.id, row.id)))
+			.run();
+		if (row.is_primary) await DomainService.promoteNext();
+		await OrgRegistry.reload();
+		return DomainService.view(await DomainService.get(row.id));
+	}
+
+	/** Every org's domains for the system dashboard (newest first), with their org. */
+	static async listAll(): Promise<(DomainView & { org_id: number })[]> {
+		const rows = await OrgContext.unscoped(() =>
+			DB.instance()
+				.select()
+				.from(DB.Tables.orgDomains)
+				.orderBy(desc(DB.Tables.orgDomains.created_at), desc(DB.Tables.orgDomains.id))
+				.all(),
+		);
+		return rows.flatMap((row) => {
+			const org = OrgRegistry.get(row.org_id);
+			return org ? [{ ...DomainService.view(row, org), org_id: org.id }] : [];
+		});
+	}
+
+	/** Make an active domain the primary one, or (`primary = false`) stop redirecting to it. */
 	static async setPrimary(domainId: number, primary: boolean): Promise<DomainView> {
 		const row = await DomainService.get(domainId);
-		if (primary && row.verified_at === null) {
-			throw new DomainError("not_verified", "Only verified domains can be the primary domain");
+		if (primary && !DomainService.isActive(row)) {
+			throw new DomainError(
+				"not_active",
+				"Only verified and approved domains can be the primary domain",
+			);
 		}
 
 		if (primary) {
@@ -291,6 +343,34 @@ export class DomainService {
 		}
 	}
 
+	/** A domain just went live: it becomes primary if the org has none, and starts serving. */
+	private static async activated(domainId: number) {
+		const primary = await DB.instance()
+			.select({ id: DB.Tables.orgDomains.id })
+			.from(DB.Tables.orgDomains)
+			.where(and(inOrg(DB.Tables.orgDomains), eq(DB.Tables.orgDomains.is_primary, true)))
+			.get();
+		if (!primary) await DomainService.markPrimary(domainId);
+		await OrgRegistry.reload();
+	}
+
+	/** The primary domain is gone: the oldest other active domain takes over, if any. */
+	private static async promoteNext() {
+		const next = await DB.instance()
+			.select({ id: DB.Tables.orgDomains.id })
+			.from(DB.Tables.orgDomains)
+			.where(
+				and(
+					inOrg(DB.Tables.orgDomains),
+					isNotNull(DB.Tables.orgDomains.verified_at),
+					isNotNull(DB.Tables.orgDomains.approved_at),
+				),
+			)
+			.orderBy(asc(DB.Tables.orgDomains.verified_at))
+			.get();
+		if (next) await DomainService.markPrimary(next.id);
+	}
+
 	private static async markPrimary(domainId: number) {
 		await DB.instance()
 			.update(DB.Tables.orgDomains)
@@ -304,12 +384,15 @@ export class DomainService {
 			.run();
 	}
 
-	static view(row: DB.Models.OrgDomain): DomainView {
+	static view(row: DB.Models.OrgDomain, org: OrgInfo = OrgContext.current()): DomainView {
 		return {
 			id: row.id,
 			domain: row.domain,
 			verified: row.verified_at !== null,
 			verified_at: row.verified_at,
+			approved: row.approved_at !== null,
+			approved_at: row.approved_at,
+			active: DomainService.isActive(row),
 			is_primary: row.is_primary,
 			last_checked_at: row.last_checked_at,
 			last_check_error: row.last_check_error,
@@ -318,7 +401,7 @@ export class DomainService {
 				txt_name: `${AppConstants.DOMAIN_CHALLENGE_PREFIX}.${row.domain}`,
 				txt_value: `${AppConstants.DOMAIN_CHALLENGE_VALUE_PREFIX}${row.verification_token}`,
 				cname_name: row.domain,
-				cname_target: OrgContext.current().default_domain,
+				cname_target: org.default_domain,
 			},
 		};
 	}

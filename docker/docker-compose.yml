@@ -23,6 +23,10 @@ services:
       # on-demand TLS with `ask` → /api/v1/instance/tls-check), system admins at /admin.
       IVENTWORKS_MULTI_ORG: true
 
+      # Org admins' custom domains need a system admin's approval (after adding them to the reverse
+      # proxy) unless the proxy serves new domains by itself — then this can be true.
+      IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE: false
+
       # true because the port above is bound to loopback, so every request comes through the one
       # reverse proxy, which appends the client address to X-Forwarded-For (login rate limiting
       # uses the last entry). Set to false if the port is ever published publicly.

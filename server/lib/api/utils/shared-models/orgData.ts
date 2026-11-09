@@ -56,6 +56,11 @@ export namespace OrgModel {
 		domain: z.string(),
 		verified: z.boolean(),
 		verified_at: z.number().nullable(),
+		/** Approved by a system admin (automatic with self-service or when they added it). */
+		approved: z.boolean(),
+		approved_at: z.number().nullable(),
+		/** Verified and approved: the domain serves the org. */
+		active: z.boolean(),
 		is_primary: z.boolean(),
 		last_checked_at: z.number().nullable(),
 		/** Why the last check failed (German), or null. */
@@ -73,6 +78,12 @@ export namespace OrgModel {
 	export function domain(view: DomainView): Domain {
 		return view;
 	}
+
+	/** A domain in the system dashboard's list across all orgs. */
+	export const SystemDomain = Domain.extend({
+		org: z.object({ id: z.number(), slug: z.string(), display_name: z.string() }),
+	});
+	export type SystemDomain = z.infer<typeof SystemDomain>;
 
 	export const DomainParams = z.object({
 		domainId: z.coerce.number().int().positive(),

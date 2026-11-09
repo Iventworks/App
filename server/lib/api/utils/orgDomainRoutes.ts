@@ -32,15 +32,19 @@ export function domainErrorResponse(c: Context, error: unknown) {
  * `/domains` routes of one org. Mounted twice: for an org's admins (`/admin/organization`, the
  * request's own org) and for system admins (`/system/orgs/{orgId}`, which run the rest of the
  * request inside the target org's context). `onChange` writes the audit entry where it belongs.
+ * `approves`: whether a domain added through this router counts as approved; `approvals` adds
+ * the approve/revoke routes (system admins only).
  */
 export function createOrgDomainRouter(options: {
 	tag: string;
 	onChange: (c: Context, change: DomainChange) => Promise<void>;
+	approves: () => boolean;
+	approvals?: boolean;
 	/** Path parameters of the mount point (`{ orgId }` for the system API), for the spec. */
 	parentParams?: z.ZodObject<z.ZodRawShape>;
 }) {
 	const router = new Hono().basePath("/domains");
-	const { tag, onChange, parentParams } = options;
+	const { tag, onChange, parentParams, approves, approvals } = options;
 	const listParams = parentParams ?? z.object({});
 	const itemParams = parentParams
 		? OrgModel.DomainParams.extend(parentParams.shape)
@@ -68,7 +72,7 @@ export function createOrgDomainRouter(options: {
 		APIRouteSpec.authenticated({
 			summary: "Add custom domain",
 			description:
-				"Add a domain (pending until verified). Create the returned TXT and CNAME records, then verify.",
+				"Add a domain. Create the returned TXT and CNAME records, then verify. Without custom-domain self-service, an org admin's domain also needs a system admin's approval before it serves the org.",
 			tags: [tag],
 			responses: APIResponseSpec.describeWithWrongInputs(
 				APIResponseSpec.created("Domain added successfully", OrgModel.Domain),
@@ -80,7 +84,7 @@ export function createOrgDomainRouter(options: {
 		async (c) => {
 			const body = c.req.valid("json") as OrgModel.AddDomainBody;
 			try {
-				const domain = await DomainService.add(body.domain);
+				const domain = await DomainService.add(body.domain, { approved: approves() });
 				await onChange(c, {
 					action: "create",
 					domain,
@@ -125,12 +129,74 @@ export function createOrgDomainRouter(options: {
 		},
 	);
 
+	if (approvals) {
+		router.post(
+			"/:domainId/approval",
+			APIRouteSpec.authenticated({
+				summary: "Approve custom domain",
+				description:
+					"Confirm that the reverse proxy serves the domain. It serves the org once it is also verified.",
+				tags: [tag],
+				responses: APIResponseSpec.describeWithWrongInputs(
+					APIResponseSpec.success("Domain approved", OrgModel.Domain),
+					APIResponseSpec.notFound("Domain not found"),
+				),
+			}),
+			zValidator("param", itemParams),
+			async (c) => {
+				const { domainId } = c.req.valid("param") as OrgModel.DomainParams;
+				try {
+					const before = await DomainService.get(domainId);
+					const domain = await DomainService.approve(domainId);
+					if (before.approved_at === null) {
+						await onChange(c, {
+							action: "update",
+							domain,
+							summary: `Domain ${domain.domain} freigegeben`,
+						});
+					}
+					return APIResponse.success(c, "Domain approved", domain);
+				} catch (error) {
+					return domainErrorResponse(c, error);
+				}
+			},
+		);
+
+		router.delete(
+			"/:domainId/approval",
+			APIRouteSpec.authenticated({
+				summary: "Revoke custom domain approval",
+				description: "The domain stops serving the org until it is approved again.",
+				tags: [tag],
+				responses: APIResponseSpec.describeWithWrongInputs(
+					APIResponseSpec.success("Approval revoked", OrgModel.Domain),
+					APIResponseSpec.notFound("Domain not found"),
+				),
+			}),
+			zValidator("param", itemParams),
+			async (c) => {
+				const { domainId } = c.req.valid("param") as OrgModel.DomainParams;
+				try {
+					const domain = await DomainService.revoke(domainId);
+					await onChange(c, {
+						action: "update",
+						domain,
+						summary: `Freigabe für ${domain.domain} zurückgezogen`,
+					});
+					return APIResponse.success(c, "Approval revoked", domain);
+				} catch (error) {
+					return domainErrorResponse(c, error);
+				}
+			},
+		);
+	}
+
 	router.put(
 		"/:domainId",
 		APIRouteSpec.authenticated({
 			summary: "Set primary domain",
 			description:
-				"Make a verified domain the primary one (every other host of the org redirects to it), or stop redirecting to it.",
+				"Make an active (verified and approved) domain the primary one (every other host of the org redirects to it), or stop redirecting to it.",
 			tags: [tag],
 			responses: APIResponseSpec.describeWithWrongInputs(
 				APIResponseSpec.success("Domain updated", OrgModel.Domain),

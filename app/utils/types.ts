@@ -15,6 +15,7 @@ import type {
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
 	GetNotificationsResponses,
+	GetSystemDomainsResponses,
 	GetSystemOrgsResponses,
 	GetUsersResponses,
 	PostAccountApikeysData,
@@ -37,6 +38,8 @@ export type OrgPrimaryColor = OrgInfo["primary_color"];
 export type OrgDomain = GetAdminOrganizationDomainsResponses["200"]["data"][number];
 /** An org as the system admins see it (`/system/orgs`). */
 export type SystemOrg = GetSystemOrgsResponses["200"]["data"][number];
+/** A custom domain with its org, in the system dashboard's list across all orgs. */
+export type SystemDomain = GetSystemDomainsResponses["200"]["data"][number];
 export type NewAPIKey = NonNullable<PostAccountApikeysData["body"]>;
 
 /** A user as shown in lists, assignee pickers and chat (`UserSummary` on the server). */

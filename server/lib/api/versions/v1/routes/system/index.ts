@@ -22,3 +22,4 @@ router.use("*", async (c, next) => {
 });
 
 router.route("/", (await import("./orgs")).router);
+router.route("/", (await import("./domains")).router);

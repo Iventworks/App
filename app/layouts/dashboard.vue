@@ -182,6 +182,7 @@ const adminItems: NavigationMenuItem[] = [
 const systemItems: NavigationMenuItem[] = [
 	{ label: "Systemverwaltung", icon: "i-lucide-server-cog", type: "label" },
 	{ label: "Organisationen", icon: "i-lucide-building", to: "/admin/orgs" },
+	{ label: "Domains", icon: "i-lucide-globe", to: "/admin/domains" },
 	{ label: "System-Admins", icon: "i-lucide-users", to: "/admin/users" },
 	{ label: "Einladungen", icon: "i-lucide-mail-plus", to: "/admin/invitations" },
 	{ label: "Audit-Log", icon: "i-lucide-scroll-text", to: "/admin/audit-log" },

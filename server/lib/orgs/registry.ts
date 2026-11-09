@@ -1,4 +1,4 @@
-import { isNotNull } from "drizzle-orm";
+import { and, isNotNull } from "drizzle-orm";
 import { DB } from "../db";
 import type { ORG_PRIMARY_COLORS } from "../db/schema";
 import { ConfigHandler } from "../utils/config";
@@ -76,7 +76,10 @@ export class OrgRegistry {
 					is_primary: DB.Tables.orgDomains.is_primary,
 				})
 				.from(DB.Tables.orgDomains)
-				.where(isNotNull(DB.Tables.orgDomains.verified_at))
+				// Active domains only: verified and approved.
+				.where(
+					and(isNotNull(DB.Tables.orgDomains.verified_at), isNotNull(DB.Tables.orgDomains.approved_at)),
+				)
 				.all(),
 			assets: await db
 				.select({

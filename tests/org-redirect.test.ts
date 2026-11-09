@@ -25,7 +25,7 @@ beforeAll(async () => {
 		addresses: async () => [],
 	});
 	await OrgContext.run(org, async () => {
-		const domain = await DomainService.add("camp.example.org");
+		const domain = await DomainService.add("camp.example.org", { approved: true });
 		DomainService.useDns({
 			txt: async (name) => (name === domain.dns.txt_name ? [domain.dns.txt_value] : []),
 			cname: async (name) => (name === "camp.example.org" ? ["redirecting.localhost"] : []),

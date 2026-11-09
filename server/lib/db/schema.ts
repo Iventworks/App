@@ -75,10 +75,12 @@ function orgIdColumn() {
 }
 
 /**
- * Custom domains of an org (multi-org mode). A domain only serves the org once both DNS checks
- * passed: the TXT record `_iventworks-challenge.<domain>` with `verification_token`, and a CNAME
- * to the org's default domain. While a verified primary domain exists, every other domain of the
- * org redirects page loads to it.
+ * Custom domains of an org (multi-org mode). A domain only serves the org once it is verified and
+ * approved: verified when both DNS checks passed (the TXT record `_iventworks-challenge.<domain>`
+ * with `verification_token`, and a CNAME to the org's default domain); approved right away with
+ * `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` or when a system admin adds it, otherwise when a system
+ * admin approves it (after adding it to the reverse proxy). While an active primary domain exists,
+ * every other domain of the org redirects page loads to it.
  * @deprecated Use DB.Tables.orgDomains to access this table.
  */
 export const orgDomains = sqliteTable(
@@ -90,6 +92,8 @@ export const orgDomains = sqliteTable(
 		domain: text().notNull().unique(),
 		verification_token: text().notNull(),
 		verified_at: integer(),
+		// Set by a system admin's approval (or automatically, see above).
+		approved_at: integer(),
 		is_primary: integer({ mode: "boolean" }).notNull().default(false),
 		last_checked_at: integer(),
 		// German explanation of the last failed check, shown next to the domain.

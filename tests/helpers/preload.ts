@@ -34,6 +34,8 @@ function setTestEnv(rootDir: string) {
 		// The tests run in multi-org mode: requests go to the "test" org (tests/helpers/orgs.ts),
 		// and the cross-org tests add more orgs.
 		IVENTWORKS_MULTI_ORG: true,
+		// The default; tests that need org admins to activate domains themselves switch it on.
+		IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE: false,
 		IVENTWORKS_TIMEZONE: "Europe/Berlin",
 
 		IVENTWORKS_SMTP_HOST: "127.0.0.1",

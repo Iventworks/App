@@ -60,6 +60,10 @@ CMP (Crossover Management Portal) before; the repository still is.
     domain), never `APP_URL`. `APIResponse.success` strips `org_id` from every response. The
     browser calls the API on its own origin (`useAPIOrigin()` in `updateAPIClient` /
     `useFileURL`) instead of the template's `<appUrl>/api/v1`.
+  - Custom domains are active when verified (DNS) and approved (`approved_at`): automatically with
+    `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` or when a system admin adds one, otherwise through the
+    system API's approval route after the domain is in the reverse proxy. Only active domains are
+    in the registry, can be primary and pass the TLS check.
   - System admins are the users of the internal `system` org (multi-org base domain). The system
     host only serves `/instance`, `/system`, `/auth`, `/account`, `/admin/{users,invitations,
     audit-log}`; their audit entries go to the system org's log.

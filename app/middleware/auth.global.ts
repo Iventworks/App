@@ -24,7 +24,7 @@ import { useUserInfoStore } from "~/composables/stores/useUserStore";
 const HOME_ROUTE = "/";
 const SYSTEM_HOME_ROUTE = "/admin";
 const SYSTEM_PREFIXES = ["/auth", "/settings", "/admin"];
-const SYSTEM_ONLY_PREFIXES = ["/admin/orgs"];
+const SYSTEM_ONLY_PREFIXES = ["/admin/orgs", "/admin/domains"];
 const PENDING_ROUTE = "/pending";
 const ALWAYS_ALLOWED_FOR_UNVERIFIED = ["/settings", PENDING_ROUTE];
 const CORE_TEAM_PREFIXES = ["/core-team"];
