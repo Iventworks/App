@@ -1,5 +1,8 @@
 <script setup lang="ts">
-/** Overview of one account: profile, event memberships, account actions and the danger zone. */
+/**
+ * Overview of one account: profile, event memberships, account actions and the danger zone. System
+ * admins (system host) have no events.
+ */
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { AdminUserDetail, PasswordLink } from "~/utils/types";
 
@@ -10,6 +13,7 @@ const currentUser = await useUserInfoStore().use();
 const { data: user, refresh } = useSubrouterInjectedData<AdminUserDetail>("admin_user").inject();
 
 const isSelf = computed(() => user.value?.id === currentUser.value?.id);
+const isSystem = computed(() => useInstance().value?.kind === "system");
 
 const profileRows = computed(() => {
 	const u = user.value;
@@ -152,8 +156,8 @@ const EVENT_STATUS_LABELS: Record<string, string> = {
 			:actions="[{ label: 'Freischalten', icon: 'i-lucide-user-check', color: 'warning', variant: 'solid', loading: busy === 'activate', onClick: activate }]"
 		/>
 
-		<div class="grid gap-4 sm:grid-cols-3">
-			<DashboardStatCard label="Events" :value="user.events.length" icon="i-lucide-tent" />
+		<div class="grid gap-4" :class="isSystem ? 'sm:grid-cols-2' : 'sm:grid-cols-3'">
+			<DashboardStatCard v-if="!isSystem" label="Events" :value="user.events.length" icon="i-lucide-tent" />
 			<DashboardStatCard
 				label="Aktive Sitzungen"
 				:value="user.active_sessions"
@@ -180,7 +184,7 @@ const EVENT_STATUS_LABELS: Record<string, string> = {
 					</dl>
 				</DashboardSectionCard>
 
-				<DashboardSectionCard title="Events" description="Wo die Person mitarbeitet" icon="i-lucide-tent" flush>
+				<DashboardSectionCard v-if="!isSystem" title="Events" description="Wo die Person mitarbeitet" icon="i-lucide-tent" flush>
 					<UEmpty
 						v-if="!user.events.length"
 						variant="naked"
@@ -302,8 +306,12 @@ const EVENT_STATUS_LABELS: Record<string, string> = {
 	<AdminPasswordLinkModal v-model:open="linkOpen" :link="link" :name="user?.display_name ?? ''" />
 	<DashboardDeleteModal
 		v-model:open="deleteOpen"
-		title="Benutzer löschen"
-		:warning-text="`Das Konto von ${user?.display_name} wird mit allen persönlichen Daten gelöscht. Einträge in Events bleiben ohne Namen erhalten.`"
+		:title="isSystem ? 'System-Admin löschen' : 'Benutzer löschen'"
+		:warning-text="
+			isSystem
+				? `Das Konto von ${user?.display_name} wird gelöscht; die Person kann die Organisationen dann nicht mehr verwalten.`
+				: `Das Konto von ${user?.display_name} wird mit allen persönlichen Daten gelöscht. Einträge in Events bleiben ohne Namen erhalten.`
+		"
 		:on-delete="confirmDelete"
 	/>
 </template>

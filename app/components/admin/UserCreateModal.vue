@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Create an account directly (the alternative to an email invitation). The admin either sets the
- * first password or lets the API create a one-time link to hand over.
+ * first password or lets the API create a one-time link to hand over. On the system host the
+ * account is a system admin: no role to choose (always admin).
  */
 import type { FormError, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
@@ -12,6 +13,7 @@ const emit = defineEmits<{ created: [user: AdminUser, link: PasswordLink | null]
 
 const toast = useToast();
 const saving = ref(false);
+const isSystem = computed(() => useInstance().value?.kind === "system");
 
 const schema = z
 	.object({
@@ -38,7 +40,7 @@ const emptyState = (): Schema => ({
 	username: "",
 	email: "",
 	phone: "",
-	role: "volunteer",
+	role: isSystem.value ? "admin" : "volunteer",
 	password_mode: "link",
 	password: "",
 	confirm_password: "",
@@ -130,8 +132,12 @@ async function submit(event: FormSubmitEvent<Schema>) {
 <template>
 	<DashboardModal
 		v-model:open="open"
-		title="Benutzer anlegen"
-		description="Das Konto ist sofort da – ohne Einladung per E-Mail."
+		:title="isSystem ? 'System-Admin anlegen' : 'Benutzer anlegen'"
+		:description="
+			isSystem
+				? 'Das Konto kann sich hier anmelden und alle Organisationen verwalten.'
+				: 'Das Konto ist sofort da – ohne Einladung per E-Mail.'
+		"
 		icon="i-lucide-user-plus"
 	>
 		<UForm :schema="schema" :state="state" :validate="validate" class="space-y-4" @submit="submit">
@@ -153,7 +159,7 @@ async function submit(event: FormSubmitEvent<Schema>) {
 				<UFormField label="Telefon" name="phone">
 					<UInput v-model="state.phone" type="tel" class="w-full" />
 				</UFormField>
-				<UFormField label="Rolle" name="role" class="sm:col-span-2">
+				<UFormField v-if="!isSystem" label="Rolle" name="role" class="sm:col-span-2">
 					<USelect v-model="state.role" :items="ORG_ROLE_OPTIONS" value-key="value" class="w-full" />
 				</UFormField>
 			</div>

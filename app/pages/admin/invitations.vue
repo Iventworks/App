@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * Email invitations: the person picks username and password. On the system host they invite
+ * further system admins — always with the role admin, so there is no role to choose or show.
+ */
 import type { DropdownMenuItem, FormSubmitEvent, TableColumn } from "@nuxt/ui";
 import * as z from "zod";
 import type { GetAdminInvitationsResponses } from "~/api-client";
@@ -10,9 +14,13 @@ type InvitationStatus = Invitation["status"];
 
 definePageMeta({ layout: "dashboard" });
 
+const isSystem = computed(() => useInstance().value?.kind === "system");
+const defaultRole = (): Invitation["role"] => (isSystem.value ? "admin" : "volunteer");
+
 useSeoMeta({
-	title: "Einladungen | Administration",
-	description: "Neue Mitglieder einladen",
+	title: () => (isSystem.value ? "Einladungen | Systemverwaltung" : "Einladungen | Administration"),
+	description: () =>
+		isSystem.value ? "Weitere System-Admins einladen" : "Neue Mitglieder einladen",
 });
 
 const toast = useToast();
@@ -76,7 +84,7 @@ const tableFilters = computed(() => [
 // Open invitations first; the status filter shows the others on demand.
 const table = useDataTableInitialFilters({ status: ["pending"] });
 
-const columns: TableColumn<Invitation>[] = [
+const allColumns: TableColumn<Invitation>[] = [
 	{ accessorKey: "email", header: "Person" },
 	{ accessorKey: "role", header: "Rolle" },
 	{ accessorKey: "status", header: "Status" },
@@ -84,6 +92,12 @@ const columns: TableColumn<Invitation>[] = [
 	{ accessorKey: "expires_at", header: "Gültig bis" },
 	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
 ];
+// System admins are always admins: no role column there.
+const columns = computed(() =>
+	isSystem.value
+		? allColumns.filter((column) => !("accessorKey" in column) || column.accessorKey !== "role")
+		: allColumns,
+);
 
 // --- create ---------------------------------------------------------------------------------
 
@@ -105,12 +119,17 @@ const creating = ref(false);
 const createState = reactive({
 	email: "",
 	display_name: "",
-	role: "volunteer" as Invitation["role"],
+	role: defaultRole(),
 	expires_in_days: 7,
 });
 
 function openCreate() {
-	Object.assign(createState, { email: "", display_name: "", role: "volunteer", expires_in_days: 7 });
+	Object.assign(createState, {
+		email: "",
+		display_name: "",
+		role: defaultRole(),
+		expires_in_days: 7,
+	});
 	createOpen.value = true;
 }
 
@@ -256,7 +275,11 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 					:filters="tableFilters"
 					:default-page-size="25"
 					empty-title="Keine Einladungen"
-					empty-description="Lade neue Mitarbeitende per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort."
+					:empty-description="
+						isSystem
+							? 'Lade weitere System-Admins per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort.'
+							: 'Lade neue Mitarbeitende per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort.'
+					"
 					empty-icon="i-lucide-mail"
 					@refresh="refresh"
 				>
@@ -328,7 +351,12 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 		</template>
 	</UDashboardPanel>
 
-	<DashboardModal v-model:open="createOpen" title="Neue Einladung" icon="i-lucide-mail-plus">
+	<DashboardModal
+		v-model:open="createOpen"
+		title="Neue Einladung"
+		:description="isSystem ? 'Die Person wird System-Admin und kann alle Organisationen verwalten.' : undefined"
+		icon="i-lucide-mail-plus"
+	>
 		<UForm :schema="createSchema" :state="createState" class="space-y-4" @submit="onCreate">
 			<UFormField label="E-Mail-Adresse" name="email" required>
 				<UInput v-model="createState.email" type="email" class="w-full" autofocus />
@@ -340,8 +368,8 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 			>
 				<UInput v-model="createState.display_name" class="w-full" />
 			</UFormField>
-			<div class="grid gap-4 sm:grid-cols-2">
-				<UFormField label="Rolle" name="role" required>
+			<div class="grid gap-4" :class="{ 'sm:grid-cols-2': !isSystem }">
+				<UFormField v-if="!isSystem" label="Rolle" name="role" required>
 					<USelect v-model="createState.role" :items="ORG_ROLE_OPTIONS" class="w-full" />
 				</UFormField>
 				<UFormField label="Gültig für" name="expires_in_days" required>

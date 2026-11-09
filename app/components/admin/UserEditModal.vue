@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Edit an account's profile fields and organisation role. */
+/** Edit an account's profile fields and organisation role (system admins have no role to change). */
 import type { FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
@@ -12,6 +12,7 @@ const emit = defineEmits<{ saved: [] }>();
 const toast = useToast();
 const currentUser = await useUserInfoStore().use();
 const isSelf = computed(() => props.user?.id === currentUser.value?.id);
+const isSystem = computed(() => useInstance().value?.kind === "system");
 
 const schema = z.object({
 	username: usernameField(),
@@ -54,8 +55,9 @@ async function submit(event: FormSubmitEvent<Schema>) {
 				display_name: event.data.display_name,
 				email: event.data.email,
 				phone: event.data.phone || null,
-				// The API refuses removing your own admin role; don't send it at all.
-				...(isSelf.value ? {} : { role: event.data.role }),
+				// The API refuses removing your own admin role; don't send it at all. System admins
+				// are always admins.
+				...(isSelf.value || isSystem.value ? {} : { role: event.data.role }),
 			},
 		}),
 	);
@@ -96,6 +98,7 @@ async function submit(event: FormSubmitEvent<Schema>) {
 					<UInput v-model="state.phone" type="tel" class="w-full" />
 				</UFormField>
 				<UFormField
+					v-if="!isSystem"
 					label="Rolle"
 					name="role"
 					class="sm:col-span-2"

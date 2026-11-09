@@ -11,6 +11,8 @@ definePageMeta({ layout: "dashboard" });
 
 const route = useRoute();
 const userId = Number(route.params.user_id);
+// On the system host the accounts are the system admins (all with the role admin).
+const isSystem = useInstance().value?.kind === "system";
 
 const {
 	data: result,
@@ -60,8 +62,8 @@ const routes = computed<UseSubrouterPathDynamics.RoutesConfig>(() => ({
 }));
 
 const subrouterPathDynamics = useSubrouterPathDynamics({
-	baseTitle: "Benutzer | Administration",
-	basebreadcrumbItems: [{ label: "Benutzer", to: "/admin/users" }],
+	baseTitle: isSystem ? "System-Admins | Systemverwaltung" : "Benutzer | Administration",
+	basebreadcrumbItems: [{ label: isSystem ? "System-Admins" : "Benutzer", to: "/admin/users" }],
 	routes,
 });
 
@@ -78,7 +80,7 @@ const routePathDynamicValues = await useAwaitedComputed(async () => {
 			<DashboardPageHeader icon="i-lucide-user" :breadcrumb-items="routePathDynamicValues.breadcrumbItems">
 				<template v-if="user" #right>
 					<UBadge v-if="user.suspended_at" label="Gesperrt" color="error" icon="i-lucide-ban" variant="soft" />
-					<UBadge :label="getRoleLabel(user.role)" :color="getRoleColor(user.role)" variant="subtle" />
+					<UBadge v-if="!isSystem" :label="getRoleLabel(user.role)" :color="getRoleColor(user.role)" variant="subtle" />
 				</template>
 			</DashboardPageHeader>
 

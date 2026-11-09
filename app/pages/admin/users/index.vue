@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * All accounts. New people join by invitation (email) or are created directly here; each row
- * opens the account's detail page with its actions and history.
+ * opens the account's detail page with its actions and history. On the system host these are the
+ * system admins, all with the role admin: no role column, filter or choice there.
  */
 import type { DropdownMenuItem, TableColumn } from "@nuxt/ui";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
@@ -9,9 +10,12 @@ import type { AdminUser, PasswordLink } from "~/utils/types";
 
 definePageMeta({ layout: "dashboard" });
 
+const isSystem = computed(() => useInstance().value?.kind === "system");
+
 useSeoMeta({
-	title: "Benutzer | Administration",
-	description: "Benutzerkonten und Rollen verwalten",
+	title: () => (isSystem.value ? "System-Admins | Systemverwaltung" : "Benutzer | Administration"),
+	description: () =>
+		isSystem.value ? "Konten der System-Admins verwalten" : "Benutzerkonten und Rollen verwalten",
 });
 
 const toast = useToast();
@@ -53,7 +57,7 @@ const STATUS: Record<
 
 // --- table ----------------------------------------------------------------------------------
 
-const columns: TableColumn<AdminUser>[] = [
+const allColumns: TableColumn<AdminUser>[] = [
 	{ accessorKey: "display_name", header: "Name" },
 	{ accessorKey: "email", header: "E-Mail" },
 	{ accessorKey: "role", header: "Rolle" },
@@ -61,8 +65,14 @@ const columns: TableColumn<AdminUser>[] = [
 	{ accessorKey: "last_login_at", header: "Letzte Anmeldung" },
 	{ id: "actions", header: "", enableSorting: false, enableHiding: false },
 ];
+// System admins all have the role admin: no role column or filter there.
+const columns = computed(() =>
+	isSystem.value
+		? allColumns.filter((column) => !("accessorKey" in column) || column.accessorKey !== "role")
+		: allColumns,
+);
 
-const filters = [
+const allFilters = [
 	{
 		column: "display_name" as const,
 		type: "text" as const,
@@ -98,6 +108,9 @@ const filters = [
 			!value?.length || value.includes(statusOf(row.original)),
 	},
 ];
+const filters = computed(() =>
+	isSystem.value ? allFilters.filter((filter) => filter.column !== "role") : allFilters,
+);
 
 function rowActions(user: AdminUser): DropdownMenuItem[][] {
 	return [
@@ -217,7 +230,11 @@ async function confirmDelete() {
 <template>
 	<UDashboardPanel id="admin-users">
 		<template #header>
-			<DashboardPageHeader title="Benutzer" icon="i-lucide-users" description="Konten, Rollen und Zugänge" />
+			<DashboardPageHeader
+				:title="isSystem ? 'System-Admins' : 'Benutzer'"
+				icon="i-lucide-users"
+				:description="isSystem ? 'Wer die Organisationen verwaltet' : 'Konten, Rollen und Zugänge'"
+			/>
 		</template>
 
 		<template #body>
@@ -241,7 +258,7 @@ async function confirmDelete() {
 					:loading="loading"
 					:filters="filters"
 					:default-page-size="25"
-					empty-title="Keine Benutzer"
+					:empty-title="isSystem ? 'Keine System-Admins' : 'Keine Benutzer'"
 					empty-description="Keine Konten passen zu den Filtern."
 					empty-icon="i-lucide-users"
 					@refresh="refresh"
@@ -254,7 +271,11 @@ async function confirmDelete() {
 							variant="subtle"
 							to="/admin/invitations?new=1"
 						/>
-						<UButton label="Benutzer anlegen" icon="i-lucide-user-plus" @click="createOpen = true" />
+						<UButton
+							:label="isSystem ? 'System-Admin anlegen' : 'Benutzer anlegen'"
+							icon="i-lucide-user-plus"
+							@click="createOpen = true"
+						/>
 					</template>
 
 					<template #display_name-cell="{ row }">
@@ -324,8 +345,12 @@ async function confirmDelete() {
 
 	<DashboardDeleteModal
 		v-model:open="deleteOpen"
-		title="Benutzer löschen"
-		:warning-text="`Das Konto von ${target?.display_name} wird mit allen persönlichen Daten gelöscht. Einträge in Events bleiben ohne Namen erhalten. Wenn die Person nur vorübergehend nicht mitmacht, sperre das Konto stattdessen.`"
+		:title="isSystem ? 'System-Admin löschen' : 'Benutzer löschen'"
+		:warning-text="
+			isSystem
+				? `Das Konto von ${target?.display_name} wird gelöscht; die Person kann die Organisationen dann nicht mehr verwalten.`
+				: `Das Konto von ${target?.display_name} wird mit allen persönlichen Daten gelöscht. Einträge in Events bleiben ohne Namen erhalten. Wenn die Person nur vorübergehend nicht mitmacht, sperre das Konto stattdessen.`
+		"
 		:on-delete="confirmDelete"
 	/>
 </template>
