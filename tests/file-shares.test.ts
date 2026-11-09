@@ -22,7 +22,6 @@ let outsideFileId: number;
 let eventId: number;
 let eventFolderId: number;
 
-
 async function call(
 	method: string,
 	path: string,
@@ -531,4 +530,3 @@ describe("Admin overview and clean-up", () => {
 		expect(kept.status).toBe(200);
 	});
 });
-
