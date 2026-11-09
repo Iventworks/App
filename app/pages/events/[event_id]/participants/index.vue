@@ -103,14 +103,14 @@ const filters = computed(() => [
 	{ column: "full_name" as const, type: "text" as const, placeholder: "Name suchen …" },
 	{
 		column: "status" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Status",
 		icon: "i-lucide-filter",
 		options: PARTICIPANT_STATUS_OPTIONS,
 	},
 	{
 		column: "room_key" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Zimmer",
 		icon: "i-lucide-bed-double",
 		options: [
@@ -120,7 +120,7 @@ const filters = computed(() => [
 	},
 	{
 		column: "care_flags" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Hinweise",
 		icon: "i-lucide-heart-pulse",
 		options: [
@@ -130,8 +130,9 @@ const filters = computed(() => [
 			{ label: "Mit med. Hinweisen", value: "medical" },
 			{ label: "Nichtschwimmer:innen", value: "no_swim" },
 		],
-		filterFn: (row: { original: Row }, _columnId: string, value: string) =>
-			!value || row.original.care_flags.includes(value),
+		// Rows with any of the picked notes.
+		filterFn: (row: { original: Row }, _columnId: string, value: string[] | undefined) =>
+			!value?.length || value.some((flag) => row.original.care_flags.includes(flag)),
 	},
 ]);
 

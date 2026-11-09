@@ -50,14 +50,14 @@ const tableFilters = computed(() => [
 	},
 	{
 		column: "status" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Status",
 		class: "w-full sm:w-36",
 		options: EXPENSE_STATUS_OPTIONS,
 	},
 	{
 		column: "category" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Kategorien",
 		class: "w-full sm:w-40",
 		options: [...new Set(expenseRows.value.map((row) => row.category))].map((value) => ({
@@ -67,7 +67,7 @@ const tableFilters = computed(() => [
 	},
 	{
 		column: "submitter_name" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Personen",
 		class: "w-full sm:w-40",
 		options: [...new Set(expenseRows.value.map((row) => row.submitter_name))].map((value) => ({

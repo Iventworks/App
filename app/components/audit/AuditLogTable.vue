@@ -77,6 +77,19 @@ const filters = reactive({
 	to: queryString("to") ?? "",
 });
 
+// The style guide's FormDateRangePicker (as in the DataTable date filter) works on `Date`s; the
+// filter (and the URL) keep `YYYY-MM-DD`.
+const dateRange = computed({
+	get: () => ({
+		start: filters.from ? parseDay(filters.from) : null,
+		end: filters.to ? parseDay(filters.to) : null,
+	}),
+	set: (value: { start: Date | null; end: Date | null }) => {
+		filters.from = value.start ? toDayString(value.start) : "";
+		filters.to = value.end ? toDayString(value.end) : "";
+	},
+});
+
 const page = ref(Math.max(1, queryNumber("page")));
 const pageSize = ref(props.defaultPageSize);
 
@@ -337,7 +350,7 @@ const rangeLabel = computed(() => {
 				:search-input="{ placeholder: 'Event suchen …' }"
 				class="w-full sm:w-44"
 			/>
-			<FormDayRangePicker v-model:start="filters.from" v-model:end="filters.to" class="w-full sm:w-60" />
+			<FormDateRangePicker v-model="dateRange" class="w-full sm:w-auto sm:min-w-40" />
 			<UBadge
 				v-if="filters.entity_id && !entityId"
 				color="neutral"

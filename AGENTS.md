@@ -112,7 +112,7 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated, and
   `DataTable` keeps its actions right-aligned when they wrap below the filters and passes a
   select filter's `icon` as a prop (an empty `#leading` slot reserved icon space).
-  Date fields use `FormDatePicker` / `FormDateTimePicker` / `FormDayRangePicker` (Nuxt UI
+  Date fields use `FormDatePicker` / `FormDateTimePicker` (Nuxt UI
   calendar), never native `type="date"` inputs.
 - **Where page controls go** (as in the LeiOS Hub package list):
   - `UDashboardToolbar` holds only sub-navigation between real sub-routes: a highlighted
@@ -128,6 +128,12 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
     Alle", role, status, scope) is a `USelect` bound to `useQueryFilter(key, options)`, which keeps
     the value in the query string. Page-wide periods (year, date range) go in a
     `DashboardFilterBar` at the top of the body.
+  - Use the DataTable's own filter types, no custom controls in `#header-left` for client-side
+    data: option filters are `multi-select` (a pick can be undone), never `select`; a default
+    (archived events hidden, open invitations only) is a preset value of that filter via
+    `useDataTableInitialFilters`, not a separate switch. Date ranges everywhere use the style
+    guide's `FormDateRangePicker` (the DataTable `date` filter), including staff planning and the
+    audit log. Only server-side filters (the audit log's) render their own controls there.
   - Create buttons ("Neue Aufgabe", "Anmelden") sit with the list they add to: DataTable
     `#header-right`, `DashboardFilterBar` `#right`, or the `DashboardSectionCard` `#actions` of
     that section. The page header's `#right` keeps only page-level actions (refresh, print,

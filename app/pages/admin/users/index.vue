@@ -79,7 +79,7 @@ const filters = [
 	},
 	{
 		column: "role" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Rollen",
 		icon: "i-lucide-shield",
 		options: ORG_ROLE_OPTIONS,
@@ -87,15 +87,15 @@ const filters = [
 	{
 		// The status is derived from `suspended_at` and the role.
 		column: "suspended_at" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Status",
 		icon: "i-lucide-activity",
 		options: (Object.keys(STATUS) as Status[]).map((value) => ({
 			label: STATUS[value].label,
 			value,
 		})),
-		filterFn: (row: { original: AdminUser }, _columnId: string, value: string) =>
-			!value || statusOf(row.original) === value,
+		filterFn: (row: { original: AdminUser }, _columnId: string, value: Status[] | undefined) =>
+			!value?.length || value.includes(statusOf(row.original)),
 	},
 ];
 

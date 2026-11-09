@@ -59,33 +59,22 @@ const counts = computed(() => {
 	};
 });
 
-const { value: statusFilter, items: statusItems } = useQueryFilter<InvitationStatus | "all">(
-	"status",
-	() => [
-		{ value: "pending", label: "Offen", icon: STATUS_ICONS.pending, count: counts.value.pending },
-		{
-			value: "accepted",
-			label: "Angenommen",
-			icon: STATUS_ICONS.accepted,
-			count: counts.value.accepted,
-		},
-		{
-			value: "expired",
-			label: "Abgelaufen",
-			icon: STATUS_ICONS.expired,
-			count: counts.value.expired,
-		},
-		{ value: "all", label: "Alle Status", icon: "i-lucide-list" },
-	],
-);
-const statusIcon = computed(
-	() => statusItems.value.find((item) => item.value === statusFilter.value)?.icon,
-);
+const tableFilters = computed(() => [
+	{ column: "email" as const, type: "text" as const, placeholder: "E-Mail suchen …" },
+	{
+		column: "status" as const,
+		type: "multi-select" as const,
+		placeholder: "Alle Status",
+		icon: "i-lucide-filter",
+		options: (["pending", "accepted", "expired"] as InvitationStatus[]).map((value) => ({
+			label: `${STATUS_LABELS[value]} (${counts.value[value]})`,
+			value,
+		})),
+	},
+]);
 
-const visibleInvitations = computed(() => {
-	const all = invitations.value ?? [];
-	return statusFilter.value === "all" ? all : all.filter((i) => i.status === statusFilter.value);
-});
+// Open invitations first; the status filter shows the others on demand.
+const table = useDataTableInitialFilters({ status: ["pending"] });
 
 const columns: TableColumn<Invitation>[] = [
 	{ accessorKey: "email", header: "Person" },
@@ -169,7 +158,6 @@ async function onCreate(event: FormSubmitEvent<CreateSchema>) {
 		emailSent: result.data.email_sent,
 	};
 	linkOpen.value = true;
-	statusFilter.value = "pending";
 	await refresh();
 }
 
@@ -261,25 +249,17 @@ function actions(invitation: Invitation): DropdownMenuItem[][] {
 		<template #body>
 			<DashboardPageBody>
 				<DashboardDataTable
-					:data="visibleInvitations"
+					ref="table"
+					:data="invitations ?? []"
 					:columns="columns"
 					:loading="loading && !invitations"
-					:filters="[{ column: 'email', type: 'text', placeholder: 'E-Mail suchen …' }]"
+					:filters="tableFilters"
 					:default-page-size="25"
 					empty-title="Keine Einladungen"
 					empty-description="Lade neue Mitarbeitende per E-Mail-Link ein. Sie wählen dann selbst Benutzername und Passwort."
 					empty-icon="i-lucide-mail"
 					@refresh="refresh"
 				>
-					<template #header-left>
-						<USelect
-							v-model="statusFilter"
-							:items="statusItems"
-							:icon="statusIcon"
-							aria-label="Status"
-							class="w-full sm:w-48"
-						/>
-					</template>
 					<template #header-right>
 						<UButton
 							label="Direkt anlegen"

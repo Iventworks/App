@@ -14,8 +14,6 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 
-const includeArchived = ref(false);
-
 const {
 	data: events,
 	loading,
@@ -23,7 +21,8 @@ const {
 } = await useAPIAsyncData("core-team-events", async () => {
 	const result = await useAPI((api) =>
 		api.getEvents({
-			query: { scope: "all", include_archived: includeArchived.value ? "true" : "false" },
+			// Archived events come along; the status filter hides them until "Archiviert" is picked.
+			query: { scope: "all", include_archived: "true" },
 		}),
 	);
 	if (!result.success) {
@@ -37,7 +36,12 @@ const {
 	return result.data;
 });
 
-watch(includeArchived, () => refresh());
+// Archived events stay hidden until "Archiviert" is picked in the status filter.
+const table = useDataTableInitialFilters({
+	status: EVENT_STATUS_OPTIONS.filter((option) => option.value !== "archived").map(
+		(option) => option.value,
+	),
+});
 
 const { data: users } = await useAPIAsyncData("core-team-users-directory", async () => {
 	const result = await useAPI((api) => api.getUsers({}));
@@ -86,16 +90,16 @@ const filters = [
 	},
 	{
 		column: "status" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Status",
 		options: EVENT_STATUS_OPTIONS,
-		class: "w-full sm:w-36",
+		class: "w-full sm:w-64",
 	},
 	{
 		column: "phase" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Phasen",
-		class: "w-full sm:w-40",
+		class: "w-full sm:w-44",
 		options: (Object.keys(PHASE_LABELS) as EventRow["phase"][]).map((value) => ({
 			label: PHASE_LABELS[value],
 			value,
@@ -236,6 +240,7 @@ function rowActions(event: EventRow) {
 		<template #body>
 			<DashboardPageBody>
 				<DashboardDataTable
+					ref="table"
 					:data="rows"
 					:columns="columns"
 					:loading="loading"
@@ -245,9 +250,6 @@ function rowActions(event: EventRow) {
 					empty-icon="i-lucide-tent"
 					@refresh="refresh"
 				>
-					<template #header-left>
-						<USwitch v-model="includeArchived" label="Archivierte anzeigen" />
-					</template>
 					<template #header-right>
 						<UButton label="Event anlegen" icon="i-lucide-plus" @click="openCreate" />
 					</template>

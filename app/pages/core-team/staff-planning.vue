@@ -24,7 +24,17 @@ function addDays(day: string, days: number) {
 	return toDayString(date);
 }
 
-const range = reactive({ from: toDayString(), to: addDays(toDayString(), 180) });
+const DEFAULT_DAYS = 180;
+
+/** The range the plan is loaded for (`YYYY-MM-DD`). */
+const range = reactive({ from: toDayString(), to: addDays(toDayString(), DEFAULT_DAYS) });
+
+// The style guide's FormDateRangePicker (the DataTable date filter) works on `Date`s.
+function nextDays(days: number) {
+	const from = toDayString();
+	return { start: parseDay(from), end: parseDay(addDays(from, days)) };
+}
+const pickerRange = ref<{ start: Date | null; end: Date | null }>(nextDays(DEFAULT_DAYS));
 
 const {
 	data: planning,
@@ -45,14 +55,21 @@ const {
 	return result.data as Planning;
 });
 
-function applyRange() {
-	if (range.from && range.to && range.from <= range.to) void refresh();
-}
+watch(pickerRange, (value) => {
+	// "Zurücksetzen" in the picker: back to the default half year.
+	if (!value.start && !value.end) {
+		pickerRange.value = nextDays(DEFAULT_DAYS);
+		return;
+	}
+	// Reload once both ends are picked.
+	if (!value.start || !value.end) return;
+	range.from = toDayString(value.start);
+	range.to = toDayString(value.end);
+	void refresh();
+});
 
 function setPreset(days: number) {
-	range.from = toDayString();
-	range.to = addDays(range.from, days);
-	void refresh();
+	pickerRange.value = nextDays(days);
 }
 
 // --- timeline geometry ----------------------------------------------------------------------
@@ -203,12 +220,7 @@ async function submitAssign() {
 			<DashboardPageBody>
 				<DashboardFilterBar>
 					<template #left>
-						<FormDayRangePicker
-							v-model:start="range.from"
-							v-model:end="range.to"
-							class="w-full sm:w-72"
-							@change="applyRange"
-						/>
+						<FormDateRangePicker v-model="pickerRange" class="w-full sm:w-auto sm:min-w-40" />
 						<UFieldGroup>
 							<UButton label="3 Monate" color="neutral" variant="subtle" @click="setPreset(90)" />
 							<UButton label="6 Monate" color="neutral" variant="subtle" @click="setPreset(180)" />

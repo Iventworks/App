@@ -71,7 +71,7 @@ const filters = computed(() => [
 	{ column: "name" as const, type: "text" as const, placeholder: "Material suchen …" },
 	{
 		column: "category" as const,
-		type: "select" as const,
+		type: "multi-select" as const,
 		placeholder: "Alle Kategorien",
 		options: [...new Set((resources.value ?? []).map((resource) => resource.category))].map(
 			(value) => ({ label: value, value }),
