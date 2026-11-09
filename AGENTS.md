@@ -109,7 +109,9 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
 - **Shared components extended** (copies of `shared/frontend`, deliberately changed):
   `DashboardStatCard` takes `to` (the whole card links) and `iconColor: "info"`;
   `DashboardDeleteModal` is German, its confirm word is `LÖSCHEN`, and `requireConfirmText` can
-  turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated.
+  turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated, and
+  `DataTable` keeps its actions right-aligned when they wrap below the filters and passes a
+  select filter's `icon` as a prop (an empty `#leading` slot reserved icon space).
   Date fields use `FormDatePicker` / `FormDateTimePicker` / `FormDayRangePicker` (Nuxt UI
   calendar), never native `type="date"` inputs.
 - **Where page controls go** (as in the LeiOS Hub package list):

@@ -42,17 +42,24 @@ const expenseColumns: TableColumn<ExpenseRow>[] = [
 ];
 
 const tableFilters = computed(() => [
-	{ column: "title" as const, type: "text" as const, placeholder: "Suchen …" },
+	{
+		column: "title" as const,
+		type: "text" as const,
+		placeholder: "Suchen …",
+		class: "w-full sm:w-48",
+	},
 	{
 		column: "status" as const,
 		type: "select" as const,
 		placeholder: "Alle Status",
+		class: "w-full sm:w-36",
 		options: EXPENSE_STATUS_OPTIONS,
 	},
 	{
 		column: "category" as const,
 		type: "select" as const,
 		placeholder: "Alle Kategorien",
+		class: "w-full sm:w-40",
 		options: [...new Set(expenseRows.value.map((row) => row.category))].map((value) => ({
 			label: value,
 			value,
@@ -62,6 +69,7 @@ const tableFilters = computed(() => [
 		column: "submitter_name" as const,
 		type: "select" as const,
 		placeholder: "Alle Personen",
+		class: "w-full sm:w-40",
 		options: [...new Set(expenseRows.value.map((row) => row.submitter_name))].map((value) => ({
 			label: value,
 			value,

@@ -8,7 +8,8 @@
 </script>
 
 <template>
-	<UCard class="border-slate-800 bg-slate-900/60" :ui="{ body: 'p-4 sm:px-6 sm:py-4' }">
+	<!-- `shrink-0`: full-height pages (calendar, notes) lay the body out as a flex column. -->
+	<UCard class="shrink-0 border-slate-800 bg-slate-900/60" :ui="{ body: 'p-4 sm:px-6 sm:py-4' }">
 		<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 			<div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
 				<slot name="left" />

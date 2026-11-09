@@ -78,17 +78,24 @@ const columns: TableColumn<EventRow>[] = [
 ];
 
 const filters = [
-	{ column: "name" as const, type: "text" as const, placeholder: "Event suchen …" },
+	{
+		column: "name" as const,
+		type: "text" as const,
+		placeholder: "Event suchen …",
+		class: "w-full sm:w-52",
+	},
 	{
 		column: "status" as const,
 		type: "select" as const,
 		placeholder: "Alle Status",
 		options: EVENT_STATUS_OPTIONS,
+		class: "w-full sm:w-36",
 	},
 	{
 		column: "phase" as const,
 		type: "select" as const,
 		placeholder: "Alle Phasen",
+		class: "w-full sm:w-40",
 		options: (Object.keys(PHASE_LABELS) as EventRow["phase"][]).map((value) => ({
 			label: PHASE_LABELS[value],
 			value,
@@ -242,7 +249,7 @@ function rowActions(event: EventRow) {
 						<USwitch v-model="includeArchived" label="Archivierte anzeigen" />
 					</template>
 					<template #header-right>
-						<UButton label="Freizeit / Event anlegen" icon="i-lucide-plus" @click="openCreate" />
+						<UButton label="Event anlegen" icon="i-lucide-plus" @click="openCreate" />
 					</template>
 
 					<template #name-cell="{ row }">

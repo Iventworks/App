@@ -332,12 +332,9 @@ defineExpose({
 							value-key="value"
 							:class="filter.class || 'w-full sm:w-auto sm:min-w-40'"
 							:placeholder="filter.placeholder || 'Alle'"
+							:icon="filter.icon"
 							@update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
-						>
-							<template #leading>
-								<UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
-							</template>
-						</USelectMenu>
+						/>
 
 						<!-- Multi-Select Filter -->
 						<USelectMenu
@@ -348,17 +345,14 @@ defineExpose({
 							multiple
 							:class="filter.class || 'w-full sm:w-auto sm:min-w-48'"
 							:placeholder="filter.placeholder || 'Auswählen …'"
+							:icon="filter.icon"
 							@update:model-value="(val: any) => setFilterValue(filter.column as string, val)"
-						>
-							<template #leading>
-								<UIcon v-if="filter.icon" :name="filter.icon" class="size-4 text-muted" />
-							</template>
-						</USelectMenu>
+						/>
 					</template>
 				</div>
 				
-				<!-- Actions Section -->
-				<div class="flex items-center gap-2 sm:gap-3 justify-end">
+				<!-- Actions Section (`sm:ml-auto` keeps it right-aligned when it wraps below the filters) -->
+				<div class="flex items-center gap-2 sm:gap-3 justify-end sm:ml-auto">
 					<UButton
 						v-if="showRefresh"
 						icon="i-lucide-refresh-cw"
