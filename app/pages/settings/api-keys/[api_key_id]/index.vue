@@ -134,7 +134,7 @@ const headerTexts = computed(() =>
 					"Ein API-Schlüssel handelt mit deinen Rechten. Gib ihn nur an Programme weiter, denen du vertraust.",
 			}
 		: {
-				title: `API-Schlüssel ${apiKey.data.value.id}`,
+				title: `API-Schlüssel ${shortId(apiKey.data.value.id)}`,
 				description: "Details ansehen oder den Schlüssel löschen.",
 			},
 );

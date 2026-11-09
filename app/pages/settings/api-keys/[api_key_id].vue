@@ -62,10 +62,10 @@ function getRoutesConfig(): UseSubrouterPathDynamics.RoutesConfig {
 			getDynamicValues() {
 				return {
 					seoSettings: {
-						title: isNew ? "Neuer Schlüssel" : `Schlüssel ${apiKeyId}`,
+						title: isNew ? "Neuer Schlüssel" : `Schlüssel ${shortId(apiKeyId)}`,
 						description: isNew ? "Neuen API-Schlüssel anlegen" : `API-Schlüssel ${apiKeyId} verwalten`,
 					},
-					breadcrumbItems: [{ label: isNew ? "Neuer Schlüssel" : apiKeyId }],
+					breadcrumbItems: [{ label: isNew ? "Neuer Schlüssel" : shortId(apiKeyId) }],
 				};
 			},
 		},

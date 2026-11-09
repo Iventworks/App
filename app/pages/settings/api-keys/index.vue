@@ -106,9 +106,10 @@ async function onDeleteApiKey() {
 					<template #id-cell="{ row }">
 						<NuxtLink
 							:to="`/settings/api-keys/${row.original.id}`"
+							:title="row.original.id"
 							class="font-mono text-sm font-medium text-primary-400 hover:underline"
 						>
-							{{ row.original.id }}
+							{{ shortId(row.original.id) }}
 						</NuxtLink>
 					</template>
 

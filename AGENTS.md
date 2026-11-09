@@ -118,7 +118,9 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   - `UDashboardToolbar` holds only sub-navigation between real sub-routes: a highlighted
     `UNavigationMenu` from `useSubrouterPathDynamics` (parent page + `<NuxtPage />`, data shared
     with `useSubrouterInjectedData`), e.g. `/admin/users/[id]` + `/activity`, event finances,
-    program (Wochenplan / Liste), responsibilities (Nach Bereich / Nach Person). No filters,
+    program (Wochenplan / Liste), responsibilities (Nach Bereich / Nach Person), and the API keys
+    exactly as the style guide template (`/settings/api-keys` list, `/new` and `/<id>` through
+    `api-keys/[api_key_id].vue` with `useSubrouterInjectedData(…, true)`). No filters,
     switches, date ranges or buttons in it, and no `UTabs` (inside modals they are fine).
   - Filters live with the content: `DashboardDataTable` `filters` / `#header-left`, or
     `DashboardFilterBar` `#left` (CMP component with the same card and layout as the DataTable
@@ -129,5 +131,8 @@ Record every divergence from the style guide here (docs/17: "discuss, record").
   - Create buttons ("Neue Aufgabe", "Anmelden") sit with the list they add to: DataTable
     `#header-right`, `DashboardFilterBar` `#right`, or the `DashboardSectionCard` `#actions` of
     that section. The page header's `#right` keeps only page-level actions (refresh, print,
-    settings, edit/delete on a detail page) — never create buttons or filters. Don't repeat the
-    create button as an empty-state action when the header-right one is visible.
+    settings, edit/delete on a detail page) — never create buttons or filters. Repeating it as
+    the empty state's call to action is optional (the style guide's API-key list does).
+  - Sidebar links stay highlighted on their sub-pages (`withSubpageActive` in
+    `layouts/dashboard.vue`): list and detail pages are sibling routes (`api-keys/index.vue` +
+    `api-keys/[api_key_id].vue`), which the router's own active check doesn't connect.

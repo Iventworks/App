@@ -150,3 +150,8 @@ export function initials(name: string | null | undefined): string {
 		.map((part) => part[0]?.toUpperCase())
 		.join("");
 }
+
+/** Long opaque IDs (API keys are 64 hex chars) shortened for display: `e705550f3103…`. */
+export function shortId(id: string, length = 12) {
+	return id.length > length ? `${id.slice(0, length)}…` : id;
+}
