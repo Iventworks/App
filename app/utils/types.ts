@@ -4,6 +4,7 @@
  * type is only used in one page.
  */
 import type {
+	GetAccountApikeysResponses,
 	GetAccountResponses,
 	GetAdminUsersByUserIdResponses,
 	GetAdminUsersResponses,
@@ -13,6 +14,7 @@ import type {
 	GetEventsResponses,
 	GetNotificationsResponses,
 	GetUsersResponses,
+	PostAccountApikeysData,
 	PostAdminUsersByUserIdPasswordLinkResponses,
 } from "~/api-client";
 
@@ -21,6 +23,9 @@ export namespace UtilityTypes {
 }
 
 export type UserInfo = GetAccountResponses["200"]["data"];
+
+export type APIKey = GetAccountApikeysResponses["200"]["data"][number];
+export type NewAPIKey = NonNullable<PostAccountApikeysData["body"]>;
 
 /** A user as shown in lists, assignee pickers and chat (`UserSummary` on the server). */
 export type UserSummary = GetUsersResponses["200"]["data"][number];

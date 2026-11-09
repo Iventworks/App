@@ -139,6 +139,21 @@ const organisationItems = computed<NavigationMenuItem[]>(() => [
 		: []),
 ]);
 
+/**
+ * Sidebar links stay highlighted on their sub-pages (`/settings/api-keys/new`,
+ * `/events/1/participants/7`, `/admin/users/3/activity`). List and detail pages are sibling
+ * routes, which the router's own active check doesn't connect. `exact` links are left alone.
+ */
+function withSubpageActive(items: NavigationMenuItem[]): NavigationMenuItem[] {
+	return items.map((item) => {
+		const children = item.children ? withSubpageActive(item.children) : undefined;
+		const withChildren = children ? { ...item, children } : item;
+		if (typeof item.to !== "string" || item.exact || item.active !== undefined) return withChildren;
+		const active = route.path === item.to || route.path.startsWith(`${item.to}/`);
+		return { ...withChildren, active };
+	});
+}
+
 const settingsItems: NavigationMenuItem[] = [
 	{ label: "Einstellungen", icon: "i-lucide-settings", type: "label" },
 	{ label: "Profil", icon: "i-lucide-user", to: "/settings", exact: true },
@@ -236,7 +251,7 @@ const searchGroups = computed(() => [
 						class="bg-transparent ring-default"
 					/>
 
-					<UNavigationMenu :collapsed="collapsed" :items="personalItems" orientation="vertical" />
+					<UNavigationMenu :collapsed="collapsed" :items="withSubpageActive(personalItems)" orientation="vertical" />
 
 					<div class="flex flex-col">
 						<UNavigationMenu
@@ -249,7 +264,7 @@ const searchGroups = computed(() => [
 							v-if="eventItems.length"
 							:key="selectedEvent?.id"
 							:collapsed="collapsed"
-							:items="eventItems"
+							:items="withSubpageActive(eventItems)"
 							orientation="vertical"
 							class="mt-1"
 						/>
@@ -257,7 +272,7 @@ const searchGroups = computed(() => [
 
 					<UNavigationMenu
 						:collapsed="collapsed"
-						:items="organisationItems"
+						:items="withSubpageActive(organisationItems)"
 						orientation="vertical"
 						class="mt-auto"
 					/>
@@ -274,21 +289,21 @@ const searchGroups = computed(() => [
 					<UNavigationMenu
 						v-if="section === 'settings'"
 						:collapsed="collapsed"
-						:items="settingsItems"
+						:items="withSubpageActive(settingsItems)"
 						orientation="vertical"
 					/>
 
 					<UNavigationMenu
 						v-if="section === 'admin' && isAdmin"
 						:collapsed="collapsed"
-						:items="adminItems"
+						:items="withSubpageActive(adminItems)"
 						orientation="vertical"
 					/>
 
 					<UNavigationMenu
 						v-if="section === 'coreTeam' && isCoreTeam"
 						:collapsed="collapsed"
-						:items="coreTeamItems"
+						:items="withSubpageActive(coreTeamItems)"
 						orientation="vertical"
 					/>
 				</template>
