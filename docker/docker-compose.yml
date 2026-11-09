@@ -4,7 +4,7 @@
 services:
   
   iventworks:
-    image: gcr.leicraftmc.de/crossover/cmp:latest
+    image: gcr.leicraftmc.de/iventworks/app:latest
     container_name: iventworks
     restart: unless-stopped
     # Loopback only: the reverse proxy on this host terminates TLS for IVENTWORKS_APP_URL and forwards
