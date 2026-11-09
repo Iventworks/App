@@ -27,12 +27,15 @@ export type EventBudgetItem = EventBudget["items"][number];
 export type EventExpenseSummary = GetEventsByEventIdExpensesSummaryResponses["200"]["data"];
 export type ExpenseReviewStatus = Exclude<EventExpenseStatus, "submitted">;
 
-export const EXPENSE_REVIEW_ACTIONS: { status: ExpenseReviewStatus; label: string; icon: string }[] =
-	[
-		{ status: "approved", label: "Genehmigen", icon: "i-lucide-check" },
-		{ status: "rejected", label: "Ablehnen", icon: "i-lucide-x" },
-		{ status: "reimbursed", label: "Als erstattet markieren", icon: "i-lucide-banknote" },
-	];
+export const EXPENSE_REVIEW_ACTIONS: {
+	status: ExpenseReviewStatus;
+	label: string;
+	icon: string;
+}[] = [
+	{ status: "approved", label: "Genehmigen", icon: "i-lucide-check" },
+	{ status: "rejected", label: "Ablehnen", icon: "i-lucide-x" },
+	{ status: "reimbursed", label: "Als erstattet markieren", icon: "i-lucide-banknote" },
+];
 
 interface FinanceSectionDefinition {
 	/** Path below `/events/[event_id]/finances` (`""` = the index route). */
@@ -365,13 +368,11 @@ export async function createEventFinances(context: {
 		const groups = [];
 		if (can("expenses:review")) {
 			groups.push(
-				EXPENSE_REVIEW_ACTIONS.filter((action) => action.status !== expense.status).map(
-					(action) => ({
-						label: action.label,
-						icon: action.icon,
-						onSelect: () => openReview(expense, action.status),
-					}),
-				),
+				EXPENSE_REVIEW_ACTIONS.filter((action) => action.status !== expense.status).map((action) => ({
+					label: action.label,
+					icon: action.icon,
+					onSelect: () => openReview(expense, action.status),
+				})),
 			);
 		}
 		const manage = [

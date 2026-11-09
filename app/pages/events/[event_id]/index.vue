@@ -388,7 +388,7 @@ function announcementActions(announcement: Announcement) {
 							icon="i-lucide-receipt-euro"
 							:icon-color="overview.counts.pending_expenses > 0 ? 'error' : 'emerald'"
 							hint="warten auf Prüfung"
-							:to="`${base}/finances`"
+							:to="`${base}/finances/all`"
 						/>
 						<DashboardStatCard
 							v-else
