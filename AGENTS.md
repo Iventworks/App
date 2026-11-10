@@ -156,7 +156,9 @@ CMP (Crossover Management Portal) before; the repository still is.
 - **PWA** (`@vite-pwa/nuxt`) is kept (the guide ships none): it is the only mobile channel — no
   native/TWA builds are shipped. Every org is its own app: the manifest and icons come from the
   API per host (`/api/v1/instance/manifest.webmanifest`, `/icon`, `/favicon`,
-  `/apple-touch-icon`); `pwa.manifest` is off. `/settings/apps` offers the install (`usePwaInstall`, which
+  `/apple-touch-icon`); `pwa.manifest` is off. The app is named after the product and the org
+  (`Iventworks für <org>`, home-screen label `Iventworks`; `useInstallName()` in the frontend), so
+  it is found under the product's name. `/settings/apps` offers the install (`usePwaInstall`, which
   replays the `beforeinstallprompt` event caught by `plugins/pwaInstall.client.ts`) and the
   Safari steps for iOS.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).

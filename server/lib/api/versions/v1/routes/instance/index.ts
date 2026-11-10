@@ -117,6 +117,19 @@ router.get(
 	(c) => serveAsset(c, "icon", InstanceModel.DEFAULT_ASSETS.appleTouchIcon, true),
 );
 
+/**
+ * Name of an org's installable app: the product and the org it is for ("Iventworks für
+ * Crossover"), so people find it under the product's name and don't take it for the org's own
+ * app. `useInstallName()` in the frontend follows the same rule.
+ */
+function installName(orgName: string) {
+	const product = AppConstants.APP_NAME;
+	// A single org named like the product: not "Iventworks für Iventworks".
+	return orgName.toLowerCase().includes(product.toLowerCase())
+		? orgName
+		: `${product} für ${orgName}`;
+}
+
 router.get(
 	"/manifest.webmanifest",
 	APIRouteSpec.unauthenticated({
@@ -131,7 +144,9 @@ router.get(
 		const name =
 			resolution.kind === "system"
 				? `${AppConstants.APP_NAME} System`
-				: (org?.display_name ?? AppConstants.APP_NAME);
+				: org
+					? installName(org.display_name)
+					: AppConstants.APP_NAME;
 
 		const icon = org?.icon;
 		const icons = icon
@@ -149,7 +164,8 @@ router.get(
 			// Each org host is its own origin, so each org installs as its own app.
 			id: "/",
 			name,
-			short_name: name.length > 30 ? `${name.slice(0, 29)}…` : name,
+			// Home-screen labels fit about 12 characters: the product, not a cut-off full name.
+			short_name: org ? AppConstants.APP_NAME : name,
 			description: org ? `${org.display_name} auf ${AppConstants.APP_NAME}` : AppConstants.APP_NAME,
 			start_url: "/",
 			scope: "/",

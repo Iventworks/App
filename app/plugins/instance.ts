@@ -34,10 +34,14 @@ export default defineNuxtPlugin({
 		// Page titles name the org ("Aufgaben | Crossover"); the favicon and manifest links in
 		// nuxt.config.ts already point at this host's org.
 		const brandName = useBrandName();
+		// iOS home-screen label, like the manifest's `short_name`: the product on org hosts.
+		const homeScreenName = computed(() =>
+			instance.value?.kind === "org" ? instance.value.app_name : brandName.value,
+		);
 		useHead({
 			titleTemplate: (title) =>
 				title && title !== brandName.value ? `${title} | ${brandName.value}` : brandName.value,
-			meta: [{ key: "apple-title", name: "apple-mobile-web-app-title", content: brandName }],
+			meta: [{ key: "apple-title", name: "apple-mobile-web-app-title", content: homeScreenName }],
 		});
 	},
 });

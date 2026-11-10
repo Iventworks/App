@@ -20,3 +20,22 @@ export function useBrandName() {
 		return info?.app_name ?? "Iventworks";
 	});
 }
+
+/**
+ * Name of this host's installable app: the product and the org it is for ("Iventworks für
+ * Crossover"), so people find it under the product's name and don't take it for the org's own
+ * app. Same rule as the manifest's `name` (`routes/instance`).
+ */
+export function useInstallName() {
+	const instance = useInstance();
+	const brandName = useBrandName();
+	return computed(() => {
+		const info = instance.value;
+		if (info?.kind !== "org" || !info.org) return brandName.value;
+		const org = info.org.display_name;
+		// A single org named like the product: not "Iventworks für Iventworks".
+		return org.toLowerCase().includes(info.app_name.toLowerCase())
+			? org
+			: `${info.app_name} für ${org}`;
+	});
+}

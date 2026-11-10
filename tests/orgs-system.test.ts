@@ -6,6 +6,7 @@ import { OrgContext } from "../server/lib/orgs/context";
 import { type DnsLookup, DomainService } from "../server/lib/orgs/domains";
 import { OrgRegistry } from "../server/lib/orgs/registry";
 import { ConfigHandler } from "../server/lib/utils/config";
+import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
 import { hostHeaders, SYSTEM_HOST, TEST_HOST, testOrg } from "./helpers/orgs";
 import { seedSession, seedUser } from "./helpers/seed";
@@ -123,7 +124,7 @@ describe("Instance info", () => {
 		expect(((await forwarded.json()) as any).data.kind).toBe("org");
 	});
 
-	test("default assets redirect, manifest names the org", async () => {
+	test("default assets redirect, manifest names the product and the org", async () => {
 		const logo = await API.getApp().request("/v1/instance/logo", { headers: hostHeaders(TEST_HOST) });
 		expect(logo.status).toBe(302);
 		expect(logo.headers.get("location")).toBe("/static/brand/logo-on-dark.svg");
@@ -133,8 +134,14 @@ describe("Instance info", () => {
 		});
 		expect(manifest.headers.get("content-type")).toContain("application/manifest+json");
 		const body = (await manifest.json()) as any;
-		expect(body.name).toBe(testOrg().display_name);
+		expect(body.name).toBe(`${AppConstants.APP_NAME} für ${testOrg().display_name}`);
+		expect(body.short_name).toBe(AppConstants.APP_NAME);
 		expect(body.icons.length).toBe(3);
+
+		const system = await API.getApp().request("/v1/instance/manifest.webmanifest", {
+			headers: hostHeaders(SYSTEM_HOST),
+		});
+		expect(((await system.json()) as any).name).toBe(`${AppConstants.APP_NAME} System`);
 	});
 
 	test("TLS check", async () => {

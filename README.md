@@ -65,8 +65,8 @@ org. `IVENTWORKS_MULTI_ORG` decides how many orgs a host can reach:
     admin dashboard** at `<APP_URL>/admin`: create, rename, recolour and delete orgs, invite their
     admins, manage their domains. System admins are the users of the internal `system` org; the
     system API is `/api/v1/system/**` (base domain only; API keys work too).
-  - Every org is its own installable app: `/api/v1/instance/manifest.webmanifest` and the icons
-    are served per host.
+  - Every org is its own installable app (`Iventworks für <org>`):
+    `/api/v1/instance/manifest.webmanifest` and the icons are served per host.
   - Reverse proxy: forward every host (wildcard `*.app.iventworks.de` + custom domains) to the app
     and pass the original host (`X-Forwarded-Host`, or `X-Iventworks-Host`). For on-demand TLS
     (Caddy `ask`), `GET /api/v1/instance/tls-check?domain=…` answers 200 for hosts the app serves.
