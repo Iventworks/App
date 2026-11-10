@@ -2,3 +2,7 @@
 preload = ["./tests/helpers/preload.ts"]
 # Keep the test harness out of the coverage numbers (`bun run test:ci`).
 coveragePathIgnorePatterns = ["tests/**"]
+# The default timeout per test and hook (30 s) is the `--timeout` flag of the `test` and `test:ci`
+# scripts in package.json: bun ignores a `timeout` here, and `setDefaultTimeout()` in the preload
+# only reaches the first test file. Every authenticated request verifies its token with argon2,
+# which a busy CI runner made slow enough to exceed bun's 5 s default.

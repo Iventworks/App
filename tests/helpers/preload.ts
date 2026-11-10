@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import { afterAll, beforeAll, setDefaultTimeout } from "bun:test";
+import { afterAll, beforeAll } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
 import { API } from "../../server/lib/api";
@@ -12,12 +12,6 @@ import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config
 import { FileStorage } from "../../server/lib/utils/fileStorage";
 import { findCrossOrgReferences } from "./crossOrg";
 import { TEST_ORG_SLUG } from "./orgs";
-
-// Every authenticated request verifies its token with argon2 (`AuthUtils.verifyHashedTokenBase`)
-// and every seeded user and session hashes one. On a shared CI runner that is several times
-// slower than locally, so bun's 5 s default timed out ordinary tests and `beforeAll` hooks (the
-// setting covers both). Tests that need longer still pass their own timeout.
-setDefaultTimeout(30_000);
 
 function setTestEnv(rootDir: string) {
 	const envVars = {
