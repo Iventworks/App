@@ -51,21 +51,25 @@ const timeValue = computed({
 </script>
 
 <template>
-	<div class="flex w-full gap-2">
+	<!--
+		Side by side where both fit (≥ 280 px), else the time wraps below the date: squeezed into
+		half a modal row, the date would run under its calendar button.
+	-->
+	<div class="flex w-full flex-wrap gap-2">
 		<FormDatePicker
 			v-model="datePart"
 			:min="min"
 			:max="max"
 			:clearable="clearable"
 			:disabled="disabled"
-			class="min-w-0 flex-1"
+			class="min-w-0 grow-[999] basis-40"
 		/>
 		<UInputTime
 			v-model="timeValue"
 			:hour-cycle="24"
 			:disabled="disabled"
 			icon="i-lucide-clock"
-			class="w-28 shrink-0"
+			class="grow basis-28"
 			aria-label="Uhrzeit"
 		/>
 	</div>
