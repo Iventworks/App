@@ -38,6 +38,13 @@ function setTestEnv(rootDir: string) {
 		IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE: false,
 		IVENTWORKS_TIMEZONE: "Europe/Berlin",
 
+		// Web Push: a key pair is generated into the test database; deliveries go to a capturing
+		// transport (tests/push.test.ts), and this made-up host stands for a push service.
+		IVENTWORKS_WEB_PUSH_PUBLIC_KEY: undefined,
+		IVENTWORKS_WEB_PUSH_PRIVATE_KEY: undefined,
+		IVENTWORKS_WEB_PUSH_SUBJECT: "mailto:push@example.com",
+		IVENTWORKS_WEB_PUSH_EXTRA_HOSTS: "push.example.test",
+
 		IVENTWORKS_SMTP_HOST: "127.0.0.1",
 		IVENTWORKS_SMTP_PORT: 12587,
 		IVENTWORKS_SMTP_USERNAME: "",

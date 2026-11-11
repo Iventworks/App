@@ -5,6 +5,11 @@ import { DB } from "../../db/index";
 export class RuntimeMetadata {
 	protected static readonly schemas = {
 		dummy: z.record(z.string(), z.any()).default({}),
+		/** The generated VAPID key pair for Web Push (when none is configured). */
+		web_push_vapid: z
+			.object({ public_key: z.string(), private_key: z.string() })
+			.partial()
+			.default({}),
 	} as const;
 
 	/** A key without a stored row reads as its schema default; nothing is written. */

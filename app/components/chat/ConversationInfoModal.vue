@@ -59,6 +59,7 @@ function memberDetail(member: ChatMember) {
 	if (member.position) parts.push(member.position);
 	if (!parts.length) parts.push(`@${member.user.username}`);
 	if (realtime.isOnline(member.user.id)) parts.push("online");
+	else if (member.last_seen_at) parts.push(`zuletzt online ${formatRelative(member.last_seen_at)}`);
 	return parts.join(" · ");
 }
 

@@ -35,6 +35,14 @@ const _useDashboard = () => {
 	);
 	const { pause, resume } = useIntervalFn(refreshBadges, badgeInterval, { immediate: false });
 
+	// The installed app's icon shows the unread count (Badging API, where supported).
+	watch([unreadMessages, unreadNotifications], ([messages, notifications]) => {
+		if (!import.meta.client || !("setAppBadge" in navigator)) return;
+		const total = messages + notifications;
+		const badge = total > 0 ? navigator.setAppBadge(total) : navigator.clearAppBadge();
+		void badge.catch(() => {});
+	});
+
 	// Several events in a row (a burst of messages) refresh once.
 	const refreshSoon = useDebounceFn(() => void refreshBadges(), 400);
 	useRealtimeEvent((event) => {

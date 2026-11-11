@@ -1372,6 +1372,7 @@ export type GetAccountResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -1667,6 +1668,12 @@ export type GetAccountPreferencesResponses = {
             onboarding: {
                 completed: boolean;
             };
+            notifications: {
+                push_messages: boolean;
+                push_notifications: boolean;
+                push_preview: boolean;
+                share_presence: boolean;
+            };
         };
     };
 };
@@ -1731,6 +1738,76 @@ export type PutAccountPreferencesOnboardingResponses = {
 };
 
 export type PutAccountPreferencesOnboardingResponse = PutAccountPreferencesOnboardingResponses[keyof PutAccountPreferencesOnboardingResponses];
+
+export type GetAccountPreferencesNotificationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/account/preferences/notifications';
+};
+
+export type GetAccountPreferencesNotificationsResponses = {
+    /**
+     * Notification settings retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notification settings retrieved successfully';
+        data: {
+            push_messages: boolean;
+            push_notifications: boolean;
+            push_preview: boolean;
+            share_presence: boolean;
+        };
+    };
+};
+
+export type GetAccountPreferencesNotificationsResponse = GetAccountPreferencesNotificationsResponses[keyof GetAccountPreferencesNotificationsResponses];
+
+export type PutAccountPreferencesNotificationsData = {
+    body?: {
+        push_messages?: boolean;
+        push_notifications?: boolean;
+        push_preview?: boolean;
+        share_presence?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/account/preferences/notifications';
+};
+
+export type PutAccountPreferencesNotificationsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type PutAccountPreferencesNotificationsError = PutAccountPreferencesNotificationsErrors[keyof PutAccountPreferencesNotificationsErrors];
+
+export type PutAccountPreferencesNotificationsResponses = {
+    /**
+     * Notification settings updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Notification settings updated successfully';
+        data: {
+            push_messages: boolean;
+            push_notifications: boolean;
+            push_preview: boolean;
+            share_presence: boolean;
+        };
+    };
+};
+
+export type PutAccountPreferencesNotificationsResponse = PutAccountPreferencesNotificationsResponses[keyof PutAccountPreferencesNotificationsResponses];
 
 export type DeleteAccountSessionsData = {
     body?: never;
@@ -1903,6 +1980,7 @@ export type GetAdminUsersResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
         }>;
     };
@@ -1917,6 +1995,7 @@ export type PostAdminUsersData = {
         email: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
         phone?: string | null;
+        last_seen_at?: number | null;
         /**
          * New password for the account
          */
@@ -1967,6 +2046,7 @@ export type PostAdminUsersResponses = {
                 suspended_at: number | null;
                 suspended_reason: string | null;
                 last_login_at: number | null;
+                last_seen_at: number | null;
                 created_at: number;
             };
             password_link: {
@@ -2071,6 +2151,7 @@ export type GetAdminUsersByUserIdResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
             events: Array<{
                 id: number;
@@ -2098,6 +2179,7 @@ export type PutAdminUsersByUserIdData = {
         email?: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
         phone?: string | null;
+        last_seen_at?: number | null;
     };
     path: {
         userId: number;
@@ -2153,6 +2235,7 @@ export type PutAdminUsersByUserIdResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -2352,6 +2435,7 @@ export type PostAdminUsersByUserIdSuspendResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -2407,6 +2491,7 @@ export type PostAdminUsersByUserIdUnsuspendResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
+            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -4949,6 +5034,7 @@ export type GetConversationsByConversationIdMembersResponses = {
             event_role: 'leader' | 'staff' | null;
             position: string | null;
             last_read_at: number | null;
+            last_seen_at: number | null;
         }>;
     };
 };
@@ -6287,6 +6373,214 @@ export type PostRealtimeTicketResponses = {
 };
 
 export type PostRealtimeTicketResponse = PostRealtimeTicketResponses[keyof PostRealtimeTicketResponses];
+
+export type GetPushConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/config';
+};
+
+export type GetPushConfigResponses = {
+    /**
+     * Push configuration retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Push configuration retrieved successfully';
+        data: {
+            public_key: string;
+        };
+    };
+};
+
+export type GetPushConfigResponse = GetPushConfigResponses[keyof GetPushConfigResponses];
+
+export type GetPushSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/subscriptions';
+};
+
+export type GetPushSubscriptionsResponses = {
+    /**
+     * Push devices retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Push devices retrieved successfully';
+        data: Array<{
+            id: number;
+            endpoint: string;
+            label: string | null;
+            created_at: number;
+            last_success_at: number | null;
+        }>;
+    };
+};
+
+export type GetPushSubscriptionsResponse = GetPushSubscriptionsResponses[keyof GetPushSubscriptionsResponses];
+
+export type PostPushSubscriptionsData = {
+    body: {
+        endpoint: string;
+        keys: {
+            p256dh: string;
+            auth: string;
+        };
+        label?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/push/subscriptions';
+};
+
+export type PostPushSubscriptionsErrors = {
+    /**
+     * Unsupported push service / Invalid subscription keys / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Unsupported push service / Invalid subscription keys / Syntax or validation error in request';
+    };
+    /**
+     * Push notifications need a login session (not an API key)
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Push notifications need a login session (not an API key)';
+    };
+};
+
+export type PostPushSubscriptionsError = PostPushSubscriptionsErrors[keyof PostPushSubscriptionsErrors];
+
+export type PostPushSubscriptionsResponses = {
+    /**
+     * Push device registered successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Push device registered successfully';
+        data: {
+            id: number;
+            endpoint: string;
+            label: string | null;
+            created_at: number;
+            last_success_at: number | null;
+        };
+    };
+};
+
+export type PostPushSubscriptionsResponse = PostPushSubscriptionsResponses[keyof PostPushSubscriptionsResponses];
+
+export type PostPushSubscriptionsUnsubscribeData = {
+    body: {
+        endpoint: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/push/subscriptions/unsubscribe';
+};
+
+export type PostPushSubscriptionsUnsubscribeErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type PostPushSubscriptionsUnsubscribeError = PostPushSubscriptionsUnsubscribeErrors[keyof PostPushSubscriptionsUnsubscribeErrors];
+
+export type PostPushSubscriptionsUnsubscribeResponses = {
+    /**
+     * Push device removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Push device removed successfully';
+        data: null;
+    };
+};
+
+export type PostPushSubscriptionsUnsubscribeResponse = PostPushSubscriptionsUnsubscribeResponses[keyof PostPushSubscriptionsUnsubscribeResponses];
+
+export type DeletePushSubscriptionsBySubscriptionIdData = {
+    body?: never;
+    path: {
+        subscriptionId: number;
+    };
+    query?: never;
+    url: '/push/subscriptions/{subscriptionId}';
+};
+
+export type DeletePushSubscriptionsBySubscriptionIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Push device not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Push device not found';
+    };
+};
+
+export type DeletePushSubscriptionsBySubscriptionIdError = DeletePushSubscriptionsBySubscriptionIdErrors[keyof DeletePushSubscriptionsBySubscriptionIdErrors];
+
+export type DeletePushSubscriptionsBySubscriptionIdResponses = {
+    /**
+     * Push device removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Push device removed successfully';
+        data: null;
+    };
+};
+
+export type DeletePushSubscriptionsBySubscriptionIdResponse = DeletePushSubscriptionsBySubscriptionIdResponses[keyof DeletePushSubscriptionsBySubscriptionIdResponses];
+
+export type PostPushTestData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/test';
+};
+
+export type PostPushTestResponses = {
+    /**
+     * Test push sent successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Test push sent successfully';
+        data: {
+            devices: number;
+        };
+    };
+};
+
+export type PostPushTestResponse = PostPushTestResponses[keyof PostPushTestResponses];
 
 export type GetUsersData = {
     body?: never;

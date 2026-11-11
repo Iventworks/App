@@ -191,6 +191,27 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Frontend: `useRealtime()` (started by the dashboard layout, stopped on logout),
     `useRealtimeEvent()` in components; views poll every 30 s – 5 min while connected and fall
     back to the old intervals without it.
+- **Web Push** (`server/lib/push/`): notifications while the app is closed. VAPID keys from
+  `IVENTWORKS_WEB_PUSH_*` or generated once into `metadata` (`web_push_vapid` — never change them,
+  it invalidates every subscription). `push_subscriptions` are per org, user **and session**
+  (`ON DELETE CASCADE`: logout, revoked or expired sessions end a device's pushes); API keys can't
+  subscribe. Rules:
+  - SSRF: the server POSTs to stored endpoints, so only https URLs of known push services
+    (`PushService.KNOWN_HOSTS`, `IVENTWORKS_WEB_PUSH_EXTRA_HOSTS`) are accepted and re-checked
+    before every send; no redirects, 10 s timeout. 404/410 delete a subscription, ten failures in a
+    row too.
+  - `PushTriggers` decide who gets one: chat messages (not the sender, not muted chats) and every
+    `Notifier.notify`; never while the person is *active* (visible, focused tab with input in the
+    last 3 minutes, reported over the realtime socket as `activity`); per-user settings in
+    `user_preferences.notifications` (`push_messages`, `push_notifications`, `push_preview`).
+    Sending is queued (`PushService.send`/`track`, `flush()` in tests) and never blocks a request.
+  - Frontend: `usePushNotifications()` (opt-in per user in `localStorage`, re-registered after
+    every login by the dashboard layout, forgotten on logout), `public/sw-push.js` imported into the
+    Workbox worker (`pwa.workbox.importScripts`), `/settings/notifications`. Only in production
+    builds (no service worker in `nuxt dev`); iOS only for the installed app.
+- **Presence**: online status and `users.last_seen_at` (set when someone connects, disconnects and
+  every minute while connected) are shown only for people with `share_presence` on (default);
+  switching it off hides both immediately (`Realtime.presenceSharingChanged`).
 - **Messaging** is REST + realtime signals: an open chat syncs with
   `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>&from=<first id>` when
   the socket says it changed (else every few seconds) and receives new messages plus what changed

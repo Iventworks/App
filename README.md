@@ -126,6 +126,14 @@ notifications. The socket only signals; the data is loaded through the API. With
 by a proxy, offline) the app falls back to polling: an open chat every 4 seconds, the chat list
 every 15 seconds, badges every minute.
 
+**Push notifications** (Web Push) reach phones and computers while the app is closed: new chat
+messages (not for muted chats) and all other notifications, but not while you are using the app.
+Everyone switches them on per device under *Einstellungen → Benachrichtigungen*, chooses what to
+get (with or without the message text), sees their devices, and can hide their online status and
+"zuletzt online". On iPhone/iPad push only works for the installed app (iOS 16.4+); it needs the
+production build (the service worker isn't active in `bun run dev`). The installed app's icon
+shows the number of unread messages and notifications where the system supports it.
+
 ## Events
 
 - **Freizeit** (camp) and **Event** happen once, from the first to the last day.
@@ -167,6 +175,12 @@ All settings are `IVENTWORKS_*` env vars — see `example.env`. The names before
 - `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` (default `false`) — org admins' custom domains go live
   without a system admin's approval (see above)
 - `IVENTWORKS_UPLOAD_DIR`, `IVENTWORKS_MAX_UPLOAD_SIZE_MB` — file storage and the upload limit
+- `IVENTWORKS_WEB_PUSH_SUBJECT` — contact for the push services (`mailto:…` or `https://…`;
+  default: `IVENTWORKS_APP_URL` when it is https). `IVENTWORKS_WEB_PUSH_PUBLIC_KEY` /
+  `…_PRIVATE_KEY` — optional VAPID key pair (`bunx web-push generate-vapid-keys`); without them a
+  pair is generated once and kept in the database. Never change the keys afterwards: every device
+  would have to switch push on again. `IVENTWORKS_WEB_PUSH_EXTRA_HOSTS` — further push services
+  (the server sends requests there; Google, Mozilla, Apple and Microsoft are built in).
 - `IVENTWORKS_BACKUP_*` — encrypted backups, optionally to S3 (see Backups)
 - `IVENTWORKS_TIMEZONE` (default `Europe/Berlin`) — what "today" means on dashboards
 - `IVENTWORKS_TRUST_PROXY` — behind exactly one reverse proxy, take the client IP for login rate

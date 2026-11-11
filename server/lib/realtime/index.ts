@@ -54,6 +54,19 @@ export namespace Realtime {
 		});
 	}
 
+	/**
+	 * Someone switched presence sharing: others now see them online (if connected) or not at all.
+	 */
+	export function presenceSharingChanged(userId: number, share: boolean) {
+		const orgId = currentOrgId();
+		if (orgId === null || !RealtimeHub.setSharePresence(orgId, userId, share)) return;
+		RealtimeHub.broadcast(
+			orgId,
+			{ type: "presence", user_id: userId, online: share },
+			{ exceptUserId: userId },
+		);
+	}
+
 	/** These people have new notifications. */
 	export function notificationsChanged(userIds: Iterable<number>) {
 		const orgId = currentOrgId();

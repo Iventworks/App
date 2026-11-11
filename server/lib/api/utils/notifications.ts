@@ -1,6 +1,7 @@
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
 import { OrgContext } from "../../orgs/context";
+import { PushTriggers } from "../../push/triggers";
 import { Realtime } from "../../realtime";
 import { Logger } from "../../utils/logger";
 
@@ -33,8 +34,10 @@ export class Notifier {
 					})),
 				)
 				.run();
-			// Badges and an open notification list update right away.
+			// Badges and an open notification list update right away; people not in the app get
+			// a push (if they want one).
 			Realtime.notificationsChanged(recipients);
+			void PushTriggers.notification(recipients, notification);
 		} catch (error) {
 			Logger.error("Failed to create notifications:", error);
 		}

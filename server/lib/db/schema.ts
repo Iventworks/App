@@ -159,6 +159,8 @@ export const users = sqliteTable(
 		suspended_reason: text(),
 
 		last_login_at: integer(),
+		// When the person was last connected to the realtime channel ("zuletzt online").
+		last_seen_at: integer(),
 
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
@@ -1026,6 +1028,41 @@ export const messageReactions = sqliteTable(
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
 	(table) => [primaryKey({ columns: [table.message_id, table.user_id, table.emoji] })],
+);
+
+/**
+ * Web Push subscriptions: one per browser/device that allowed notifications. The endpoint is a
+ * URL of the browser's push service (only known services are accepted, see `PushService`); the
+ * keys encrypt the payload so only that browser can read it.
+ * @deprecated Use DB.Tables.pushSubscriptions to access this table.
+ */
+export const pushSubscriptions = sqliteTable(
+	"push_subscriptions",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// The login it belongs to: logging out (or a revoked/expired session) ends the pushes too.
+		session_id: text()
+			.notNull()
+			.references(() => sessions.id, { onDelete: "cascade" }),
+		endpoint: text().notNull(),
+		// Base64url: the browser's P-256 public key and the 16-byte auth secret.
+		p256dh: text().notNull(),
+		auth: text().notNull(),
+		// "Chrome · Android" — so people recognise their devices in the settings.
+		label: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		last_success_at: integer(),
+		// Consecutive failed deliveries (not counting "gone", which deletes the row).
+		failure_count: integer().notNull().default(0),
+	},
+	(table) => [
+		uniqueIndex("push_subscriptions_org_endpoint_unique").on(table.org_id, table.endpoint),
+		index("push_subscriptions_user_id_idx").on(table.user_id),
+	],
 );
 
 // ---------------------------------------------------------------------------

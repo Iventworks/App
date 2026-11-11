@@ -249,11 +249,12 @@ describe("Presence", () => {
 		expect(miraSocket.of("presence")).toHaveLength(1);
 
 		disconnect(jonasSocket);
-		expect(miraSocket.of("presence").at(-1)).toEqual({
+		expect(miraSocket.of("presence").at(-1)).toMatchObject({
 			type: "presence",
 			user_id: jonas.id,
 			online: false,
 		});
+		expect(miraSocket.of("presence").at(-1)?.last_seen_at).toBeNumber();
 		disconnect(miraSocket);
 	});
 

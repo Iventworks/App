@@ -420,6 +420,19 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 		const adminSession = await SessionHandler.createSession(admin.id);
 		const apiKey = await APIKeyHandler.createApiKey(volunteer.id, text("Schlüssel"));
 		const volunteerSession = await SessionHandler.createSession(volunteer.id);
+		const pushSubscription = db
+			.insert(DB.Tables.pushSubscriptions)
+			.values({
+				org_id,
+				user_id: admin.id,
+				session_id: adminSession.token.split(":")[0]!.split("_").at(-1)!,
+				endpoint: `https://push.example.test/send/${marker}`,
+				p256dh: Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 1)]).toString("base64url"),
+				auth: Buffer.alloc(16, 2).toString("base64url"),
+				label: text("Gerät"),
+			})
+			.returning()
+			.get();
 
 		return {
 			org,
@@ -457,6 +470,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				fileId: folder.id,
 				eventFileId: eventFile.id,
 				sessionId: adminSession.token.split(":")[0]!.split("_").at(-1)!,
+				subscriptionId: pushSubscription.id,
 				apiKeyID: apiKey.token.split(":")[0]!.split("_").at(-1)!,
 				domainId: domain.id,
 				shareId: share.id,

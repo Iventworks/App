@@ -85,6 +85,8 @@ export namespace ConversationsModel.Members {
 			position: z.string().nullable(),
 			/** How far this person has read; null = never opened the chat. */
 			last_read_at: z.number().nullable(),
+			/** When the person was last online; null when unknown or they don't share it. */
+			last_seen_at: z.number().nullable(),
 		}),
 	);
 	export type Response = z.infer<typeof Response>;

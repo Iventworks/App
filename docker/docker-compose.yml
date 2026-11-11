@@ -61,6 +61,11 @@ services:
       IVENTWORKS_SMTP_FROM: '"Iventworks" <noreply@iventworks.de>'
       IVENTWORKS_SMTP_SECURE: true
 
+      # Web Push: the contact the push services (Google, Apple, …) see — `mailto:` or an https
+      # URL; default: IVENTWORKS_APP_URL. The key pair is generated once and kept in the database
+      # (it is in the backups); never change it, or every device has to switch push on again.
+      IVENTWORKS_WEB_PUSH_SUBJECT: ${IVENTWORKS_WEB_PUSH_SUBJECT:-}
+
     volumes:
       - /opt/iventworks/data:/opt/iventworks/data
       - /opt/iventworks/config:/opt/iventworks/config

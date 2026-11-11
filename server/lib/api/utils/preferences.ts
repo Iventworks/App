@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
@@ -13,6 +13,17 @@ export namespace UserPreferences {
 			// onboarding (preferences setup). Drives the first-login redirect,
 			// so it defaults to false until the user finishes or skips it.
 			completed: z.boolean().default(false),
+		}),
+		/** Push notifications and presence (`/settings/notifications`). */
+		notifications: z.object({
+			/** Push for new chat messages (not for muted chats). */
+			push_messages: z.boolean().default(true),
+			/** Push for in-app notifications (tasks, events, duties, expenses …). */
+			push_notifications: z.boolean().default(true),
+			/** Show the message text in the push; off: only "Neue Nachricht". */
+			push_preview: z.boolean().default(true),
+			/** Others see when the person is online and when they were last online. */
+			share_presence: z.boolean().default(true),
 		}),
 	} as const;
 
@@ -112,6 +123,35 @@ export class UserPreferencesHandler {
 		data: z.infer<(typeof UserPreferences.schemas)["onboarding"]>,
 	) {
 		await this.set(userID, "onboarding", data);
+	}
+
+	/** One preference for many people in one query (defaults for those without a stored row). */
+	static async getMany<T extends UserPreferences.Key>(
+		userIDs: number[],
+		key: T,
+		tx: DrizzleDB = DB.instance(),
+	): Promise<Map<number, z.infer<(typeof UserPreferences.schemas)[T]>>> {
+		type Parsed = z.infer<(typeof UserPreferences.schemas)[T]>;
+		const unique = [...new Set(userIDs)];
+		const result = new Map<number, Parsed>();
+		if (unique.length === 0) return result;
+
+		const records = await tx
+			.select()
+			.from(DB.Tables.userPreferences)
+			.where(
+				and(
+					inOrg(DB.Tables.userPreferences),
+					inArray(DB.Tables.userPreferences.user_id, unique),
+					eq(DB.Tables.userPreferences.key, key),
+				),
+			)
+			.all();
+		const stored = new Map(records.map((record) => [record.user_id, record.data]));
+		for (const id of unique) {
+			result.set(id, UserPreferences.schemas[key].parse(stored.get(id) ?? {}) as Parsed);
+		}
+		return result;
 	}
 
 	static async deleteAllForUser(userID: number, tx: DrizzleDB = DB.instance()): Promise<void> {

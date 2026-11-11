@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { AuthHandler } from "../api/utils/authHandler";
 import { ConversationAccess } from "../api/utils/conversations";
 import { PermissionHelper } from "../api/utils/permissions";
+import { UserPreferencesHandler } from "../api/utils/preferences";
 import { DB } from "../db";
 import { inOrg, OrgContext } from "../orgs/context";
 import { normalizeHost, OrgRegistry } from "../orgs/registry";
@@ -33,13 +34,32 @@ interface Session {
 	userId: number;
 	role: AuthHandler.AuthenticatedAuthContext["user_role"];
 	displayName: string;
+	sharePresence: boolean;
 	auth: AuthHandler.AuthenticatedAuthContext;
 }
 
 const ClientEvent = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("ping") }),
 	z.object({ type: z.literal("typing"), conversation_id: z.number().int().positive() }),
+	z.object({ type: z.literal("activity"), active: z.boolean() }),
 ]);
+
+/** Remember when people were last connected ("zuletzt online"). */
+function touchLastSeen(orgId: number, userIds: number[], at = Date.now()) {
+	const org = OrgRegistry.get(orgId);
+	if (!org || userIds.length === 0) return;
+	try {
+		OrgContext.run(org, () =>
+			DB.instance()
+				.update(DB.Tables.users)
+				.set({ last_seen_at: at })
+				.where(and(inOrg(DB.Tables.users), inArray(DB.Tables.users.id, userIds)))
+				.run(),
+		);
+	} catch (error) {
+		Logger.error("Realtime: failed to store last seen:", error);
+	}
+}
 
 function reject(status: number, message: string) {
 	return new Response(message, { status, headers: { "Content-Type": "text/plain" } });
@@ -56,8 +76,9 @@ function reject(status: number, message: string) {
  *   the ticket already requires the bearer token, this is a second fence).
  * - Every connection is checked again every minute: a revoked session or API key, a suspended
  *   account or one demoted to `unverified` loses its socket.
- * - Clients may only send pings and typing signals, small and rate-limited; a typing signal is
- *   only passed on to the people of a chat the sender has access to.
+ * - Clients may only send pings, typing signals and whether they are active, small and
+ *   rate-limited; a typing signal is only passed on to the people of a chat the sender is in.
+ * - Presence: people who switched off `share_presence` are never announced online.
  */
 export class RealtimeGateway {
 	private static revalidateTimer: ReturnType<typeof setInterval> | null = null;
@@ -96,6 +117,9 @@ export class RealtimeGateway {
 				RealtimeGateway.loadSessionState(entry.auth),
 			);
 			if (!current) return reject(401, "Session no longer valid");
+			const preferences = await OrgContext.run(resolution.org, () =>
+				UserPreferencesHandler.get(entry.auth.user_id, "notifications"),
+			);
 
 			if (
 				RealtimeHub.countForUser(resolution.org.id, entry.auth.user_id) >=
@@ -109,6 +133,7 @@ export class RealtimeGateway {
 				userId: entry.auth.user_id,
 				role: current.role,
 				displayName: current.displayName,
+				sharePresence: preferences.share_presence,
 				auth: entry.auth,
 			} satisfies Session;
 			return undefined;
@@ -131,6 +156,9 @@ export class RealtimeGateway {
 			userId: session.userId,
 			role: session.role,
 			displayName: session.displayName,
+			sharePresence: session.sharePresence,
+			// Until the client says otherwise: pushes still go out.
+			active: false,
 			auth: session.auth,
 			send: (data) => void peer.send(data),
 			close: (code, reason) => peer.close(code, reason),
@@ -146,11 +174,14 @@ export class RealtimeGateway {
 			online_user_ids: RealtimeHub.onlineUserIds(connection.orgId),
 		});
 		if (cameOnline) {
-			RealtimeHub.broadcast(
-				connection.orgId,
-				{ type: "presence", user_id: connection.userId, online: true },
-				{ exceptUserId: connection.userId },
-			);
+			touchLastSeen(connection.orgId, [connection.userId]);
+			if (connection.sharePresence) {
+				RealtimeHub.broadcast(
+					connection.orgId,
+					{ type: "presence", user_id: connection.userId, online: true },
+					{ exceptUserId: connection.userId },
+				);
+			}
 		}
 		RealtimeGateway.startRevalidation();
 	}
@@ -160,11 +191,16 @@ export class RealtimeGateway {
 		if (!connection) return;
 		peer.context.connection = undefined;
 		if (RealtimeHub.remove(connection)) {
-			RealtimeHub.broadcast(connection.orgId, {
-				type: "presence",
-				user_id: connection.userId,
-				online: false,
-			});
+			const now = Date.now();
+			touchLastSeen(connection.orgId, [connection.userId], now);
+			if (connection.sharePresence) {
+				RealtimeHub.broadcast(connection.orgId, {
+					type: "presence",
+					user_id: connection.userId,
+					online: false,
+					last_seen_at: now,
+				});
+			}
 		}
 	}
 
@@ -194,6 +230,10 @@ export class RealtimeGateway {
 
 		if (parsed.type === "ping") {
 			RealtimeHub.send(connection, { type: "pong" });
+			return;
+		}
+		if (parsed.type === "activity") {
+			connection.active = parsed.active;
 			return;
 		}
 		await RealtimeGateway.typing(connection, parsed.conversation_id, now);
@@ -294,6 +334,15 @@ export class RealtimeGateway {
 			connection.role = state.role;
 			connection.displayName = state.displayName;
 		}
+
+		// Whoever is still connected was seen just now.
+		const byOrg = new Map<number, Set<number>>();
+		for (const connection of RealtimeHub.all()) {
+			const ids = byOrg.get(connection.orgId) ?? new Set<number>();
+			ids.add(connection.userId);
+			byOrg.set(connection.orgId, ids);
+		}
+		for (const [orgId, ids] of byOrg) touchLastSeen(orgId, [...ids]);
 	}
 
 	private static startRevalidation() {

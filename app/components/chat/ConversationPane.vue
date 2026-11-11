@@ -213,6 +213,18 @@ async function loadAround(messageId: number) {
 	return true;
 }
 
+/** Direct chats: when the other person was last online (unless they hide it). */
+async function loadLastSeen() {
+	const result = await useAPI(
+		(api) =>
+			api.getConversationsByConversationIdMembers({ path: { conversationId: props.conversation.id } }),
+		true,
+	);
+	if (result.success) {
+		realtime.rememberLastSeen(result.data.map((member) => [member.user.id, member.last_seen_at]));
+	}
+}
+
 async function loadInitial() {
 	loading.value = true;
 	messages.value = [];
@@ -229,6 +241,7 @@ async function loadInitial() {
 	const conversationId = props.conversation.id;
 	const target = props.jumpTo ?? null;
 	void loadPinned();
+	if (props.conversation.type === "direct") void loadLastSeen();
 
 	const jumped = target !== null && (await loadAround(target));
 	if (target !== null) emit("jumped");
@@ -701,9 +714,12 @@ const description = computed(() => {
 			).length;
 			return online ? `${people} · ${online} online` : people;
 		}
-		default:
+		default: {
 			if (typists.value.length) return "schreibt …";
-			return realtime.isOnline(otherPerson.value?.id) ? "Online" : "Direktnachricht";
+			if (realtime.isOnline(otherPerson.value?.id)) return "Online";
+			const seen = realtime.lastSeenOf(otherPerson.value?.id);
+			return seen ? `zuletzt online ${formatRelative(seen)}` : "Direktnachricht";
+		}
 	}
 });
 </script>

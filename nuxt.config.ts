@@ -111,6 +111,8 @@ export default defineNuxtConfig({
 		// requests from its navigation fallback.
 		workbox: {
 			navigateFallbackDenylist: [/^\/api\//],
+			// Web Push: shows pushes and opens the right page on a click (public/sw-push.js).
+			importScripts: ["/sw-push.js"],
 		},
 	},
 

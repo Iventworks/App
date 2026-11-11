@@ -30,11 +30,16 @@ export namespace RealtimeProtocol {
 				conversation_id: number;
 				user: { id: number; display_name: string };
 		  }
-		| { type: "presence"; user_id: number; online: boolean }
+		/** `last_seen_at` comes with going offline. */
+		| { type: "presence"; user_id: number; online: boolean; last_seen_at?: number }
 		/** The receiver has new notifications. */
 		| { type: "notification" };
 
-	export type ClientEvent = { type: "ping" } | { type: "typing"; conversation_id: number };
+	export type ClientEvent =
+		| { type: "ping" }
+		| { type: "typing"; conversation_id: number }
+		/** The tab is visible and the person used it recently (no pushes while active). */
+		| { type: "activity"; active: boolean };
 
 	/** Close codes the server uses (4000–4999 are free for applications). */
 	export const CLOSE_UNAUTHORIZED = 4401;

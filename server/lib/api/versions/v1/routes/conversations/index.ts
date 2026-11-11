@@ -12,6 +12,7 @@ import { ConversationAccess } from "../../../../utils/conversations";
 import { FileService } from "../../../../utils/fileService";
 import { requireOrgRole } from "../../../../utils/guards";
 import { MessageService } from "../../../../utils/messages";
+import { UserPreferencesHandler } from "../../../../utils/preferences";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
@@ -432,8 +433,22 @@ router.get(
 	async (c) => {
 		const conversation = c.get("conversation");
 		const refs = ConversationAccess.getMembers(conversation);
-		const users = await UserSummary.fetchMap(refs.map((ref) => ref.user_id));
+		const ids = refs.map((ref) => ref.user_id);
+		const users = await UserSummary.fetchMap(ids);
 		const markers = ConversationAccess.getReadMarkers(conversation.id);
+
+		// Last seen, for people who share their presence.
+		const presence = await UserPreferencesHandler.getMany(ids, "notifications");
+		const lastSeen = new Map(
+			(ids.length
+				? await DB.instance()
+						.select({ id: DB.Tables.users.id, last_seen_at: DB.Tables.users.last_seen_at })
+						.from(DB.Tables.users)
+						.where(and(inOrg(DB.Tables.users), inArray(DB.Tables.users.id, ids)))
+						.all()
+				: []
+			).map((row) => [row.id, row.last_seen_at]),
+		);
 
 		const members: ConversationsModel.Members.Response = [];
 		for (const ref of refs) {
@@ -444,6 +459,10 @@ router.get(
 				event_role: ref.event_role,
 				position: ref.position,
 				last_read_at: markers.get(ref.user_id) || null,
+				last_seen_at:
+					presence.get(ref.user_id)?.share_presence === false
+						? null
+						: (lastSeen.get(ref.user_id) ?? null),
 			});
 		}
 		// Leaders first, then by name.

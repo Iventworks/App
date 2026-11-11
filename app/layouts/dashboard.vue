@@ -35,11 +35,14 @@ const {
 // The realtime channel (chat updates, typing, presence, notifications) lives as long as the
 // dashboard; the system host has no chats.
 const realtime = useRealtime();
+const push = usePushNotifications();
 
 onMounted(() => {
 	if (isSystem.value) return;
 	startBadgePolling();
 	realtime.start();
+	// Push subscriptions end with the login they were made in: register this device again.
+	if (user.value) void push.sync(user.value.id);
 });
 onBeforeUnmount(() => {
 	stopBadgePolling();
@@ -182,6 +185,7 @@ const settingsItems: NavigationMenuItem[] = [
 	{ label: "Profil", icon: "i-lucide-user", to: "/settings", exact: true },
 	{ label: "Sicherheit", icon: "i-lucide-shield", to: "/settings/security" },
 	{ label: "API-Schlüssel", icon: "i-lucide-key", to: "/settings/api-keys" },
+	{ label: "Benachrichtigungen", icon: "i-lucide-bell-ring", to: "/settings/notifications" },
 	{ label: "App installieren", icon: "i-lucide-smartphone", to: "/settings/apps" },
 ];
 

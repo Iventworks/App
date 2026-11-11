@@ -49,8 +49,35 @@ export class RealtimeHub {
 		return RealtimeHub.countForUser(connection.orgId, connection.userId) === 0;
 	}
 
+	/** People shown as online: connected and sharing their presence. */
 	static onlineUserIds(orgId: number): number[] {
-		return [...new Set([...RealtimeHub.connectionsOf(orgId)].map((entry) => entry.userId))];
+		return [
+			...new Set(
+				[...RealtimeHub.connectionsOf(orgId)]
+					.filter((entry) => entry.sharePresence)
+					.map((entry) => entry.userId),
+			),
+		];
+	}
+
+	/** The person is using the app right now (a visible tab with recent activity): no push. */
+	static isActive(orgId: number, userId: number) {
+		for (const connection of RealtimeHub.connectionsOf(orgId)) {
+			if (connection.userId === userId && connection.active) return true;
+		}
+		return false;
+	}
+
+	/** The person changed whether others may see them online; true when it changed anything. */
+	static setSharePresence(orgId: number, userId: number, share: boolean) {
+		let changed = false;
+		for (const connection of RealtimeHub.connectionsOf(orgId)) {
+			if (connection.userId === userId && connection.sharePresence !== share) {
+				connection.sharePresence = share;
+				changed = true;
+			}
+		}
+		return changed;
 	}
 
 	/** Send to every connection of the given people in the org. */
@@ -109,6 +136,10 @@ export namespace RealtimeHub {
 		readonly userId: number;
 		role: UserAccountSettings.Role;
 		displayName: string;
+		/** Others may see the person online (`notifications.share_presence`). */
+		sharePresence: boolean;
+		/** Visible tab with recent activity (reported by the client): pushes are held back. */
+		active: boolean;
 		/** The session or API key the ticket was issued for: the connection lives as long as it. */
 		readonly auth: AuthHandler.AuthenticatedAuthContext;
 		send(data: string): void;

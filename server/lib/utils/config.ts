@@ -182,6 +182,16 @@ export class ConfigHandler {
 		BACKUP_S3_SECRET_ACCESS_KEY: CS.string().optional(),
 		BACKUP_S3_PREFIX: CS.string().optional(),
 
+		// Web Push (notifications on phones and desktops while the app is closed). Without keys,
+		// a key pair is generated once and kept in the database. SUBJECT: a `mailto:` or `https:`
+		// contact for the push services (default: APP_URL when it is https).
+		WEB_PUSH_PUBLIC_KEY: CS.string().optional(),
+		WEB_PUSH_PRIVATE_KEY: CS.string().optional(),
+		WEB_PUSH_SUBJECT: CS.string().optional(),
+		// Push services besides the known ones (Google, Mozilla, Apple, Microsoft), comma-separated
+		// host names — the server sends requests to them, so only list services you trust.
+		WEB_PUSH_EXTRA_HOSTS: CS.string().optional(),
+
 		SMTP_HOST: CS.string().optional(),
 		SMTP_PORT: CS.number().optional(),
 		SMTP_USERNAME: CS.string().optional(),

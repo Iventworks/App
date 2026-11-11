@@ -4,6 +4,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
+import { PushTriggers } from "../../../../../../push/triggers";
 import { Realtime } from "../../../../../../realtime";
 import { APIResponse } from "../../../../../utils/api-res";
 import { ConversationAccess } from "../../../../../utils/conversations";
@@ -313,7 +314,11 @@ router.post(
 		ConversationAccess.markRead(conversation.id, userId, message.created_at);
 		Realtime.conversationChanged(conversation, "message");
 
-		return APIResponse.created(c, "Message sent successfully", await respond(message, userId));
+		const response = await respond(message, userId);
+		if (response.sender) {
+			void PushTriggers.chatMessage(conversation, message, response.sender, response.attachments);
+		}
+		return APIResponse.created(c, "Message sent successfully", response);
 	},
 );
 

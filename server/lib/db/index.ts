@@ -132,6 +132,7 @@ export namespace DB.Tables {
 
 	export const calendarEntries = TableSchema.calendarEntries;
 	export const notifications = TableSchema.notifications;
+	export const pushSubscriptions = TableSchema.pushSubscriptions;
 
 	export const auditLogs = TableSchema.auditLogs;
 
@@ -190,6 +191,7 @@ export namespace DB.Models {
 
 	export type CalendarEntry = typeof DB.Tables.calendarEntries.$inferSelect;
 	export type Notification = typeof DB.Tables.notifications.$inferSelect;
+	export type PushSubscription = typeof DB.Tables.pushSubscriptions.$inferSelect;
 
 	export type AuditLog = typeof DB.Tables.auditLogs.$inferSelect;
 

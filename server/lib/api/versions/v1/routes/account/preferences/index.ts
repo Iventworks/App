@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
+import { Realtime } from "../../../../../../realtime";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler } from "../../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../../utils/preferences";
@@ -85,5 +86,63 @@ router.put(
 		await UserPreferencesHandler.setOnboarding(authContext.user_id, body);
 
 		return APIResponse.successNoData(c, "Onboarding state updated successfully");
+	},
+);
+
+router.get(
+	"/notifications",
+
+	APIRouteSpec.authenticated({
+		summary: "Get notification settings",
+		description:
+			"Which push notifications the caller gets (chat messages, other notifications, with or without the message text) and whether others see them online.",
+		tags: [DOCS_TAGS.ACCOUNT_PREFERENCES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success(
+				"Notification settings retrieved successfully",
+				AccountPreferencesModel.Notifications.Response,
+			),
+		),
+	}),
+
+	async (c) => {
+		const authContext = AuthHandler.AuthContext.get(c) as AuthHandler.AuthenticatedAuthContext;
+		const preference = await UserPreferencesHandler.get(authContext.user_id, "notifications");
+		return APIResponse.success(c, "Notification settings retrieved successfully", preference);
+	},
+);
+
+router.put(
+	"/notifications",
+
+	APIRouteSpec.authenticated({
+		summary: "Update notification settings",
+		description:
+			"Change some of the notification settings. Switching `share_presence` off hides the caller's online status and last-seen time from everyone right away.",
+		tags: [DOCS_TAGS.ACCOUNT_PREFERENCES],
+
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success(
+				"Notification settings updated successfully",
+				AccountPreferencesModel.Notifications.Response,
+			),
+		),
+	}),
+
+	validator("json", AccountPreferencesModel.Notifications.Body),
+
+	async (c) => {
+		const authContext = AuthHandler.AuthContext.get(c) as AuthHandler.AuthenticatedAuthContext;
+		const body = c.req.valid("json") as AccountPreferencesModel.Notifications.Body;
+
+		const current = await UserPreferencesHandler.get(authContext.user_id, "notifications");
+		const next = { ...current, ...body };
+		await UserPreferencesHandler.set(authContext.user_id, "notifications", next);
+		if (next.share_presence !== current.share_presence) {
+			Realtime.presenceSharingChanged(authContext.user_id, next.share_presence);
+		}
+
+		return APIResponse.success(c, "Notification settings updated successfully", next);
 	},
 );

@@ -27,6 +27,8 @@ const user = computed(() => {
 
 async function logout() {
 	useRealtime().stop();
+	// The server ends this device's pushes with the session; the browser forgets them too.
+	await usePushNotifications().forget();
 	const result = await useAPI((api) => api.postAuthLogout({}), true);
 
 	// Clear every per-user store regardless of the API result.

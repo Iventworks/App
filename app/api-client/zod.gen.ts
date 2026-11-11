@@ -767,6 +767,7 @@ export const zGetAccountResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -886,6 +887,12 @@ export const zGetAccountPreferencesResponse = z.object({
     data: z.object({
         onboarding: z.object({
             completed: z.boolean().default(false)
+        }),
+        notifications: z.object({
+            push_messages: z.boolean().default(true),
+            push_notifications: z.boolean().default(true),
+            push_preview: z.boolean().default(true),
+            share_presence: z.boolean().default(true)
         })
     })
 });
@@ -914,6 +921,43 @@ export const zPutAccountPreferencesOnboardingResponse = z.object({
     code: z.literal(200),
     message: z.literal('Onboarding state updated successfully'),
     data: z.null()
+});
+
+/**
+ * Notification settings retrieved successfully
+ */
+export const zGetAccountPreferencesNotificationsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Notification settings retrieved successfully'),
+    data: z.object({
+        push_messages: z.boolean().default(true),
+        push_notifications: z.boolean().default(true),
+        push_preview: z.boolean().default(true),
+        share_presence: z.boolean().default(true)
+    })
+});
+
+export const zPutAccountPreferencesNotificationsBody = z.object({
+    push_messages: z.boolean().optional().default(true),
+    push_notifications: z.boolean().optional().default(true),
+    push_preview: z.boolean().optional().default(true),
+    share_presence: z.boolean().optional().default(true)
+});
+
+/**
+ * Notification settings updated successfully
+ */
+export const zPutAccountPreferencesNotificationsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Notification settings updated successfully'),
+    data: z.object({
+        push_messages: z.boolean().default(true),
+        push_notifications: z.boolean().default(true),
+        push_preview: z.boolean().default(true),
+        share_presence: z.boolean().default(true)
+    })
 });
 
 /**
@@ -992,6 +1036,7 @@ export const zGetAdminUsersResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     }))
 });
@@ -1007,6 +1052,7 @@ export const zPostAdminUsersBody = z.object({
         'unverified'
     ]).optional(),
     phone: z.string().max(40).nullish(),
+    last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish(),
     password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/).optional()
 });
 
@@ -1033,6 +1079,7 @@ export const zPostAdminUsersResponse = z.object({
             suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             suspended_reason: z.string().nullable(),
             last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+            last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
         }),
         password_link: z.object({
@@ -1082,6 +1129,7 @@ export const zGetAdminUsersByUserIdResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         events: z.array(z.object({
             id: z.number(),
@@ -1118,7 +1166,8 @@ export const zPutAdminUsersByUserIdBody = z.object({
         'volunteer',
         'unverified'
     ]).optional(),
-    phone: z.string().max(40).nullish()
+    phone: z.string().max(40).nullish(),
+    last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullish()
 });
 
 export const zPutAdminUsersByUserIdPath = z.object({
@@ -1147,6 +1196,7 @@ export const zPutAdminUsersByUserIdResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -1232,6 +1282,7 @@ export const zPostAdminUsersByUserIdSuspendResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -1262,6 +1313,7 @@ export const zPostAdminUsersByUserIdUnsuspendResponse = z.object({
         suspended_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
     })
 });
@@ -3153,7 +3205,8 @@ export const zGetConversationsByConversationIdMembersResponse = z.object({
         }),
         event_role: z.enum(['leader', 'staff']).nullable(),
         position: z.string().nullable(),
-        last_read_at: z.number().nullable()
+        last_read_at: z.number().nullable(),
+        last_seen_at: z.number().nullable()
     }))
 });
 
@@ -3980,6 +4033,99 @@ export const zPostRealtimeTicketResponse = z.object({
         ticket: z.string(),
         path: z.string(),
         expires_at: z.number()
+    })
+});
+
+/**
+ * Push configuration retrieved successfully
+ */
+export const zGetPushConfigResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Push configuration retrieved successfully'),
+    data: z.object({
+        public_key: z.string()
+    })
+});
+
+/**
+ * Push devices retrieved successfully
+ */
+export const zGetPushSubscriptionsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Push devices retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        endpoint: z.string(),
+        label: z.string().nullable(),
+        created_at: z.number(),
+        last_success_at: z.number().nullable()
+    }))
+});
+
+export const zPostPushSubscriptionsBody = z.object({
+    endpoint: z.string().max(2048),
+    keys: z.object({
+        p256dh: z.string().max(200),
+        auth: z.string().max(100)
+    }),
+    label: z.string().min(1).max(80).optional()
+});
+
+/**
+ * Push device registered successfully
+ */
+export const zPostPushSubscriptionsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Push device registered successfully'),
+    data: z.object({
+        id: z.number(),
+        endpoint: z.string(),
+        label: z.string().nullable(),
+        created_at: z.number(),
+        last_success_at: z.number().nullable()
+    })
+});
+
+export const zPostPushSubscriptionsUnsubscribeBody = z.object({
+    endpoint: z.string().max(2048)
+});
+
+/**
+ * Push device removed successfully
+ */
+export const zPostPushSubscriptionsUnsubscribeResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Push device removed successfully'),
+    data: z.null()
+});
+
+export const zDeletePushSubscriptionsBySubscriptionIdPath = z.object({
+    subscriptionId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Push device removed successfully
+ */
+export const zDeletePushSubscriptionsBySubscriptionIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Push device removed successfully'),
+    data: z.null()
+});
+
+/**
+ * Test push sent successfully
+ */
+export const zPostPushTestResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Test push sent successfully'),
+    data: z.object({
+        devices: z.number()
     })
 });
 

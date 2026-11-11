@@ -28,6 +28,10 @@ const MAX_BACKOFF_MS = 30_000;
 const TYPING_TTL_MS = 6_000;
 /** Send at most one typing signal per chat in this interval (the server drops more anyway). */
 const TYPING_SEND_MS = 2_500;
+/** Without input for this long, the person counts as away (pushes go out again). */
+const IDLE_AFTER_MS = 3 * 60_000;
+const ACTIVITY_CHECK_MS = 30_000;
+const INTERACTION_EVENTS = ["pointerdown", "keydown", "touchstart", "wheel"] as const;
 
 class RealtimeClient {
 	/** Connected and greeted by the server: views may poll slowly. */
@@ -37,6 +41,8 @@ class RealtimeClient {
 	readonly online = shallowRef<ReadonlySet<number>>(new Set());
 	/** Chat id → people typing there right now. */
 	readonly typing = shallowRef<ReadonlyMap<number, RealtimeTypist[]>>(new Map());
+	/** User id → when they were last online (from the members list and presence events). */
+	readonly lastSeen = shallowRef<ReadonlyMap<number, number>>(new Map());
 
 	private nuxtApp: NuxtApp | null = null;
 	private socket: WebSocket | null = null;
@@ -50,6 +56,9 @@ class RealtimeClient {
 	private readonly listeners = new Set<RealtimeListener>();
 	private readonly typingUntil = new Map<number, Map<number, { name: string; until: number }>>();
 	private readonly typingSentAt = new Map<number, number>();
+	private lastInteraction = Date.now();
+	private sentActive: boolean | null = null;
+	private activityTimer: ReturnType<typeof setInterval> | null = null;
 
 	/** Connect (idempotent). Call from a component's setup or lifecycle hook. */
 	start() {
@@ -58,6 +67,13 @@ class RealtimeClient {
 		this.wanted = true;
 		window.addEventListener("online", this.wake);
 		document.addEventListener("visibilitychange", this.wake);
+		document.addEventListener("visibilitychange", this.updateActivity);
+		window.addEventListener("focus", this.updateActivity);
+		window.addEventListener("blur", this.updateActivity);
+		for (const type of INTERACTION_EVENTS) {
+			window.addEventListener(type, this.onInteraction, { passive: true, capture: true });
+		}
+		this.activityTimer = setInterval(this.updateActivity, ACTIVITY_CHECK_MS);
 		void this.connect();
 	}
 
@@ -68,7 +84,16 @@ class RealtimeClient {
 		if (import.meta.client) {
 			window.removeEventListener("online", this.wake);
 			document.removeEventListener("visibilitychange", this.wake);
+			document.removeEventListener("visibilitychange", this.updateActivity);
+			window.removeEventListener("focus", this.updateActivity);
+			window.removeEventListener("blur", this.updateActivity);
+			for (const type of INTERACTION_EVENTS) {
+				window.removeEventListener(type, this.onInteraction, { capture: true });
+			}
 		}
+		if (this.activityTimer) clearInterval(this.activityTimer);
+		this.activityTimer = null;
+		this.sentActive = null;
 		this.clearTimers();
 		const socket = this.socket;
 		this.socket = null;
@@ -113,6 +138,40 @@ class RealtimeClient {
 	isOnline(userId: number | null | undefined) {
 		return userId !== null && userId !== undefined && this.online.value.has(userId);
 	}
+
+	lastSeenOf(userId: number | null | undefined) {
+		return userId === null || userId === undefined ? null : (this.lastSeen.value.get(userId) ?? null);
+	}
+
+	/** Seed last-seen times (from `/conversations/{id}/members`). */
+	rememberLastSeen(entries: Iterable<[number, number | null]>) {
+		const next = new Map(this.lastSeen.value);
+		let changed = false;
+		for (const [userId, at] of entries) {
+			if (at === null || (next.get(userId) ?? 0) >= at) continue;
+			next.set(userId, at);
+			changed = true;
+		}
+		if (changed) this.lastSeen.value = next;
+	}
+
+	// --- activity (no pushes while the person is using the app) --------------------------------
+
+	private readonly onInteraction = () => {
+		const wasIdle = Date.now() - this.lastInteraction > IDLE_AFTER_MS;
+		this.lastInteraction = Date.now();
+		if (wasIdle || this.sentActive === false) this.updateActivity();
+	};
+
+	private readonly updateActivity = () => {
+		const active =
+			document.visibilityState === "visible" &&
+			document.hasFocus() &&
+			Date.now() - this.lastInteraction < IDLE_AFTER_MS;
+		if (active === this.sentActive || this.socket?.readyState !== WebSocket.OPEN) return;
+		this.sentActive = active;
+		this.send({ type: "activity", active });
+	};
 
 	// --- connection --------------------------------------------------------------------------
 
@@ -212,6 +271,9 @@ class RealtimeClient {
 				this.selfId.value = event.user_id;
 				this.online.value = new Set(event.online_user_ids);
 				this.startPing();
+				// A new connection starts as "not active" on the server: report the real state.
+				this.sentActive = null;
+				this.updateActivity();
 				// After a reconnect, views catch up on what happened while the socket was gone.
 				if (this.greetedBefore) this.emit({ type: "resync" });
 				this.greetedBefore = true;
@@ -221,6 +283,9 @@ class RealtimeClient {
 				if (event.online) next.add(event.user_id);
 				else next.delete(event.user_id);
 				this.online.value = next;
+				if (!event.online && event.last_seen_at) {
+					this.rememberLastSeen([[event.user_id, event.last_seen_at]]);
+				}
 				break;
 			}
 			case "typing": {
