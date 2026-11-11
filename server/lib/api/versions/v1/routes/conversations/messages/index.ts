@@ -4,6 +4,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
+import { Realtime } from "../../../../../../realtime";
 import { APIResponse } from "../../../../../utils/api-res";
 import { ConversationAccess } from "../../../../../utils/conversations";
 import { getAuthUserId } from "../../../../../utils/guards";
@@ -19,14 +20,23 @@ type MessagesEnv = {
 
 export const router = new Hono<MessagesEnv>().basePath("/:conversationId/messages");
 
-/** Mark a message as changed so the other people's next `/sync` picks it up. */
-async function touch(messageId: number, changes: Partial<DB.Models.Message> = {}) {
-	return await DB.instance()
+/**
+ * Mark a message as changed so the other people's next `/sync` picks it up, and tell their open
+ * chats right away.
+ */
+async function touch(
+	conversation: DB.Models.Conversation,
+	messageId: number,
+	changes: Partial<DB.Models.Message> = {},
+) {
+	const updated = await DB.instance()
 		.update(DB.Tables.messages)
 		.set({ ...changes, updated_at: Date.now() })
 		.where(and(inOrg(DB.Tables.messages), eq(DB.Tables.messages.id, messageId)))
 		.returning()
 		.get();
+	Realtime.conversationChanged(conversation, "update");
+	return updated;
 }
 
 async function respond(message: DB.Models.Message, userId: number) {
@@ -301,6 +311,7 @@ router.post(
 		});
 
 		ConversationAccess.markRead(conversation.id, userId, message.created_at);
+		Realtime.conversationChanged(conversation, "message");
 
 		return APIResponse.created(c, "Message sent successfully", await respond(message, userId));
 	},
@@ -349,7 +360,10 @@ router.put(
 			return APIResponse.badRequest(c, "A message needs text or an attachment");
 		}
 
-		const updated = await touch(message.id, { content, edited_at: Date.now() });
+		const updated = await touch(c.get("conversation"), message.id, {
+			content,
+			edited_at: Date.now(),
+		});
 		return APIResponse.success(c, "Message updated successfully", await respond(updated, userId));
 	},
 );
@@ -400,6 +414,7 @@ router.delete(
 				.run();
 			await MessageService.removeFiles(attachments, tx);
 		});
+		Realtime.conversationChanged(c.get("conversation"), "update");
 
 		return APIResponse.successNoData(c, "Message deleted successfully");
 	},
@@ -467,7 +482,7 @@ router.post(
 				.run();
 		}
 
-		const updated = await touch(message.id);
+		const updated = await touch(c.get("conversation"), message.id);
 		return APIResponse.success(c, "Reaction updated successfully", await respond(updated, userId));
 	},
 );
@@ -500,7 +515,10 @@ router.put(
 			return APIResponse.badRequest(c, "Too many pinned messages in this chat");
 		}
 
-		const updated = await touch(message.id, { pinned_at: Date.now(), pinned_by: userId });
+		const updated = await touch(c.get("conversation"), message.id, {
+			pinned_at: Date.now(),
+			pinned_by: userId,
+		});
 		return APIResponse.success(c, "Message pinned successfully", await respond(updated, userId));
 	},
 );
@@ -527,7 +545,7 @@ router.delete(
 		const updated =
 			message.pinned_at === null
 				? message
-				: await touch(message.id, { pinned_at: null, pinned_by: null });
+				: await touch(c.get("conversation"), message.id, { pinned_at: null, pinned_by: null });
 		return APIResponse.success(c, "Message unpinned successfully", await respond(updated, userId));
 	},
 );

@@ -322,6 +322,15 @@ function onKeydown(event: KeyboardEvent) {
 	if (event.key === "ArrowUp" && !text.value && !props.editing && !uploads.value.length) {
 		event.preventDefault();
 		emit("editLast");
+		return;
+	}
+	// Writing (not editing an old message): let the others see "… schreibt".
+	const writes =
+		event.key.length === 1 ||
+		event.key === "Process" ||
+		((event.key === "Backspace" || event.key === "Delete") && text.value.length > 1);
+	if (writes && !props.editing && !event.ctrlKey && !event.metaKey) {
+		useRealtime().sendTyping(props.conversationId);
 	}
 }
 

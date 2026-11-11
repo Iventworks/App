@@ -59,6 +59,20 @@ function subtitle(conversation: ChatConversation) {
 	return null;
 }
 
+const realtime = useRealtime();
+
+/** The other person of a direct chat is online (green dot). */
+function otherOnline(conversation: ChatConversation) {
+	const other = conversation.members.find((member) => member.id !== realtime.selfId.value);
+	return realtime.isOnline(other?.id);
+}
+
+function typingText(conversation: ChatConversation) {
+	const typists = realtime.typingIn(conversation.id);
+	if (!typists.length) return "";
+	return conversation.type === "direct" ? "schreibt …" : typingLabel(typists);
+}
+
 function preview(conversation: ChatConversation) {
 	const last = conversation.last_message;
 	if (!last) return "Noch keine Nachrichten";
@@ -137,6 +151,7 @@ const nothingFound = computed(
 								:text="initials(conversation.title)"
 								size="md"
 								class="shrink-0"
+								:chip="otherOnline(conversation) ? { color: 'success', position: 'bottom-right' } : false"
 							/>
 							<div
 								v-else
@@ -180,12 +195,17 @@ const nothingFound = computed(
 											conversation.unread_count > 0 ? 'text-slate-300' : 'text-slate-500',
 										]"
 									>
-										<UIcon
-											v-if="conversation.last_message && !conversation.last_message.content"
-											:name="conversation.last_message.attachment_is_image ? 'i-lucide-image' : 'i-lucide-paperclip'"
-											class="size-3 shrink-0"
-										/>
-										<span class="truncate">{{ preview(conversation) }}</span>
+										<span v-if="typingText(conversation)" class="truncate font-medium text-primary-300">
+											{{ typingText(conversation) }}
+										</span>
+										<template v-else>
+											<UIcon
+												v-if="conversation.last_message && !conversation.last_message.content"
+												:name="conversation.last_message.attachment_is_image ? 'i-lucide-image' : 'i-lucide-paperclip'"
+												class="size-3 shrink-0"
+											/>
+											<span class="truncate">{{ preview(conversation) }}</span>
+										</template>
 									</p>
 									<UBadge
 										v-if="conversation.unread_count > 0"

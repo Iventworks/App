@@ -1,6 +1,7 @@
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
 import { OrgContext } from "../../orgs/context";
+import { Realtime } from "../../realtime";
 import { Logger } from "../../utils/logger";
 
 /**
@@ -32,6 +33,8 @@ export class Notifier {
 					})),
 				)
 				.run();
+			// Badges and an open notification list update right away.
+			Realtime.notificationsChanged(recipients);
 		} catch (error) {
 			Logger.error("Failed to create notifications:", error);
 		}

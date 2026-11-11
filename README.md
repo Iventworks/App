@@ -120,8 +120,11 @@ permissions through `useCurrentEvent()`.
 Chats (direct, group, and the channels of events, event groups and the core team) support
 attachments (also by drag & drop and paste), replies, emoji reactions, pinned messages, search
 within a chat and across all chats, member lists, read ticks, and pinning or muting a chat for
-yourself. They are polled (no WebSocket yet): an open chat syncs new messages and every change to
-loaded ones (edits, reactions, pins, deletions) every 4 seconds; unread badges refresh every minute.
+yourself. Updates arrive live over a WebSocket (`/ws/realtime`): new messages and every change to
+loaded ones (edits, reactions, pins, deletions, read ticks), who is typing, who is online, and new
+notifications. The socket only signals; the data is loaded through the API. Without it (blocked
+by a proxy, offline) the app falls back to polling: an open chat every 4 seconds, the chat list
+every 15 seconds, badges every minute.
 
 ## Events
 
@@ -248,7 +251,10 @@ CI (`.gitlab/ci/build.yml`) builds the image from the default branch and pushes
    guide's images; Docker creates `/opt/iventworks/{data,config,backups}` on the host if missing.
 3. The app listens on `127.0.0.1:31316`; point the reverse proxy (TLS) at it, in multi-org mode
    for the wildcard and the custom domains too. With that setup `IVENTWORKS_TRUST_PROXY=true` is
-   correct; set it to `false` if the port is ever published directly.
+   correct; set it to `false` if the port is ever published directly. The proxy must pass
+   WebSocket upgrades for `/ws/realtime` (Traefik and Caddy do by default; nginx needs
+   `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers) and keep idle sockets open for
+   at least 90 seconds. Without that, chats still work, but by polling instead of live.
 4. First start only: open the reset link from
    `/opt/iventworks/config/initial_admin_password_reset_token.txt` (also in the logs), set the
    `admin` password, then change the admin's email in the profile. Single-org: invite everyone

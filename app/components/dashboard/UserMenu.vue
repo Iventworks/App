@@ -26,6 +26,7 @@ const user = computed(() => {
 });
 
 async function logout() {
+	useRealtime().stop();
 	const result = await useAPI((api) => api.postAuthLogout({}), true);
 
 	// Clear every per-user store regardless of the API result.

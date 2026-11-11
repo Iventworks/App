@@ -25,14 +25,19 @@ export default defineNuxtConfig({
 
 	$production: {
 		nitro: {
-			// Nitro's Bun entry plus request size limits (uploads: IVENTWORKS_MAX_UPLOAD_SIZE_MB).
-			// Production only: `nuxt dev` needs Nitro's own dev entry (with this one, the dev
-			// worker started a second server and never answered).
+			// Nitro's Bun entry plus request size limits (uploads: IVENTWORKS_MAX_UPLOAD_SIZE_MB)
+			// and the realtime WebSocket. Production only: `nuxt dev` needs Nitro's own dev entry
+			// (with this one, the dev worker started a second server and never answered).
 			entry: fileURLToPath(new URL("./server/runtime/bun.ts", import.meta.url)),
 		},
 	},
 
 	nitro: {
+		// The realtime channel (`server/routes/ws/realtime.ts`): chat updates, typing, presence.
+		experimental: {
+			websocket: true,
+		},
+
 		rollupConfig: {
 			external: ["bun:sqlite"],
 

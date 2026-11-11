@@ -3969,6 +3969,20 @@ export const zPutConversationsByConversationIdMessagesByMessageIdPinResponse = z
     })
 });
 
+/**
+ * Ticket issued successfully
+ */
+export const zPostRealtimeTicketResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Ticket issued successfully'),
+    data: z.object({
+        ticket: z.string(),
+        path: z.string(),
+        expires_at: z.number()
+    })
+});
+
 export const zGetUsersQuery = z.object({
     search: z.string().min(1).max(64).optional(),
     role: z.enum([

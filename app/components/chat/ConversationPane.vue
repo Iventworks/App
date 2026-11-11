@@ -37,6 +37,8 @@ const emit = defineEmits<{
 
 const PAGE_SIZE = 50;
 const POLL_MS = 4_000;
+/** With the realtime channel, the socket says when to sync; polling is only a safety net. */
+const POLL_REALTIME_MS = 30_000;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 // `after` for a sync that should only report changes, not new messages (while reading history).
 const ALL_IDS = Number.MAX_SAFE_INTEGER;
@@ -52,6 +54,7 @@ const TYPE_ICONS: Record<ChatConversation["type"], string> = {
 const toast = useToast();
 const { refreshBadges } = useDashboard();
 const visibility = useDocumentVisibility();
+const realtime = useRealtime();
 
 const messages = ref<ChatMessage[]>([]);
 const loading = ref(false);
@@ -330,10 +333,29 @@ async function backToLatest() {
 }
 
 let polling = false;
+/** A sync was asked for while one was running: run once more afterwards. */
+let pollAgain = false;
+/** Messages from others arrived while the tab was hidden: mark them read when it is shown. */
+let unreadWhileHidden = false;
 
 async function poll() {
-	if (polling || loading.value) return;
+	if (polling) {
+		pollAgain = true;
+		return;
+	}
+	if (loading.value) return;
 	polling = true;
+	try {
+		do {
+			pollAgain = false;
+			await syncOnce();
+		} while (pollAgain && !loading.value);
+	} finally {
+		polling = false;
+	}
+}
+
+async function syncOnce() {
 	const conversationId = props.conversation.id;
 	const history = hasNewer.value;
 	const after = history ? ALL_IDS : (messages.value.at(-1)?.id ?? 0);
@@ -344,7 +366,6 @@ async function poll() {
 			query: { after, since: syncSince, from: messages.value[0]?.id ?? 0 },
 		}),
 	);
-	polling = false;
 
 	if (conversationId !== props.conversation.id || !result.success) return;
 	const {
@@ -387,16 +408,23 @@ async function poll() {
 
 	const stickToBottom = isNearBottom();
 	merge(fresh);
-	const fromOthers = fresh.filter((message) => !message.is_own).length;
+	const fromOthers = fresh.filter((message) => !message.is_own);
+	// Whoever just sent a message has stopped typing.
+	realtime.clearTyping(
+		conversationId,
+		fromOthers.map((message) => message.sender?.id).filter((id): id is number => id !== undefined),
+	);
 	if (stickToBottom) await scrollToBottom(true);
-	else newBelow.value += fromOthers;
-	if (fromOthers > 0) {
-		await markRead();
+	else newBelow.value += fromOthers.length;
+	if (fromOthers.length > 0) {
+		if (visibility.value === "visible") await markRead();
+		else unreadWhileHidden = true;
 		emit("changed");
 	}
 }
 
-const { pause, resume } = useIntervalFn(poll, POLL_MS, { immediate: false });
+const pollInterval = computed(() => (realtime.connected.value ? POLL_REALTIME_MS : POLL_MS));
+const { pause, resume } = useIntervalFn(poll, pollInterval, { immediate: false });
 
 watch(
 	visibility,
@@ -404,12 +432,25 @@ watch(
 		if (state === "visible") {
 			resume();
 			void poll();
+			if (unreadWhileHidden) {
+				unreadWhileHidden = false;
+				void markRead();
+			}
 		} else {
 			pause();
 		}
 	},
 	{ immediate: true },
 );
+
+// The realtime channel: sync as soon as this chat changes (also while the tab is in the
+// background, so the messages are there when it comes back), and after a reconnect.
+useRealtimeEvent((event) => {
+	if (event.type === "resync") void poll();
+	if (event.type === "conversation" && event.conversation_id === props.conversation.id) void poll();
+});
+
+const typists = computed(() => realtime.typingIn(props.conversation.id));
 
 watch(() => props.conversation.id, loadInitial, { immediate: true });
 
@@ -637,6 +678,13 @@ function onDrop(event: DragEvent) {
 
 // --- header ----------------------------------------------------------------------------------
 
+/** The other person of a direct chat. */
+const otherPerson = computed(() =>
+	props.conversation.type === "direct"
+		? (props.conversation.members.find((member) => member.id !== realtime.selfId.value) ?? null)
+		: null,
+);
+
 const description = computed(() => {
 	const conversation = props.conversation;
 	const people = `${conversation.member_count} ${conversation.member_count === 1 ? "Mitglied" : "Mitglieder"}`;
@@ -647,10 +695,15 @@ const description = computed(() => {
 			return conversation.event ? `Gruppe · ${conversation.event.name} · ${people}` : people;
 		case "core_team":
 			return `Internes Kernteam · ${people}`;
-		case "group":
-			return people;
+		case "group": {
+			const online = conversation.members.filter(
+				(member) => member.id !== realtime.selfId.value && realtime.isOnline(member.id),
+			).length;
+			return online ? `${people} · ${online} online` : people;
+		}
 		default:
-			return "Direktnachricht";
+			if (typists.value.length) return "schreibt …";
+			return realtime.isOnline(otherPerson.value?.id) ? "Online" : "Direktnachricht";
 	}
 });
 </script>
@@ -835,6 +888,22 @@ const description = computed(() => {
 
 		<template #footer>
 			<div class="relative">
+				<div
+					v-if="typists.length"
+					class="pointer-events-none absolute -top-8 left-3 z-10 flex items-center gap-2 rounded-full bg-slate-900/95 px-3 py-1 text-xs text-slate-300 shadow-lg ring-1 ring-slate-800 sm:left-6"
+					aria-live="polite"
+				>
+					<span class="flex gap-0.5" aria-hidden="true">
+						<span
+							v-for="dot in 3"
+							:key="dot"
+							class="size-1.5 animate-bounce rounded-full bg-primary-400"
+							:style="{ animationDelay: `${(dot - 1) * 150}ms` }"
+						/>
+					</span>
+					{{ typingLabel(typists) }}
+				</div>
+
 				<div v-if="!atBottom || hasNewer" class="absolute -top-12 right-4 z-10 sm:right-6">
 					<UChip :show="newBelow > 0" :text="newBelow > 99 ? '99+' : newBelow" size="3xl" inset>
 						<UButton

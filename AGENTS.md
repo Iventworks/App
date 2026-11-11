@@ -27,7 +27,8 @@ Follow the LeiCraftMC Style Guides: https://github.com/LeiCraftMC/Style-Guides.
 - Lucide icons only (`i-lucide-*`). Never hand-edit `*.gen.ts` under `app/api-client/` —
   regenerate with `bun run api-client:generate`.
 - `nitro.rollupConfig.external: ["bun:sqlite"]` in `nuxt.config.ts`. WebSocket routes
-  (`server/routes/ws/`) require `nitro.experimental.websocket = true` (Bun preset).
+  (`server/routes/ws/`) require `nitro.experimental.websocket = true` (Bun preset) — it is on for
+  the realtime channel.
 - Format with Biome before finishing. Conventional Commits.
 
 ## Iventworks-specific rules and exceptions
@@ -173,9 +174,27 @@ CMP (Crossover Management Portal) before; the repository still is.
   leaders' notes about staff, notes about participants, the dates of a series (they come from the
   rule). A new event table or column that belongs to an event must be added to `EventCopier` (or
   consciously left out) and to its `summary`.
-- **Messaging** is REST + polling, no WebSocket: an open chat polls
-  `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>&from=<first id>` every
-  few seconds and receives new messages plus what changed on loaded ones — every change (edit,
+- **Realtime** (`server/lib/realtime/`, the style guide has no spec): one WebSocket per tab at
+  `/ws/realtime` (`server/routes/ws/realtime.ts` → `RealtimeGateway`). It only *signals*
+  (`conversation` changed, `typing`, `presence`, `notification`); the data always comes from the
+  REST API, so access checks stay in one place and polling remains as a slow fallback.
+  - Auth: no cookie, no token in the URL — the client gets a one-time ticket with its bearer token
+    (`POST /realtime/ticket`, 30 s, bound to the org) and opens `/ws/realtime?ticket=…`. The upgrade
+    also checks the host's org and the browser `Origin`. Every minute each socket is checked
+    against its session/API key and user (revoked, suspended, unverified → closed with 4401).
+  - Everything is per org (`RealtimeHub` is keyed by org id). Handlers announce changes with
+    `Realtime.conversationChanged(…)` / `Realtime.notificationsChanged(…)` *after* storing them —
+    a new chat change that others should see must call it (messages router: `touch()`).
+  - Clients may only send `ping` and `typing` (small, rate-limited, typing only reaches the
+    people of a chat the sender is in). In production only `/ws/realtime` is upgraded
+    (`server/runtime/bun.ts`); in `nuxt dev` Nitro's dev server handles upgrades itself.
+  - Frontend: `useRealtime()` (started by the dashboard layout, stopped on logout),
+    `useRealtimeEvent()` in components; views poll every 30 s – 5 min while connected and fall
+    back to the old intervals without it.
+- **Messaging** is REST + realtime signals: an open chat syncs with
+  `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>&from=<first id>` when
+  the socket says it changed (else every few seconds) and receives new messages plus what changed
+  on loaded ones — every change (edit,
   reaction, pin, deletion) bumps `messages.updated_at`, which is what sync reports; messages are
   soft-deleted as tombstones with their text wiped, so deletions can be synced. The same response
   carries the pinned ids and `read_by_all_until` (the read ticks). Rules:
@@ -218,9 +237,12 @@ CMP (Crossover Management Portal) before; the repository still is.
   from the local `/api/_nuxt_icon` — `plugins/iconProvider.client.ts` works around @nuxt/icon not
   doing so with @iconify/vue 5). Endpoints that serve files set their own CSP, which replaces the
   default `default-src 'none'` of API responses.
-- **Server entry** `server/runtime/bun.ts` replaces the Bun preset's entry (`nitro.entry`): it
-  refuses oversized bodies before reading them (uploads: `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, other
-  requests 2 MB, `RequestLimits`). Keep it in step with nitropack's `presets/bun/runtime/bun.mjs`.
+- **Server entry** `server/runtime/bun.ts` replaces the Bun preset's entry (`nitro.entry`, set
+  under `$production` only — in `nuxt dev` it would start a second server inside the dev worker):
+  it refuses oversized bodies before reading them (uploads: `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, other
+  requests 2 MB, `RequestLimits`) and upgrades only `/ws/realtime` to a WebSocket (with frame,
+  idle and backpressure limits from `RealtimeLimits`). Keep it in step with nitropack's
+  `presets/bun/runtime/bun.mjs`.
 - **Backups** (`server/lib/backup/`, README › Backups): encrypted tar.gz of a `VACUUM INTO`
   snapshot plus `uploads/`, scheduled by `CronJobHandler`, CLI `scripts/backup.ts` (bundled to
   `.output/backup.mjs`). New data on disk outside the database or `uploads/` must be added to

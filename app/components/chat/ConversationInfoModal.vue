@@ -25,6 +25,7 @@ const open = defineModel<boolean>("open", { required: true });
 
 const toast = useToast();
 const me = await useUserInfoStore().use();
+const realtime = useRealtime();
 
 const isGroup = computed(() => props.conversation.type === "group");
 
@@ -57,6 +58,7 @@ function memberDetail(member: ChatMember) {
 	if (member.event_role) parts.push(getEventRoleLabel(member.event_role));
 	if (member.position) parts.push(member.position);
 	if (!parts.length) parts.push(`@${member.user.username}`);
+	if (realtime.isOnline(member.user.id)) parts.push("online");
 	return parts.join(" · ");
 }
 
@@ -314,7 +316,11 @@ async function leave() {
 					class="max-h-72 divide-y divide-slate-800 overflow-y-auto rounded-lg border border-slate-800"
 				>
 					<li v-for="member in members" :key="member.user.id" class="flex items-center gap-3 px-3 py-2">
-						<UAvatar :text="initials(member.user.display_name)" size="sm" />
+						<UAvatar
+							:text="initials(member.user.display_name)"
+							size="sm"
+							:chip="realtime.isOnline(member.user.id) ? { color: 'success', position: 'bottom-right' } : false"
+						/>
 						<div class="min-w-0 flex-1 text-sm">
 							<p class="truncate text-white">
 								{{ member.user.display_name }}

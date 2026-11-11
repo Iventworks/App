@@ -10,6 +10,7 @@ import {
 	breakpointsTailwind,
 	refDebounced,
 	useBreakpoints,
+	useDebounceFn,
 	useDocumentVisibility,
 	useIntervalFn,
 } from "@vueuse/core";
@@ -21,6 +22,8 @@ definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Nachrichten" });
 
 const LIST_POLL_MS = 15_000;
+/** With the realtime channel, events refresh the list; polling is only a safety net. */
+const LIST_POLL_REALTIME_MS = 2 * 60_000;
 
 const route = useRoute();
 const router = useRouter();
@@ -176,7 +179,20 @@ function openHit(hit: ChatSearchHit) {
 	void select(hit.conversation.id, hit.message.id);
 }
 
-const { pause, resume } = useIntervalFn(() => void refresh(), LIST_POLL_MS, { immediate: false });
+const realtime = useRealtime();
+const listInterval = computed(() =>
+	realtime.connected.value ? LIST_POLL_REALTIME_MS : LIST_POLL_MS,
+);
+const { pause, resume } = useIntervalFn(() => void refresh(), listInterval, { immediate: false });
+
+// Any chat changed (new message, members, settings), a notification (maybe a new event channel)
+// or a reconnect: reload the list once for a burst of events.
+const refreshSoon = useDebounceFn(() => void refresh(), 300);
+useRealtimeEvent((event) => {
+	if (event.type === "conversation" || event.type === "notification" || event.type === "resync") {
+		void refreshSoon();
+	}
+});
 
 watch(visibility, (state) => (state === "visible" ? resume() : pause()), { immediate: true });
 

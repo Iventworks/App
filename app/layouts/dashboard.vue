@@ -32,10 +32,19 @@ const {
 	stopBadgePolling,
 } = useDashboard();
 
+// The realtime channel (chat updates, typing, presence, notifications) lives as long as the
+// dashboard; the system host has no chats.
+const realtime = useRealtime();
+
 onMounted(() => {
-	if (!isSystem.value) startBadgePolling();
+	if (isSystem.value) return;
+	startBadgePolling();
+	realtime.start();
 });
-onBeforeUnmount(stopBadgePolling);
+onBeforeUnmount(() => {
+	stopBadgePolling();
+	realtime.stop();
+});
 
 // --- selected event -------------------------------------------------------------------------
 

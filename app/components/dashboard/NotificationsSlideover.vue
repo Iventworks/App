@@ -39,6 +39,11 @@ watch(isNotificationsSlideoverOpen, (open) => {
 	if (open) void load();
 });
 
+// New notifications appear in the open list right away.
+useRealtimeEvent((event) => {
+	if (event.type === "notification" && isNotificationsSlideoverOpen.value) void load();
+});
+
 async function open(notification: NotificationItem) {
 	if (!notification.read_at) {
 		await useAPI((api) =>

@@ -5,6 +5,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
 import { inOrg, OrgContext } from "../../../../../orgs/context";
+import { Realtime } from "../../../../../realtime";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { ConversationAccess } from "../../../../utils/conversations";
@@ -219,6 +220,7 @@ router.post(
 					.run();
 				return conversation;
 			});
+			Realtime.conversationChanged(created, "members");
 
 			return APIResponse.created(
 				c,
@@ -253,6 +255,7 @@ router.post(
 				.run();
 			return conversation;
 		});
+		Realtime.conversationChanged(created, "members");
 
 		return APIResponse.created(
 			c,
@@ -397,6 +400,10 @@ router.put(
 			.from(DB.Tables.conversations)
 			.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
 			.get();
+		// Removed members are told too, so their chat list drops the chat.
+		Realtime.conversationChanged(refreshed ?? conversation, "members", {
+			alsoUserIds: body.remove_user_ids ?? [],
+		});
 
 		return APIResponse.success(
 			c,
@@ -477,6 +484,8 @@ router.put(
 		const body = c.req.valid("json") as ConversationsModel.Preferences.Body;
 
 		ConversationAccess.setPreferences(conversation.id, userId, body);
+		// The caller's other devices.
+		Realtime.conversationChangedFor([userId], conversation.id, "settings");
 
 		return APIResponse.success(
 			c,
@@ -604,6 +613,7 @@ router.delete(
 				),
 			)
 			.run();
+		Realtime.conversationChanged(conversation, "members", { alsoUserIds: [getCaller(c).userId] });
 
 		return APIResponse.successNoData(c, "You left the conversation");
 	},
@@ -626,6 +636,8 @@ router.post(
 
 	async (c) => {
 		ConversationAccess.markRead(c.get("conversation").id, getCaller(c).userId);
+		// Read ticks of the others, unread badges of the reader's other devices.
+		Realtime.conversationChanged(c.get("conversation"), "read");
 		return APIResponse.successNoData(c, "Conversation marked as read");
 	},
 );

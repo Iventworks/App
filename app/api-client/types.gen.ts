@@ -6263,6 +6263,31 @@ export type PutConversationsByConversationIdMessagesByMessageIdPinResponses = {
 
 export type PutConversationsByConversationIdMessagesByMessageIdPinResponse = PutConversationsByConversationIdMessagesByMessageIdPinResponses[keyof PutConversationsByConversationIdMessagesByMessageIdPinResponses];
 
+export type PostRealtimeTicketData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/realtime/ticket';
+};
+
+export type PostRealtimeTicketResponses = {
+    /**
+     * Ticket issued successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Ticket issued successfully';
+        data: {
+            ticket: string;
+            path: string;
+            expires_at: number;
+        };
+    };
+};
+
+export type PostRealtimeTicketResponse = PostRealtimeTicketResponses[keyof PostRealtimeTicketResponses];
+
 export type GetUsersData = {
     body?: never;
     path?: never;
