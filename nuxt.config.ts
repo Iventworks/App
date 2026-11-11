@@ -23,10 +23,16 @@ export default defineNuxtConfig({
 
 	css: ["~/assets/css/main.css"],
 
-	nitro: {
-		// Nitro's Bun entry plus request size limits (uploads: IVENTWORKS_MAX_UPLOAD_SIZE_MB).
-		entry: fileURLToPath(new URL("./server/runtime/bun.ts", import.meta.url)),
+	$production: {
+		nitro: {
+			// Nitro's Bun entry plus request size limits (uploads: IVENTWORKS_MAX_UPLOAD_SIZE_MB).
+			// Production only: `nuxt dev` needs Nitro's own dev entry (with this one, the dev
+			// worker started a second server and never answered).
+			entry: fileURLToPath(new URL("./server/runtime/bun.ts", import.meta.url)),
+		},
+	},
 
+	nitro: {
 		rollupConfig: {
 			external: ["bun:sqlite"],
 
