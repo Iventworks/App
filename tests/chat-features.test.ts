@@ -869,3 +869,121 @@ describe("Chat settings", () => {
 		expect(row.muted).toBe(true);
 	});
 });
+
+describe("Review fixes", () => {
+	test("sync caps the changes it reports and says so", async () => {
+		const chat = await makeAPIRequest(
+			"/v1/conversations",
+			{
+				method: "POST",
+				authToken: aliceSession.token,
+				body: { type: "group", name: "Viel los", user_ids: [bob.id] },
+			},
+			201,
+		);
+		// 510 changed messages straight into the database (through the API this would take long).
+		const now = Date.now();
+		DB.instance()
+			.insert(DB.Tables.messages)
+			.values(
+				Array.from({ length: 510 }, (_, i) => ({
+					org_id: OrgContext.id(),
+					conversation_id: chat.id,
+					sender_id: alice.id,
+					content: `Nachricht ${i}`,
+					created_at: now - 1000 + i,
+					updated_at: now,
+				})),
+			)
+			.run();
+		const last = DB.instance()
+			.select({ id: DB.Tables.messages.id })
+			.from(DB.Tables.messages)
+			.where(eq(DB.Tables.messages.conversation_id, chat.id))
+			.all()
+			.at(-1)!.id;
+
+		const synced = await makeAPIRequest(
+			`/v1/conversations/${chat.id}/messages/sync?after=${last}&since=0&from=0`,
+			{ authToken: bobSession.token, expectedBodySchema: MessagesModel.Sync.Response },
+		);
+		expect(synced.updated).toHaveLength(500);
+		expect(synced.truncated).toBe(true);
+
+		const small = await makeAPIRequest(
+			`/v1/conversations/${chat.id}/messages/sync?after=${last}&since=${now + 1}&from=0`,
+			{ authToken: bobSession.token, expectedBodySchema: MessagesModel.Sync.Response },
+		);
+		expect(small.truncated).toBe(false);
+	});
+
+	test("the members list gives the read position, not the time someone was active", async () => {
+		const message = await send(aliceSession.token, chatId, { content: "Position, nicht Uhrzeit" });
+		// Bob reads a little later.
+		await Bun.sleep(30);
+		await makeAPIRequest(`/v1/conversations/${chatId}/read`, {
+			method: "POST",
+			authToken: bobSession.token,
+		});
+		const members = await makeAPIRequest(`/v1/conversations/${chatId}/members`, {
+			authToken: aliceSession.token,
+			expectedBodySchema: ConversationsModel.Members.Response,
+		});
+		const bobEntry = members.find((member) => member.user.id === bob.id)!;
+		// Exactly the newest message he has seen, not the moment he opened the chat.
+		expect(bobEntry.last_read_at).toBe(message.created_at);
+	});
+
+	test("a double tap on a reaction doesn't fail", async () => {
+		const message = await send(aliceSession.token, chatId, { content: "Doppelt" });
+		const path = `/v1/conversations/${chatId}/messages/${message.id}/reactions`;
+		const [first, second] = await Promise.all([
+			API.getApp().request(path, {
+				method: "POST",
+				headers: {
+					...hostHeaders(TEST_HOST),
+					Authorization: `Bearer ${bobSession.token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ emoji: "👍" }),
+			}),
+			API.getApp().request(path, {
+				method: "POST",
+				headers: {
+					...hostHeaders(TEST_HOST),
+					Authorization: `Bearer ${bobSession.token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ emoji: "👍" }),
+			}),
+		]);
+		expect(first.status).toBeLessThan(500);
+		expect(second.status).toBeLessThan(500);
+	});
+
+	test("a deleted message is quoted empty, whatever its row still holds", async () => {
+		const original = await send(bobSession.token, chatId, { content: "Gleich weg" });
+		const reply = await send(aliceSession.token, chatId, {
+			content: "Antwort",
+			reply_to_id: original.id,
+		});
+		// A tombstone that still carries text (as a lost race once could leave it).
+		DB.instance()
+			.update(DB.Tables.messages)
+			.set({ deleted_at: Date.now(), content: "Sollte niemand sehen" })
+			.where(eq(DB.Tables.messages.id, original.id))
+			.run();
+		const page = await makeAPIRequest(`/v1/conversations/${chatId}/messages?around=${reply.id}`, {
+			authToken: bobSession.token,
+			expectedBodySchema: MessagesModel.GetAll.Response,
+		});
+		const quoted = page.find((message) => message.id === reply.id)!.reply_to!;
+		expect(quoted).toMatchObject({ is_deleted: true, content: "" });
+		// And nothing can be written to it any more.
+		await makeAPIRequest(
+			`/v1/conversations/${chatId}/messages/${original.id}/reactions`,
+			{ method: "POST", authToken: aliceSession.token, body: { emoji: "👍" } },
+			404,
+		);
+	});
+});

@@ -28,10 +28,13 @@ const ids = computed(() => people.value.map((user) => user.id));
 const mine = computed(() => props.userId !== undefined && ids.value.includes(props.userId));
 const cancelled = computed(() => props.occurrence.status === "cancelled");
 
-/** The people who usually do it first, then the rest of the team. */
+/**
+ * The people who usually do it first, then the rest of the team — plus whoever is on this
+ * duty but no longer on the team (a past date), so they can be seen and taken off.
+ */
 const options = computed(() => {
 	const usual = new Set(props.responsibility.assignees.map((user) => user.id));
-	return [...props.members]
+	const team = [...props.members]
 		.sort(
 			(a, b) =>
 				Number(usual.has(b.user.id)) - Number(usual.has(a.user.id)) ||
@@ -42,13 +45,38 @@ const options = computed(() => {
 			value: member.user.id,
 			description: usual.has(member.user.id) ? "üblich zuständig" : undefined,
 		}));
+	const onTeam = new Set(props.members.map((member) => member.user.id));
+	const former = people.value
+		.filter((user) => !onTeam.has(user.id))
+		.map((user) => ({ label: user.display_name, value: user.id, description: "nicht mehr im Team" }));
+	return [...team, ...former];
 });
+
+/**
+ * The picks while the menu is open; sent once when it closes. Sending every click would race:
+ * a second pick made before the first answer arrives was computed from the old list.
+ */
+const draft = ref<number[] | null>(null);
+const shown = computed(() => draft.value ?? ids.value);
+
+function onOpenChange(open: boolean) {
+	if (open) {
+		draft.value = [...ids.value];
+		return;
+	}
+	const next = draft.value;
+	draft.value = null;
+	if (!next) return;
+	const before = new Set(ids.value);
+	if (next.length === before.size && next.every((id) => before.has(id))) return;
+	emit("set", next);
+}
 </script>
 
 <template>
 	<USelectMenu
 		v-if="canManage && !cancelled"
-		:model-value="ids"
+		:model-value="shown"
 		:items="options"
 		value-key="value"
 		multiple
@@ -56,9 +84,10 @@ const options = computed(() => {
 		size="sm"
 		placeholder="offen"
 		:search-input="{ placeholder: 'Person suchen' }"
-		:class="['w-full min-w-36', ids.length ? '' : 'text-amber-400']"
+		:class="['w-full min-w-36', shown.length ? '' : 'text-amber-400']"
 		:aria-label="`${responsibility.title} am ${formatDay(occurrence.date)}`"
-		@update:model-value="emit('set', $event)"
+		@update:model-value="draft = $event"
+		@update:open="onOpenChange"
 	/>
 
 	<div v-else class="flex min-w-32 items-center justify-between gap-2 text-sm">

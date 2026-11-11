@@ -434,11 +434,12 @@ describe("Dates", () => {
 			},
 			201,
 		);
+		// Its own start without an end: as long as the series' dates (19:00–21:00).
 		expect(extra).toMatchObject({
 			origin: "manual",
 			date: day(3),
 			start_time: "10:00",
-			end_time: null,
+			end_time: "12:00",
 		});
 
 		const moved = await makeAPIRequest(`/v1/events/${eventId}/occurrences/${extra.id}`, {
@@ -745,6 +746,78 @@ describe("Duty roster", () => {
 		expect(
 			responsibilities.find((entry) => entry.id === techId)?.assignees.map((user) => user.id),
 		).toEqual([sam.id]);
+	});
+});
+
+describe("Review fixes", () => {
+	let eventId: number;
+	let dutyId: number;
+
+	beforeAll(async () => {
+		const event = await createWeekly("Prüfstand");
+		eventId = event.id;
+		await addEventMember(eventId, sam.id, "staff");
+		dutyId = (await addResponsibility(eventId, "Kasse", [sam.id])).id;
+	});
+
+	test("one date per day: adding or moving onto a taken day is refused", async () => {
+		const { occurrences } = await listOccurrences(eventId);
+		// A day of the series.
+		await makeAPIRequest(
+			`/v1/events/${eventId}/occurrences`,
+			{ method: "POST", authToken: leaSession.token, body: { date: occurrences[1]!.date } },
+			400,
+		);
+		const extra = await makeAPIRequest(
+			`/v1/events/${eventId}/occurrences`,
+			{ method: "POST", authToken: leaSession.token, body: { date: day(2) } },
+			201,
+		);
+		await makeAPIRequest(
+			`/v1/events/${eventId}/occurrences/${extra.id}`,
+			{ method: "PUT", authToken: leaSession.token, body: { date: occurrences[2]!.date } },
+			400,
+		);
+		// Its own day again is no move at all.
+		await makeAPIRequest(`/v1/events/${eventId}/occurrences/${extra.id}`, {
+			method: "PUT",
+			authToken: leaSession.token,
+			body: { date: day(2) },
+		});
+	});
+
+	test("a cancelled date takes no duties, from leaders either", async () => {
+		const { occurrences } = await listOccurrences(eventId);
+		const target = occurrences[3]!;
+		await makeAPIRequest(`/v1/events/${eventId}/occurrences/${target.id}`, {
+			method: "PUT",
+			authToken: leaSession.token,
+			body: { status: "cancelled" },
+		});
+		await makeAPIRequest(
+			`/v1/events/${eventId}/occurrences/${target.id}/duties/${dutyId}`,
+			{ method: "PUT", authToken: leaSession.token, body: { user_ids: [sam.id] } },
+			400,
+		);
+	});
+
+	test("an own start keeps the series' length", async () => {
+		const { occurrences } = await listOccurrences(eventId);
+		const moved = await makeAPIRequest(`/v1/events/${eventId}/occurrences/${occurrences[4]!.id}`, {
+			method: "PUT",
+			authToken: leaSession.token,
+			body: { start_time: "19:30" },
+			expectedBodySchema: EventOccurrencesModel.Update.Response,
+		});
+		expect(moved).toMatchObject({ start_time: "19:30", end_time: "21:30", custom_time: true });
+		// Late enough to run past midnight: no end rather than a wrong one.
+		const late = await makeAPIRequest(`/v1/events/${eventId}/occurrences/${occurrences[4]!.id}`, {
+			method: "PUT",
+			authToken: leaSession.token,
+			body: { start_time: "23:00" },
+			expectedBodySchema: EventOccurrencesModel.Update.Response,
+		});
+		expect(late.end_time).toBeNull();
 	});
 });
 

@@ -57,10 +57,11 @@ watch(open, (isOpen) => {
 	});
 });
 
+// A cleared start leaves the end alone: `submit` drops an end without a start anyway, and
+// clearing it here would eat the end on the transient empty state while someone corrects the
+// time.
 function setStartTime(value: string | null) {
 	form.start_time = value;
-	// Without a start there is no end either.
-	if (!value) form.end_time = null;
 }
 
 const timeError = computed(() =>

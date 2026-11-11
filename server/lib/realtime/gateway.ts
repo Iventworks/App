@@ -45,6 +45,10 @@ const ClientEvent = z.discriminatedUnion("type", [
 ]);
 
 /** Remember when people were last connected ("zuletzt online"). */
+/**
+ * Remember when people were last connected (“zuletzt online”). Only for connections that
+ * share their presence: while sharing is off, no activity may be recorded for later.
+ */
 function touchLastSeen(orgId: number, userIds: number[], at = Date.now()) {
 	const org = OrgRegistry.get(orgId);
 	if (!org || userIds.length === 0) return;
@@ -174,7 +178,7 @@ export class RealtimeGateway {
 			online_user_ids: RealtimeHub.onlineUserIds(connection.orgId),
 		});
 		if (cameOnline) {
-			touchLastSeen(connection.orgId, [connection.userId]);
+			touchLastSeen(connection.orgId, connection.sharePresence ? [connection.userId] : []);
 			if (connection.sharePresence) {
 				RealtimeHub.broadcast(
 					connection.orgId,
@@ -192,7 +196,7 @@ export class RealtimeGateway {
 		peer.context.connection = undefined;
 		if (RealtimeHub.remove(connection)) {
 			const now = Date.now();
-			touchLastSeen(connection.orgId, [connection.userId], now);
+			touchLastSeen(connection.orgId, connection.sharePresence ? [connection.userId] : [], now);
 			if (connection.sharePresence) {
 				RealtimeHub.broadcast(connection.orgId, {
 					type: "presence",
@@ -243,7 +247,6 @@ export class RealtimeGateway {
 	static async typing(connection: RealtimeHub.Connection, conversationId: number, now = Date.now()) {
 		const last = connection.lastTyping.get(conversationId) ?? 0;
 		if (now - last < RealtimeLimits.TYPING_THROTTLE_MS) return;
-		connection.lastTyping.set(conversationId, now);
 
 		const org = OrgRegistry.get(connection.orgId);
 		if (!org) return;
@@ -260,6 +263,18 @@ export class RealtimeGateway {
 					!ConversationAccess.canAccess(conversation, connection.userId, connection.role)
 				) {
 					return;
+				}
+				// Only now does the chat earn a throttle entry: the map can only grow as far as the
+				// sender's chats, not as far as ids they make up.
+				connection.lastTyping.set(conversationId, now);
+				if (connection.lastTyping.size > RealtimeLimits.MAX_TYPING_ENTRIES) {
+					for (const [id, at] of connection.lastTyping) {
+						if (connection.lastTyping.size <= RealtimeLimits.MAX_TYPING_ENTRIES) break;
+						if (at <= now - RealtimeLimits.TYPING_THROTTLE_MS) connection.lastTyping.delete(id);
+					}
+					if (connection.lastTyping.size > RealtimeLimits.MAX_TYPING_ENTRIES) {
+						connection.lastTyping.delete(connection.lastTyping.keys().next().value as number);
+					}
 				}
 				const members = ConversationAccess.getMembers(conversation).map((member) => member.user_id);
 				RealtimeHub.sendToUsers(
@@ -338,6 +353,7 @@ export class RealtimeGateway {
 		// Whoever is still connected was seen just now.
 		const byOrg = new Map<number, Set<number>>();
 		for (const connection of RealtimeHub.all()) {
+			if (!connection.sharePresence) continue;
 			const ids = byOrg.get(connection.orgId) ?? new Set<number>();
 			ids.add(connection.userId);
 			byOrg.set(connection.orgId, ids);

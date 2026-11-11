@@ -76,7 +76,11 @@ const timing = computed(() => {
 	const { start_date, end_date } = event.value;
 	// A recurring event goes by its next date.
 	if (isRecurring.value) {
-		const next = event.value.next_occurrence;
+		// The overview's own copy is loaded fresh with this page; the cached event can be from
+		// before a date was cancelled (or from yesterday, in a tab left open overnight).
+		const fresh = overview.value?.event.next_occurrence;
+		const cached = event.value.next_occurrence;
+		const next = overview.value ? fresh : cached && cached.date >= today ? cached : null;
 		if (!next) return { label: "Keine weiteren Termine", color: "neutral" as const };
 		if (next.date === today) return { label: "Heute ist Termin", color: "success" as const };
 		const days = daysBetween(today, next.date);

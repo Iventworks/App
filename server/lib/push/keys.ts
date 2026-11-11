@@ -11,10 +11,18 @@ import { Logger } from "../utils/logger";
  */
 export class WebPushKeys extends RuntimeMetadata {
 	private static cached: WebPushKeys.Keys | null = null;
+	/** The first call in flight: concurrent callers share one generation, one write. */
+	private static generating: Promise<WebPushKeys.Keys> | null = null;
 
-	static async get(): Promise<WebPushKeys.Keys> {
-		if (WebPushKeys.cached) return WebPushKeys.cached;
+	static get(): Promise<WebPushKeys.Keys> {
+		if (WebPushKeys.cached) return Promise.resolve(WebPushKeys.cached);
+		WebPushKeys.generating ??= WebPushKeys.generate().finally(() => {
+			WebPushKeys.generating = null;
+		});
+		return WebPushKeys.generating;
+	}
 
+	private static async generate(): Promise<WebPushKeys.Keys> {
 		const config = ConfigHandler.getConfig();
 		const subject = WebPushKeys.subject();
 

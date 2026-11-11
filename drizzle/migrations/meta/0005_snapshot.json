@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "efcb0253-25f2-410e-9d65-77c49c613917",
+  "id": "429dadb1-a896-4042-8405-39206c1c0098",
   "prevId": "c7a2db45-2cf0-4292-8196-8e2e2cac72c5",
   "tables": {
     "announcements": {
@@ -1338,13 +1338,13 @@
         }
       },
       "indexes": {
-        "event_occurrences_event_date_idx": {
-          "name": "event_occurrences_event_date_idx",
+        "event_occurrences_event_date_unique": {
+          "name": "event_occurrences_event_date_unique",
           "columns": [
             "event_id",
             "date"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -2082,6 +2082,13 @@
             "message_id"
           ],
           "isUnique": false
+        },
+        "files_conversation_id_idx": {
+          "name": "files_conversation_id_idx",
+          "columns": [
+            "conversation_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -2510,6 +2517,13 @@
           "columns": [
             "conversation_id",
             "updated_at"
+          ],
+          "isUnique": false
+        },
+        "messages_reply_to_id_idx": {
+          "name": "messages_reply_to_id_idx",
+          "columns": [
+            "reply_to_id"
           ],
           "isUnique": false
         }

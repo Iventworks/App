@@ -48,7 +48,8 @@ const { data: users } = await useAPIAsyncData("core-team-users-directory", async
 	return result.success ? result.data : ([] as UserSummary[]);
 });
 
-const today = toDayString();
+// The organisation's "today" (Europe/Berlin), like the server's — not the browser's.
+const today = orgToday();
 
 type EventRow = EventWithAccess & { phase: "running" | "upcoming" | "past" };
 

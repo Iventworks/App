@@ -6,7 +6,8 @@ const props = defineProps<{
 	event: EventWithAccess;
 }>();
 
-const today = toDayString();
+// The organisation's "today" (Europe/Berlin), like the server's — not the browser's.
+const today = orgToday();
 
 function daysBetween(from: string, to: string) {
 	return Math.round((parseDay(to).getTime() - parseDay(from).getTime()) / 86_400_000);

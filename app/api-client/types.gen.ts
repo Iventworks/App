@@ -1980,7 +1980,6 @@ export type GetAdminUsersResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
-            last_seen_at: number | null;
             created_at: number;
         }>;
     };
@@ -1995,7 +1994,6 @@ export type PostAdminUsersData = {
         email: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
         phone?: string | null;
-        last_seen_at?: number | null;
         /**
          * New password for the account
          */
@@ -2046,7 +2044,6 @@ export type PostAdminUsersResponses = {
                 suspended_at: number | null;
                 suspended_reason: string | null;
                 last_login_at: number | null;
-                last_seen_at: number | null;
                 created_at: number;
             };
             password_link: {
@@ -2151,7 +2148,6 @@ export type GetAdminUsersByUserIdResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
-            last_seen_at: number | null;
             created_at: number;
             events: Array<{
                 id: number;
@@ -2179,7 +2175,6 @@ export type PutAdminUsersByUserIdData = {
         email?: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
         phone?: string | null;
-        last_seen_at?: number | null;
     };
     path: {
         userId: number;
@@ -2235,7 +2230,6 @@ export type PutAdminUsersByUserIdResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
-            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -2435,7 +2429,6 @@ export type PostAdminUsersByUserIdSuspendResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
-            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -2491,7 +2484,6 @@ export type PostAdminUsersByUserIdUnsuspendResponses = {
             suspended_at: number | null;
             suspended_reason: string | null;
             last_login_at: number | null;
-            last_seen_at: number | null;
             created_at: number;
         };
     };
@@ -5700,6 +5692,7 @@ export type GetConversationsByConversationIdMessagesSyncResponses = {
             }>;
             deleted_ids: Array<number>;
             pinned_ids: Array<number>;
+            truncated: boolean;
             read_by_all_until: number;
             server_time: number;
         };

@@ -17,11 +17,16 @@ export namespace RealtimeLimits {
 	export const TICKET_TTL_MS = 30_000;
 	/** Unredeemed tickets one person may hold. */
 	export const MAX_TICKETS_PER_USER = 10;
+	/** Tickets one person may fetch per window (a connect needs one; reconnects included). */
+	export const MAX_TICKETS_PER_WINDOW = 20;
+	export const TICKET_WINDOW_MS = 60_000;
 	/** Open connections one person may have in an org (tabs, devices). */
 	export const MAX_CONNECTIONS_PER_USER = 20;
 
 	/** Messages a connection may send per window before it is closed. */
 	export const MAX_MESSAGES_PER_WINDOW = 40;
+	/** Chats with a typing throttle entry per connection (pruned as they go quiet). */
+	export const MAX_TYPING_ENTRIES = 100;
 	export const MESSAGE_WINDOW_MS = 10_000;
 	/** At most one typing signal per chat in this interval is passed on. */
 	export const TYPING_THROTTLE_MS = 2_500;

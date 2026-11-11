@@ -66,8 +66,9 @@ function stateFromEvent() {
 			event.value.max_participants === null ? "" : String(event.value.max_participants),
 		participant_fee: centsToInput(event.value.participant_fee_cents),
 		budget: centsToInput(event.value.budget_cents),
-		// Only sent for recurring events; a rule to start from when the type is switched to one.
-		recurrence: event.value.recurrence ?? defaultRecurrence(event.value.start_date),
+		// Only sent for recurring events; a rule to start from when the type is switched to one
+		// (no weekday pinned: it follows whatever "Erster Termin" ends up being).
+		recurrence: event.value.recurrence ?? defaultRecurrence(),
 	};
 }
 
@@ -78,7 +79,18 @@ function reset() {
 	Object.assign(form, stateFromEvent());
 }
 
-async function submit() {
+/** A recurring event turned into a camp or event loses all its dates and their duty roster. */
+const leaveSeriesOpen = ref(false);
+
+function submit() {
+	if (event.value.type === "recurring" && form.type !== "recurring") {
+		leaveSeriesOpen.value = true;
+		return;
+	}
+	return save();
+}
+
+async function save() {
 	saving.value = true;
 	const result = await useAPI((api) =>
 		api.putEventsByEventId({
@@ -378,6 +390,13 @@ async function deleteEvent() {
 		v-model:open="copyOpen"
 		:event="event"
 		@copied="navigateTo(`/events/${$event.id}`)"
+	/>
+
+	<DashboardDeleteModal
+		v-model:open="leaveSeriesOpen"
+		title="Termine löschen?"
+		:warning-text="`„${event.name}“ wird zu ${form.type === 'camp' ? 'einer Freizeit' : 'einem Event'}. Dabei werden alle Termine der Serie gelöscht – auch vergangene, mit ihren Themen, Notizen, Absagen und dem Dienstplan.`"
+		:on-delete="save"
 	/>
 
 	<DashboardDeleteModal

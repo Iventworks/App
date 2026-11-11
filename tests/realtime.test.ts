@@ -526,13 +526,58 @@ describe("Sessions", () => {
 	});
 
 	test("one person can't open unlimited sockets", async () => {
+		RealtimeTickets.clear();
 		const sockets: FakeSocket[] = [];
 		for (let i = 0; i < RealtimeLimits.MAX_CONNECTIONS_PER_USER; i++) {
 			sockets.push(await connect(jonasSession.token));
 		}
+		// The ticket rate limit is its own test; here the connection cap answers.
+		RealtimeTickets.clear();
 		const request = upgradeRequest(await ticketFor(jonasSession.token));
 		expect((await RealtimeGateway.upgrade(request))?.status).toBe(429);
 		for (const socket of sockets) disconnect(socket);
+	});
+
+	test("tickets are rate-limited per person", async () => {
+		RealtimeTickets.clear();
+		for (let i = 0; i < RealtimeLimits.MAX_TICKETS_PER_WINDOW; i++) {
+			await ticketFor(miraSession.token);
+		}
+		await ticketFor(miraSession.token, TEST_HOST, 429);
+		// Someone else is not affected.
+		await ticketFor(jonasSession.token);
+		RealtimeTickets.clear();
+	});
+
+	test("logging out, revoking a session or demoting ends the socket at once", async () => {
+		RealtimeTickets.clear();
+		const user = await seedUser("volunteer", { display_name: "Sofort Weg" });
+		const first = await seedSession(user.id);
+		const second = await seedSession(user.id);
+		const viaLogout = await connect(first.token);
+		const viaRevoke = await connect(second.token);
+
+		await makeAPIRequest("/v1/auth/logout", { method: "POST", authToken: first.token });
+		expect(viaLogout.closed?.code).toBe(RealtimeProtocol.CLOSE_UNAUTHORIZED);
+		expect(viaRevoke.closed).toBeNull();
+
+		// "Andere Sitzungen beenden" from a third login.
+		const third = await seedSession(user.id);
+		await makeAPIRequest("/v1/account/sessions", {
+			method: "DELETE",
+			authToken: third.token,
+		});
+		expect(viaRevoke.closed?.code).toBe(RealtimeProtocol.CLOSE_UNAUTHORIZED);
+
+		const demoted = await seedUser("volunteer", { display_name: "Gleich Unverified" });
+		const demotedSocket = await connect((await seedSession(demoted.id)).token);
+		const admin = await seedUser("admin");
+		await makeAPIRequest(`/v1/admin/users/${demoted.id}`, {
+			method: "PUT",
+			authToken: (await seedSession(admin.id)).token,
+			body: { role: "unverified" },
+		});
+		expect(demotedSocket.closed?.code).toBe(RealtimeProtocol.CLOSE_UNAUTHORIZED);
 	});
 });
 

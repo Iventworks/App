@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import webpush from "web-push";
 import { z } from "zod";
 import { DB } from "../db";
@@ -27,6 +27,8 @@ export class PushService {
 	static readonly CONCURRENCY = 8;
 	/** Consecutive failures (not "gone") after which a subscription is dropped. */
 	static readonly MAX_FAILURES = 10;
+	/** Most queued deliveries (see `send`). */
+	static readonly MAX_PENDING = 2_000;
 	/** Push services accept at most ~4 KB; stay well below. */
 	static readonly MAX_BODY_LENGTH = 300;
 
@@ -195,14 +197,38 @@ export class PushService {
 		payload: PushService.Payload,
 		options: PushService.SendOptions = {},
 	) {
+		// A burst must not pile up without bound: beyond this, pushes are dropped (the app loads
+		// everything on open anyway).
+		if (PushService.pending.size >= PushService.MAX_PENDING) {
+			Logger.warn(`Web Push skipped: ${PushService.pending.size} deliveries are already queued`);
+			return;
+		}
 		const ids = [...new Set(userIds)];
 		if (ids.length === 0) return;
 		const table = DB.Tables.pushSubscriptions;
+		const now = Date.now();
+		// Only devices of people who may still use the portal, on logins that are still valid:
+		// demotion to `unverified`, suspension and expired sessions end the pushes here (the
+		// rows follow with the cascade deletes and housekeeping).
 		const subscriptions = DB.instance()
-			.select()
+			.select({ push: table })
 			.from(table)
-			.where(and(inOrg(table), inArray(table.user_id, ids)))
-			.all();
+			.innerJoin(DB.Tables.users, and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, table.user_id)))
+			.innerJoin(
+				DB.Tables.sessions,
+				and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.id, table.session_id)),
+			)
+			.where(
+				and(
+					inOrg(table),
+					inArray(table.user_id, ids),
+					isNull(DB.Tables.users.suspended_at),
+					inArray(DB.Tables.users.role, ["volunteer", "core_team", "admin"]),
+					or(isNull(DB.Tables.sessions.expires_at), gt(DB.Tables.sessions.expires_at, now)),
+				),
+			)
+			.all()
+			.map((row) => row.push);
 		if (subscriptions.length === 0) return;
 
 		PushService.track(PushService.deliver(subscriptions, PushService.limit(payload), options));

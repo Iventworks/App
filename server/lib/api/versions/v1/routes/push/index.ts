@@ -18,6 +18,16 @@ router.use("*", requireOrgRole("volunteer"));
 
 const SESSION_ONLY = "Push notifications need a login session (not an API key)";
 
+/** One test push per person per 10 s: each one reaches every device. */
+const lastTestAt = new Map<number, number>();
+
+function testAllowed(userId: number) {
+	const now = Date.now();
+	if (now - (lastTestAt.get(userId) ?? 0) < 10_000) return false;
+	lastTestAt.set(userId, now);
+	return true;
+}
+
 function session(c: Context) {
 	const authContext = AuthHandler.AuthContext.get(c);
 	return authContext.type === "session" ? authContext : null;
@@ -215,6 +225,9 @@ router.post(
 
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.get(c) as AuthHandler.AuthenticatedAuthContext;
+		if (!testAllowed(authContext.user_id)) {
+			return APIResponse.tooManyRequests(c, "Please wait a moment between test pushes");
+		}
 		const devices = PushService.list(authContext.user_id).length;
 		PushService.send([authContext.user_id], {
 			kind: "test",

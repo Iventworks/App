@@ -16,7 +16,11 @@ self.addEventListener("push", (event) => {
 	}
 
 	const title = typeof data.title === "string" && data.title ? data.title : "Neue Benachrichtigung";
-	const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/";
+	// Only same-origin paths ("//" would be protocol-relative, i.e. another site).
+	const url =
+		typeof data.url === "string" && data.url.startsWith("/") && !data.url.startsWith("//")
+			? data.url
+			: "/";
 
 	event.waitUntil(
 		(async () => {
@@ -52,13 +56,14 @@ self.addEventListener("notificationclick", (event) => {
 	event.waitUntil(
 		(async () => {
 			const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-			// Reuse an open window of the app.
+			// Reuse an open window of the app; never open anything but this origin.
 			for (const client of windows) {
 				if (new URL(client.url).origin !== self.location.origin) continue;
 				await client.focus();
 				if ("navigate" in client) await client.navigate(target).catch(() => {});
 				return;
 			}
+			if (new URL(target).origin !== self.location.origin) return;
 			await self.clients.openWindow(target);
 		})(),
 	);

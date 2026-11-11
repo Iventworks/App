@@ -27,7 +27,7 @@ function selectEvent(event: EventWithAccess) {
 }
 
 const items = computed<DropdownMenuItem[][]>(() => {
-	const today = toDayString();
+	const today = orgToday();
 	const events = myEvents.value ?? [];
 	const groups: DropdownMenuItem[][] = [];
 

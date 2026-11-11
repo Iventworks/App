@@ -19,6 +19,12 @@ type MessagesEnv = {
 	Variables: ConversationsEnv["Variables"] & { message: DB.Models.Message };
 };
 
+/** Most changes one sync reports; older ones are cut off and the client reloads. */
+const SYNC_CHANGES_LIMIT = 500;
+
+/** An upload to send was taken by another message in the meantime (rolls the send back). */
+class AttachmentTaken extends Error {}
+
 export const router = new Hono<MessagesEnv>().basePath("/:conversationId/messages");
 
 /**
@@ -29,14 +35,22 @@ async function touch(
 	conversation: DB.Models.Conversation,
 	messageId: number,
 	changes: Partial<DB.Models.Message> = {},
-) {
-	const updated = await DB.instance()
-		.update(DB.Tables.messages)
-		.set({ ...changes, updated_at: Date.now() })
-		.where(and(inOrg(DB.Tables.messages), eq(DB.Tables.messages.id, messageId)))
-		.returning()
-		.get();
-	Realtime.conversationChanged(conversation, "update");
+): Promise<DB.Models.Message | null> {
+	const updated =
+		(await DB.instance()
+			.update(DB.Tables.messages)
+			.set({ ...changes, updated_at: Date.now() })
+			.where(
+				and(
+					inOrg(DB.Tables.messages),
+					eq(DB.Tables.messages.id, messageId),
+					// Deleted messages stay deleted: no reaction or edit may write to their tombstone.
+					isNull(DB.Tables.messages.deleted_at),
+				),
+			)
+			.returning()
+			.get()) ?? null;
+	if (updated) Realtime.conversationChanged(conversation, "update");
 	return updated;
 }
 
@@ -153,6 +167,8 @@ router.get(
 			.limit(200)
 			.all();
 
+		// Bounded: a client can otherwise ask for every change a chat ever had. `truncated`
+		// tells it that older changes are missing and it has to reload the history.
 		const changed = await DB.instance()
 			.select()
 			.from(table)
@@ -166,7 +182,10 @@ router.get(
 				),
 			)
 			.orderBy(asc(table.id))
+			.limit(SYNC_CHANGES_LIMIT + 1)
 			.all();
+		const truncated = changed.length > SYNC_CHANGES_LIMIT;
+		if (truncated) changed.length = SYNC_CHANGES_LIMIT;
 
 		return APIResponse.success(c, "Messages synced successfully", {
 			messages: await MessageService.toResponse(fresh, userId),
@@ -177,6 +196,7 @@ router.get(
 			deleted_ids: changed
 				.filter((message) => message.deleted_at !== null)
 				.map((message) => message.id),
+			truncated,
 			pinned_ids: await MessageService.pinnedIds(conversation.id),
 			read_by_all_until: ConversationAccess.getReadByAllUntil(conversation, userId),
 			server_time: serverTime,
@@ -281,35 +301,56 @@ router.post(
 			}
 		}
 
-		const message = await DB.instance().transaction(async (tx: DrizzleDB) => {
-			const created = await tx
-				.insert(DB.Tables.messages)
-				// Explicit ms timestamp: the column default `unixepoch() * 1000` only has second
-				// precision, which would hide messages sent right after someone's read marker.
-				.values({
-					org_id: OrgContext.id(),
-					conversation_id: conversation.id,
-					sender_id: userId,
-					content: body.content,
-					reply_to_id: body.reply_to_id,
-					created_at: Date.now(),
-				})
-				.returning()
-				.get();
-			if (attachmentIds.length > 0) {
-				await tx
-					.update(DB.Tables.files)
-					.set({ message_id: created.id })
-					.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.id, attachmentIds)))
+		// A synchronous transaction: with bun-sqlite an async callback commits before its later
+		// statements run, so the message could become visible without its attachments, and a
+		// failed handover could not roll it back.
+		let message: DB.Models.Message;
+		try {
+			message = DB.instance().transaction((tx) => {
+				const created = tx
+					.insert(DB.Tables.messages)
+					// Explicit ms timestamp: the column default `unixepoch() * 1000` only has second
+					// precision, which would hide messages sent right after someone's read marker.
+					.values({
+						org_id: OrgContext.id(),
+						conversation_id: conversation.id,
+						sender_id: userId,
+						content: body.content,
+						reply_to_id: body.reply_to_id,
+						created_at: Date.now(),
+					})
+					.returning()
+					.get();
+				if (attachmentIds.length > 0) {
+					const moved = tx
+						.update(DB.Tables.files)
+						.set({ message_id: created.id })
+						.where(
+							and(
+								inOrg(DB.Tables.files),
+								inArray(DB.Tables.files.id, attachmentIds),
+								// Still this sender's upload, in this chat, not yet part of a message
+								// (two sends with the same uploads: only the first gets them).
+								eq(DB.Tables.files.uploaded_by, userId),
+								eq(DB.Tables.files.conversation_id, conversation.id),
+								isNull(DB.Tables.files.message_id),
+							),
+						)
+						.returning({ id: DB.Tables.files.id })
+						.all();
+					if (moved.length !== attachmentIds.length) throw new AttachmentTaken();
+				}
+				tx
+					.update(DB.Tables.conversations)
+					.set({ last_message_at: created.created_at })
+					.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
 					.run();
-			}
-			await tx
-				.update(DB.Tables.conversations)
-				.set({ last_message_at: created.created_at })
-				.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, conversation.id)))
-				.run();
-			return created;
-		});
+				return created;
+			});
+		} catch (error) {
+			if (error instanceof AttachmentTaken) return APIResponse.badRequest(c, "Unknown attachment");
+			throw error;
+		}
 
 		ConversationAccess.markRead(conversation.id, userId, message.created_at);
 		Realtime.conversationChanged(conversation, "message");
@@ -369,6 +410,7 @@ router.put(
 			content,
 			edited_at: Date.now(),
 		});
+		if (!updated) return APIResponse.notFound(c, "Message not found");
 		return APIResponse.success(c, "Message updated successfully", await respond(updated, userId));
 	},
 );
@@ -484,10 +526,13 @@ router.post(
 					emoji,
 					created_at: Date.now(),
 				})
+				// Two quick taps race the check above; the primary key makes the second a no-op.
+				.onConflictDoNothing()
 				.run();
 		}
 
 		const updated = await touch(c.get("conversation"), message.id);
+		if (!updated) return APIResponse.notFound(c, "Message not found");
 		return APIResponse.success(c, "Reaction updated successfully", await respond(updated, userId));
 	},
 );
@@ -524,6 +569,7 @@ router.put(
 			pinned_at: Date.now(),
 			pinned_by: userId,
 		});
+		if (!updated) return APIResponse.notFound(c, "Message not found");
 		return APIResponse.success(c, "Message pinned successfully", await respond(updated, userId));
 	},
 );
@@ -550,7 +596,9 @@ router.delete(
 		const updated =
 			message.pinned_at === null
 				? message
-				: await touch(c.get("conversation"), message.id, { pinned_at: null, pinned_by: null });
+				: ((await touch(c.get("conversation"), message.id, { pinned_at: null, pinned_by: null })) ??
+					// Deleted in the meantime: show it as it is now.
+					message);
 		return APIResponse.success(c, "Message unpinned successfully", await respond(updated, userId));
 	},
 );

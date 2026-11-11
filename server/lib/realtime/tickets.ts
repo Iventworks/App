@@ -42,6 +42,19 @@ export class RealtimeTickets {
 		return entry;
 	}
 
+	/** Issue times per person (user id), for the rate limit. */
+	private static readonly issuedAt = new Map<number, number[]>();
+
+	/** At most {@link RealtimeLimits.MAX_TICKETS_PER_WINDOW} per person per window. */
+	static allowedToIssue(userId: number, now = Date.now()) {
+		const window = RealtimeTickets.issuedAt.get(userId) ?? [];
+		const recent = window.filter((at) => at > now - RealtimeLimits.TICKET_WINDOW_MS);
+		if (recent.length >= RealtimeLimits.MAX_TICKETS_PER_WINDOW) return false;
+		recent.push(now);
+		RealtimeTickets.issuedAt.set(userId, recent);
+		return true;
+	}
+
 	static prune(now = Date.now()) {
 		for (const [ticket, entry] of RealtimeTickets.tickets) {
 			if (entry.expiresAt <= now) RealtimeTickets.tickets.delete(ticket);
@@ -51,6 +64,7 @@ export class RealtimeTickets {
 	/** Tests only. */
 	static clear() {
 		RealtimeTickets.tickets.clear();
+		RealtimeTickets.issuedAt.clear();
 	}
 }
 

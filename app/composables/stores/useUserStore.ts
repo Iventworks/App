@@ -28,6 +28,14 @@ class UserInfoStore extends ModifiableAbstractStore<UserInfo, Partial<UserInfo>>
 		return response.data satisfies UserInfo;
 	}
 
+	/**
+	 * The signed-in user as loaded so far, without fetching — for components below the
+	 * dashboard layout, which has already loaded it (null before that or when signed out).
+	 */
+	peek(): Readonly<Ref<UserInfo | null>> {
+		return this.useRaw();
+	}
+
 	override async update(updates: Partial<UserInfo>) {
 		await this.refreshIfNeeded();
 		const current = this.useRaw();

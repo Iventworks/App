@@ -111,12 +111,76 @@ export function occurrenceLabel(
 	return time ? `${formatShortDay(occurrence.date)} · ${time}` : formatShortDay(occurrence.date);
 }
 
+/**
+ * The dates a rule gives between `start` and `end` (both `YYYY-MM-DD`, inclusive), ascending —
+ * the same math as the server (`server/lib/utils/recurrence.ts`), so the preview matches what
+ * will be created.
+ */
+export function recurrenceDates(
+	recurrence: EventRecurrence,
+	startDate: string,
+	endDate: string,
+): string[] {
+	if (!startDate || !endDate || startDate > endDate) return [];
+	const interval = Math.max(1, recurrence.interval);
+	const result: string[] = [];
+
+	if (recurrence.frequency === "weekly") {
+		const weekdays = [
+			...new Set(recurrence.weekdays.length ? recurrence.weekdays : [isoWeekday(startDate)]),
+		].sort((a, b) => a - b);
+		// Whole-day math on UTC strings: no time zones, no DST, like the server.
+		const toUtc = (day: string) => Date.parse(`${day}T00:00:00Z`);
+		const fromUtc = (ts: number) => new Date(ts).toISOString().slice(0, 10);
+		const addDays = (day: string, days: number) => fromUtc(toUtc(day) + days * 86_400_000);
+		const firstMonday = addDays(startDate, 1 - isoWeekday(startDate));
+		for (
+			let week = firstMonday;
+			week <= endDate && result.length < 500;
+			week = addDays(week, 7 * interval)
+		) {
+			for (const day of weekdays) {
+				const date = addDays(week, day - 1);
+				if (date >= startDate && date <= endDate) result.push(date);
+			}
+		}
+		return result;
+	}
+
+	const first = parseDay(startDate);
+	const ordinal = weekdayOrdinal(startDate);
+	const day = isoWeekday(startDate);
+	const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+	const format = (y: number, m: number, d: number) =>
+		new Date(Date.UTC(y, m - 1, d)).toISOString().slice(0, 10);
+	for (let step = 0; result.length < 500; step += interval) {
+		const y = first.getFullYear() + Math.floor((first.getMonth() + step) / 12);
+		const m = ((first.getMonth() + step) % 12) + 1;
+		if (format(y, m, 1) > endDate) break;
+		let date: string;
+		if (recurrence.monthly_mode === "day_of_month") {
+			date = format(y, m, Math.min(first.getDate(), daysInMonth(y, m)));
+		} else {
+			const firstOfMonth = new Date(Date.UTC(y, m - 1, 1)).getUTCDay() || 7;
+			const firstMatch = 1 + ((day - firstOfMonth + 7) % 7);
+			let dayOfMonth = firstMatch + (ordinal - 1) * 7;
+			while (dayOfMonth > daysInMonth(y, m)) dayOfMonth -= 7;
+			if (ordinal >= 5) {
+				while (dayOfMonth + 7 <= daysInMonth(y, m)) dayOfMonth += 7;
+			}
+			date = format(y, m, dayOfMonth);
+		}
+		if (date >= startDate && date <= endDate) result.push(date);
+	}
+	return result;
+}
+
 export type EventPhase = "running" | "upcoming" | "past";
 
 /** Running today, still to come, or over. A recurring event goes by its next date. */
 export function eventPhase(
 	event: Pick<EventWithAccess, "type" | "start_date" | "end_date" | "next_occurrence">,
-	today = toDayString(),
+	today = orgToday(),
 ): EventPhase {
 	if (event.type === "recurring") {
 		if (!event.next_occurrence) return event.start_date > today ? "upcoming" : "past";
@@ -148,6 +212,16 @@ export function normalizeRecurrence(rule: EventRecurrence, startDate: string): E
 		weekdays: rule.frequency === "weekly" ? weekdays : [],
 		end_time: rule.start_time ? rule.end_time : null,
 	};
+}
+
+/** "Today" in the organisation's time zone (Europe/Berlin, like the server's default). */
+export function orgToday() {
+	return new Intl.DateTimeFormat("en-CA", {
+		timeZone: "Europe/Berlin",
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(new Date());
 }
 
 /** A sensible default rule for a new recurring event starting on `startDate`. */

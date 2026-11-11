@@ -18,11 +18,40 @@ import { UserSummary } from "./shared-models/userSummary";
 export class Occurrences {
 	/** Time and place of a date: its own, or the series'. */
 	static effective(occurrence: DB.Models.EventOccurrence, event: DB.Models.Event) {
+		const rule = event.recurrence;
+		let endTime: string | null;
+		if (!occurrence.start_time) {
+			// The series' time.
+			endTime = rule?.end_time ?? null;
+		} else if (occurrence.end_time) {
+			endTime = occurrence.end_time;
+		} else {
+			// Its own start but no own end: as long as the series' dates (19:00–21:00 moved to
+			// 19:30 runs until 21:30; an extra date at 10:00 until 12:00).
+			endTime = Occurrences.keepDuration(occurrence.start_time, rule?.start_time, rule?.end_time);
+		}
 		return {
-			start_time: occurrence.start_time ?? event.recurrence?.start_time ?? null,
-			end_time: occurrence.start_time ? occurrence.end_time : (event.recurrence?.end_time ?? null),
+			start_time: occurrence.start_time ?? rule?.start_time ?? null,
+			end_time: endTime,
 			location: occurrence.location ?? event.location,
 		};
+	}
+
+	/** `start` plus the length of `seriesStart`–`seriesEnd` (HH:MM); null past midnight. */
+	static keepDuration(
+		start: string,
+		seriesStart: string | null | undefined,
+		seriesEnd: string | null | undefined,
+	) {
+		if (!seriesStart || !seriesEnd) return null;
+		const minutes = (time: string) => {
+			const [h, m] = time.split(":").map(Number) as [number, number];
+			return h * 60 + m;
+		};
+		const length = minutes(seriesEnd) - minutes(seriesStart);
+		const end = minutes(start) + length;
+		if (length <= 0 || end >= 24 * 60) return null;
+		return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
 	}
 
 	/** Start and end of a date as instants; `all_day` when it has no time. */

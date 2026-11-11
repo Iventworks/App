@@ -98,17 +98,19 @@ export class EventCopier {
 			: [];
 		const blobs = new Map<number, { storageKey: string; size: number }>();
 		let skippedFiles = 0;
-		for (const file of sourceFiles) {
-			if (file.kind !== "file" || !file.storage_key) continue;
-			const copy = await FileStorage.copy(file.storage_key);
-			if (copy) blobs.set(file.id, copy);
-			else skippedFiles++;
-		}
 
 		let created: DB.Models.Event;
 		const notify: { user_id: number; role: DB.Models.EventMember["role"] }[] = [];
 
 		try {
+			// Inside the guarded block: a failure mid-way removes the blobs copied so far.
+			for (const file of sourceFiles) {
+				if (file.kind !== "file" || !file.storage_key) continue;
+				const copy = await FileStorage.copy(file.storage_key);
+				if (copy) blobs.set(file.id, copy);
+				else skippedFiles++;
+			}
+
 			created = DB.instance().transaction((tx) => {
 				const event = tx
 					.insert(T.events)
@@ -549,7 +551,26 @@ export class EventCopier {
 			throw error;
 		}
 
-		const skippedBookings = include.resources ? await EventCopier.copyBookings(source, created) : [];
+		// Bookings are best effort: the copy itself is complete, a failure here (a flaky
+		// database moment) must not cost it. The resources show up as not reserved.
+		let skippedBookings: string[] = [];
+		if (include.resources) {
+			try {
+				skippedBookings = await EventCopier.copyBookings(source, created);
+			} catch (error) {
+				Logger.error("Failed to copy the resource bookings:", error);
+				const names = await DB.instance()
+					.select({ name: T.orgResources.name })
+					.from(T.resourceBookings)
+					.innerJoin(
+						T.orgResources,
+						and(inOrg(T.orgResources), eq(T.orgResources.id, T.resourceBookings.resource_id)),
+					)
+					.where(and(inOrg(T.resourceBookings), eq(T.resourceBookings.event_id, source.id)))
+					.all();
+				skippedBookings = names.map((row) => row.name);
+			}
+		}
 
 		return {
 			event: created,

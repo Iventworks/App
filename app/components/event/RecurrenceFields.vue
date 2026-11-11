@@ -49,37 +49,30 @@ function toggleWeekday(day: number) {
 	patch({ weekdays: [...current].sort((a, b) => a - b) });
 }
 
+// A cleared start leaves the end alone: the send path drops an end without a start anyway
+// (`normalizeRecurrence`), and clearing it here would eat the end on the transient empty
+// state while someone corrects the time.
 function setStartTime(value: string | null) {
-	// Without a start there is no end either.
-	patch(value ? { start_time: value } : { start_time: null, end_time: null });
+	patch(value !== null ? { start_time: value } : { start_time: null });
 }
 
 const summary = computed(() =>
 	props.startDate ? describeRecurrence(model.value, props.startDate) : null,
 );
 
-/** How many dates the rule gives between the first and the last day (weekly: exact, monthly: one per step). */
+/** How many dates the rule gives — the same math the server applies on saving. */
 const dateCount = computed(() => {
 	const { startDate, endDate } = props;
 	if (!startDate || !endDate || endDate < startDate) return null;
-	const rule = model.value;
-	const start = parseDay(startDate);
-	const end = parseDay(endDate);
-	const interval = Math.max(1, rule.interval);
+	return recurrenceDates(model.value, startDate, endDate).length;
+});
 
-	if (rule.frequency === "weekly") {
-		const days = new Set(weekdays.value);
-		const firstMonday = new Date(start);
-		firstMonday.setDate(start.getDate() - (isoWeekday(startDate) - 1));
-		let count = 0;
-		for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
-			const week = Math.floor((day.getTime() - firstMonday.getTime()) / (7 * 86_400_000) + 1e-6);
-			if (week % interval === 0 && days.has(day.getDay() || 7)) count++;
-		}
-		return count;
-	}
-	const months = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth();
-	return Math.floor(months / interval) + 1;
+const dateProblem = computed(() => {
+	const count = dateCount.value;
+	if (count === null) return undefined;
+	if (count === 0) return "Mit dieser Regel liegt kein Termin zwischen erstem Termin und Ende.";
+	if (count > 400) return `Das wären ${count} Termine — eine Serie darf höchstens 400 haben.`;
+	return undefined;
 });
 </script>
 
@@ -151,6 +144,10 @@ const dateCount = computed(() => {
 			<span v-if="dateCount !== null" class="text-slate-500">
 				· {{ dateCount }} {{ dateCount === 1 ? "Termin" : "Termine" }}
 			</span>
+		</p>
+		<p v-if="dateProblem" class="flex items-center gap-2 text-sm text-amber-400">
+			<UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0" />
+			{{ dateProblem }}
 		</p>
 	</div>
 </template>

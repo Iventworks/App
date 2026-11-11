@@ -101,6 +101,10 @@ class RealtimeClient {
 		this.connected.value = false;
 		this.selfId.value = null;
 		this.online.value = new Set();
+		// Nothing of this session carries over to the next sign-in in this tab.
+		this.lastSeen.value = new Map();
+		this.typingSentAt.clear();
+		this.attempts = 0;
 		this.typingUntil.clear();
 		this.publishTyping();
 	}

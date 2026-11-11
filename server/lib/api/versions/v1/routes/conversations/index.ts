@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte, ne } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
@@ -437,6 +437,32 @@ router.get(
 		const users = await UserSummary.fetchMap(ids);
 		const markers = ConversationAccess.getReadMarkers(conversation.id);
 
+		/**
+		 * The read position as the newest message the person has certainly seen, not the exact
+		 * marker: the marker is a wall-clock time, and showing it would tell anyone polling this
+		 * endpoint when the person was last active — even with the online status hidden. Read
+		 * ticks compare against message times, so this value serves them exactly the same.
+		 */
+		async function readPosition(userId: number) {
+			const marker = markers.get(userId) ?? 0;
+			if (!marker) return null;
+			const row = await DB.instance()
+				.select({ at: DB.Tables.messages.created_at })
+				.from(DB.Tables.messages)
+				.where(
+					and(
+						inOrg(DB.Tables.messages),
+						eq(DB.Tables.messages.conversation_id, conversation.id),
+						lte(DB.Tables.messages.created_at, marker),
+						isNull(DB.Tables.messages.deleted_at),
+					),
+				)
+				.orderBy(desc(DB.Tables.messages.created_at))
+				.limit(1)
+				.get();
+			return row?.at ?? null;
+		}
+
 		// Last seen, for people who share their presence.
 		const presence = await UserPreferencesHandler.getMany(ids, "notifications");
 		const lastSeen = new Map(
@@ -458,7 +484,7 @@ router.get(
 				user,
 				event_role: ref.event_role,
 				position: ref.position,
-				last_read_at: markers.get(ref.user_id) || null,
+				last_read_at: await readPosition(ref.user_id),
 				last_seen_at:
 					presence.get(ref.user_id)?.share_presence === false
 						? null

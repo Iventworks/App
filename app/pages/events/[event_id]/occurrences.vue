@@ -7,6 +7,7 @@
  * `provideEventOccurrencesView`.
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
+import { useMyEventsStore } from "~/composables/stores/useMyEventsStore";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { UseSubrouterPathDynamics } from "~/composables/useSubrouterPathDynamics";
 import type { EventMember, EventOccurrence, OccurrenceResponsibility } from "~/utils/types";
@@ -22,7 +23,8 @@ const canManage = computed(() => can("occurrences:manage"));
 const canSignUp = computed(() => can("occurrences:signup") && event.value.is_member);
 const userId = computed(() => user.value?.id);
 const basePath = computed(() => `/events/${eventId.value}/occurrences`);
-const today = toDayString();
+// The organisation's "today" (Europe/Berlin), like the server's — not the browser's.
+const today = orgToday();
 
 // --- sub-navigation -----------------------------------------------------------------------
 
@@ -96,9 +98,21 @@ const { data: members } = await useAPIAsyncData(`event-${eventId.value}-members`
 const all = computed(() => data.value?.occurrences ?? []);
 const responsibilities = computed(() => data.value?.responsibilities ?? []);
 
+/**
+ * The event's "next date" (overview, cards, switcher) comes from cached event data: reload it
+ * when a date was added, moved, cancelled, restored or deleted.
+ */
+async function refreshEventCaches() {
+	await Promise.all([loadEventDetails(eventId.value, true), useMyEventsStore().refresh()]);
+}
+
 /** Put a changed date back into the list (re-sorted: it may have moved). */
 function replace(occurrence: EventOccurrence) {
 	if (!data.value) return;
+	const before = data.value.occurrences.find((entry) => entry.id === occurrence.id);
+	if (!before || before.date !== occurrence.date || before.status !== occurrence.status) {
+		void refreshEventCaches();
+	}
 	const others = data.value.occurrences.filter((entry) => entry.id !== occurrence.id);
 	data.value = {
 		...data.value,
@@ -192,7 +206,7 @@ async function confirmDelete() {
 		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
 		throw new Error(result.message);
 	}
-	await refresh();
+	await Promise.all([refresh(), refreshEventCaches()]);
 }
 
 function entryMenu(occurrence: EventOccurrence): DropdownMenuItem[][] {

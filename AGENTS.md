@@ -181,7 +181,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Auth: no cookie, no token in the URL — the client gets a one-time ticket with its bearer token
     (`POST /realtime/ticket`, 30 s, bound to the org) and opens `/ws/realtime?ticket=…`. The upgrade
     also checks the host's org and the browser `Origin`. Every minute each socket is checked
-    against its session/API key and user (revoked, suspended, unverified → closed with 4401).
+    against its session/API key and user (revoked, suspended, unverified → closed with 4401);
+    logout, revoking sessions or API keys and demotion close them at once
+    (`RealtimeHub.closeFor`, called from `AuthHandler`). Tickets are rate-limited per person.
   - Everything is per org (`RealtimeHub` is keyed by org id). Handlers announce changes with
     `Realtime.conversationChanged(…)` / `Realtime.notificationsChanged(…)` *after* storing them —
     a new chat change that others should see must call it (messages router: `touch()`).
@@ -211,14 +213,17 @@ CMP (Crossover Management Portal) before; the repository still is.
     builds (no service worker in `nuxt dev`); iOS only for the installed app.
 - **Presence**: online status and `users.last_seen_at` (set when someone connects, disconnects and
   every minute while connected) are shown only for people with `share_presence` on (default);
-  switching it off hides both immediately (`Realtime.presenceSharingChanged`).
+  switching it off hides both immediately (`Realtime.presenceSharingChanged`) and stops
+  `last_seen_at` from being written. The admin users API never shows it.
 - **Messaging** is REST + realtime signals: an open chat syncs with
   `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>&from=<first id>` when
   the socket says it changed (else every few seconds) and receives new messages plus what changed
   on loaded ones — every change (edit,
   reaction, pin, deletion) bumps `messages.updated_at`, which is what sync reports; messages are
   soft-deleted as tombstones with their text wiped, so deletions can be synced. The same response
-  carries the pinned ids and `read_by_all_until` (the read ticks). Rules:
+  carries the pinned ids and `read_by_all_until` (the read ticks). One sync reports at most 500
+  changes; with `truncated: true` the client reloads the chat instead. Read positions shown to
+  others are the time of the newest message someone has read, never their exact marker. Rules:
   - Message logic lives in `MessageService` (`server/lib/api/utils/messages.ts`), chat access and
     membership of every chat type in `ConversationAccess`. A message change that others should see
     must go through `touch()` in the messages router.
@@ -238,6 +243,10 @@ CMP (Crossover Management Portal) before; the repository still is.
 - **Migrations**: drizzle-kit writes `ALTER TABLE … ADD … REFERENCES t(id)` *without* the
   `ON DELETE` action. Add it by hand in the generated SQL (see `0003_chat_features.sql`), otherwise
   deleting the referenced row fails once foreign keys are on.
+- **Transactions** on bun-sqlite: an `async` callback to `DB.instance().transaction()` commits
+  after its first statement — later statements run outside it and a `throw` rolls nothing back.
+  Where atomicity matters, write the callback synchronously (`.get()` / `.all()` / `.run()`, no
+  `await`; see the message send and `EventCopier`) and turn errors into responses outside it.
 - All pages render client-side (`routeRules: { "/**": { ssr: false } }`) — the guide's
   "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
   use `definePageMeta({ layout: "dashboard" })` (or `auth`).

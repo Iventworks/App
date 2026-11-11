@@ -4,6 +4,7 @@
  * channels, group/team channels, then direct and group chats. While searching it also lists the
  * messages found in any chat.
  */
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { ChatConversation, ChatSearchHit } from "~/utils/types";
 
 type ConversationType = ChatConversation["type"];
@@ -60,10 +61,14 @@ function subtitle(conversation: ChatConversation) {
 }
 
 const realtime = useRealtime();
+const account = useUserInfoStore().peek();
 
 /** The other person of a direct chat is online (green dot). */
 function otherOnline(conversation: ChatConversation) {
-	const other = conversation.members.find((member) => member.id !== realtime.selfId.value);
+	// Who "I" am, also before (or without) the realtime channel's hello.
+	const self = realtime.selfId.value ?? account.value?.id ?? null;
+	if (self === null) return false;
+	const other = conversation.members.find((member) => member.id !== self);
 	return realtime.isOnline(other?.id);
 }
 

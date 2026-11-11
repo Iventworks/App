@@ -535,6 +535,68 @@ describe("Delivery", () => {
 	});
 });
 
+describe("Who still gets pushes", () => {
+	test("not someone demoted to unverified, nor a login that has expired", async () => {
+		const demoted = await seedUser("volunteer", { display_name: "Dana Degradiert" });
+		const expired = await seedUser("volunteer", { display_name: "Erik Abgelaufen" });
+		const demotedSession = await seedSession(demoted.id);
+		const expiredSession = await seedSession(expired.id);
+		const demotedDevice = newDevice();
+		const expiredDevice = newDevice();
+		await register(demotedSession.token, demotedDevice);
+		await register(expiredSession.token, expiredDevice);
+
+		const chat = await makeAPIRequest(
+			"/v1/conversations",
+			{
+				method: "POST",
+				authToken: annaSession.token,
+				body: { type: "group", name: "Nur noch für manche", user_ids: [demoted.id, expired.id] },
+			},
+			201,
+		);
+
+		DB.instance()
+			.update(DB.Tables.users)
+			.set({ role: "unverified" })
+			.where(eq(DB.Tables.users.id, demoted.id))
+			.run();
+		DB.instance()
+			.update(DB.Tables.sessions)
+			.set({ expires_at: Date.now() - 1000 })
+			.where(eq(DB.Tables.sessions.user_id, expired.id))
+			.run();
+
+		await sendMessage(annaSession.token, chat.id, "Vertraulich");
+		expect(deliveredTo(demotedDevice)).toHaveLength(0);
+		expect(deliveredTo(expiredDevice)).toHaveLength(0);
+	});
+
+	test("test pushes are rate-limited", async () => {
+		const user = await seedUser("volunteer", { display_name: "Tim Testet" });
+		const session = await seedSession(user.id);
+		await makeAPIRequest("/v1/push/test", { method: "POST", authToken: session.token });
+		await makeAPIRequest("/v1/push/test", { method: "POST", authToken: session.token }, 429);
+	});
+
+	test("the admin users API doesn't show (or take) last seen", async () => {
+		const admin = await seedUser("admin");
+		const adminSession = await seedSession(admin.id);
+		DB.instance()
+			.update(DB.Tables.users)
+			.set({ last_seen_at: 123_456 })
+			.where(eq(DB.Tables.users.id, ben.id))
+			.run();
+		const detail = await makeAPIRequest(`/v1/admin/users/${ben.id}`, {
+			authToken: adminSession.token,
+		});
+		expect(detail.last_seen_at).toBeUndefined();
+		const list = await makeAPIRequest("/v1/admin/users", { authToken: adminSession.token });
+		const rows = Array.isArray(list) ? list : (list.items ?? list.users ?? []);
+		expect(rows.every((row: any) => row.last_seen_at === undefined)).toBe(true);
+	});
+});
+
 describe("Other orgs", () => {
 	let otherOrg: OrgInfo;
 

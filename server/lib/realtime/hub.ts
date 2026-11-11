@@ -123,6 +123,28 @@ export class RealtimeHub {
 		}
 	}
 
+	/**
+	 * End the sockets of a login right away (logout, revoked session or API key, suspension,
+	 * deletion), in the current org. The minute-by-minute revalidation would catch them too, later.
+	 */
+	static closeFor(
+		orgId: number | null | undefined,
+		match: { userId?: number; authType?: "session" | "apiKey"; authIds?: string[] },
+		reason = "Session ended",
+	) {
+		if (orgId === null || orgId === undefined) return;
+		for (const connection of [...RealtimeHub.connectionsOf(orgId)]) {
+			if (match.userId !== undefined && connection.userId !== match.userId) continue;
+			if (match.authType !== undefined && connection.auth.type !== match.authType) continue;
+			if (match.authIds !== undefined && !match.authIds.includes(connection.auth.id)) continue;
+			try {
+				connection.close(4401, reason);
+			} catch {
+				// Already closing.
+			}
+		}
+	}
+
 	/** Tests only. */
 	static clear() {
 		RealtimeHub.byOrg.clear();

@@ -135,7 +135,8 @@ export class MessageService {
 				reply_to: original
 					? {
 							id: original.id,
-							content: MessageService.preview(original.content),
+							// A deleted message quotes nothing, whatever its tombstone may hold.
+							content: original.deleted_at === null ? MessageService.preview(original.content) : "",
 							sender_name: original.sender_id
 								? (users.get(original.sender_id)?.display_name ?? null)
 								: null,
@@ -312,6 +313,8 @@ export class MessageService {
 							eq(DB.Tables.files.scope, "message"),
 							inArray(DB.Tables.files.conversation_id, conversationIds),
 							isNotNull(DB.Tables.files.message_id),
+							// Page like the text match does (see `before`).
+							options.before !== undefined ? lt(DB.Tables.files.message_id, options.before) : undefined,
 							sql`${DB.Tables.files.name} LIKE ${pattern} ESCAPE '\\'`,
 						),
 					)

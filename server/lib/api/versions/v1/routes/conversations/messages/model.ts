@@ -56,6 +56,8 @@ export namespace MessagesModel.Sync {
 		deleted_ids: z.array(z.number()),
 		/** Ids of all pinned messages, so the client notices pins outside of what it has loaded. */
 		pinned_ids: z.array(z.number()),
+		/** More changes exist below the cut (500 per sync): reload the history. */
+		truncated: z.boolean(),
 		/**
 		 * Everyone else in the chat has read up to this instant (0 = someone never opened it): the
 		 * caller's messages up to it are "read".

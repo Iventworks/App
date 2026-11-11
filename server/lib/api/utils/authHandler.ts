@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
+import { RealtimeHub } from "../../realtime/hub";
 import { AppConstants } from "../../utils/constants";
 import { LCrypt } from "../../utils/crypto/lcrypt";
 import type { UserAccountSettings } from "./shared-models/accountData";
@@ -146,12 +147,17 @@ export class SessionHandler {
 		await tx
 			.delete(DB.Tables.sessions)
 			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.user_id, userID)));
+		RealtimeHub.closeFor(OrgContext.maybeCurrent()?.id, { userId: userID, authType: "session" });
 	}
 
 	static async inValidateSession(tokenID: string, tx: DrizzleDB = DB.instance()) {
 		await tx
 			.delete(DB.Tables.sessions)
 			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.id, tokenID)));
+		RealtimeHub.closeFor(OrgContext.maybeCurrent()?.id, {
+			authType: "session",
+			authIds: [tokenID],
+		});
 	}
 
 	static async changeUserRoleInSessions(
@@ -165,6 +171,15 @@ export class SessionHandler {
 				user_role: newRole,
 			})
 			.where(and(inOrg(DB.Tables.sessions), eq(DB.Tables.sessions.user_id, userID)));
+
+		// The realtime channel needs at least `volunteer`; other changes apply at the next check.
+		if (newRole === "unverified") {
+			RealtimeHub.closeFor(OrgContext.maybeCurrent()?.id, { userId: userID }, "Access removed");
+		} else {
+			for (const connection of RealtimeHub.connectionsOf(OrgContext.maybeCurrent()?.id ?? -1)) {
+				if (connection.userId === userID) connection.role = newRole;
+			}
+		}
 	}
 }
 
@@ -248,12 +263,14 @@ export class APIKeyHandler {
 		await tx
 			.delete(DB.Tables.apiKeys)
 			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.user_id, userID)));
+		RealtimeHub.closeFor(OrgContext.maybeCurrent()?.id, { userId: userID, authType: "apiKey" });
 	}
 
 	static async deleteApiKey(apiKeyID: string, tx: DrizzleDB = DB.instance()) {
 		await tx
 			.delete(DB.Tables.apiKeys)
 			.where(and(inOrg(DB.Tables.apiKeys), eq(DB.Tables.apiKeys.id, apiKeyID)));
+		RealtimeHub.closeFor(OrgContext.maybeCurrent()?.id, { authType: "apiKey", authIds: [apiKeyID] });
 	}
 
 	static async changeUserRoleInApiKeys(

@@ -339,7 +339,7 @@ export const eventOccurrences = sqliteTable(
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
-	(table) => [index("event_occurrences_event_date_idx").on(table.event_id, table.date)],
+	(table) => [uniqueIndex("event_occurrences_event_date_unique").on(table.event_id, table.date)],
 );
 
 /**
@@ -548,6 +548,7 @@ export const files = sqliteTable(
 		index("files_scope_event_idx").on(table.scope, table.event_id),
 		index("files_parent_id_idx").on(table.parent_id),
 		index("files_message_id_idx").on(table.message_id),
+		index("files_conversation_id_idx").on(table.conversation_id),
 	],
 );
 
@@ -1007,6 +1008,9 @@ export const messages = sqliteTable(
 	(table) => [
 		index("messages_conversation_created_idx").on(table.conversation_id, table.created_at),
 		index("messages_conversation_updated_idx").on(table.conversation_id, table.updated_at),
+		// The reply foreign key cascades SET NULL: without this, deleting a chat scans the whole
+		// table once per deleted message.
+		index("messages_reply_to_id_idx").on(table.reply_to_id),
 	],
 );
 

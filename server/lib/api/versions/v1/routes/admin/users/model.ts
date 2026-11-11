@@ -16,12 +16,14 @@ const SERVER_MANAGED = {
 	suspended_at: true,
 	suspended_reason: true,
 	last_login_at: true,
+	last_seen_at: true,
 } as const;
 
 export namespace AdminUsersModel {
 	const BaseUser = createSelectSchema(DB.Tables.users);
 
-	export const SafeUser = BaseUser.omit({ org_id: true, password_hash: true });
+	// `last_seen_at` stays out: people decide themselves whether others see it (share_presence).
+	export const SafeUser = BaseUser.omit({ org_id: true, password_hash: true, last_seen_at: true });
 	export type SafeUser = z.infer<typeof SafeUser>;
 
 	/** A one-time `/auth/reset-password?token=…` link; the token is only ever shown once. */

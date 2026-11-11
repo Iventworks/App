@@ -133,7 +133,19 @@ function daysBetween(from: string, to: string) {
 	return Math.round((parseDay(to).getTime() - parseDay(from).getTime()) / 86_400_000);
 }
 
+/** The same day of the month `months` later; a shorter month takes its last day. */
+function addMonths(day: string, months: number) {
+	const date = parseDay(day);
+	const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+	const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+	target.setDate(Math.min(date.getDate(), lastDay));
+	return toDayString(target);
+}
+
 const duration = computed(() => daysBetween(props.event.start_date, props.event.end_date));
+
+/** The start the end date was last moved with (clearing the field must not lose it). */
+let anchorStart = "";
 
 /** "Sommercamp 2026" → "Sommercamp 2027"; anything else gets "(Kopie)". */
 function suggestName(name: string, startDate: string, newStart: string) {
@@ -143,13 +155,17 @@ function suggestName(name: string, startDate: string, newStart: string) {
 	return `${name} (Kopie)`.slice(0, 120);
 }
 
-watch(open, async (isOpen) => {
-	if (!isOpen) return;
-	// The same weekday a year later (52 weeks), so a camp from Monday to Sunday stays one.
-	const start = shiftDay(props.event.start_date, 364);
+async function prepare() {
+	// The same weekday a year later (52 weeks), so a camp from Monday to Sunday stays one; a
+	// monthly series keeps its day of the month instead.
+	const start =
+		props.event.recurrence?.frequency === "monthly"
+			? addMonths(props.event.start_date, 12)
+			: shiftDay(props.event.start_date, 364);
 	form.name = suggestName(props.event.name, props.event.start_date, start);
 	form.start_date = start;
 	form.end_date = shiftDay(start, duration.value);
+	anchorStart = start;
 	for (const part of PARTS) form.include[part.key] = part.default;
 
 	summary.value = null;
@@ -172,15 +188,26 @@ watch(open, async (isOpen) => {
 	for (const part of PARTS) {
 		if (result.data[part.key] === 0) form.include[part.key] = false;
 	}
-});
+}
 
-/** Moving the start keeps the length. */
+// `immediate`: the modal can be mounted already open (the core-team list mounts it with the
+// event it was opened for).
+watch(
+	open,
+	(isOpen) => {
+		if (isOpen) void prepare();
+	},
+	{ immediate: true },
+);
+
+/** Moving the start keeps the length (also after the field was cleared in between). */
 function setStart(value: string | null) {
-	const previous = form.start_date;
 	form.start_date = value ?? "";
-	if (value && previous && form.end_date) {
-		form.end_date = shiftDay(value, daysBetween(previous, form.end_date));
+	if (!value) return;
+	if (anchorStart && form.end_date) {
+		form.end_date = shiftDay(value, daysBetween(anchorStart, form.end_date));
 	}
+	anchorStart = value;
 }
 
 const moved = computed(() =>

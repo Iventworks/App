@@ -17,4 +17,8 @@ CREATE TABLE `push_subscriptions` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `push_subscriptions_org_endpoint_unique` ON `push_subscriptions` (`org_id`,`endpoint`);--> statement-breakpoint
 CREATE INDEX `push_subscriptions_user_id_idx` ON `push_subscriptions` (`user_id`);--> statement-breakpoint
-ALTER TABLE `users` ADD `last_seen_at` integer;
+DROP INDEX `event_occurrences_event_date_idx`;--> statement-breakpoint
+CREATE UNIQUE INDEX `event_occurrences_event_date_unique` ON `event_occurrences` (`event_id`,`date`);--> statement-breakpoint
+ALTER TABLE `users` ADD `last_seen_at` integer;--> statement-breakpoint
+CREATE INDEX `files_conversation_id_idx` ON `files` (`conversation_id`);--> statement-breakpoint
+CREATE INDEX `messages_reply_to_id_idx` ON `messages` (`reply_to_id`);

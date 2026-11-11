@@ -6,6 +6,7 @@
  * pins, the composer and the read marker.
  */
 import { useDocumentVisibility, useEventListener, useIntervalFn } from "@vueuse/core";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { ChatAttachment, ChatConversation, ChatMessage } from "~/utils/types";
 
 type Row =
@@ -55,6 +56,10 @@ const toast = useToast();
 const { refreshBadges } = useDashboard();
 const visibility = useDocumentVisibility();
 const realtime = useRealtime();
+// Who "I" am, also before the realtime channel says so (or when it is unavailable): otherwise a
+// direct chat could take the caller for the other person.
+const account = useUserInfoStore().peek();
+const selfId = computed(() => realtime.selfId.value ?? account.value?.id ?? null);
 
 const messages = ref<ChatMessage[]>([]);
 const loading = ref(false);
@@ -107,7 +112,11 @@ useEventListener(
 	"scroll",
 	() => {
 		atBottom.value = isNearBottom();
-		if (atBottom.value && !hasNewer.value) newBelow.value = 0;
+		if (atBottom.value && !hasNewer.value) {
+			newBelow.value = 0;
+			// Scrolled down to the newest messages: now they are seen.
+			if (messages.value.some((message) => !message.is_own)) void markRead();
+		}
 	},
 	{ passive: true },
 );
@@ -129,6 +138,21 @@ async function reveal(messageId: number) {
 }
 
 // --- loading ----------------------------------------------------------------------------------
+
+/**
+ * Replies quoting a deleted message drop its text: the server doesn't re-send replies when the
+ * message they quote goes, so the loaded ones would keep showing it.
+ */
+function forgetQuotes(list: ChatMessage[], deleted: ReadonlySet<number>) {
+	return list.map((message) =>
+		message.reply_to && deleted.has(message.reply_to.id)
+			? {
+					...message,
+					reply_to: { ...message.reply_to, content: "", attachment_count: 0, is_deleted: true },
+				}
+			: message,
+	);
+}
 
 function merge(incoming: ChatMessage[]) {
 	const byId = new Map(messages.value.map((message) => [message.id, message]));
@@ -239,7 +263,7 @@ async function loadInitial() {
 	unreadMarker.value = props.conversation.unread_count > 0 ? props.conversation.last_read_at : null;
 
 	const conversationId = props.conversation.id;
-	const target = props.jumpTo ?? null;
+	let target = props.jumpTo ?? null;
 	void loadPinned();
 	if (props.conversation.type === "direct") void loadLastSeen();
 
@@ -249,6 +273,12 @@ async function loadInitial() {
 	if (conversationId !== props.conversation.id) return;
 	loading.value = false;
 	if (!loaded) return;
+
+	// Another jump target was picked while this was loading (a second search hit): follow it.
+	if (props.jumpTo !== undefined && props.jumpTo !== null && props.jumpTo !== target) {
+		target = props.jumpTo;
+		if (await reveal(target)) void nextTick(() => emit("jumped"));
+	}
 
 	if (jumped && target !== null) {
 		await reveal(target);
@@ -387,14 +417,31 @@ async function syncOnce() {
 		deleted_ids,
 		pinned_ids,
 		read_by_all_until,
+		truncated,
 		server_time,
 	} = result.data;
 	syncSince = server_time;
 	readByAllUntil.value = read_by_all_until;
 
+	// Too many changes since the last sync (over 500 below the newest loaded message): the
+	// history on screen is incomplete. Reload it once; if that is cut off too, the next sync
+	// says so again.
+	if (truncated && !loading.value) {
+		syncSince = 0;
+		if (history) {
+			if (!(await loadLatest())) return;
+		} else {
+			await loadInitial();
+			return;
+		}
+	}
+
 	if (deleted_ids.length) {
 		const deleted = new Set(deleted_ids);
-		messages.value = messages.value.filter((message) => !deleted.has(message.id));
+		messages.value = forgetQuotes(
+			messages.value.filter((message) => !deleted.has(message.id)),
+			deleted,
+		);
 		if (editing.value && deleted.has(editing.value.id)) editing.value = null;
 		if (replyTo.value && deleted.has(replyTo.value.id)) replyTo.value = null;
 	}
@@ -430,8 +477,13 @@ async function syncOnce() {
 	if (stickToBottom) await scrollToBottom(true);
 	else newBelow.value += fromOthers.length;
 	if (fromOthers.length > 0) {
-		if (visibility.value === "visible") await markRead();
-		else unreadWhileHidden = true;
+		// Read means seen: only messages that arrived while the user was at the bottom count.
+		// Anything further up stays unread until it is scrolled to (the scroll handler marks it);
+		// the hidden-tab case waits for the visibility handler.
+		if (stickToBottom) {
+			if (visibility.value === "visible") await markRead();
+			else unreadWhileHidden = true;
+		}
 		emit("changed");
 	}
 }
@@ -626,7 +678,10 @@ async function confirmDelete() {
 		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
 		throw new Error(result.message);
 	}
-	messages.value = messages.value.filter((message) => message.id !== target.id);
+	messages.value = forgetQuotes(
+		messages.value.filter((message) => message.id !== target.id),
+		new Set([target.id]),
+	);
 	pinned.value = pinned.value.filter((message) => message.id !== target.id);
 	if (editing.value?.id === target.id) editing.value = null;
 	if (replyTo.value?.id === target.id) replyTo.value = null;
@@ -694,7 +749,7 @@ function onDrop(event: DragEvent) {
 /** The other person of a direct chat. */
 const otherPerson = computed(() =>
 	props.conversation.type === "direct"
-		? (props.conversation.members.find((member) => member.id !== realtime.selfId.value) ?? null)
+		? (props.conversation.members.find((member) => member.id !== selfId.value) ?? null)
 		: null,
 );
 
@@ -710,7 +765,7 @@ const description = computed(() => {
 			return `Internes Kernteam · ${people}`;
 		case "group": {
 			const online = conversation.members.filter(
-				(member) => member.id !== realtime.selfId.value && realtime.isOnline(member.id),
+				(member) => member.id !== selfId.value && realtime.isOnline(member.id),
 			).length;
 			return online ? `${people} · ${online} online` : people;
 		}

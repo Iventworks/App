@@ -1,6 +1,7 @@
 <script lang="ts">
-// Unsent text per chat, kept while the app is open: switching chats doesn't lose a draft.
-const drafts = new Map<number, string>();
+// Unsent text per person and chat, kept while the app is open: switching chats doesn't lose a
+// draft, and the next person signing in on this browser doesn't get it.
+const drafts = new Map<string, string>();
 </script>
 
 <script setup lang="ts">
@@ -8,6 +9,7 @@ const drafts = new Map<number, string>();
  * The message composer: text, emoji, attachments (file picker, paste, or files dropped on the
  * chat via `addFiles`), answering a message and editing an own one.
  */
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import { Utils } from "~/utils";
 import type { ChatAttachment, ChatMessage } from "~/utils/types";
 
@@ -47,7 +49,10 @@ const MAX_ATTACHMENTS = 10;
 
 const toast = useToast();
 
-const text = ref(drafts.get(props.conversationId) ?? "");
+const account = useUserInfoStore().peek();
+const draftKey = (conversationId: number) => `${account.value?.id ?? 0}:${conversationId}`;
+
+const text = ref(drafts.get(draftKey(props.conversationId)) ?? "");
 const sending = ref(false);
 const uploads = ref<Upload[]>([]);
 const emojiOpen = ref(false);
@@ -67,8 +72,8 @@ function focus() {
 
 watch(text, (value) => {
 	if (props.editing) return;
-	if (value) drafts.set(props.conversationId, value);
-	else drafts.delete(props.conversationId);
+	if (value) drafts.set(draftKey(props.conversationId), value);
+	else drafts.delete(draftKey(props.conversationId));
 });
 
 watch(
@@ -77,14 +82,14 @@ watch(
 		// Uploads belong to the chat they were made in.
 		discardUploads(uploads.value.filter((upload) => upload.conversationId === previous));
 		uploads.value = [];
-		text.value = drafts.get(id) ?? "";
+		text.value = drafts.get(draftKey(id)) ?? "";
 	},
 );
 
 watch(
 	() => props.editing,
 	(message) => {
-		text.value = message ? message.content : (drafts.get(props.conversationId) ?? "");
+		text.value = message ? message.content : (drafts.get(draftKey(props.conversationId)) ?? "");
 		if (message) focus();
 	},
 );
@@ -302,7 +307,7 @@ async function submit() {
 	for (const upload of sentUploads) release(upload);
 	const sent = new Set(sentUploads.map((upload) => upload.key));
 	uploads.value = uploads.value.filter((upload) => !sent.has(upload.key));
-	drafts.delete(conversationId);
+	drafts.delete(draftKey(conversationId));
 	if (conversationId === props.conversationId) text.value = "";
 	emit("sent", result.data);
 	focus();

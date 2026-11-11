@@ -211,6 +211,22 @@ router.post(
 		const { userId } = c.get("eventAccess");
 		const body = c.req.valid("json") as EventOccurrencesModel.Create.Body;
 
+		if (
+			await DB.instance()
+				.select({ id: DB.Tables.eventOccurrences.id })
+				.from(DB.Tables.eventOccurrences)
+				.where(
+					and(
+						inOrg(DB.Tables.eventOccurrences),
+						eq(DB.Tables.eventOccurrences.event_id, event.id),
+						eq(DB.Tables.eventOccurrences.date, body.date),
+					),
+				)
+				.get()
+		) {
+			return APIResponse.badRequest(c, "A date already exists on this day");
+		}
+
 		// An end without a start has nothing to end.
 		const endTime = body.start_time ? body.end_time : null;
 		if (body.start_time && endTime && endTime <= body.start_time) {
@@ -424,6 +440,20 @@ router.put(
 		if (body.date !== undefined && body.date !== occurrence.date && occurrence.origin !== "manual") {
 			return APIResponse.badRequest(c, "Only dates added by hand can be moved");
 		}
+		if (body.date !== undefined && body.date !== occurrence.date) {
+			const taken = await DB.instance()
+				.select({ id: DB.Tables.eventOccurrences.id })
+				.from(DB.Tables.eventOccurrences)
+				.where(
+					and(
+						inOrg(DB.Tables.eventOccurrences),
+						eq(DB.Tables.eventOccurrences.event_id, event.id),
+						eq(DB.Tables.eventOccurrences.date, body.date),
+					),
+				)
+				.get();
+			if (taken) return APIResponse.badRequest(c, "A date already exists on this day");
+		}
 
 		// The date's own time: without a start there is no end either.
 		const startTime = body.start_time !== undefined ? body.start_time : occurrence.start_time;
@@ -599,6 +629,10 @@ router.put(
 		const responsibility = c.get("responsibility");
 		const { userId } = c.get("eventAccess");
 		const { user_ids } = c.req.valid("json") as EventOccurrencesModel.SetDuty.Body;
+
+		if (occurrence.status === "cancelled") {
+			return APIResponse.badRequest(c, "This date is cancelled");
+		}
 
 		const wanted = [...new Set(user_ids)];
 		if ((await staffIds(event.id, wanted)).size !== wanted.length) {

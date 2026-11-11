@@ -2,7 +2,8 @@ import { and, desc, eq, gt, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
-import { inOrg } from "../../../../../../orgs/context";
+import { inOrg, OrgContext } from "../../../../../../orgs/context";
+import { RealtimeHub } from "../../../../../../realtime/hub";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuthHandler } from "../../../../../utils/authHandler";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
@@ -86,6 +87,10 @@ router.delete(
 			)
 			.returning({ id: DB.Tables.sessions.id })
 			.all();
+		RealtimeHub.closeFor(OrgContext.id(), {
+			authType: "session",
+			authIds: revoked.map((entry) => entry.id),
+		});
 
 		return APIResponse.success(c, "Other sessions revoked successfully", {
 			revoked: revoked.length,
@@ -126,6 +131,7 @@ router.delete(
 			)
 			.returning({ id: DB.Tables.sessions.id })
 			.all();
+		RealtimeHub.closeFor(OrgContext.id(), { authType: "session", authIds: [sessionId] });
 
 		if (deleted.length === 0) {
 			return APIResponse.notFound(c, "Session not found");

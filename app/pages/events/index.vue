@@ -42,7 +42,8 @@ const {
 
 watch([scope, showArchived], () => void refresh());
 
-const today = toDayString();
+// The organisation's "today" (Europe/Berlin), like the server's — not the browser's.
+const today = orgToday();
 
 const sections = computed(() => {
 	const list = events.value ?? [];

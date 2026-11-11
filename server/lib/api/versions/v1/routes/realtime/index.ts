@@ -30,6 +30,9 @@ router.post(
 
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.get(c) as AuthHandler.AuthenticatedAuthContext;
+		if (!RealtimeTickets.allowedToIssue(authContext.user_id)) {
+			return APIResponse.tooManyRequests(c, "Too many tickets; try again in a minute");
+		}
 		const { ticket, expiresAt } = RealtimeTickets.issue(OrgContext.id(), authContext);
 		return APIResponse.success(c, "Ticket issued successfully", {
 			ticket,
