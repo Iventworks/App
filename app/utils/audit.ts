@@ -34,6 +34,7 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	participant_note: { label: "Teilnehmer-Notiz", icon: "i-lucide-notebook-pen" },
 	program_item: { label: "Programmpunkt", icon: "i-lucide-calendar-clock" },
 	responsibility: { label: "Zuständigkeit", icon: "i-lucide-clipboard-list" },
+	occurrence: { label: "Termin", icon: "i-lucide-calendar-check" },
 	task: { label: "Aufgabe", icon: "i-lucide-square-check" },
 	note: { label: "Notiz", icon: "i-lucide-sticky-note" },
 	announcement: { label: "Neuigkeit", icon: "i-lucide-megaphone" },
@@ -84,6 +85,8 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 			return eventPath ? `${eventPath}/program` : null;
 		case "responsibility":
 			return eventPath ? `${eventPath}/responsibilities` : null;
+		case "occurrence":
+			return eventPath ? `${eventPath}/occurrences` : null;
 		case "task":
 			return eventPath ? `${eventPath}/tasks` : "/tasks";
 		case "note":

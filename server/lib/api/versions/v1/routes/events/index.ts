@@ -5,75 +5,48 @@ import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
 import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
+import { Recurrence } from "../../../../../utils/recurrence";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { EventAccess, type EventRouterEnv } from "../../../../utils/eventAccess";
+import { EventSchedule } from "../../../../utils/eventSchedule";
 import { FileService } from "../../../../utils/fileService";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { Notifier } from "../../../../utils/notifications";
+import { Occurrences } from "../../../../utils/occurrences";
 import { PermissionHelper } from "../../../../utils/permissions";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { EventsModel } from "./model";
+import { withAccess } from "./view";
 
 export const router = new Hono<EventRouterEnv>().basePath("/events");
 
 router.use("*", requireOrgRole("volunteer"));
 
-/** Build the caller-specific view of events with leaders and head counts in a few queries. */
-async function withAccess(
-	events: DB.Models.Event[],
-	authContext: AuthHandler.AuthenticatedAuthContext,
-	tx: DrizzleDB = DB.instance(),
-): Promise<EventsModel.EventWithAccess[]> {
-	if (events.length === 0) return [];
-	const eventIds = events.map((event) => event.id);
+const TYPE_LABELS: Record<DB.Models.Event["type"], string> = {
+	camp: "Freizeit",
+	event: "Event",
+	recurring: "Regeltermin",
+};
 
-	const members = await tx
-		.select()
-		.from(DB.Tables.eventMembers)
-		.where(and(inOrg(DB.Tables.eventMembers), inArray(DB.Tables.eventMembers.event_id, eventIds)))
-		.all();
-
-	const participantCounts = await tx
-		.select({ event_id: DB.Tables.participants.event_id, value: count() })
-		.from(DB.Tables.participants)
-		.where(
-			and(
-				inOrg(DB.Tables.participants),
-				inArray(DB.Tables.participants.event_id, eventIds),
-				ne(DB.Tables.participants.status, "cancelled"),
-			),
-		)
-		.groupBy(DB.Tables.participants.event_id)
-		.all();
-
-	const users = await UserSummary.fetchMap(
-		members.filter((member) => member.role === "leader").map((member) => member.user_id),
-		tx,
-	);
-
-	return events.map(({ org_id: _orgId, ...event }) => {
-		const eventMembers = members.filter((member) => member.event_id === event.id);
-		const membership = eventMembers.find((member) => member.user_id === authContext.user_id);
-		const role = PermissionHelper.getEffectiveEventRole(authContext.user_role, membership);
-
-		return {
-			...event,
-			my_role: role,
-			is_member: Boolean(membership),
-			permissions: PermissionHelper.listEventPermissions(role, membership ?? null),
-			leaders: eventMembers
-				.filter((member) => member.role === "leader")
-				.map((member) => users.get(member.user_id))
-				.filter((user): user is UserSummary.Schema => Boolean(user)),
-			staff_count: eventMembers.length,
-			participant_count: participantCounts.find((entry) => entry.event_id === event.id)?.value ?? 0,
-		};
-	});
+/**
+ * The recurrence an event ends up with: required for recurring events, none for the others.
+ * Returns the reason when the combination is not acceptable.
+ */
+function resolveRecurrence(
+	type: DB.Models.Event["type"],
+	recurrence: Recurrence.Rule | null,
+	startDate: string,
+	endDate: string,
+): { ok: true; recurrence: Recurrence.Rule | null } | { ok: false; message: string } {
+	if (type !== "recurring") return { ok: true, recurrence: null };
+	if (!recurrence) return { ok: false, message: "A recurring event needs a recurrence" };
+	const problem = Recurrence.validate(recurrence, startDate, endDate);
+	return problem ? { ok: false, message: problem } : { ok: true, recurrence };
 }
 
 router.get(
@@ -151,11 +124,14 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create event",
 		description:
-			"Create a camp or event and optionally assign its leaders. Requires the core team role.",
+			"Create a camp, an event or a recurring event (`type = recurring` with a `recurrence`: its dates from `start_date` to `end_date` are created right away) and optionally assign its leaders. Requires the core team role.",
 		tags: [DOCS_TAGS.EVENTS.EVENTS],
 
-		responses: APIResponseSpec.describeWithWrongInputs(
+		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.created("Event created successfully", EventsModel.Create.Response),
+			APIResponseSpec.badRequest(
+				"A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / A recurring event can span at most three years / Syntax or validation error in request",
+			),
 			APIResponseSpec.forbidden("Only the core team can create events"),
 		),
 	}),
@@ -170,14 +146,23 @@ router.post(
 
 		const { leader_ids, ...body } = c.req.valid("json") as EventsModel.Create.Body;
 
+		const resolved = resolveRecurrence(body.type, body.recurrence, body.start_date, body.end_date);
+		if (!resolved.ok) return APIResponse.badRequest(c, resolved.message);
+
 		try {
 			let leaderIds: number[] = [];
 			const event = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const created = await tx
 					.insert(DB.Tables.events)
-					.values({ ...body, created_by: authContext.user_id, org_id: OrgContext.id() })
+					.values({
+						...body,
+						recurrence: resolved.recurrence,
+						created_by: authContext.user_id,
+						org_id: OrgContext.id(),
+					})
 					.returning()
 					.get();
+				await Occurrences.syncWithRule(created, tx);
 
 				const validLeaders = leader_ids.length
 					? await tx
@@ -217,7 +202,7 @@ router.post(
 				action: "create",
 				entityType: "event",
 				entityId: event.id,
-				summary: `${event.type === "camp" ? "Freizeit" : "Event"} „${event.name}“ angelegt`,
+				summary: `${TYPE_LABELS[event.type]} „${event.name}“ angelegt`,
 			});
 
 			await Notifier.notify(
@@ -269,11 +254,15 @@ router.put(
 
 	APIRouteSpec.authenticated({
 		summary: "Update event",
-		description: "Update an event's details, dates, budget or status. Requires leader rights.",
+		description:
+			"Update an event's details, dates, budget or status. Requires leader rights. Changing the dates or the `recurrence` of a recurring event brings its future dates in line: new dates are added, dates the rule no longer has are removed unless someone worked on them (topic, note, own time, people on duty, cancelled).",
 		tags: [DOCS_TAGS.EVENTS.EVENTS],
 
-		responses: APIResponseSpec.describeWithWrongInputs(
+		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("Event updated successfully", EventsModel.Update.Response),
+			APIResponseSpec.badRequest(
+				"end_date must not be before start_date / A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / Syntax or validation error in request",
+			),
 			APIResponseSpec.notFound("Event not found"),
 			APIResponseSpec.forbidden("You are not allowed to edit this event"),
 		),
@@ -295,12 +284,27 @@ router.put(
 			return APIResponse.badRequest(c, "end_date must not be before start_date");
 		}
 
+		const resolved = resolveRecurrence(
+			body.type ?? event.type,
+			body.recurrence !== undefined ? body.recurrence : event.recurrence,
+			startDate,
+			endDate,
+		);
+		if (!resolved.ok) return APIResponse.badRequest(c, resolved.message);
+
 		const updated = await DB.instance()
 			.update(DB.Tables.events)
-			.set({ ...body, updated_at: Date.now() })
+			.set({ ...body, recurrence: resolved.recurrence, updated_at: Date.now() })
 			.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, event.id)))
 			.returning()
 			.get();
+
+		const scheduleChanged =
+			updated.type !== event.type ||
+			updated.start_date !== event.start_date ||
+			updated.end_date !== event.end_date ||
+			JSON.stringify(updated.recurrence) !== JSON.stringify(event.recurrence);
+		if (scheduleChanged) await Occurrences.syncWithRule(updated);
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),
@@ -362,7 +366,7 @@ router.delete(
 			action: "delete",
 			entityType: "event",
 			entityId: event.id,
-			summary: `${event.type === "camp" ? "Freizeit" : "Event"} „${event.name}“ gelöscht`,
+			summary: `${TYPE_LABELS[event.type]} „${event.name}“ gelöscht`,
 		});
 
 		return APIResponse.successNoData(c, "Event deleted successfully");
@@ -394,9 +398,21 @@ router.get(
 
 		const today = TimeUtils.today();
 		const { start: dayStart, end: dayEnd } = TimeUtils.dayBounds(today);
-		const isRunning = event.start_date <= today && today <= event.end_date;
+		// A recurring event "runs" on the days of its dates, not all year.
+		const isRunning = (await EventSchedule.load([event])).takesPlaceOn(event, today);
 
 		const [eventWithAccess] = await withAccess([event], authContext);
+
+		const nextOccurrences =
+			event.type === "recurring"
+				? await Occurrences.toResponse(
+						(await Occurrences.list(event.id, { from: today }))
+							.filter((occurrence) => occurrence.status === "planned")
+							.slice(0, 5),
+						event,
+						userId,
+					)
+				: [];
 
 		const todayItems = await db
 			.select()
@@ -598,6 +614,7 @@ router.get(
 			my_responsibilities: myResponsibilities,
 			my_room: myRoom,
 			my_groups: myGroups,
+			next_occurrences: nextOccurrences,
 			counts: {
 				participants: eventWithAccess!.participant_count,
 				staff: eventWithAccess!.staff_count,
@@ -622,3 +639,5 @@ router.route("/", (await import("./files")).router);
 router.route("/", (await import("./expenses")).router);
 router.route("/", (await import("./budget")).router);
 router.route("/", (await import("./insights")).router);
+router.route("/", (await import("./occurrences")).router);
+router.route("/", (await import("./copy")).router);

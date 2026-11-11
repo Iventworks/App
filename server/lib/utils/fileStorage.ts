@@ -60,6 +60,13 @@ export class FileStorage {
 		return { storageKey, size };
 	}
 
+	/** Duplicate a stored blob under a new key; null when the blob is missing. */
+	static async copy(storageKey: string): Promise<{ storageKey: string; size: number } | null> {
+		const blob = this.open(storageKey);
+		if (!(await blob.exists())) return null;
+		return await this.save(blob);
+	}
+
 	static open(storageKey: string) {
 		return Bun.file(this.resolveKey(storageKey));
 	}

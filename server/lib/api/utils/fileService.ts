@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
+import { FILE_SCOPES } from "../../db/schema";
 import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
@@ -380,7 +381,7 @@ export namespace FileService {
 
 	export const ItemSchema = z.object({
 		id: z.number(),
-		scope: z.enum(["org", "event", "receipt"]),
+		scope: z.enum(FILE_SCOPES),
 		event_id: z.number().nullable(),
 		parent_id: z.number().nullable(),
 		kind: z.enum(["folder", "file"]),

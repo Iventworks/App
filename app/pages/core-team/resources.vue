@@ -52,7 +52,11 @@ const eventOptions = computed(() =>
 		.sort((a, b) => a.start_date.localeCompare(b.start_date))
 		.map((event) => ({
 			label: event.name,
-			description: formatDayRange(event.start_date, event.end_date),
+			// A series only uses what it books on the days of its dates.
+			description:
+				event.type === "recurring"
+					? `${eventDateLabel(event)} · ${formatDayRange(event.start_date, event.end_date)}`
+					: formatDayRange(event.start_date, event.end_date),
 			value: event.id,
 		})),
 );
@@ -413,6 +417,7 @@ async function removeBooking(entry: Booking) {
 								</NuxtLink>
 								<p class="text-xs text-slate-400">
 									{{ formatDayRange(entry.event.start_date, entry.event.end_date) }}
+									<template v-if="entry.event.type === 'recurring'"> · an den Terminen</template>
 								</p>
 								<p v-if="entry.notes" class="mt-1 text-xs text-slate-500">{{ entry.notes }}</p>
 							</div>

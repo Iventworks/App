@@ -94,9 +94,12 @@ function bodyIdFor(field: string, ids: SeededIds, userIds: number[]): number | n
 		receipt_file_id: one("fileId"),
 		participant_id: one("participantId"),
 		program_item_id: one("programItemId"),
+		reply_to_id: one("messageId"),
 	};
 	if (field.endsWith("_ids")) {
-		if (field.includes("file")) return [one("fileId"), one("eventFileId")];
+		if (field.includes("file") || field.includes("attachment")) {
+			return [one("fileId"), one("eventFileId")];
+		}
 		if (field.includes("participant")) return [one("participantId")];
 		if (field.includes("group")) return [one("groupId")];
 		return userIds;

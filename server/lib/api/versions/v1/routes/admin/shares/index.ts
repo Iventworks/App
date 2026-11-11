@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { z } from "zod";
+import { FILE_SCOPES } from "../../../../../../db/schema";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { FileService } from "../../../../../utils/fileService";
@@ -18,7 +19,7 @@ const Entry = FileShares.View.extend({
 		id: z.number(),
 		kind: z.enum(["folder", "file"]),
 		name: z.string(),
-		scope: z.enum(["org", "event", "receipt"]),
+		scope: z.enum(FILE_SCOPES),
 		event: z.object({ id: z.number(), name: z.string() }).nullable(),
 		folder_id: z.number().nullable(),
 		/** Where the item lives in the app (`/documents?folder=…`). */

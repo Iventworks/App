@@ -6,6 +6,7 @@ import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
+import { Occurrences } from "../../../../utils/occurrences";
 import { PersonalScope } from "../../../../utils/personalScope";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
@@ -83,6 +84,8 @@ router.get(
 		const eventIds = events.map((event) => event.id);
 
 		for (const event of events) {
+			// A recurring event shows its single dates (below), not one span over the whole series.
+			if (event.type === "recurring") continue;
 			const start = TimeUtils.startOfDay(event.start_date);
 			const end = TimeUtils.startOfDay(TimeUtils.addDays(event.end_date, 1));
 			if (start >= to || end <= from) continue;
@@ -100,6 +103,56 @@ router.get(
 				event: { id: event.id, name: event.name },
 				is_mine: true,
 			});
+		}
+
+		const recurring = events.filter(
+			(event) => event.type === "recurring" && event.status !== "cancelled",
+		);
+		if (recurring.length > 0) {
+			const table = DB.Tables.eventOccurrences;
+			const occurrences = await db
+				.select()
+				.from(table)
+				.where(
+					and(
+						inOrg(table),
+						inArray(
+							table.event_id,
+							recurring.map((event) => event.id),
+						),
+						eq(table.status, "planned"),
+						// A day of slack on both sides; the instants are checked below.
+						gte(table.date, TimeUtils.addDays(TimeUtils.toDateString(from), -1)),
+						lt(table.date, TimeUtils.addDays(TimeUtils.toDateString(to), 2)),
+					),
+				)
+				.all();
+			const onDuty = new Set(
+				(await Occurrences.duties(occurrences.map((occurrence) => occurrence.id)))
+					.filter((duty) => duty.user_id === userId)
+					.map((duty) => duty.occurrence_id),
+			);
+
+			for (const occurrence of occurrences) {
+				const event = recurring.find((entry) => entry.id === occurrence.event_id);
+				if (!event) continue;
+				const { start_at, end_at, all_day } = Occurrences.instants(occurrence, event);
+				if (start_at >= to || end_at <= from) continue;
+				items.push({
+					id: `occurrence-${occurrence.id}`,
+					source: "event",
+					source_id: event.id,
+					title: occurrence.title ? `${event.name}: ${occurrence.title}` : event.name,
+					start_at,
+					end_at,
+					all_day,
+					color: event.color,
+					location: Occurrences.effective(occurrence, event).location,
+					link: `/events/${event.id}/occurrences`,
+					event: { id: event.id, name: event.name },
+					is_mine: onDuty.has(occurrence.id),
+				});
+			}
 		}
 
 		if (eventIds.length > 0) {

@@ -57,13 +57,44 @@ export class TimeUtils {
 	}
 
 	static startOfDay(date: string, timeZone = TimeUtils.timeZone) {
+		return TimeUtils.instantOf(date, "00:00", timeZone);
+	}
+
+	/** Unix ms of a wall-clock time (`HH:MM`) on a calendar day in the time zone. */
+	static instantOf(date: string, time: string, timeZone = TimeUtils.timeZone) {
 		const [y, m, d] = date.split("-").map(Number) as [number, number, number];
-		const utcGuess = Date.UTC(y, m - 1, d);
+		const [hours, minutes] = time.split(":").map(Number) as [number, number];
+		const utcGuess = Date.UTC(y, m - 1, d, hours, minutes);
 		let ts = utcGuess - TimeUtils.getOffset(utcGuess, timeZone);
 		// Re-check across DST transitions.
 		const corrected = utcGuess - TimeUtils.getOffset(ts, timeZone);
 		if (corrected !== ts) ts = corrected;
 		return ts;
+	}
+
+	/** Wall-clock time (`HH:MM`) of an instant in the time zone. */
+	static toTimeString(ts: number, timeZone = TimeUtils.timeZone) {
+		return new Intl.DateTimeFormat("en-GB", {
+			timeZone,
+			hourCycle: "h23",
+			hour: "2-digit",
+			minute: "2-digit",
+		}).format(new Date(ts));
+	}
+
+	/**
+	 * The instant `days` calendar days later at the same wall-clock time (a program item moved to
+	 * another day keeps its time of day, also across a DST change).
+	 */
+	static shiftDays(ts: number, days: number, timeZone = TimeUtils.timeZone) {
+		const date = TimeUtils.toDateString(ts, timeZone);
+		const shifted = TimeUtils.instantOf(
+			TimeUtils.addDays(date, days),
+			TimeUtils.toTimeString(ts, timeZone),
+			timeZone,
+		);
+		// Keep the seconds and milliseconds of the original instant.
+		return shifted + (ts % 60_000);
 	}
 
 	static addDays(date: string, days: number) {

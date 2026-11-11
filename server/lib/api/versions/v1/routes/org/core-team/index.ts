@@ -8,6 +8,7 @@ import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler } from "../../../../../utils/authHandler";
+import { EventSchedule } from "../../../../../utils/eventSchedule";
 import { getAuthUserId } from "../../../../../utils/guards";
 import { PermissionHelper } from "../../../../../utils/permissions";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
@@ -71,9 +72,14 @@ async function loadMembers(eventIds: number[]) {
 		.all();
 }
 
-async function toEventSummaries(events: DB.Models.Event[]): Promise<CoreTeamModel.EventSummary[]> {
+async function toEventSummaries(
+	events: DB.Models.Event[],
+	schedule?: EventSchedule,
+): Promise<CoreTeamModel.EventSummary[]> {
 	const ids = events.map((event) => event.id);
 	const [members, participants] = await Promise.all([loadMembers(ids), loadParticipants(ids)]);
+	const today = TimeUtils.today();
+	const days = schedule ?? (await EventSchedule.load(events));
 
 	return events.map((event) => ({
 		id: event.id,
@@ -82,14 +88,11 @@ async function toEventSummaries(events: DB.Models.Event[]): Promise<CoreTeamMode
 		status: event.status,
 		start_date: event.start_date,
 		end_date: event.end_date,
+		next_date: days.nextDay(event, today),
 		color: event.color,
 		staff_count: members.filter((member) => member.event_id === event.id).length,
 		participant_count: participants.filter((entry) => entry.event_id === event.id).length,
 	}));
-}
-
-function overlaps(a: { start_date: string; end_date: string }, b: typeof a) {
-	return a.start_date <= b.end_date && b.start_date <= a.end_date;
 }
 
 router.get(
@@ -120,17 +123,19 @@ router.get(
 		const active = (event: DB.Models.Event) =>
 			event.status === "planning" || event.status === "confirmed";
 
-		const running = events.filter(
-			(event) => active(event) && event.start_date <= today && today <= event.end_date,
-		);
+		// A recurring event runs on the days of its dates and is "upcoming" until its next one.
+		const schedule = await EventSchedule.load(events);
+		const nextDay = (event: DB.Models.Event) => schedule.nextDay(event, today);
+
+		const running = events.filter((event) => active(event) && schedule.takesPlaceOn(event, today));
 		const upcoming = events
-			.filter((event) => active(event) && event.start_date > today)
-			.sort((a, b) => a.start_date.localeCompare(b.start_date))
+			.filter((event) => active(event) && !running.includes(event) && nextDay(event) !== null)
+			.sort((a, b) => (nextDay(a) as string).localeCompare(nextDay(b) as string))
 			.slice(0, 5);
 
 		const [runningSummaries, upcomingSummaries] = await Promise.all([
-			toEventSummaries(running),
-			toEventSummaries(upcoming),
+			toEventSummaries(running, schedule),
+			toEventSummaries(upcoming, schedule),
 		]);
 
 		const leaderRows = upcoming.length
@@ -451,9 +456,12 @@ router.get(
 		const to = query.to ?? TimeUtils.addDays(from, 180);
 		if (from > to) return APIResponse.badRequest(c, "`from` must not be after `to`");
 
-		const events = (await loadEvents())
-			.filter((event) => event.status !== "cancelled")
-			.filter((event) => overlaps(event, { start_date: from, end_date: to }))
+		const candidates = (await loadEvents()).filter((event) => event.status !== "cancelled");
+		// Recurring events count on the days of their dates only: a weekly meeting neither fills
+		// the whole range nor clashes with a camp in a week without a meeting.
+		const schedule = await EventSchedule.load(candidates);
+		const events = candidates
+			.filter((event) => schedule.takesPlaceWithin(event, from, to))
 			.sort((a, b) => a.start_date.localeCompare(b.start_date));
 		const eventById = new Map(events.map((event) => [event.id, event]));
 
@@ -483,7 +491,7 @@ router.get(
 				for (let j = i + 1; j < assignments.length; j++) {
 					const a = eventById.get(assignments[i]!.event_id)!;
 					const b = eventById.get(assignments[j]!.event_id)!;
-					if (overlaps(a, b)) conflicts.push([a.id, b.id]);
+					if (schedule.overlap(a, b)) conflicts.push([a.id, b.id]);
 				}
 			}
 
@@ -496,8 +504,10 @@ router.get(
 			events: events.map((event) => ({
 				id: event.id,
 				name: event.name,
+				type: event.type,
 				start_date: event.start_date,
 				end_date: event.end_date,
+				dates: schedule.datesWithin(event, from, to),
 				color: event.color,
 			})),
 			users,

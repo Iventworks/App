@@ -2,11 +2,16 @@ import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../db";
 import { EVENT_MEMBER_ROLES, EVENT_STATUSES, EVENT_TYPES } from "../../../../../db/schema";
+import { Recurrence } from "../../../../../utils/recurrence";
+import { Occurrences } from "../../../../utils/occurrences";
 import { PermissionHelper } from "../../../../utils/permissions";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 
 export namespace EventsModel {
-	export const Event = createSelectSchema(DB.Tables.events).omit({ org_id: true });
+	export const Event = createSelectSchema(DB.Tables.events).omit({ org_id: true }).extend({
+		/** The rule of a recurring event (`type = recurring`), null otherwise. */
+		recurrence: Recurrence.Schema.nullable(),
+	});
 	export type Event = z.infer<typeof Event>;
 
 	export const EventRole = z.enum(EVENT_MEMBER_ROLES);
@@ -29,6 +34,8 @@ export namespace EventsModel {
 		leaders: z.array(UserSummary.Schema),
 		staff_count: z.number(),
 		participant_count: z.number(),
+		/** Recurring events: the next planned date from today (null when the series is over). */
+		next_occurrence: Occurrences.SummarySchema.nullable(),
 	});
 	export type EventWithAccess = z.infer<typeof EventWithAccess>;
 
@@ -48,6 +55,11 @@ export namespace EventsModel {
 		location: z.string().trim().max(200).nullable(),
 		start_date: isoDate,
 		end_date: isoDate,
+		/**
+		 * Required for `type = recurring` (the series runs from `start_date` to `end_date`), ignored
+		 * for the other types.
+		 */
+		recurrence: Recurrence.Schema.nullable(),
 		color,
 		max_participants: z.number().int().min(0).nullable(),
 		participant_fee_cents: z.number().int().min(0).nullable(),
@@ -82,6 +94,7 @@ export namespace EventsModel.Create {
 			location: F.location.default(null),
 			start_date: F.start_date,
 			end_date: F.end_date,
+			recurrence: F.recurrence.default(null),
 			color: F.color.default(null),
 			max_participants: F.max_participants.default(null),
 			participant_fee_cents: F.participant_fee_cents.default(null),
@@ -161,6 +174,8 @@ export namespace EventsModel.Overview {
 		my_responsibilities: z.array(ResponsibilitySummary),
 		my_room: z.object({ id: z.number(), name: z.string() }).nullable(),
 		my_groups: z.array(z.object({ id: z.number(), name: z.string(), color: z.string().nullable() })),
+		/** Recurring events: the next planned dates with who is on duty. */
+		next_occurrences: z.array(Occurrences.ItemSchema),
 		counts: z.object({
 			participants: z.number(),
 			staff: z.number(),

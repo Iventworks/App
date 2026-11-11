@@ -99,6 +99,8 @@ export namespace DB.Tables {
 	export const eventGroups = TableSchema.eventGroups;
 	export const eventGroupMembers = TableSchema.eventGroupMembers;
 	export const rooms = TableSchema.rooms;
+	export const eventOccurrences = TableSchema.eventOccurrences;
+	export const occurrenceDuties = TableSchema.occurrenceDuties;
 
 	export const participants = TableSchema.participants;
 	export const participantEmergencyContacts = TableSchema.participantEmergencyContacts;
@@ -126,6 +128,7 @@ export namespace DB.Tables {
 	export const conversations = TableSchema.conversations;
 	export const conversationMembers = TableSchema.conversationMembers;
 	export const messages = TableSchema.messages;
+	export const messageReactions = TableSchema.messageReactions;
 
 	export const calendarEntries = TableSchema.calendarEntries;
 	export const notifications = TableSchema.notifications;
@@ -156,6 +159,8 @@ export namespace DB.Models {
 	export type EventGroup = typeof DB.Tables.eventGroups.$inferSelect;
 	export type EventGroupMember = typeof DB.Tables.eventGroupMembers.$inferSelect;
 	export type Room = typeof DB.Tables.rooms.$inferSelect;
+	export type EventOccurrence = typeof DB.Tables.eventOccurrences.$inferSelect;
+	export type OccurrenceDuty = typeof DB.Tables.occurrenceDuties.$inferSelect;
 
 	export type Participant = typeof DB.Tables.participants.$inferSelect;
 	export type ParticipantEmergencyContact =
@@ -181,6 +186,7 @@ export namespace DB.Models {
 	export type Conversation = typeof DB.Tables.conversations.$inferSelect;
 	export type ConversationMember = typeof DB.Tables.conversationMembers.$inferSelect;
 	export type Message = typeof DB.Tables.messages.$inferSelect;
+	export type MessageReaction = typeof DB.Tables.messageReactions.$inferSelect;
 
 	export type CalendarEntry = typeof DB.Tables.calendarEntries.$inferSelect;
 	export type Notification = typeof DB.Tables.notifications.$inferSelect;

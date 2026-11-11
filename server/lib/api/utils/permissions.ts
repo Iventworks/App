@@ -78,6 +78,12 @@ export class PermissionHelper {
 		"responsibilities:view": "staff",
 		"responsibilities:manage": "leader",
 
+		/** The dates of a recurring event and their duty roster. */
+		"occurrences:view": "staff",
+		"occurrences:manage": "leader",
+		/** Take a duty on a date oneself — needs real staff membership, checked in the handler. */
+		"occurrences:signup": "staff",
+
 		"tasks:view": "staff",
 		"tasks:create": "staff",
 		"tasks:manage_all": "leader",

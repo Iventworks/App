@@ -12,6 +12,11 @@ export namespace CoreTeamModel {
 		status: z.enum(EVENT_STATUSES),
 		start_date: z.string(),
 		end_date: z.string(),
+		/**
+		 * The next day (from today) the event takes place: its start, today while it runs, or — for
+		 * a recurring event — its next planned date. Null when it is over.
+		 */
+		next_date: z.string().nullable(),
 		color: z.string().nullable(),
 		staff_count: z.number(),
 		participant_count: z.number(),
@@ -142,8 +147,11 @@ export namespace CoreTeamModel.StaffPlanning {
 			z.object({
 				id: z.number(),
 				name: z.string(),
+				type: z.enum(EVENT_TYPES),
 				start_date: z.string(),
 				end_date: z.string(),
+				/** Recurring events: their planned dates within the range (null for the others). */
+				dates: z.array(z.string()).nullable(),
 				color: z.string().nullable(),
 			}),
 		),
@@ -151,7 +159,7 @@ export namespace CoreTeamModel.StaffPlanning {
 			z.object({
 				user: UserSummary.Schema,
 				assignments: z.array(z.object({ event_id: z.number(), role: z.enum(["leader", "staff"]) })),
-				/** Pairs of assigned events whose date ranges overlap. */
+				/** Pairs of assigned events that share at least one day. */
 				conflicts: z.array(z.tuple([z.number(), z.number()])),
 			}),
 		),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Event settings (leaders): master data, dates, status, limits and money. The core team can also
- * delete the event.
+ * Event settings (leaders): master data, dates (for a recurring event: its rule), status, limits
+ * and money. The core team can also copy and delete the event.
  */
 import * as z from "zod";
 import { zPutEventsByEventIdBody } from "~/api-client/zod.gen";
@@ -66,6 +66,8 @@ function stateFromEvent() {
 			event.value.max_participants === null ? "" : String(event.value.max_participants),
 		participant_fee: centsToInput(event.value.participant_fee_cents),
 		budget: centsToInput(event.value.budget_cents),
+		// Only sent for recurring events; a rule to start from when the type is switched to one.
+		recurrence: event.value.recurrence ?? defaultRecurrence(event.value.start_date),
 	};
 }
 
@@ -94,6 +96,8 @@ async function submit() {
 				participant_fee_cents:
 					form.participant_fee.trim() === "" ? null : inputToCents(form.participant_fee),
 				budget_cents: inputToCents(form.budget) ?? 0,
+				recurrence:
+					form.type === "recurring" ? normalizeRecurrence(form.recurrence, form.start_date) : null,
 			},
 		}),
 	);
@@ -112,6 +116,10 @@ async function submit() {
 const fieldClass =
 	"flex max-sm:flex-col justify-between items-start gap-4 py-4 first:pt-0 last:pb-0";
 const fieldUi = { root: "w-full sm:w-auto", container: "w-full sm:w-auto" };
+
+// --- copy (core team) --------------------------------------------------------------------
+
+const copyOpen = ref(false);
 
 // --- delete (core team) ------------------------------------------------------------------
 
@@ -165,7 +173,13 @@ async function deleteEvent() {
 								<UInput v-model="form.name" class="w-full sm:w-80" />
 							</UFormField>
 
-							<UFormField name="type" label="Art" :class="fieldClass" :ui="fieldUi">
+							<UFormField
+								name="type"
+								label="Art"
+								:description="EVENT_TYPE_HINTS[form.type]"
+								:class="fieldClass"
+								:ui="fieldUi"
+							>
 								<USelect v-model="form.type" :items="EVENT_TYPE_OPTIONS" class="w-full sm:w-80" />
 							</UFormField>
 
@@ -179,13 +193,49 @@ async function deleteEvent() {
 								<USelect v-model="form.status" :items="EVENT_STATUS_OPTIONS" class="w-full sm:w-80" />
 							</UFormField>
 
-							<UFormField name="start_date" label="Beginn" required :class="fieldClass" :ui="fieldUi">
+							<UFormField
+								name="start_date"
+								:label="form.type === 'recurring' ? 'Erster Termin' : 'Beginn'"
+								required
+								:class="fieldClass"
+								:ui="fieldUi"
+							>
 								<FormDatePicker v-model="form.start_date" class="w-full sm:w-80" />
 							</UFormField>
 
-							<UFormField name="end_date" label="Ende" required :class="fieldClass" :ui="fieldUi">
+							<UFormField
+								name="end_date"
+								:label="form.type === 'recurring' ? 'Serie endet am' : 'Ende'"
+								required
+								:class="fieldClass"
+								:ui="fieldUi"
+							>
 								<FormDatePicker v-model="form.end_date" :min="form.start_date || undefined" class="w-full sm:w-80" />
 							</UFormField>
+
+							<div v-if="form.type === 'recurring'" class="space-y-3 py-4">
+								<div>
+									<p class="text-sm font-medium text-slate-200">Wiederholung</p>
+									<p class="text-sm text-slate-400">
+										Aus der Regel entstehen die Termine. Änderst du sie, werden künftige Termine angepasst —
+										Termine mit Thema, Notiz, eigener Uhrzeit oder Besetzung und abgesagte Termine bleiben.
+									</p>
+								</div>
+								<EventRecurrenceFields
+									v-model="form.recurrence"
+									:start-date="form.start_date"
+									:end-date="form.end_date"
+								/>
+								<UButton
+									v-if="event.type === 'recurring'"
+									:to="`/events/${eventId}/occurrences`"
+									label="Zu den Terminen"
+									icon="i-lucide-calendar-check"
+									color="neutral"
+									variant="subtle"
+									size="sm"
+								/>
+							</div>
 
 							<UFormField name="location" label="Ort" :class="fieldClass" :ui="fieldUi">
 								<UInput v-model="form.location" placeholder="z. B. Freizeitheim Waldblick" class="w-full sm:w-80" />
@@ -289,6 +339,22 @@ async function deleteEvent() {
 
 					<DashboardSectionCard
 						v-if="isCoreTeam"
+						title="Event kopieren"
+						description="Nur für das Kernteam"
+						icon="i-lucide-copy"
+					>
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<p class="max-w-lg text-sm text-slate-400">
+								Legt ein neues Event nach dieser Vorlage an — zum Beispiel dieselbe Freizeit im nächsten
+								Jahr. Du wählst, was übernommen wird: Team, Gruppen, Zimmer, Zuständigkeiten, Programm,
+								Aufgaben, Dokumente und mehr.
+							</p>
+							<UButton label="Kopieren …" icon="i-lucide-copy" color="neutral" variant="subtle" @click="copyOpen = true" />
+						</div>
+					</DashboardSectionCard>
+
+					<DashboardSectionCard
+						v-if="isCoreTeam"
 						title="Event löschen"
 						description="Nur für das Kernteam"
 						icon="i-lucide-trash-2"
@@ -306,6 +372,13 @@ async function deleteEvent() {
 			</DashboardPageBody>
 		</template>
 	</UDashboardPanel>
+
+	<EventCopyModal
+		v-if="isCoreTeam"
+		v-model:open="copyOpen"
+		:event="event"
+		@copied="navigateTo(`/events/${$event.id}`)"
+	/>
 
 	<DashboardDeleteModal
 		v-model:open="deleteOpen"

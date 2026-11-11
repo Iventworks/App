@@ -8,7 +8,10 @@ import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { ConversationAccess } from "../../../../utils/conversations";
+import { FileService } from "../../../../utils/fileService";
 import { requireOrgRole } from "../../../../utils/guards";
+import { MessageService } from "../../../../utils/messages";
+import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { ConversationsModel } from "./model";
@@ -98,6 +101,48 @@ router.get(
 		return APIResponse.success(c, "Unread count retrieved successfully", {
 			total: ConversationAccess.getTotalUnread(userId, role),
 		});
+	},
+);
+
+router.get(
+	"/search",
+
+	APIRouteSpec.authenticated({
+		summary: "Search all chats",
+		description:
+			"Messages in any of the caller's chats whose text or attachment names contain `q`, newest first, each with the chat it is in.",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success("Messages found successfully", ConversationsModel.Search.Response),
+		),
+	}),
+
+	zValidator("query", ConversationsModel.Search.Query),
+
+	async (c) => {
+		const { userId, role } = getCaller(c);
+		const { q, limit } = c.req.valid("query") as ConversationsModel.Search.Query;
+
+		const ids = ConversationAccess.getAccessibleConversationIds(userId, role);
+		const hits = await MessageService.search(ids, q, { limit });
+
+		const conversations = await ConversationAccess.buildItems(
+			ConversationAccess.loadConversations([...new Set(hits.map((hit) => hit.conversation_id))]),
+			userId,
+		);
+		const messages = await MessageService.toResponse(hits, userId);
+
+		const results: ConversationsModel.Search.Response = [];
+		for (const message of messages) {
+			const conversation = conversations.find((entry) => entry.id === message.conversation_id);
+			if (!conversation) continue;
+			results.push({
+				conversation: { id: conversation.id, type: conversation.type, title: conversation.title },
+				message,
+			});
+		}
+		return APIResponse.success(c, "Messages found successfully", results);
 	},
 );
 
@@ -358,6 +403,171 @@ router.put(
 			"Conversation updated successfully",
 			await buildItem(refreshed ?? conversation, userId),
 		);
+	},
+);
+
+router.get(
+	"/:conversationId/members",
+
+	APIRouteSpec.authenticated({
+		summary: "List chat members",
+		description:
+			"Everyone in the chat, whatever its type: the members of a direct or group chat, the staff of an event (with role and function), the members of an event group, or the core team. `last_read_at` is how far each person has read (null = never opened).",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Members retrieved successfully", ConversationsModel.Members.Response),
+			APIResponseSpec.notFound("Conversation not found"),
+			APIResponseSpec.forbidden("You do not have access to this conversation"),
+		),
+	}),
+
+	async (c) => {
+		const conversation = c.get("conversation");
+		const refs = ConversationAccess.getMembers(conversation);
+		const users = await UserSummary.fetchMap(refs.map((ref) => ref.user_id));
+		const markers = ConversationAccess.getReadMarkers(conversation.id);
+
+		const members: ConversationsModel.Members.Response = [];
+		for (const ref of refs) {
+			const user = users.get(ref.user_id);
+			if (!user) continue;
+			members.push({
+				user,
+				event_role: ref.event_role,
+				position: ref.position,
+				last_read_at: markers.get(ref.user_id) || null,
+			});
+		}
+		// Leaders first, then by name.
+		members.sort(
+			(a, b) =>
+				Number(b.event_role === "leader") - Number(a.event_role === "leader") ||
+				a.user.display_name.localeCompare(b.user.display_name, "de"),
+		);
+
+		return APIResponse.success(c, "Members retrieved successfully", members);
+	},
+);
+
+router.put(
+	"/:conversationId/preferences",
+
+	APIRouteSpec.authenticated({
+		summary: "Pin or mute chat",
+		description:
+			"The caller's own settings for a chat: `pinned` keeps it on top of their chat list, `muted` leaves its unread messages out of the total unread count.",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeWithWrongInputs(
+			APIResponseSpec.success(
+				"Preferences updated successfully",
+				ConversationsModel.Preferences.Response,
+			),
+			APIResponseSpec.notFound("Conversation not found"),
+			APIResponseSpec.forbidden("You do not have access to this conversation"),
+		),
+	}),
+
+	zValidator("json", ConversationsModel.Preferences.Body),
+
+	async (c) => {
+		const conversation = c.get("conversation");
+		const { userId } = getCaller(c);
+		const body = c.req.valid("json") as ConversationsModel.Preferences.Body;
+
+		ConversationAccess.setPreferences(conversation.id, userId, body);
+
+		return APIResponse.success(
+			c,
+			"Preferences updated successfully",
+			await buildItem(conversation, userId),
+		);
+	},
+);
+
+router.post(
+	"/:conversationId/attachments",
+
+	APIRouteSpec.authenticated({
+		summary: "Upload attachment",
+		description:
+			"Upload a file (multipart/form-data, field `file`) to send with a message: pass the returned `id` as one of the message's `attachment_ids`. Until then only the uploader sees it; uploads that are never sent are removed after a day.",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.created(
+				"Attachment uploaded successfully",
+				ConversationsModel.Attachments.Upload.Response,
+			),
+			APIResponseSpec.badRequest(
+				"File is too large / Too many unsent attachments / Syntax or validation error in request",
+			),
+			APIResponseSpec.notFound("Conversation not found"),
+			APIResponseSpec.forbidden("You do not have access to this conversation"),
+		),
+	}),
+
+	zValidator("form", ConversationsModel.Attachments.Upload.Form, undefined, {
+		media: "multipart/form-data",
+	}),
+
+	async (c) => {
+		const conversation = c.get("conversation");
+		const { userId } = getCaller(c);
+		const form = c.req.valid("form") as ConversationsModel.Attachments.Upload.Form;
+
+		const pending = await MessageService.pendingUploads(conversation.id, userId);
+		if (pending.length >= MessageService.MAX_PENDING_UPLOADS) {
+			return APIResponse.badRequest(c, "Too many unsent attachments");
+		}
+
+		const file = await MessageService.upload(conversation.id, form.file, userId);
+		if (!file) return APIResponse.badRequest(c, "File is too large");
+
+		return APIResponse.created(
+			c,
+			"Attachment uploaded successfully",
+			MessageService.toAttachment(file),
+		);
+	},
+);
+
+router.delete(
+	"/:conversationId/attachments/:fileId",
+
+	APIRouteSpec.authenticated({
+		summary: "Discard attachment",
+		description: "Remove one of the caller's uploads that has not been sent with a message yet.",
+		tags: [DOCS_TAGS.MESSAGING],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.successNoData("Attachment removed successfully"),
+			APIResponseSpec.notFound("Attachment not found"),
+			APIResponseSpec.forbidden("You do not have access to this conversation"),
+		),
+	}),
+
+	zValidator("param", ConversationsModel.Attachments.Params),
+
+	async (c) => {
+		const conversation = c.get("conversation");
+		const { userId } = getCaller(c);
+		const { fileId } = c.req.valid("param") as ConversationsModel.Attachments.Params;
+
+		const file = await FileService.get(fileId);
+		if (
+			!file ||
+			file.scope !== "message" ||
+			file.conversation_id !== conversation.id ||
+			file.message_id !== null ||
+			file.uploaded_by !== userId
+		) {
+			return APIResponse.notFound(c, "Attachment not found");
+		}
+
+		await MessageService.removeFiles([file]);
+		return APIResponse.successNoData(c, "Attachment removed successfully");
 	},
 );
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Kernteam: every camp/event, and creating new ones with their leaders. */
+/** Kernteam: every camp, event and recurring event; creating new ones and copying existing ones. */
 import type { TableColumn } from "@nuxt/ui";
 import * as z from "zod";
 import { zPostEventsBody } from "~/api-client/zod.gen";
@@ -53,15 +53,8 @@ const today = toDayString();
 type EventRow = EventWithAccess & { phase: "running" | "upcoming" | "past" };
 
 const rows = computed<EventRow[]>(() =>
-	(events.value ?? []).map((event) => ({
-		...event,
-		phase:
-			event.start_date <= today && today <= event.end_date
-				? "running"
-				: event.start_date > today
-					? "upcoming"
-					: "past",
-	})),
+	// A recurring event runs on the days of its dates and is upcoming until its last one.
+	(events.value ?? []).map((event) => ({ ...event, phase: eventPhase(event, today) })),
 );
 
 const PHASE_LABELS: Record<EventRow["phase"], string> = {
@@ -119,7 +112,15 @@ const createSchema = zPostEventsBody
 	.refine((data) => !data.start_date || !data.end_date || data.start_date <= data.end_date, {
 		message: "Das Ende darf nicht vor dem Beginn liegen",
 		path: ["end_date"],
-	});
+	})
+	.refine(
+		(data) =>
+			data.type !== "recurring" ||
+			!data.start_date ||
+			!data.end_date ||
+			parseDay(data.end_date).getTime() - parseDay(data.start_date).getTime() <= 3 * 366 * 86_400_000,
+		{ message: "Eine Serie kann höchstens drei Jahre laufen", path: ["end_date"] },
+	);
 
 const createOpen = ref(false);
 const creating = ref(false);
@@ -136,6 +137,8 @@ const createForm = reactive({
 	fee: "",
 	budget: "",
 	leader_ids: [] as number[],
+	// Only sent for recurring events.
+	recurrence: defaultRecurrence(),
 });
 
 function openCreate() {
@@ -152,6 +155,7 @@ function openCreate() {
 		fee: "",
 		budget: "",
 		leader_ids: [],
+		recurrence: defaultRecurrence(),
 	});
 	createOpen.value = true;
 }
@@ -194,6 +198,10 @@ async function submitCreate() {
 				participant_fee_cents: inputToCents(createForm.fee),
 				budget_cents: inputToCents(createForm.budget) ?? 0,
 				leader_ids: createForm.leader_ids,
+				recurrence:
+					createForm.type === "recurring"
+						? normalizeRecurrence(createForm.recurrence, createForm.start_date)
+						: null,
 			},
 		}),
 	);
@@ -216,17 +224,47 @@ async function submitCreate() {
 	});
 	createOpen.value = false;
 	await useMyEventsStore().refresh();
-	await navigateTo(`/events/${result.data.id}`);
+	await navigateTo(
+		result.data.type === "recurring"
+			? `/events/${result.data.id}/occurrences`
+			: `/events/${result.data.id}`,
+	);
+}
+
+// --- copy ---------------------------------------------------------------------------------
+
+const copyOpen = ref(false);
+const copySource = ref<EventWithAccess | null>(null);
+
+function openCopy(event: EventWithAccess) {
+	copySource.value = event;
+	copyOpen.value = true;
+}
+
+async function onCopied(event: EventWithAccess) {
+	await navigateTo(`/events/${event.id}`);
 }
 
 function rowActions(event: EventRow) {
 	return [
 		[
 			{ label: "Öffnen", icon: "i-lucide-arrow-right", to: `/events/${event.id}` },
+			...(event.type === "recurring"
+				? [
+						{
+							label: "Termine",
+							icon: "i-lucide-calendar-check",
+							to: `/events/${event.id}/occurrences`,
+						},
+					]
+				: []),
 			{ label: "Team", icon: "i-lucide-contact", to: `/events/${event.id}/staff` },
 			{ label: "Finanzen", icon: "i-lucide-receipt-euro", to: `/events/${event.id}/finances` },
 		],
-		[{ label: "Einstellungen", icon: "i-lucide-settings-2", to: `/events/${event.id}/settings` }],
+		[
+			{ label: "Kopieren …", icon: "i-lucide-copy", onSelect: () => openCopy(event) },
+			{ label: "Einstellungen", icon: "i-lucide-settings-2", to: `/events/${event.id}/settings` },
+		],
 	];
 }
 </script>
@@ -272,6 +310,12 @@ function rowActions(event: EventRow) {
 					<template #start_date-cell="{ row }">
 						<span class="whitespace-nowrap text-slate-300">
 							{{ formatDayRange(row.original.start_date, row.original.end_date) }}
+						</span>
+						<span
+							v-if="row.original.type === 'recurring' && row.original.recurrence"
+							class="block whitespace-nowrap text-xs text-slate-500"
+						>
+							{{ describeRecurrence(row.original.recurrence, row.original.start_date) }}
 						</span>
 					</template>
 					<template #status-cell="{ row }">
@@ -329,7 +373,7 @@ function rowActions(event: EventRow) {
 
 	<DashboardModal
 		v-model:open="createOpen"
-		title="Freizeit / Event anlegen"
+		title="Event anlegen"
 		icon="i-lucide-tent"
 		width="sm:max-w-2xl"
 	>
@@ -339,19 +383,34 @@ function rowActions(event: EventRow) {
 			</UFormField>
 
 			<div class="grid gap-4 sm:grid-cols-2">
-				<UFormField label="Art" name="type">
+				<UFormField label="Art" name="type" :help="EVENT_TYPE_HINTS[createForm.type]">
 					<USelect v-model="createForm.type" :items="EVENT_TYPE_OPTIONS" class="w-full" />
 				</UFormField>
 				<UFormField label="Status" name="status">
 					<USelect v-model="createForm.status" :items="EVENT_STATUS_OPTIONS" class="w-full" />
 				</UFormField>
-				<UFormField label="Beginn" name="start_date" required>
+				<UFormField
+					:label="createForm.type === 'recurring' ? 'Erster Termin' : 'Beginn'"
+					name="start_date"
+					required
+				>
 					<FormDatePicker v-model="createForm.start_date" />
 				</UFormField>
-				<UFormField label="Ende" name="end_date" required>
+				<UFormField
+					:label="createForm.type === 'recurring' ? 'Serie endet am' : 'Ende'"
+					name="end_date"
+					required
+				>
 					<FormDatePicker v-model="createForm.end_date" :min="createForm.start_date || undefined" />
 				</UFormField>
 			</div>
+
+			<EventRecurrenceFields
+				v-if="createForm.type === 'recurring'"
+				v-model="createForm.recurrence"
+				:start-date="createForm.start_date"
+				:end-date="createForm.end_date"
+			/>
 
 			<UFormField label="Ort" name="location">
 				<UInput v-model="createForm.location" placeholder="z. B. Freizeitheim Waldblick" class="w-full" />
@@ -411,4 +470,6 @@ function rowActions(event: EventRow) {
 			</div>
 		</UForm>
 	</DashboardModal>
+
+	<EventCopyModal v-if="copySource" v-model:open="copyOpen" :event="copySource" @copied="onCopied" />
 </template>

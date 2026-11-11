@@ -12,6 +12,8 @@ const TYPE_ICONS: Record<string, string> = {
 	program_assigned: "i-lucide-calendar-clock",
 	responsibility_assigned: "i-lucide-badge-check",
 	event_added: "i-lucide-tent",
+	occurrence_assigned: "i-lucide-calendar-check",
+	occurrence_cancelled: "i-lucide-calendar-x",
 	announcement: "i-lucide-megaphone",
 	expense_reviewed: "i-lucide-receipt",
 	expense_submitted: "i-lucide-receipt",

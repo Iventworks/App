@@ -31,6 +31,7 @@ export const DOCS_TAGS = {
 		GROUPS: "Events / Groups",
 		ROOMS: "Events / Rooms",
 		PARTICIPANTS: "Events / Participants",
+		OCCURRENCES: "Events / Dates & duty roster",
 		PROGRAM: "Events / Program",
 		RESPONSIBILITIES: "Events / Responsibilities",
 		TASKS: "Events / Tasks",

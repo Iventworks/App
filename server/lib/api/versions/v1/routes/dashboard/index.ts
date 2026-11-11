@@ -6,7 +6,9 @@ import { TimeUtils } from "../../../../../utils/time";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler } from "../../../../utils/authHandler";
 import { ConversationAccess } from "../../../../utils/conversations";
+import { EventSchedule } from "../../../../utils/eventSchedule";
 import { requireOrgRole } from "../../../../utils/guards";
+import { Occurrences } from "../../../../utils/occurrences";
 import { PersonalScope } from "../../../../utils/personalScope";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
@@ -48,9 +50,12 @@ router.get(
 		);
 
 		// --- running & upcoming events -------------------------------------------------------
-		const running = memberships.filter(
-			({ event }) => event.start_date <= today && today <= event.end_date,
-		);
+		// A recurring event runs on the days of its dates and is "upcoming" until its next one.
+		const memberEvents = memberships.map(({ event }) => event);
+		const schedule = await EventSchedule.load(memberEvents);
+		const nextOccurrences = await Occurrences.nextByEvent(memberEvents);
+
+		const running = memberships.filter(({ event }) => schedule.takesPlaceOn(event, today));
 		const runningIds = running.map(({ event }) => event.id);
 
 		const todayItems = runningIds.length
@@ -119,8 +124,11 @@ router.get(
 				end_date: event.end_date,
 				color: event.color,
 				my_role: role,
-				day_number: TimeUtils.diffDays(event.start_date, today) + 1,
-				total_days: TimeUtils.diffDays(event.start_date, event.end_date) + 1,
+				// A date of a recurring event is one day of its own, not "day 37 of 365".
+				day_number: event.type === "recurring" ? 1 : TimeUtils.diffDays(event.start_date, today) + 1,
+				total_days:
+					event.type === "recurring" ? 1 : TimeUtils.diffDays(event.start_date, event.end_date) + 1,
+				occurrence: nextOccurrences.get(event.id) ?? null,
 				today_program: todayItems.filter((item) => item.event_id === event.id).map(toProgram),
 				latest_announcements: runningAnnouncements
 					.filter((announcement) => announcement.event_id === event.id)
@@ -134,10 +142,12 @@ router.get(
 			}));
 
 		const upcomingEvents: DashboardModel.UpcomingEvent[] = memberships
-			.filter(({ event }) => event.start_date > today)
-			.sort((a, b) => a.event.start_date.localeCompare(b.event.start_date))
+			.filter(({ event }) => !runningIds.includes(event.id))
+			.map((membership) => ({ ...membership, next: schedule.nextDay(membership.event, today) }))
+			.filter((entry): entry is typeof entry & { next: string } => entry.next !== null)
+			.sort((a, b) => a.next.localeCompare(b.next))
 			.slice(0, 5)
-			.map(({ event, role }) => ({
+			.map(({ event, role, next }) => ({
 				id: event.id,
 				name: event.name,
 				type: event.type,
@@ -146,7 +156,8 @@ router.get(
 				location: event.location,
 				color: event.color,
 				my_role: role,
-				days_until: TimeUtils.diffDays(today, event.start_date),
+				days_until: TimeUtils.diffDays(today, next),
+				occurrence: nextOccurrences.get(event.id) ?? null,
 			}));
 
 		// --- tasks from everywhere -----------------------------------------------------------
@@ -192,7 +203,20 @@ router.get(
 			ConversationAccess.loadConversations(conversationIds),
 			userId,
 		);
-		const unreadMessages = conversationItems.reduce((sum, item) => sum + item.unread_count, 0);
+		// Like the sidebar badge: muted chats don't count.
+		const unreadMessages = conversationItems.reduce(
+			(sum, item) => sum + (item.muted ? 0 : item.unread_count),
+			0,
+		);
+		const previewText = (last: NonNullable<(typeof conversationItems)[number]["last_message"]>) => {
+			if (last.content) return last.content;
+			if (last.attachment_is_image) {
+				return last.attachment_count === 1 ? "Foto" : `${last.attachment_count} Fotos`;
+			}
+			return last.attachment_count === 1
+				? (last.attachment_name ?? "Datei")
+				: `${last.attachment_count} Dateien`;
+		};
 		const recentConversations = [
 			...conversationItems.filter((item) => item.unread_count > 0),
 			...conversationItems.filter((item) => item.unread_count === 0 && item.last_message_at),
@@ -204,7 +228,7 @@ router.get(
 				type: item.type,
 				unread_count: item.unread_count,
 				last_message_preview: item.last_message
-					? `${item.last_message.sender_name ? `${item.last_message.sender_name}: ` : ""}${item.last_message.content}`
+					? `${item.last_message.sender_name ? `${item.last_message.sender_name}: ` : ""}${previewText(item.last_message)}`
 					: null,
 				last_message_at: item.last_message_at,
 			}));

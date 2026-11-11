@@ -57,7 +57,7 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 		"What a share link opens: no account, the link's token (and password) decide",
 	],
 
-	[DOCS_TAGS.EVENTS.EVENTS, "Camps and events"],
+	[DOCS_TAGS.EVENTS.EVENTS, "Camps, events and recurring events"],
 	[DOCS_TAGS.EVENTS.MEMBERS, "Leaders and staff of an event", DOCS_TAGS.EVENTS.EVENTS],
 	[
 		DOCS_TAGS.EVENTS.GROUPS,
@@ -68,6 +68,11 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[
 		DOCS_TAGS.EVENTS.PARTICIPANTS,
 		"Participants incl. medical info and emergency contacts",
+		DOCS_TAGS.EVENTS.EVENTS,
+	],
+	[
+		DOCS_TAGS.EVENTS.OCCURRENCES,
+		"The dates of a recurring event and who is on duty on each",
 		DOCS_TAGS.EVENTS.EVENTS,
 	],
 	[DOCS_TAGS.EVENTS.PROGRAM, "The schedule (Programmpunkte)", DOCS_TAGS.EVENTS.EVENTS],

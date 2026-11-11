@@ -250,7 +250,8 @@ export class FileShares {
 		if (!share || FileShares.isExpired(share)) return null;
 
 		const root = await FileService.get(share.file_id, tx);
-		if (!root || root.scope === "receipt") return null;
+		// Only documents are ever shared: no receipts, no chat attachments.
+		if (!root || (root.scope !== "org" && root.scope !== "event")) return null;
 		return { share, root };
 	}
 

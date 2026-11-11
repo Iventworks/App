@@ -1,4 +1,4 @@
-import { and, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
 import { DB } from "../db";
 import { OrgContext } from "../orgs/context";
 import { FileStorage } from "./fileStorage";
@@ -62,6 +62,19 @@ export class Housekeeping {
 			.returning({ id: DB.Tables.fileShares.id })
 			.all();
 
+		// Chat attachments that were uploaded but never sent with a message.
+		const unsentAttachments = await db
+			.delete(DB.Tables.files)
+			.where(
+				and(
+					eq(DB.Tables.files.scope, "message"),
+					isNull(DB.Tables.files.message_id),
+					lt(DB.Tables.files.created_at, now - Housekeeping.ORPHAN_BLOB_GRACE_MS),
+				),
+			)
+			.returning({ id: DB.Tables.files.id })
+			.all();
+
 		const referenced = await db
 			.select({ storage_key: DB.Tables.files.storage_key })
 			.from(DB.Tables.files)
@@ -73,7 +86,7 @@ export class Housekeeping {
 		);
 
 		Logger.info(
-			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s), ${shares.length} expired share link(s), ${orphanBlobs} orphaned file(s).`,
+			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s), ${shares.length} expired share link(s), ${unsentAttachments.length} unsent attachment(s), ${orphanBlobs} orphaned file(s).`,
 		);
 		return {
 			sessions: sessions.length,
@@ -81,6 +94,7 @@ export class Housekeeping {
 			invitations: invitations.length,
 			notifications: notifications.length,
 			shares: shares.length,
+			unsentAttachments: unsentAttachments.length,
 			orphanBlobs,
 		};
 	}

@@ -55,9 +55,32 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				org_id,
 				name: text("Event"),
 				description: text("Beschreibung"),
+				// Recurring, so the routes for its dates and duty roster are probed too; every other
+				// route works the same for any type.
+				type: "recurring",
 				start_date: "2027-07-01",
 				end_date: "2027-07-10",
+				recurrence: {
+					frequency: "weekly",
+					interval: 1,
+					weekdays: [],
+					monthly_mode: "day_of_month",
+					start_time: null,
+					end_time: null,
+				},
 				created_by: admin.id,
+			})
+			.returning()
+			.get();
+		const occurrence = db
+			.insert(DB.Tables.eventOccurrences)
+			.values({
+				org_id,
+				event_id: event.id,
+				date: "2027-07-01",
+				title: text("Termin"),
+				notes: text("Terminnotiz"),
+				location: text("Terminort"),
 			})
 			.returning()
 			.get();
@@ -161,6 +184,15 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 		db
 			.insert(DB.Tables.responsibilityAssignees)
 			.values({ org_id, responsibility_id: responsibility.id, user_id: volunteer.id })
+			.run();
+		db
+			.insert(DB.Tables.occurrenceDuties)
+			.values({
+				org_id,
+				occurrence_id: occurrence.id,
+				responsibility_id: responsibility.id,
+				user_id: volunteer.id,
+			})
 			.run();
 		const task = db
 			.insert(DB.Tables.tasks)
@@ -291,9 +323,29 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				sender_id: admin.id,
 				content: text("Nachricht"),
 				created_at: now,
+				pinned_at: now,
+				pinned_by: admin.id,
 			})
 			.returning()
 			.get();
+		db
+			.insert(DB.Tables.messageReactions)
+			.values({ org_id, message_id: message.id, user_id: volunteer.id, emoji: "👍" })
+			.run();
+		// A chat attachment (metadata only: the probes never read the blob).
+		db
+			.insert(DB.Tables.files)
+			.values({
+				org_id,
+				scope: "message",
+				conversation_id: conversation.id,
+				message_id: message.id,
+				kind: "file",
+				name: text("Anhang"),
+				mime_type: "text/plain",
+				uploaded_by: admin.id,
+			})
+			.run();
 		const entry = db
 			.insert(DB.Tables.calendarEntries)
 			.values({
@@ -384,6 +436,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				participantId: participant.id,
 				programItemId: programItem.id,
 				responsibilityId: responsibility.id,
+				occurrenceId: occurrence.id,
 				taskId: task.id,
 				personalTaskId: personalTask.id,
 				noteId: note.id,

@@ -10,6 +10,7 @@ import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
 import { Notifier } from "../../../../../utils/notifications";
+import { Occurrences } from "../../../../../utils/occurrences";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -400,6 +401,9 @@ router.delete(
 						)
 						.run();
 				}
+
+				// Recurring events: off the duty roster of every date that is still to come.
+				await Occurrences.removeUpcomingDuties(event.id, member.user_id, tx);
 
 				await tx
 					.update(DB.Tables.tasks)

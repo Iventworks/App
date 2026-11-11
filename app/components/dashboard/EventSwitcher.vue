@@ -16,10 +16,7 @@ const selectedEventId = useSelectedEventId();
 const route = useRoute();
 
 function eventAvatar(event: Pick<EventWithAccess, "name" | "type">) {
-	return {
-		icon: event.type === "camp" ? "i-lucide-tent" : "i-lucide-calendar-days",
-		alt: event.name,
-	};
+	return { icon: EVENT_TYPE_ICONS[event.type], alt: event.name };
 }
 
 function selectEvent(event: EventWithAccess) {
@@ -37,13 +34,14 @@ const items = computed<DropdownMenuItem[][]>(() => {
 	const toItem = (event: EventWithAccess): DropdownMenuItem => ({
 		label: event.name,
 		avatar: eventAvatar(event),
-		description: formatDayRange(event.start_date, event.end_date),
+		description: eventDateLabel(event),
 		onSelect: () => selectEvent(event),
 	});
 
-	const running = events.filter((e) => e.start_date <= today && today <= e.end_date);
-	const upcoming = events.filter((e) => e.start_date > today);
-	const past = events.filter((e) => e.end_date < today).slice(0, 5);
+	// A recurring event runs on the days of its dates, and is upcoming until its last one.
+	const running = events.filter((e) => eventPhase(e, today) === "running");
+	const upcoming = events.filter((e) => eventPhase(e, today) === "upcoming");
+	const past = events.filter((e) => eventPhase(e, today) === "past").slice(0, 5);
 
 	if (running.length)
 		groups.push([{ type: "label", label: "Läuft gerade" }, ...running.map(toItem)]);

@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { DB } from "../../db";
 import { inOrg } from "../../orgs/context";
 import type { AuthHandler } from "./authHandler";
+import { ConversationAccess } from "./conversations";
 import { EventAccess } from "./eventAccess";
 import { PermissionHelper } from "./permissions";
 
@@ -11,6 +12,8 @@ import { PermissionHelper } from "./permissions";
  * - `event`: read = event access with `files:view`; write = uploader (with `files:upload`) or
  *   `files:manage_all` (leaders)
  * - `receipt`: read/write = the expense's submitter or `expenses:review` in that event
+ * - `message` (chat attachments): read = everyone in the chat; before it is sent only the
+ *   uploader. Never written through the file routes — attachments go with their message.
  */
 export class FileAccess {
 	static async canRead(
@@ -29,9 +32,29 @@ export class FileAccess {
 			}
 			case "receipt":
 				return await FileAccess.canAccessReceipt(authContext, file);
+			case "message":
+				return await FileAccess.canReadAttachment(authContext, file);
 			default:
 				return false;
 		}
+	}
+
+	protected static async canReadAttachment(
+		authContext: AuthHandler.AuthenticatedAuthContext,
+		file: DB.Models.File,
+	) {
+		if (file.conversation_id === null) return false;
+		if (file.message_id === null) return file.uploaded_by === authContext.user_id;
+
+		const conversation = await DB.instance()
+			.select()
+			.from(DB.Tables.conversations)
+			.where(and(inOrg(DB.Tables.conversations), eq(DB.Tables.conversations.id, file.conversation_id)))
+			.get();
+		return Boolean(
+			conversation &&
+				ConversationAccess.canAccess(conversation, authContext.user_id, authContext.user_role),
+		);
 	}
 
 	static async canWrite(

@@ -11,8 +11,13 @@ import type {
 	GetAdminSharesResponses,
 	GetAdminUsersByUserIdResponses,
 	GetAdminUsersResponses,
+	GetConversationsByConversationIdMembersResponses,
+	GetConversationsByConversationIdMessagesResponses,
+	GetConversationsResponses,
+	GetConversationsSearchResponses,
 	GetEventsByEventIdFilesResponses,
 	GetEventsByEventIdMembersResponses,
+	GetEventsByEventIdOccurrencesResponses,
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
 	GetFilesByFileIdSharesResponses,
@@ -31,6 +36,12 @@ export namespace UtilityTypes {
 }
 
 export type UserInfo = GetAccountResponses["200"]["data"];
+
+export type ChatConversation = GetConversationsResponses["200"]["data"][number];
+export type ChatMessage = GetConversationsByConversationIdMessagesResponses["200"]["data"][number];
+export type ChatAttachment = ChatMessage["attachments"][number];
+export type ChatMember = GetConversationsByConversationIdMembersResponses["200"]["data"][number];
+export type ChatSearchHit = GetConversationsSearchResponses["200"]["data"][number];
 
 export type APIKey = GetAccountApikeysResponses["200"]["data"][number];
 
@@ -52,6 +63,12 @@ export type UserSummary = GetUsersResponses["200"]["data"][number];
 export type EventWithAccess = GetEventsResponses["200"]["data"][number];
 export type EventPermission = EventWithAccess["permissions"][number];
 export type EventMember = GetEventsByEventIdMembersResponses["200"]["data"][number];
+
+/** A date ("Termin") of a recurring event, and a column of its duty roster. */
+export type EventOccurrence =
+	GetEventsByEventIdOccurrencesResponses["200"]["data"]["occurrences"][number];
+export type OccurrenceResponsibility =
+	GetEventsByEventIdOccurrencesResponses["200"]["data"]["responsibilities"][number];
 
 export type EventTask = GetEventsByEventIdTasksResponses["200"]["data"][number];
 export type TaskStatus = EventTask["status"];

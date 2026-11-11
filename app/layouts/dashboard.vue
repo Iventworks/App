@@ -100,11 +100,16 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 	const event = selectedEvent.value;
 	if (!event) return [];
 	const base = `/events/${event.id}`;
+	const recurring = event.type === "recurring";
 	const items: NavigationMenuItem[] = [
 		{ label: "Übersicht", icon: "i-lucide-house", to: base, exact: true },
+		// A recurring event is planned date by date; nobody stays overnight.
+		...(recurring
+			? [{ label: "Termine", icon: "i-lucide-calendar-check", to: `${base}/occurrences` }]
+			: []),
 		{ label: "Programm", icon: "i-lucide-calendar-range", to: `${base}/program` },
 		{ label: "Teilnehmende", icon: "i-lucide-users", to: `${base}/participants` },
-		{ label: "Zimmer", icon: "i-lucide-bed-double", to: `${base}/rooms` },
+		...(recurring ? [] : [{ label: "Zimmer", icon: "i-lucide-bed-double", to: `${base}/rooms` }]),
 		{ label: "Team", icon: "i-lucide-contact", to: `${base}/staff` },
 		{ label: "Gruppen", icon: "i-lucide-users-round", to: `${base}/groups` },
 		{ label: "Zuständigkeiten", icon: "i-lucide-badge-check", to: `${base}/responsibilities` },
@@ -240,8 +245,8 @@ const searchGroups = computed(() =>
 					label: "Meine Events",
 					items: (myEvents.value ?? []).map((event) => ({
 						label: event.name,
-						suffix: formatDayRange(event.start_date, event.end_date),
-						icon: event.type === "camp" ? "i-lucide-tent" : "i-lucide-calendar-days",
+						suffix: eventDateLabel(event),
+						icon: EVENT_TYPE_ICONS[event.type],
 						to: `/events/${event.id}`,
 					})),
 				},

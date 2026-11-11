@@ -145,11 +145,59 @@ CMP (Crossover Management Portal) before; the repository still is.
     *Administration → Freigabelinks*. Public API: `/shares/{token}/…`; page: `pages/s/[token].vue`
     (layout `public`).
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
-  `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`).
+  `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`). Wall-clock times (`HH:MM`) become instants
+  with `TimeUtils.instantOf`; moving an instant by whole days keeps its time of day across DST
+  (`TimeUtils.shiftDays`) — never add `n * 86 400 000`.
+- **Recurring events** (`events.type = "recurring"`, "Regeltermin"): the rule is
+  `events.recurrence` (JSON, `server/lib/utils/recurrence.ts`: weekly on weekdays / monthly on a
+  day or weekday of the month, every n, usual time); `start_date`/`end_date` are the first and last
+  day of the series (at most three years, 400 dates). The single dates are rows of
+  `event_occurrences`, kept in line with the rule by `Occurrences.syncWithRule` after every change
+  to type, dates or rule: future dates the rule no longer has are deleted unless someone worked
+  on them (topic, notes, own time/place, duties, cancelled — those become `origin = manual`), past
+  dates are history. Dates of the series are cancelled, never deleted (the rule would bring them
+  back); only `manual` dates can be moved or deleted. The duty roster ("Dienstplan") is
+  `occurrence_duties` (date × responsibility × person); the responsibility's assignees are the
+  usual cast that `POST …/occurrences/plan` fills from (all, or in turns).
+  - A series takes place on its planned dates, not from `start_date` to `end_date`. Anything that
+    asks "does it run today / overlap / clash" goes through `EventSchedule` (dashboard, core team
+    overview, staff planning, resource bookings, event overview); the calendar shows the dates.
+    Frontend: `eventPhase()` / `eventDateLabel()` in `app/utils/events.ts`.
+  - Leaving an event's team takes the person off its upcoming duties (`removeUpcomingDuties`).
+- **Copying events** (`POST /events/{id}/copy`, core team, `EventCopier` in
+  `server/lib/api/utils/eventCopy.ts`): master data always, the rest per part (`include`). People
+  only come along with `team` (and only accounts that can still sign in); program items and due
+  dates move with the new start (`TimeUtils.shiftDays`), tasks are open again, participants are
+  registered again and unpaid, documents are real copies (`FileStorage.copy`), resource bookings
+  only where the resource is free on the new days. Never copied: expenses, chats, audit log, the
+  leaders' notes about staff, notes about participants, the dates of a series (they come from the
+  rule). A new event table or column that belongs to an event must be added to `EventCopier` (or
+  consciously left out) and to its `summary`.
 - **Messaging** is REST + polling, no WebSocket: an open chat polls
-  `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>` every few seconds and
-  receives new messages plus other people's edits and deletions (messages are soft-deleted as
-  tombstones with their text wiped, so deletions can be synced).
+  `GET /conversations/{id}/messages/sync?after=<last id>&since=<server_time>&from=<first id>` every
+  few seconds and receives new messages plus what changed on loaded ones — every change (edit,
+  reaction, pin, deletion) bumps `messages.updated_at`, which is what sync reports; messages are
+  soft-deleted as tombstones with their text wiped, so deletions can be synced. The same response
+  carries the pinned ids and `read_by_all_until` (the read ticks). Rules:
+  - Message logic lives in `MessageService` (`server/lib/api/utils/messages.ts`), chat access and
+    membership of every chat type in `ConversationAccess`. A message change that others should see
+    must go through `touch()` in the messages router.
+  - **Attachments** are rows of `files` with `scope = "message"` (`conversation_id`, `message_id`):
+    uploaded first (`POST /conversations/{id}/attachments`, visible to the uploader only), then
+    sent with a message (`attachment_ids`). `FileAccess` lets everyone in the chat read them through
+    the normal content path; they are never renamed, deleted or shared through the file routes.
+    Deleting a message deletes its files; rows vanish with their chat (`ON DELETE CASCADE`) and
+    housekeeping removes the blobs and uploads that were never sent.
+  - `conversation_members` also holds each person's own settings (`pinned_at`, `muted`) and read
+    marker; for derived channels (event, group, core team) that row has `is_member = false` — never
+    treat a row there as membership. Muted chats are left out of the unread total.
+  - Frontend: `components/chat/` (`ConversationPane` orchestrates; `MessageBubble`, `Composer`,
+    `MessageListSlideover` for search and pins). Links in messages come from `linkify()` — message
+    text is never rendered with `v-html`. Emoji offered in `utils/chat.ts` must pass
+    `MessageService.Emoji` (a test checks it).
+- **Migrations**: drizzle-kit writes `ALTER TABLE … ADD … REFERENCES t(id)` *without* the
+  `ON DELETE` action. Add it by hand in the generated SQL (see `0003_chat_features.sql`), otherwise
+  deleting the referenced row fails once foreign keys are on.
 - All pages render client-side (`routeRules: { "/**": { ssr: false } }`) — the guide's
   "everything behind login" variant. Internal-only app: there is no public `default` layout; pages
   use `definePageMeta({ layout: "dashboard" })` (or `auth`).

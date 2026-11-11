@@ -51,22 +51,23 @@ const sections = computed(() => {
 			key: "running",
 			label: "Läuft gerade",
 			icon: "i-lucide-radio",
-			items: list.filter((event) => event.start_date <= today && today <= event.end_date),
+			// A recurring event runs on the days of its dates and is upcoming until its last one.
+			items: list.filter((event) => eventPhase(event, today) === "running"),
 		},
 		{
 			key: "upcoming",
 			label: "Bevorstehend",
 			icon: "i-lucide-calendar-clock",
 			items: list
-				.filter((event) => event.start_date > today)
-				.sort((a, b) => a.start_date.localeCompare(b.start_date)),
+				.filter((event) => eventPhase(event, today) === "upcoming")
+				.sort((a, b) => (eventNextDay(a) ?? "").localeCompare(eventNextDay(b) ?? "")),
 		},
 		{
 			key: "past",
 			label: "Vergangen",
 			icon: "i-lucide-history",
 			items: list
-				.filter((event) => event.end_date < today)
+				.filter((event) => eventPhase(event, today) === "past")
 				.sort((a, b) => b.end_date.localeCompare(a.end_date)),
 		},
 	].filter((section) => section.items.length > 0);

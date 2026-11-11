@@ -27,6 +27,7 @@ const LOCATION_LABELS: Record<DB.Models.File["scope"], string> = {
 	org: "Organisationsdokument",
 	event: "Dokument",
 	receipt: "Beleg",
+	message: "Anhang",
 };
 
 router.use(

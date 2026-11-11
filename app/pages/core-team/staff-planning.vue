@@ -2,6 +2,8 @@
 /**
  * Kernteam staff planning: a Gantt-like matrix of who works on which event in a date range,
  * with overlapping assignments highlighted, people without an assignment, and quick assignment.
+ * A recurring event is a faint bar over its series with a tick per date: it only clashes with
+ * other events on those days.
  */
 import type { GetOrgCoreTeamStaffPlanningResponses } from "~/api-client";
 import type { EventRole } from "~/utils/roles";
@@ -98,6 +100,20 @@ function barStyle(event: Pick<PlanningEvent, "start_date" | "end_date" | "color"
 	};
 }
 
+/** Recurring events: where their dates are, relative to their bar. */
+function dateTicks(event: PlanningEvent) {
+	if (!event.dates) return [];
+	const first = Math.max(0, dayIndex(event.start_date));
+	const last = Math.min(timeline.value.days - 1, dayIndex(event.end_date));
+	const span = Math.max(1, last - first + 1);
+	return event.dates.map((date) => `${((dayIndex(date) - first + 0.5) / span) * 100}%`);
+}
+
+function eventPeriodLabel(event: PlanningEvent) {
+	if (!event.dates) return formatDayRange(event.start_date, event.end_date);
+	return `${event.dates.length} ${event.dates.length === 1 ? "Termin" : "Termine"} im Zeitraum`;
+}
+
 const monthMarks = computed(() => {
 	const marks: { label: string; left: string }[] = [];
 	const cursor = parseDay(timeline.value.from);
@@ -165,7 +181,7 @@ const peopleOptions = computed(() => {
 const eventOptions = computed(() =>
 	(planning.value?.events ?? []).map((event) => ({
 		label: event.name,
-		description: formatDayRange(event.start_date, event.end_date),
+		description: eventPeriodLabel(event),
 		value: event.id,
 	})),
 );
@@ -294,10 +310,20 @@ async function submitAssign() {
 											v-for="(event, index) in planning.events"
 											:key="event.id"
 											:to="`/events/${event.id}/staff`"
-											class="planning-bar absolute flex h-5 items-center overflow-hidden rounded px-1.5 text-xs font-medium text-white hover:brightness-125"
+											:class="[
+												'planning-bar absolute flex h-5 items-center overflow-hidden rounded px-1.5 text-xs font-medium text-white hover:brightness-125',
+												event.dates ? 'planning-bar--series' : '',
+											]"
 											:style="{ ...barStyle(event), top: `${index * 26 + 8}px` }"
+											:title="`${event.name} · ${eventPeriodLabel(event)}`"
 										>
-											<span class="truncate">{{ event.name }}</span>
+											<span
+												v-for="left in dateTicks(event)"
+												:key="left"
+												class="planning-tick"
+												:style="{ left }"
+											/>
+											<span class="relative truncate">{{ event.name }}</span>
 										</NuxtLink>
 									</div>
 								</div>
@@ -333,19 +359,26 @@ async function submitAssign() {
 										<UTooltip
 											v-for="bar in row.bars"
 											:key="bar.event_id"
-											:text="`${bar.event.name} · ${EVENT_ROLE_LABELS[bar.role]} · ${formatDayRange(bar.event.start_date, bar.event.end_date)}`"
+											:text="`${bar.event.name} · ${EVENT_ROLE_LABELS[bar.role]} · ${eventPeriodLabel(bar.event)}`"
 										>
 											<NuxtLink
 												:to="`/events/${bar.event_id}/staff`"
 												:class="[
 													'planning-bar absolute top-2.5 flex h-6 items-center overflow-hidden rounded px-1.5 text-xs',
 													bar.role === 'leader' ? 'font-semibold text-white' : 'planning-bar--staff text-slate-200',
+													bar.event.dates ? 'planning-bar--series' : '',
 													row.conflicting.has(bar.event_id) ? 'ring-2 ring-red-500' : '',
 												]"
 												:style="barStyle(bar.event)"
 											>
+												<span
+													v-for="left in dateTicks(bar.event)"
+													:key="left"
+													class="planning-tick"
+													:style="{ left }"
+												/>
 												<UIcon v-if="bar.role === 'leader'" name="i-lucide-crown" class="mr-1 size-3 shrink-0" />
-												<span class="truncate">{{ bar.event.name }}</span>
+												<span class="relative truncate">{{ bar.event.name }}</span>
 											</NuxtLink>
 										</UTooltip>
 									</div>
@@ -455,5 +488,22 @@ async function submitAssign() {
 .planning-bar--staff {
 	background-color: color-mix(in oklch, var(--event-color) 25%, transparent);
 	box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--event-color) 70%, transparent);
+}
+
+/* A series: faint over its whole span, solid ticks on its dates. */
+.planning-bar--series {
+	background-color: color-mix(in oklch, var(--event-color) 18%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--event-color) 45%, transparent);
+}
+
+.planning-tick {
+	position: absolute;
+	top: 2px;
+	bottom: 2px;
+	width: 3px;
+	transform: translateX(-50%);
+	border-radius: 2px;
+	background-color: var(--event-color);
+	pointer-events: none;
 }
 </style>

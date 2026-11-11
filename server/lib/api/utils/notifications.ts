@@ -43,6 +43,8 @@ export namespace Notifier {
 		| "task_assigned"
 		| "program_assigned"
 		| "responsibility_assigned"
+		| "occurrence_assigned"
+		| "occurrence_cancelled"
 		| "event_added"
 		| "announcement"
 		| "expense_reviewed"

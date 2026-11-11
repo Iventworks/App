@@ -2,7 +2,8 @@
 /**
  * Event overview: the event at a glance (dates, status, leaders, description), key numbers,
  * today's and upcoming program, news for the team (managed by leaders), and everything that
- * concerns the caller personally (tasks, responsibilities, room, groups).
+ * concerns the caller personally (tasks, responsibilities, room, groups). A recurring event also
+ * shows its next dates with who is on duty.
  */
 import type { NavigationMenuItem } from "@nuxt/ui";
 import type {
@@ -10,6 +11,7 @@ import type {
 	GetEventsByEventIdOverviewResponses,
 } from "~/api-client";
 import { zPostEventsByEventIdAnnouncementsBody } from "~/api-client/zod.gen";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 import type { EventPermission } from "~/utils/types";
 
 type Overview = GetEventsByEventIdOverviewResponses["200"]["data"];
@@ -19,6 +21,9 @@ definePageMeta({ layout: "dashboard" });
 
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
+const user = await useUserInfoStore().use();
+const isCoreTeam = computed(() => hasOrgRole(user.value?.role, "core_team"));
+const isRecurring = computed(() => event.value.type === "recurring");
 
 useSeoMeta({ title: `${event.value.name}` });
 
@@ -69,6 +74,17 @@ function daysBetween(from: string, to: string) {
 const timing = computed(() => {
 	const today = overview.value?.today ?? toDayString();
 	const { start_date, end_date } = event.value;
+	// A recurring event goes by its next date.
+	if (isRecurring.value) {
+		const next = event.value.next_occurrence;
+		if (!next) return { label: "Keine weiteren Termine", color: "neutral" as const };
+		if (next.date === today) return { label: "Heute ist Termin", color: "success" as const };
+		const days = daysBetween(today, next.date);
+		return {
+			label: days === 1 ? "Nächster Termin morgen" : `Nächster Termin in ${days} Tagen`,
+			color: "info" as const,
+		};
+	}
 	const totalDays = daysBetween(start_date, end_date) + 1;
 	if (start_date <= today && today <= end_date) {
 		return {
@@ -90,6 +106,22 @@ const timing = computed(() => {
 
 const quickLinks = computed(() => {
 	const links: (NavigationMenuItem & { permission: EventPermission })[] = [
+		...(isRecurring.value
+			? [
+					{
+						label: "Termine",
+						icon: "i-lucide-calendar-check",
+						to: `${base.value}/occurrences`,
+						permission: "occurrences:view" as const,
+					},
+					{
+						label: "Dienstplan",
+						icon: "i-lucide-table-properties",
+						to: `${base.value}/occurrences/roster`,
+						permission: "occurrences:view" as const,
+					},
+				]
+			: []),
 		{
 			label: "Programm",
 			icon: "i-lucide-calendar-range",
@@ -102,12 +134,16 @@ const quickLinks = computed(() => {
 			to: `${base.value}/participants`,
 			permission: "participants:view",
 		},
-		{
-			label: "Zimmer",
-			icon: "i-lucide-bed-double",
-			to: `${base.value}/rooms`,
-			permission: "rooms:view",
-		},
+		...(isRecurring.value
+			? []
+			: [
+					{
+						label: "Zimmer",
+						icon: "i-lucide-bed-double",
+						to: `${base.value}/rooms`,
+						permission: "rooms:view" as const,
+					},
+				]),
 		{
 			label: "Team",
 			icon: "i-lucide-contact",
@@ -165,6 +201,16 @@ const quickLinks = computed(() => {
 	];
 	return links.filter((link) => can(link.permission));
 });
+
+const copyOpen = ref(false);
+
+/** Responsibilities without anyone on a date: shown as "offen" in the next dates. */
+function dutyLine(occurrence: Overview["next_occurrences"][number]) {
+	return occurrence.duties
+		.filter((duty) => duty.users.length)
+		.map((duty) => duty.users.map((person) => person.display_name).join(", "))
+		.join(" · ");
+}
 
 // --- announcements ------------------------------------------------------------------------
 
@@ -285,6 +331,15 @@ function announcementActions(announcement: Announcement) {
 						variant="subtle"
 						:ui="{ label: 'hidden sm:inline' }"
 					/>
+					<UTooltip v-if="isCoreTeam" text="Event kopieren">
+						<UButton
+							icon="i-lucide-copy"
+							color="neutral"
+							variant="ghost"
+							aria-label="Event kopieren"
+							@click="copyOpen = true"
+						/>
+					</UTooltip>
 					<UButton
 						v-if="can('event:edit')"
 						:to="`${base}/settings`"
@@ -326,6 +381,10 @@ function announcementActions(announcement: Announcement) {
 								<h1 class="text-2xl font-bold text-white">{{ event.name }}</h1>
 								<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
 									<span class="flex items-center gap-1.5">
+										<UIcon :name="isRecurring ? 'i-lucide-repeat' : 'i-lucide-calendar'" class="size-4" />
+										{{ eventDateLabel(event) }}
+									</span>
+									<span v-if="isRecurring" class="flex items-center gap-1.5">
 										<UIcon name="i-lucide-calendar" class="size-4" />
 										{{ formatDayRange(event.start_date, event.end_date) }}
 									</span>
@@ -402,6 +461,53 @@ function announcementActions(announcement: Announcement) {
 
 					<div class="grid gap-6 xl:grid-cols-3">
 						<div class="space-y-6 xl:col-span-2">
+							<!-- Next dates of a recurring event -->
+							<DashboardSectionCard
+								v-if="isRecurring"
+								title="Nächste Termine"
+								:description="event.recurrence ? describeRecurrence(event.recurrence, event.start_date) : undefined"
+								icon="i-lucide-calendar-check"
+							>
+								<template #actions>
+									<UButton
+										:to="`${base}/occurrences`"
+										label="Alle Termine"
+										trailing-icon="i-lucide-arrow-right"
+										color="neutral"
+										variant="ghost"
+										size="sm"
+									/>
+								</template>
+								<p v-if="!overview.next_occurrences.length" class="text-sm text-slate-400">
+									Es stehen keine Termine mehr an.
+								</p>
+								<ul v-else class="divide-y divide-slate-800">
+									<li
+										v-for="occurrence in overview.next_occurrences"
+										:key="occurrence.id"
+										class="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+									>
+										<div class="min-w-0">
+											<p class="text-sm font-medium text-white">
+												{{ occurrenceLabel(occurrence) }}
+												<span v-if="occurrence.title" class="font-normal text-slate-300">· {{ occurrence.title }}</span>
+											</p>
+											<p class="truncate text-xs text-slate-500">
+												{{ dutyLine(occurrence) || "Noch niemand eingeteilt" }}
+											</p>
+										</div>
+										<UBadge
+											v-if="occurrence.is_mine"
+											label="Du hast Dienst"
+											color="success"
+											variant="soft"
+											size="sm"
+											class="shrink-0"
+										/>
+									</li>
+								</ul>
+							</DashboardSectionCard>
+
 							<!-- Program -->
 							<DashboardSectionCard
 								:title="overview.is_running ? 'Heute' : 'Programm'"
@@ -637,6 +743,13 @@ function announcementActions(announcement: Announcement) {
 			</DashboardPageBody>
 		</template>
 	</UDashboardPanel>
+
+	<EventCopyModal
+		v-if="isCoreTeam"
+		v-model:open="copyOpen"
+		:event="event"
+		@copied="navigateTo(`/events/${$event.id}`)"
+	/>
 
 	<DashboardModal
 		v-model:open="formOpen"

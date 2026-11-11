@@ -1,10 +1,11 @@
 # Iventworks
 
-Planning and running camps ("Freizeiten") and events for organisations: personal dashboard,
-tasks, messaging, calendar and notes for every volunteer; participants, schedule, rooms,
-responsibilities, documents and finances per event; finances, statistics, staff planning and
-resources across all events for the core team ("Kernteam"); users, invitations and the audit log
-for admins. One installation serves one organisation, or — in multi-org mode — many, each with its
+Planning and running camps ("Freizeiten"), one-time events and recurring events ("Regeltermine",
+e.g. a weekly youth group) for organisations: personal dashboard, tasks, messaging, calendar and
+notes for every volunteer; participants, schedule, rooms, responsibilities, documents and finances
+per event, dates and a duty roster for recurring events; finances, statistics, staff planning,
+resources and copying events ("the same camp next year") for the core team ("Kernteam"); users,
+invitations and the audit log for admins. One installation serves one organisation, or — in multi-org mode — many, each with its
 own users, data, branding and domains (see [Organisations](#organisations-single--and-multi-org-mode)).
 
 Full-stack Nuxt app: Nuxt 4 frontend **and** the Hono API in `server/`, mounted at `/api`. Built
@@ -116,12 +117,32 @@ applies its colour and name. Route gates live in `app/middleware/auth.global.ts`
 session validation, `/pending` for unverified accounts, `/admin` and `/core-team` gates). Event pages load the event and the caller's
 permissions through `useCurrentEvent()`.
 
-Chats are polled (no WebSocket yet): an open chat syncs new messages, edits and deletions every
-4 seconds; unread badges refresh every minute.
+Chats (direct, group, and the channels of events, event groups and the core team) support
+attachments (also by drag & drop and paste), replies, emoji reactions, pinned messages, search
+within a chat and across all chats, member lists, read ticks, and pinning or muting a chat for
+yourself. They are polled (no WebSocket yet): an open chat syncs new messages and every change to
+loaded ones (edits, reactions, pins, deletions) every 4 seconds; unread badges refresh every minute.
+
+## Events
+
+- **Freizeit** (camp) and **Event** happen once, from the first to the last day.
+- **Regeltermin** (recurring event) repeats weekly (on chosen weekdays) or monthly (on the same
+  day or the same weekday of the month), every n weeks/months, with a usual time. Its dates are
+  created from the rule; each date can have its own topic, notes, time and place, be cancelled
+  (the people on duty are notified) or be added by hand. The **Dienstplan** assigns people to the
+  event's responsibilities per date — by hand, by staff taking a duty themselves ("Ich"), or filled
+  automatically from the usual cast (everyone, or taking turns). A series counts as taking place
+  only on its dates: in the calendar, the dashboard, staff planning (clashes) and resource
+  bookings.
+- **Copying** (core team: event page, event settings, *Kernteam → Freizeiten & Events*) creates a
+  new event in planning from an existing one. You pick what comes along: team, groups, rooms,
+  responsibilities, program, tasks, budget plan, notes, news, documents, resource bookings,
+  participants. Program and due dates move with the new start date; expenses, chats and the audit
+  log stay with the original.
 
 ## Files
 
-Uploads (documents, receipts) are stored on disk under `IVENTWORKS_UPLOAD_DIR` (default
+Uploads (documents, receipts, chat attachments) are stored on disk under `IVENTWORKS_UPLOAD_DIR` (default
 `./data/uploads`), metadata in the `files` table. A file's contents are at
 `/api/v1/files/<id>/content/<name>`, checked on every request; the browser's session cookie counts
 there, so images and links open directly. Back up `data/` (database **and** uploads) together.

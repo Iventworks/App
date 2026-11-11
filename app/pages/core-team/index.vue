@@ -159,7 +159,9 @@ const unstaffedCount = computed(
 										<UIcon :name="EVENT_TYPE_ICONS[event.type]" class="size-4 shrink-0 text-slate-400" />
 										<div class="min-w-0 flex-1">
 											<p class="truncate font-medium text-white">{{ event.name }}</p>
-											<p class="text-xs text-slate-400">{{ formatDayRange(event.start_date, event.end_date) }}</p>
+											<p class="text-xs text-slate-400">
+												{{ event.type === "recurring" ? "Heute ist Termin" : formatDayRange(event.start_date, event.end_date) }}
+											</p>
 										</div>
 										<div class="hidden gap-4 text-xs text-slate-400 sm:flex">
 											<span class="flex items-center gap-1">
@@ -212,8 +214,12 @@ const unstaffedCount = computed(
 											{{ event.name }}
 										</NuxtLink>
 										<p class="text-xs text-slate-400">
-											{{ formatDayRange(event.start_date, event.end_date) }} · in
-											{{ daysUntil(event.start_date) }} Tag{{ daysUntil(event.start_date) === 1 ? "" : "en" }}
+											<template v-if="event.type === 'recurring'">
+												Regeltermin · nächster Termin {{ formatShortDay(event.next_date ?? event.start_date) }}
+											</template>
+											<template v-else>{{ formatDayRange(event.start_date, event.end_date) }}</template>
+											· in {{ daysUntil(event.next_date ?? event.start_date) }}
+											Tag{{ daysUntil(event.next_date ?? event.start_date) === 1 ? "" : "en" }}
 										</p>
 									</div>
 								</div>

@@ -11,6 +11,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { UserAccountSettings } from "../api/utils/shared-models/accountData";
+import type { Recurrence } from "../utils/recurrence";
 import { SQLUtils } from "./utils";
 
 // Conventions: snake_case tables/columns, integer autoincrement ids, unix-ms timestamps,
@@ -264,9 +265,16 @@ export const invitations = sqliteTable(
 // Events (camps & events) and their staff
 // ---------------------------------------------------------------------------
 
-export const EVENT_TYPES = ["camp", "event"] as const;
+/**
+ * `camp` ("Freizeit") and `event` happen once, from `start_date` to `end_date`. `recurring`
+ * ("Regeltermin") is a series — every week, every month … — whose single dates are rows of
+ * `event_occurrences`; its `start_date`/`end_date` are the first and last day of the series.
+ */
+export const EVENT_TYPES = ["camp", "event", "recurring"] as const;
 export const EVENT_STATUSES = ["planning", "confirmed", "cancelled", "archived"] as const;
 export const EVENT_MEMBER_ROLES = ["leader", "staff"] as const;
+export const OCCURRENCE_STATUSES = ["planned", "cancelled"] as const;
+export const OCCURRENCE_ORIGINS = ["rule", "manual"] as const;
 
 /**
  * @deprecated Use DB.Tables.events to access this table.
@@ -284,6 +292,8 @@ export const events = sqliteTable(
 		// Date-only, inclusive: `YYYY-MM-DD`.
 		start_date: text().notNull(),
 		end_date: text().notNull(),
+		// The rule of a recurring event (`type = recurring`), null otherwise.
+		recurrence: text({ mode: "json" }).$type<Recurrence.Rule>(),
 		color: text(),
 		max_participants: integer(),
 		participant_fee_cents: integer(),
@@ -293,6 +303,41 @@ export const events = sqliteTable(
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
 	(table) => [index("events_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * The single dates ("Termine") of a recurring event. `origin = rule` rows come from the event's
+ * recurrence and follow it when it changes; `manual` rows were added by hand (an extra date, a
+ * replacement) and stay. Time and place are the series' unless a date overrides them (null =
+ * as the series says). A date that does not take place is `cancelled`, not deleted, so the rule
+ * doesn't bring it back.
+ * @deprecated Use DB.Tables.eventOccurrences to access this table.
+ */
+export const eventOccurrences = sqliteTable(
+	"event_occurrences",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		event_id: integer()
+			.notNull()
+			.references(() => events.id, { onDelete: "cascade" }),
+		// Date-only: `YYYY-MM-DD`.
+		date: text().notNull(),
+		// `HH:MM`; null = the time of the series.
+		start_time: text(),
+		end_time: text(),
+		// null = the event's location.
+		location: text(),
+		// What this date is about ("Thema").
+		title: text(),
+		notes: text().notNull().default(""),
+		status: text({ enum: OCCURRENCE_STATUSES }).notNull().default("planned"),
+		cancel_reason: text(),
+		origin: text({ enum: OCCURRENCE_ORIGINS }).notNull().default("rule"),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [index("event_occurrences_event_date_idx").on(table.event_id, table.date)],
 );
 
 /**
@@ -463,12 +508,14 @@ export const participantNotes = sqliteTable("participant_notes", {
 // Files (documents & folders, receipts)
 // ---------------------------------------------------------------------------
 
-export const FILE_SCOPES = ["org", "event", "receipt"] as const;
+export const FILE_SCOPES = ["org", "event", "receipt", "message"] as const;
 export const FILE_KINDS = ["folder", "file"] as const;
 
 /**
  * Documents and folders. `scope = org` is the organisation-wide library (read: everyone,
- * write: core team), `scope = event` an event's documents, `scope = receipt` expense proofs.
+ * write: core team), `scope = event` an event's documents, `scope = receipt` expense proofs,
+ * `scope = message` chat attachments (readable by everyone in the chat `conversation_id`; while
+ * `message_id` is null the upload is not sent yet and only its uploader sees it).
  * Blobs live on disk under `<DATA_DIR>/uploads/<storage_key>`.
  * @deprecated Use DB.Tables.files to access this table.
  */
@@ -480,6 +527,11 @@ export const files = sqliteTable(
 		scope: text({ enum: FILE_SCOPES }).notNull(),
 		event_id: integer().references(() => events.id, { onDelete: "cascade" }),
 		parent_id: integer().references((): AnySQLiteColumn => files.id, { onDelete: "cascade" }),
+		// Chat attachments only. Rows go with the chat/message; housekeeping removes the blobs.
+		conversation_id: integer().references((): AnySQLiteColumn => conversations.id, {
+			onDelete: "cascade",
+		}),
+		message_id: integer().references((): AnySQLiteColumn => messages.id, { onDelete: "cascade" }),
 		kind: text({ enum: FILE_KINDS }).notNull(),
 		name: text().notNull(),
 		mime_type: text(),
@@ -493,6 +545,7 @@ export const files = sqliteTable(
 		index("files_org_id_idx").on(table.org_id),
 		index("files_scope_event_idx").on(table.scope, table.event_id),
 		index("files_parent_id_idx").on(table.parent_id),
+		index("files_message_id_idx").on(table.message_id),
 	],
 );
 
@@ -634,6 +687,32 @@ export const responsibilityAssignees = sqliteTable(
 			.references(() => users.id, { onDelete: "cascade" }),
 	},
 	(table) => [primaryKey({ columns: [table.responsibility_id, table.user_id] })],
+);
+
+/**
+ * Who covers a responsibility on one date of a recurring event (the duty roster, "Dienstplan").
+ * The responsibility's own assignees are the people who usually do it.
+ * @deprecated Use DB.Tables.occurrenceDuties to access this table.
+ */
+export const occurrenceDuties = sqliteTable(
+	"occurrence_duties",
+	{
+		org_id: orgIdColumn(),
+		occurrence_id: integer()
+			.notNull()
+			.references(() => eventOccurrences.id, { onDelete: "cascade" }),
+		responsibility_id: integer()
+			.notNull()
+			.references(() => responsibilities.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.occurrence_id, table.responsibility_id, table.user_id] }),
+		index("occurrence_duties_user_id_idx").on(table.user_id),
+	],
 );
 
 // ---------------------------------------------------------------------------
@@ -884,6 +963,9 @@ export const conversationMembers = sqliteTable(
 		// Explicit member (direct/group); false = read-state row only (derived-access chats).
 		is_member: integer({ mode: "boolean" }).notNull().default(true),
 		last_read_at: integer().notNull().default(0),
+		// Personal settings: pinned to the top of the caller's chat list / no unread badge.
+		pinned_at: integer(),
+		muted: integer({ mode: "boolean" }).notNull().default(false),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
 	(table) => [
@@ -904,15 +986,46 @@ export const messages = sqliteTable(
 			.notNull()
 			.references(() => conversations.id, { onDelete: "cascade" }),
 		sender_id: integer().references(() => users.id, { onDelete: "set null" }),
+		// May be empty when the message only carries attachments.
 		content: text().notNull(),
+		// The message this one answers (quoted above it).
+		reply_to_id: integer().references((): AnySQLiteColumn => messages.id, {
+			onDelete: "set null",
+		}),
+		// Pinned for everyone in the chat.
+		pinned_at: integer(),
+		pinned_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		edited_at: integer(),
 		// Soft delete: a tombstone (content cleared) so polling clients learn about deletions.
 		deleted_at: integer(),
+		// Last change of any kind (edit, deletion, reaction, pin): what `/messages/sync` reports.
+		updated_at: integer(),
 	},
 	(table) => [
 		index("messages_conversation_created_idx").on(table.conversation_id, table.created_at),
+		index("messages_conversation_updated_idx").on(table.conversation_id, table.updated_at),
 	],
+);
+
+/**
+ * Emoji reactions: one row per person and emoji on a message.
+ * @deprecated Use DB.Tables.messageReactions to access this table.
+ */
+export const messageReactions = sqliteTable(
+	"message_reactions",
+	{
+		org_id: orgIdColumn(),
+		message_id: integer()
+			.notNull()
+			.references(() => messages.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		emoji: text().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [primaryKey({ columns: [table.message_id, table.user_id, table.emoji] })],
 );
 
 // ---------------------------------------------------------------------------

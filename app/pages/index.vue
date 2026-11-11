@@ -230,17 +230,37 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 								</div>
 								<div class="min-w-0">
 									<p class="text-xs font-medium uppercase tracking-wide text-primary-300">
-										Heute auf {{ event.type === "camp" ? "der Freizeit" : "dem Event" }}
+										{{
+											event.type === "recurring"
+												? "Heute ist Termin"
+												: `Heute auf ${event.type === "camp" ? "der Freizeit" : "dem Event"}`
+										}}
 									</p>
 									<h3 class="truncate text-lg font-semibold text-white">{{ event.name }}</h3>
-									<p class="text-sm text-slate-400">
+									<p v-if="event.type === 'recurring' && event.occurrence" class="text-sm text-slate-400">
+										<template v-if="event.occurrence.title">{{ event.occurrence.title }} · </template>
+										{{ timeRangeLabel(event.occurrence.start_time, event.occurrence.end_time) || "Ganztägig" }}
+										<template v-if="event.occurrence.location"> · {{ event.occurrence.location }}</template>
+										· {{ getEventRoleLabel(event.my_role) }}
+									</p>
+									<p v-else class="text-sm text-slate-400">
 										Tag {{ event.day_number }} von {{ event.total_days }}
 										<template v-if="event.location"> · {{ event.location }}</template>
 										· {{ getEventRoleLabel(event.my_role) }}
 									</p>
 								</div>
 							</div>
-							<div class="w-full sm:w-48">
+							<div v-if="event.type === 'recurring'">
+								<UButton
+									:to="`/events/${event.id}/occurrences`"
+									label="Termine & Dienste"
+									icon="i-lucide-calendar-check"
+									color="neutral"
+									variant="subtle"
+									size="sm"
+								/>
+							</div>
+							<div v-else class="w-full sm:w-48">
 								<UProgress :model-value="event.day_number" :max="event.total_days" size="sm" />
 							</div>
 						</div>
@@ -546,8 +566,14 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 											<div class="min-w-0 flex-1">
 												<p class="truncate text-sm font-medium text-white">{{ event.name }}</p>
 												<p class="truncate text-xs text-slate-500">
-													{{ formatDayRange(event.start_date, event.end_date) }}
-													<template v-if="event.location"> · {{ event.location }}</template>
+													<template v-if="event.type === 'recurring' && event.occurrence">
+														Nächster Termin {{ occurrenceLabel(event.occurrence) }}
+														<template v-if="event.occurrence.location"> · {{ event.occurrence.location }}</template>
+													</template>
+													<template v-else>
+														{{ formatDayRange(event.start_date, event.end_date) }}
+														<template v-if="event.location"> · {{ event.location }}</template>
+													</template>
 												</p>
 											</div>
 											<UBadge

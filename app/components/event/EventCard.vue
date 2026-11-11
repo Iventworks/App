@@ -14,6 +14,14 @@ function daysBetween(from: string, to: string) {
 
 const timing = computed(() => {
 	const { start_date, end_date } = props.event;
+	// A recurring event goes by its next date.
+	if (props.event.type === "recurring") {
+		const next = props.event.next_occurrence;
+		if (!next) return null;
+		if (next.date === today) return { label: "Heute", color: "success" as const };
+		const days = daysBetween(today, next.date);
+		return { label: days === 1 ? "Morgen" : `In ${days} Tagen`, color: "info" as const };
+	}
 	if (start_date <= today && today <= end_date) {
 		return {
 			label: `Tag ${daysBetween(start_date, today) + 1} von ${daysBetween(start_date, end_date) + 1}`,
@@ -49,7 +57,7 @@ const roleBadge = computed(() =>
 					<div class="min-w-0">
 						<p class="truncate font-semibold text-white group-hover:text-primary-300">{{ event.name }}</p>
 						<p class="text-sm text-slate-400">
-							{{ EVENT_TYPE_LABELS[event.type] }} · {{ formatDayRange(event.start_date, event.end_date) }}
+							{{ EVENT_TYPE_LABELS[event.type] }} · {{ eventDateLabel(event) }}
 						</p>
 					</div>
 				</div>
@@ -67,6 +75,10 @@ const roleBadge = computed(() =>
 				<UBadge v-if="timing" :label="timing.label" :color="timing.color" variant="soft" size="sm" />
 				<span v-if="event.location" class="flex items-center gap-1 text-slate-400">
 					<UIcon name="i-lucide-map-pin" class="size-3.5" /> {{ event.location }}
+				</span>
+				<span v-if="event.next_occurrence" class="flex items-center gap-1 text-slate-400">
+					<UIcon name="i-lucide-calendar-check" class="size-3.5" />
+					Nächster Termin: {{ occurrenceLabel(event.next_occurrence) }}
 				</span>
 			</div>
 

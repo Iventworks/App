@@ -1,11 +1,14 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../../db";
+import { EVENT_TYPES } from "../../../../../../db/schema";
 
 export namespace OrgResourcesModel {
 	export const EventRef = z.object({
 		id: z.number(),
 		name: z.string(),
+		/** A recurring event uses its bookings on the days of its dates only. */
+		type: z.enum(EVENT_TYPES),
 		start_date: z.string(),
 		end_date: z.string(),
 	});

@@ -55,9 +55,28 @@ export const TASK_PRIORITY_OPTIONS = toOptions(TASK_PRIORITY_LABELS, [
 
 // --- events -----------------------------------------------------------------------------------
 
-export const EVENT_TYPE_LABELS = { camp: "Freizeit", event: "Event" } as const;
+export const EVENT_TYPE_LABELS = {
+	camp: "Freizeit",
+	event: "Event",
+	recurring: "Regeltermin",
+} as const;
 export const EVENT_TYPE_OPTIONS = toOptions(EVENT_TYPE_LABELS);
-export const EVENT_TYPE_ICONS = { camp: "i-lucide-tent", event: "i-lucide-calendar-days" } as const;
+export const EVENT_TYPE_ICONS = {
+	camp: "i-lucide-tent",
+	event: "i-lucide-calendar-days",
+	recurring: "i-lucide-repeat",
+} as const;
+/** What each type is, for the form that creates an event. */
+export const EVENT_TYPE_HINTS = {
+	camp: "Mehrere Tage am Stück, mit Zimmern und Programm.",
+	event: "Findet einmal statt.",
+	recurring: "Findet regelmäßig statt, z. B. jede Woche oder jeden Monat.",
+} as const;
+
+export const OCCURRENCE_STATUS_LABELS = {
+	planned: "Findet statt",
+	cancelled: "Fällt aus",
+} as const;
 
 export const EVENT_STATUS_LABELS = {
 	planning: "In Planung",

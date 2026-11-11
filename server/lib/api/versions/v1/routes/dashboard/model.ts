@@ -7,6 +7,7 @@ import {
 	TASK_PRIORITIES,
 	TASK_STATUSES,
 } from "../../../../../db/schema";
+import { Occurrences } from "../../../../utils/occurrences";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 
 export namespace DashboardModel {
@@ -33,9 +34,11 @@ export namespace DashboardModel {
 		end_date: z.string(),
 		color: z.string().nullable(),
 		my_role: z.enum(EVENT_MEMBER_ROLES),
-		/** 1-based day of the event ("Tag 3 von 9"). */
+		/** 1-based day of the event ("Tag 3 von 9"); 1 of 1 for a date of a recurring event. */
 		day_number: z.number(),
 		total_days: z.number(),
+		/** Recurring events: today's date (time, place, topic). */
+		occurrence: Occurrences.SummarySchema.nullable(),
 		today_program: z.array(ProgramItem),
 		latest_announcements: z.array(
 			z.object({
@@ -57,7 +60,10 @@ export namespace DashboardModel {
 		location: z.string().nullable(),
 		color: z.string().nullable(),
 		my_role: z.enum(EVENT_MEMBER_ROLES),
+		/** Days until the event starts — for a recurring event until its next date. */
 		days_until: z.number(),
+		/** Recurring events: the next date (time, place, topic). */
+		occurrence: Occurrences.SummarySchema.nullable(),
 	});
 	export type UpcomingEvent = z.infer<typeof UpcomingEvent>;
 

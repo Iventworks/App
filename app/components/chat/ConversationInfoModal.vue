@@ -1,21 +1,24 @@
 <script setup lang="ts">
 /**
- * Details of a conversation. Group chats: rename, add/remove members, leave. Direct chats: the
- * other person's contact details. Channels (event, group, core team): who is in it and why.
+ * Details of a conversation: the caller's own settings (pinned, muted) and who is in it — for
+ * every type of chat. Group chats can also be renamed, extended and left here; channels (event,
+ * group, core team) say where their members come from.
  */
-import type { GetConversationsResponses, GetUsersResponses } from "~/api-client";
+import type { GetUsersResponses } from "~/api-client";
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
+import type { ChatConversation, ChatMember } from "~/utils/types";
 
-type Conversation = GetConversationsResponses["200"]["data"][number];
 type DirectoryUser = GetUsersResponses["200"]["data"][number];
 
 const props = defineProps<{
-	conversation: Conversation;
+	conversation: ChatConversation;
 }>();
 
 const emit = defineEmits<{
 	changed: [];
 	left: [];
+	/** Open the direct chat with one of the members. */
+	openChat: [conversationId: number];
 }>();
 
 const open = defineModel<boolean>("open", { required: true });
@@ -24,9 +27,82 @@ const toast = useToast();
 const me = await useUserInfoStore().use();
 
 const isGroup = computed(() => props.conversation.type === "group");
-const otherPeople = computed(() =>
-	props.conversation.members.filter((member) => member.id !== me.value?.id),
-);
+
+// --- members (any type of chat) --------------------------------------------------------------
+
+const members = ref<ChatMember[]>([]);
+const loadingMembers = ref(false);
+
+async function loadMembers() {
+	const conversationId = props.conversation.id;
+	loadingMembers.value = true;
+	const result = await useAPI((api) =>
+		api.getConversationsByConversationIdMembers({ path: { conversationId } }),
+	);
+	loadingMembers.value = false;
+	if (conversationId !== props.conversation.id) return;
+	if (!result.success) {
+		toast.add({
+			title: "Mitglieder konnten nicht geladen werden",
+			description: result.message,
+			color: "error",
+		});
+		return;
+	}
+	members.value = result.data;
+}
+
+function memberDetail(member: ChatMember) {
+	const parts: string[] = [];
+	if (member.event_role) parts.push(getEventRoleLabel(member.event_role));
+	if (member.position) parts.push(member.position);
+	if (!parts.length) parts.push(`@${member.user.username}`);
+	return parts.join(" · ");
+}
+
+const startingChatWith = ref<number | null>(null);
+
+async function startDirectChat(userId: number) {
+	startingChatWith.value = userId;
+	const result = await useAPI((api) =>
+		api.postConversations({ body: { type: "direct", user_ids: [userId] } }),
+	);
+	startingChatWith.value = null;
+	if (!result.success) {
+		toast.add({
+			title: "Chat konnte nicht geöffnet werden",
+			description: result.message,
+			color: "error",
+		});
+		return;
+	}
+	open.value = false;
+	emit("openChat", result.data.id);
+}
+
+// --- own settings ----------------------------------------------------------------------------
+
+const savingPreference = ref(false);
+
+async function setPreference(body: { pinned?: boolean; muted?: boolean }) {
+	savingPreference.value = true;
+	const result = await useAPI((api) =>
+		api.putConversationsByConversationIdPreferences({
+			path: { conversationId: props.conversation.id },
+			body,
+		}),
+	);
+	savingPreference.value = false;
+	if (!result.success) {
+		toast.add({
+			title: "Einstellung konnte nicht gespeichert werden",
+			description: result.message,
+			color: "error",
+		});
+		return;
+	}
+	emit("changed");
+}
 
 // --- group: rename -------------------------------------------------------------------------
 
@@ -39,6 +115,8 @@ watch(
 		if (!isOpen) return;
 		name.value = props.conversation.name ?? props.conversation.title;
 		addUserIds.value = [];
+		members.value = [];
+		void loadMembers();
 		if (isGroup.value) void loadUsers();
 	},
 	{ immediate: true },
@@ -75,7 +153,7 @@ async function loadUsers() {
 }
 
 const addOptions = computed(() => {
-	const memberIds = new Set(props.conversation.members.map((member) => member.id));
+	const memberIds = new Set(members.value.map((member) => member.user.id));
 	return users.value
 		.filter((user) => !memberIds.has(user.id))
 		.map((user) => ({
@@ -101,6 +179,7 @@ async function updateMembers(body: { add_user_ids?: number[]; remove_user_ids?: 
 		return false;
 	}
 	emit("changed");
+	await loadMembers();
 	return true;
 }
 
@@ -139,7 +218,7 @@ async function leave() {
 <template>
 	<DashboardModal v-model:open="open" :title="conversation.title" icon="i-lucide-info">
 		<div class="space-y-6">
-			<!-- Channels with derived membership -->
+			<!-- Where the members of a channel come from -->
 			<div v-if="conversation.type === 'event'" class="space-y-3 text-sm text-slate-300">
 				<p>
 					In diesem Kanal sind automatisch alle Mitarbeitenden von
@@ -178,64 +257,125 @@ async function leave() {
 				dabei.
 			</p>
 
-			<!-- Direct chat: contact details -->
-			<div v-else-if="conversation.type === 'direct'" class="space-y-3">
-				<div v-for="person in otherPeople" :key="person.id" class="flex items-center gap-3">
-					<UAvatar :text="initials(person.display_name)" size="lg" />
-					<div class="min-w-0 space-y-0.5 text-sm">
-						<p class="font-medium text-white">{{ person.display_name }}</p>
-						<p class="text-slate-400">@{{ person.username }} · {{ getRoleLabel(person.role) }}</p>
-						<a :href="`mailto:${person.email}`" class="block text-primary-400 hover:underline">
-							{{ person.email }}
-						</a>
-						<a v-if="person.phone" :href="`tel:${person.phone}`" class="block text-primary-400 hover:underline">
-							{{ person.phone }}
-						</a>
+			<!-- Group chat: name -->
+			<form v-else-if="isGroup" class="flex items-end gap-2" @submit.prevent="rename">
+				<UFormField label="Name des Chats" class="flex-1">
+					<UInput v-model="name" class="w-full" />
+				</UFormField>
+				<UButton type="submit" label="Speichern" :loading="savingName" color="neutral" variant="subtle" />
+			</form>
+
+			<!-- The caller's own settings -->
+			<div class="divide-y divide-slate-800 rounded-lg border border-slate-800">
+				<div class="flex items-center justify-between gap-4 px-3 py-2.5">
+					<div class="min-w-0">
+						<p class="flex items-center gap-2 text-sm font-medium text-slate-200">
+							<UIcon name="i-lucide-pin" class="size-4 text-slate-400" />
+							Chat anheften
+						</p>
+						<p class="text-xs text-slate-500">Bleibt in deiner Chatliste ganz oben.</p>
 					</div>
+					<USwitch
+						:model-value="conversation.pinned_at !== null"
+						:disabled="savingPreference"
+						aria-label="Chat anheften"
+						@update:model-value="setPreference({ pinned: $event })"
+					/>
+				</div>
+				<div class="flex items-center justify-between gap-4 px-3 py-2.5">
+					<div class="min-w-0">
+						<p class="flex items-center gap-2 text-sm font-medium text-slate-200">
+							<UIcon name="i-lucide-bell-off" class="size-4 text-slate-400" />
+							Stummschalten
+						</p>
+						<p class="text-xs text-slate-500">
+							Neue Nachrichten zählen nicht mehr zu deinen ungelesenen Nachrichten.
+						</p>
+					</div>
+					<USwitch
+						:model-value="conversation.muted"
+						:disabled="savingPreference"
+						aria-label="Chat stummschalten"
+						@update:model-value="setPreference({ muted: $event })"
+					/>
 				</div>
 			</div>
 
-			<!-- Group chat: name + members -->
-			<template v-else-if="isGroup">
-				<form class="flex items-end gap-2" @submit.prevent="rename">
-					<UFormField label="Name des Chats" class="flex-1">
-						<UInput v-model="name" class="w-full" />
-					</UFormField>
-					<UButton type="submit" label="Speichern" :loading="savingName" color="neutral" variant="subtle" />
-				</form>
-
-				<div class="space-y-2">
-					<p class="text-sm font-medium text-slate-300">
-						Mitglieder ({{ conversation.members.length }})
-					</p>
-					<ul class="divide-y divide-slate-800 rounded-lg border border-slate-800">
-						<li
-							v-for="member in conversation.members"
-							:key="member.id"
-							class="flex items-center gap-3 px-3 py-2"
+			<!-- Members -->
+			<div class="space-y-2">
+				<p class="text-sm font-medium text-slate-300">
+					Mitglieder ({{ members.length || conversation.member_count }})
+				</p>
+				<div v-if="loadingMembers && !members.length" class="flex justify-center py-6">
+					<UIcon name="i-lucide-loader-2" class="animate-spin text-xl text-slate-400" />
+				</div>
+				<ul
+					v-else
+					class="max-h-72 divide-y divide-slate-800 overflow-y-auto rounded-lg border border-slate-800"
+				>
+					<li v-for="member in members" :key="member.user.id" class="flex items-center gap-3 px-3 py-2">
+						<UAvatar :text="initials(member.user.display_name)" size="sm" />
+						<div class="min-w-0 flex-1 text-sm">
+							<p class="truncate text-white">
+								{{ member.user.display_name }}
+								<span v-if="member.user.id === me?.id" class="text-slate-500">(du)</span>
+							</p>
+							<p class="truncate text-xs text-slate-500">{{ memberDetail(member) }}</p>
+						</div>
+						<UTooltip
+							v-if="member.user.id !== me?.id && conversation.type !== 'direct'"
+							text="Direktnachricht schreiben"
 						>
-							<UAvatar :text="initials(member.display_name)" size="sm" />
-							<div class="min-w-0 flex-1 text-sm">
-								<p class="truncate text-white">
-									{{ member.display_name }}
-									<span v-if="member.id === me?.id" class="text-slate-500">(du)</span>
-								</p>
-								<p class="truncate text-xs text-slate-500">@{{ member.username }}</p>
-							</div>
 							<UButton
-								v-if="member.id !== me?.id"
+								icon="i-lucide-message-circle"
+								color="neutral"
+								variant="ghost"
+								size="sm"
+								:loading="startingChatWith === member.user.id"
+								aria-label="Direktnachricht schreiben"
+								@click="startDirectChat(member.user.id)"
+							/>
+						</UTooltip>
+						<UTooltip v-if="isGroup && member.user.id !== me?.id" text="Aus dem Chat entfernen">
+							<UButton
 								icon="i-lucide-user-minus"
 								color="neutral"
 								variant="ghost"
 								size="sm"
 								:loading="savingMembers"
 								aria-label="Aus dem Chat entfernen"
-								@click="removeMember(member.id)"
+								@click="removeMember(member.user.id)"
 							/>
-						</li>
-					</ul>
-				</div>
+						</UTooltip>
+					</li>
+				</ul>
 
+				<!-- Direct chat: how to reach the other person -->
+				<template v-if="conversation.type === 'direct'">
+					<div
+						v-for="member in members.filter((entry) => entry.user.id !== me?.id)"
+						:key="member.user.id"
+						class="space-y-0.5 px-1 pt-1 text-sm"
+					>
+						<p class="text-slate-400">
+							@{{ member.user.username }} · {{ getRoleLabel(member.user.role) }}
+						</p>
+						<a :href="`mailto:${member.user.email}`" class="block text-primary-400 hover:underline">
+							{{ member.user.email }}
+						</a>
+						<a
+							v-if="member.user.phone"
+							:href="`tel:${member.user.phone}`"
+							class="block text-primary-400 hover:underline"
+						>
+							{{ member.user.phone }}
+						</a>
+					</div>
+				</template>
+			</div>
+
+			<!-- Group chat: add people, leave -->
+			<template v-if="isGroup">
 				<div class="flex items-end gap-2">
 					<UFormField label="Personen hinzufügen" class="flex-1">
 						<USelectMenu

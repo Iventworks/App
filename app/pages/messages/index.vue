@@ -1,19 +1,21 @@
 <script setup lang="ts">
 /**
  * Messaging (Teams-like): conversation list + open conversation side by side; on phones either
- * the list or the conversation. The open chat lives in `?c=<conversationId>`; deep links
- * `?channel=core_team`, `?event=<eventId>` and `?group=<groupId>` resolve to the matching channel,
- * and `/messages/<conversationId>` redirects here.
+ * the list or the conversation. The open chat lives in `?c=<conversationId>` (with `&m=<messageId>`
+ * to open it at a message, e.g. a search hit); deep links `?channel=core_team`,
+ * `?event=<eventId>` and `?group=<groupId>` resolve to the matching channel, and
+ * `/messages/<conversationId>` redirects here.
  */
 import {
 	breakpointsTailwind,
+	refDebounced,
 	useBreakpoints,
 	useDocumentVisibility,
 	useIntervalFn,
 } from "@vueuse/core";
-import type { GetConversationsResponses } from "~/api-client";
+import type { ChatConversation, ChatSearchHit } from "~/utils/types";
 
-type Conversation = GetConversationsResponses["200"]["data"][number];
+type Conversation = ChatConversation;
 
 definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Nachrichten" });
@@ -54,8 +56,24 @@ const selected = computed(
 	() => conversations.value?.find((conversation) => conversation.id === selectedId.value) ?? null,
 );
 
-function select(conversationId: number | null) {
-	return router.push({ query: conversationId ? { c: String(conversationId) } : {} });
+/** The message to open the chat at (`?m=`), handed to the pane once. */
+const jumpTo = computed(() => {
+	const id = Number(route.query.m);
+	return Number.isInteger(id) && id > 0 ? id : null;
+});
+
+function select(conversationId: number | null, messageId?: number) {
+	return router.push({
+		query: conversationId
+			? { c: String(conversationId), ...(messageId ? { m: String(messageId) } : {}) }
+			: {},
+	});
+}
+
+function onJumped() {
+	if (route.query.m === undefined) return;
+	const { m: _handled, ...query } = route.query;
+	void router.replace({ query });
 }
 
 let retriedMissing = false;
@@ -133,6 +151,31 @@ const filtered = computed(() => {
 	);
 });
 
+// Messages found in any chat, searched on the server while the term is long enough.
+const searchDebounced = refDebounced(search, 300);
+const messageHits = ref<ChatSearchHit[]>([]);
+const searchingMessages = ref(false);
+let searchRequest = 0;
+
+watch(searchDebounced, async (value) => {
+	const term = value.trim();
+	const current = ++searchRequest;
+	if (term.length < 2) {
+		messageHits.value = [];
+		searchingMessages.value = false;
+		return;
+	}
+	searchingMessages.value = true;
+	const result = await useAPI((api) => api.getConversationsSearch({ query: { q: term } }));
+	if (current !== searchRequest) return;
+	searchingMessages.value = false;
+	messageHits.value = result.success ? result.data : [];
+});
+
+function openHit(hit: ChatSearchHit) {
+	void select(hit.conversation.id, hit.message.id);
+}
+
 const { pause, resume } = useIntervalFn(() => void refresh(), LIST_POLL_MS, { immediate: false });
 
 watch(visibility, (state) => (state === "visible" ? resume() : pause()), { immediate: true });
@@ -181,7 +224,7 @@ async function onCreated(conversationId: number) {
 				<UInput
 					v-model="search"
 					icon="i-lucide-search"
-					placeholder="Chats durchsuchen"
+					placeholder="Chats und Nachrichten suchen"
 					class="min-w-0 flex-1"
 				/>
 				<UTooltip text="Neuer Chat">
@@ -194,7 +237,10 @@ async function onCreated(conversationId: number) {
 				:selected-id="selectedId"
 				:loading="loading"
 				:search="search"
+				:message-hits="messageHits"
+				:searching-messages="searchingMessages"
 				@select="select"
+				@open-hit="openHit"
 			/>
 		</template>
 	</UDashboardPanel>
@@ -203,10 +249,13 @@ async function onCreated(conversationId: number) {
 		v-if="selected"
 		:conversation="selected"
 		:show-back="isMobile"
+		:jump-to="jumpTo"
 		@back="select(null)"
 		@read="onRead"
 		@changed="refresh"
 		@left="onLeft"
+		@jumped="onJumped"
+		@open-chat="onCreated"
 	/>
 
 	<UDashboardPanel v-else-if="!isMobile" id="messages-empty">

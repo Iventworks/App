@@ -2075,7 +2075,7 @@ export type GetAdminUsersByUserIdResponses = {
             events: Array<{
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
                 start_date: string;
                 end_date: string;
@@ -3262,7 +3262,7 @@ export type GetAdminSharesResponses = {
                 id: number;
                 kind: 'folder' | 'file';
                 name: string;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event: {
                     id: number;
                     name: string;
@@ -3340,7 +3340,7 @@ export type GetDashboardResponses = {
             current_events: Array<{
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 location: string | null;
                 start_date: string;
                 end_date: string;
@@ -3348,6 +3348,14 @@ export type GetDashboardResponses = {
                 my_role: 'leader' | 'staff';
                 day_number: number;
                 total_days: number;
+                occurrence: {
+                    id: number;
+                    date: string;
+                    start_time: string | null;
+                    end_time: string | null;
+                    location: string | null;
+                    title: string | null;
+                } | null;
                 today_program: Array<{
                     id: number;
                     title: string;
@@ -3367,13 +3375,21 @@ export type GetDashboardResponses = {
             upcoming_events: Array<{
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
                 location: string | null;
                 color: string | null;
                 my_role: 'leader' | 'staff';
                 days_until: number;
+                occurrence: {
+                    id: number;
+                    date: string;
+                    start_time: string | null;
+                    end_time: string | null;
+                    location: string | null;
+                    title: string | null;
+                } | null;
             }>;
             tasks: {
                 overdue: Array<{
@@ -4430,15 +4446,23 @@ export type GetConversationsResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            member_count: number;
             last_message: {
                 id: number;
                 content: string;
                 sender_name: string | null;
+                is_own: boolean;
                 created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
             } | null;
             unread_count: number;
             last_message_at: number | null;
             created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
         }>;
     };
 };
@@ -4499,15 +4523,23 @@ export type PostConversationsResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            member_count: number;
             last_message: {
                 id: number;
                 content: string;
                 sender_name: string | null;
+                is_own: boolean;
                 created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
             } | null;
             unread_count: number;
             last_message_at: number | null;
             created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
         };
     };
     /**
@@ -4539,15 +4571,23 @@ export type PostConversationsResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            member_count: number;
             last_message: {
                 id: number;
                 content: string;
                 sender_name: string | null;
+                is_own: boolean;
                 created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
             } | null;
             unread_count: number;
             last_message_at: number | null;
             created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
         };
     };
 };
@@ -4576,6 +4616,94 @@ export type GetConversationsUnreadResponses = {
 };
 
 export type GetConversationsUnreadResponse = GetConversationsUnreadResponses[keyof GetConversationsUnreadResponses];
+
+export type GetConversationsSearchData = {
+    body?: never;
+    path?: never;
+    query: {
+        q: string;
+        limit?: number;
+    };
+    url: '/conversations/search';
+};
+
+export type GetConversationsSearchErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+};
+
+export type GetConversationsSearchError = GetConversationsSearchErrors[keyof GetConversationsSearchErrors];
+
+export type GetConversationsSearchResponses = {
+    /**
+     * Messages found successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Messages found successfully';
+        data: Array<{
+            conversation: {
+                id: number;
+                type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+                title: string;
+            };
+            message: {
+                id: number;
+                conversation_id: number;
+                content: string;
+                created_at: number;
+                edited_at: number | null;
+                sender: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                is_own: boolean;
+                reply_to: {
+                    id: number;
+                    content: string;
+                    sender_name: string | null;
+                    is_deleted: boolean;
+                    attachment_count: number;
+                } | null;
+                attachments: Array<{
+                    id: number;
+                    name: string;
+                    mime_type: string | null;
+                    size: number;
+                    content_url: string;
+                    is_image: boolean;
+                }>;
+                reactions: Array<{
+                    emoji: string;
+                    count: number;
+                    reacted_by_me: boolean;
+                    users: Array<{
+                        id: number;
+                        display_name: string;
+                    }>;
+                }>;
+                pinned_at: number | null;
+                pinned_by: {
+                    id: number;
+                    display_name: string;
+                } | null;
+            };
+        }>;
+    };
+};
+
+export type GetConversationsSearchResponse = GetConversationsSearchResponses[keyof GetConversationsSearchResponses];
 
 export type GetConversationsByConversationIdData = {
     body?: never;
@@ -4645,15 +4773,23 @@ export type GetConversationsByConversationIdResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            member_count: number;
             last_message: {
                 id: number;
                 content: string;
                 sender_name: string | null;
+                is_own: boolean;
                 created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
             } | null;
             unread_count: number;
             last_message_at: number | null;
             created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
         };
     };
 };
@@ -4732,20 +4868,303 @@ export type PutConversationsByConversationIdResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            member_count: number;
             last_message: {
                 id: number;
                 content: string;
                 sender_name: string | null;
+                is_own: boolean;
                 created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
             } | null;
             unread_count: number;
             last_message_at: number | null;
             created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
         };
     };
 };
 
 export type PutConversationsByConversationIdResponse = PutConversationsByConversationIdResponses[keyof PutConversationsByConversationIdResponses];
+
+export type GetConversationsByConversationIdMembersData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/members';
+};
+
+export type GetConversationsByConversationIdMembersErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdMembersError = GetConversationsByConversationIdMembersErrors[keyof GetConversationsByConversationIdMembersErrors];
+
+export type GetConversationsByConversationIdMembersResponses = {
+    /**
+     * Members retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Members retrieved successfully';
+        data: Array<{
+            user: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            };
+            event_role: 'leader' | 'staff' | null;
+            position: string | null;
+            last_read_at: number | null;
+        }>;
+    };
+};
+
+export type GetConversationsByConversationIdMembersResponse = GetConversationsByConversationIdMembersResponses[keyof GetConversationsByConversationIdMembersResponses];
+
+export type PutConversationsByConversationIdPreferencesData = {
+    body?: {
+        pinned?: boolean;
+        muted?: boolean;
+    };
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/preferences';
+};
+
+export type PutConversationsByConversationIdPreferencesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type PutConversationsByConversationIdPreferencesError = PutConversationsByConversationIdPreferencesErrors[keyof PutConversationsByConversationIdPreferencesErrors];
+
+export type PutConversationsByConversationIdPreferencesResponses = {
+    /**
+     * Preferences updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Preferences updated successfully';
+        data: {
+            id: number;
+            type: 'direct' | 'group' | 'event' | 'event_group' | 'core_team';
+            title: string;
+            name: string | null;
+            event: {
+                id: number;
+                name: string;
+            } | null;
+            group: {
+                id: number;
+                name: string;
+                color: string | null;
+            } | null;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+            last_message: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_own: boolean;
+                created_at: number;
+                attachment_count: number;
+                attachment_name: string | null;
+                attachment_is_image: boolean;
+            } | null;
+            unread_count: number;
+            last_message_at: number | null;
+            created_at: number;
+            pinned_at: number | null;
+            muted: boolean;
+            last_read_at: number;
+        };
+    };
+};
+
+export type PutConversationsByConversationIdPreferencesResponse = PutConversationsByConversationIdPreferencesResponses[keyof PutConversationsByConversationIdPreferencesResponses];
+
+export type PostConversationsByConversationIdAttachmentsData = {
+    body: {
+        /**
+         * The file to attach
+         */
+        file: Blob | File;
+    };
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/attachments';
+};
+
+export type PostConversationsByConversationIdAttachmentsErrors = {
+    /**
+     * File is too large / Too many unsent attachments / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'File is too large / Too many unsent attachments / Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type PostConversationsByConversationIdAttachmentsError = PostConversationsByConversationIdAttachmentsErrors[keyof PostConversationsByConversationIdAttachmentsErrors];
+
+export type PostConversationsByConversationIdAttachmentsResponses = {
+    /**
+     * Attachment uploaded successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Attachment uploaded successfully';
+        data: {
+            id: number;
+            name: string;
+            mime_type: string | null;
+            size: number;
+            content_url: string;
+            is_image: boolean;
+        };
+    };
+};
+
+export type PostConversationsByConversationIdAttachmentsResponse = PostConversationsByConversationIdAttachmentsResponses[keyof PostConversationsByConversationIdAttachmentsResponses];
+
+export type DeleteConversationsByConversationIdAttachmentsByFileIdData = {
+    body?: never;
+    path: {
+        conversationId: number;
+        fileId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/attachments/{fileId}';
+};
+
+export type DeleteConversationsByConversationIdAttachmentsByFileIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Attachment not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Attachment not found';
+    };
+};
+
+export type DeleteConversationsByConversationIdAttachmentsByFileIdError = DeleteConversationsByConversationIdAttachmentsByFileIdErrors[keyof DeleteConversationsByConversationIdAttachmentsByFileIdErrors];
+
+export type DeleteConversationsByConversationIdAttachmentsByFileIdResponses = {
+    /**
+     * Attachment removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Attachment removed successfully';
+        data: null;
+    };
+};
+
+export type DeleteConversationsByConversationIdAttachmentsByFileIdResponse = DeleteConversationsByConversationIdAttachmentsByFileIdResponses[keyof DeleteConversationsByConversationIdAttachmentsByFileIdResponses];
 
 export type DeleteConversationsByConversationIdMembershipData = {
     body?: never;
@@ -4859,6 +5278,7 @@ export type GetConversationsByConversationIdMessagesData = {
     query?: {
         after?: number;
         before?: number;
+        around?: number;
         limit?: number;
     };
     url: '/conversations/{conversationId}/messages';
@@ -4916,6 +5336,35 @@ export type GetConversationsByConversationIdMessagesResponses = {
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
         }>;
     };
 };
@@ -4923,8 +5372,10 @@ export type GetConversationsByConversationIdMessagesResponses = {
 export type GetConversationsByConversationIdMessagesResponse = GetConversationsByConversationIdMessagesResponses[keyof GetConversationsByConversationIdMessagesResponses];
 
 export type PostConversationsByConversationIdMessagesData = {
-    body: {
-        content: string;
+    body?: {
+        content?: string;
+        attachment_ids?: Array<number>;
+        reply_to_id?: number | null;
     };
     path: {
         conversationId: number;
@@ -4935,12 +5386,12 @@ export type PostConversationsByConversationIdMessagesData = {
 
 export type PostConversationsByConversationIdMessagesErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * Unknown attachment / The message to reply to was not found / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'Unknown attachment / The message to reply to was not found / Syntax or validation error in request';
     };
     /**
      * You do not have access to this conversation
@@ -4985,6 +5436,35 @@ export type PostConversationsByConversationIdMessagesResponses = {
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
         };
     };
 };
@@ -4999,6 +5479,7 @@ export type GetConversationsByConversationIdMessagesSyncData = {
     query: {
         after: number;
         since: number;
+        from?: number;
     };
     url: '/conversations/{conversationId}/messages/sync';
 };
@@ -5056,6 +5537,35 @@ export type GetConversationsByConversationIdMessagesSyncResponses = {
                     role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
                 } | null;
                 is_own: boolean;
+                reply_to: {
+                    id: number;
+                    content: string;
+                    sender_name: string | null;
+                    is_deleted: boolean;
+                    attachment_count: number;
+                } | null;
+                attachments: Array<{
+                    id: number;
+                    name: string;
+                    mime_type: string | null;
+                    size: number;
+                    content_url: string;
+                    is_image: boolean;
+                }>;
+                reactions: Array<{
+                    emoji: string;
+                    count: number;
+                    reacted_by_me: boolean;
+                    users: Array<{
+                        id: number;
+                        display_name: string;
+                    }>;
+                }>;
+                pinned_at: number | null;
+                pinned_by: {
+                    id: number;
+                    display_name: string;
+                } | null;
             }>;
             updated: Array<{
                 id: number;
@@ -5072,14 +5582,241 @@ export type GetConversationsByConversationIdMessagesSyncResponses = {
                     role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
                 } | null;
                 is_own: boolean;
+                reply_to: {
+                    id: number;
+                    content: string;
+                    sender_name: string | null;
+                    is_deleted: boolean;
+                    attachment_count: number;
+                } | null;
+                attachments: Array<{
+                    id: number;
+                    name: string;
+                    mime_type: string | null;
+                    size: number;
+                    content_url: string;
+                    is_image: boolean;
+                }>;
+                reactions: Array<{
+                    emoji: string;
+                    count: number;
+                    reacted_by_me: boolean;
+                    users: Array<{
+                        id: number;
+                        display_name: string;
+                    }>;
+                }>;
+                pinned_at: number | null;
+                pinned_by: {
+                    id: number;
+                    display_name: string;
+                } | null;
             }>;
             deleted_ids: Array<number>;
+            pinned_ids: Array<number>;
+            read_by_all_until: number;
             server_time: number;
         };
     };
 };
 
 export type GetConversationsByConversationIdMessagesSyncResponse = GetConversationsByConversationIdMessagesSyncResponses[keyof GetConversationsByConversationIdMessagesSyncResponses];
+
+export type GetConversationsByConversationIdMessagesPinnedData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/pinned';
+};
+
+export type GetConversationsByConversationIdMessagesPinnedErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdMessagesPinnedError = GetConversationsByConversationIdMessagesPinnedErrors[keyof GetConversationsByConversationIdMessagesPinnedErrors];
+
+export type GetConversationsByConversationIdMessagesPinnedResponses = {
+    /**
+     * Pinned messages retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Pinned messages retrieved successfully';
+        data: Array<{
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetConversationsByConversationIdMessagesPinnedResponse = GetConversationsByConversationIdMessagesPinnedResponses[keyof GetConversationsByConversationIdMessagesPinnedResponses];
+
+export type GetConversationsByConversationIdMessagesSearchData = {
+    body?: never;
+    path: {
+        conversationId: number;
+    };
+    query: {
+        q: string;
+        before?: number;
+        limit?: number;
+    };
+    url: '/conversations/{conversationId}/messages/search';
+};
+
+export type GetConversationsByConversationIdMessagesSearchErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Conversation not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Conversation not found';
+    };
+};
+
+export type GetConversationsByConversationIdMessagesSearchError = GetConversationsByConversationIdMessagesSearchErrors[keyof GetConversationsByConversationIdMessagesSearchErrors];
+
+export type GetConversationsByConversationIdMessagesSearchResponses = {
+    /**
+     * Messages found successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Messages found successfully';
+        data: Array<{
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetConversationsByConversationIdMessagesSearchResponse = GetConversationsByConversationIdMessagesSearchResponses[keyof GetConversationsByConversationIdMessagesSearchResponses];
 
 export type DeleteConversationsByConversationIdMessagesByMessageIdData = {
     body?: never;
@@ -5148,12 +5885,12 @@ export type PutConversationsByConversationIdMessagesByMessageIdData = {
 
 export type PutConversationsByConversationIdMessagesByMessageIdErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * A message needs text or an attachment / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'A message needs text or an attachment / Syntax or validation error in request';
     };
     /**
      * You can only change your own messages
@@ -5198,11 +5935,333 @@ export type PutConversationsByConversationIdMessagesByMessageIdResponses = {
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
         };
     };
 };
 
 export type PutConversationsByConversationIdMessagesByMessageIdResponse = PutConversationsByConversationIdMessagesByMessageIdResponses[keyof PutConversationsByConversationIdMessagesByMessageIdResponses];
+
+export type PostConversationsByConversationIdMessagesByMessageIdReactionsData = {
+    body: {
+        emoji: unknown & unknown;
+    };
+    path: {
+        conversationId: number;
+        messageId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/{messageId}/reactions';
+};
+
+export type PostConversationsByConversationIdMessagesByMessageIdReactionsErrors = {
+    /**
+     * Too many different reactions on this message / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Too many different reactions on this message / Syntax or validation error in request';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Message not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Message not found';
+    };
+};
+
+export type PostConversationsByConversationIdMessagesByMessageIdReactionsError = PostConversationsByConversationIdMessagesByMessageIdReactionsErrors[keyof PostConversationsByConversationIdMessagesByMessageIdReactionsErrors];
+
+export type PostConversationsByConversationIdMessagesByMessageIdReactionsResponses = {
+    /**
+     * Reaction updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Reaction updated successfully';
+        data: {
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
+        };
+    };
+};
+
+export type PostConversationsByConversationIdMessagesByMessageIdReactionsResponse = PostConversationsByConversationIdMessagesByMessageIdReactionsResponses[keyof PostConversationsByConversationIdMessagesByMessageIdReactionsResponses];
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdPinData = {
+    body?: never;
+    path: {
+        conversationId: number;
+        messageId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/{messageId}/pin';
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdPinErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Message not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Message not found';
+    };
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdPinError = DeleteConversationsByConversationIdMessagesByMessageIdPinErrors[keyof DeleteConversationsByConversationIdMessagesByMessageIdPinErrors];
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdPinResponses = {
+    /**
+     * Message unpinned successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Message unpinned successfully';
+        data: {
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
+        };
+    };
+};
+
+export type DeleteConversationsByConversationIdMessagesByMessageIdPinResponse = DeleteConversationsByConversationIdMessagesByMessageIdPinResponses[keyof DeleteConversationsByConversationIdMessagesByMessageIdPinResponses];
+
+export type PutConversationsByConversationIdMessagesByMessageIdPinData = {
+    body?: never;
+    path: {
+        conversationId: number;
+        messageId: number;
+    };
+    query?: never;
+    url: '/conversations/{conversationId}/messages/{messageId}/pin';
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdPinErrors = {
+    /**
+     * Too many pinned messages in this chat
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Too many pinned messages in this chat';
+    };
+    /**
+     * You do not have access to this conversation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You do not have access to this conversation';
+    };
+    /**
+     * Message not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Message not found';
+    };
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdPinError = PutConversationsByConversationIdMessagesByMessageIdPinErrors[keyof PutConversationsByConversationIdMessagesByMessageIdPinErrors];
+
+export type PutConversationsByConversationIdMessagesByMessageIdPinResponses = {
+    /**
+     * Message pinned successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Message pinned successfully';
+        data: {
+            id: number;
+            conversation_id: number;
+            content: string;
+            created_at: number;
+            edited_at: number | null;
+            sender: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            is_own: boolean;
+            reply_to: {
+                id: number;
+                content: string;
+                sender_name: string | null;
+                is_deleted: boolean;
+                attachment_count: number;
+            } | null;
+            attachments: Array<{
+                id: number;
+                name: string;
+                mime_type: string | null;
+                size: number;
+                content_url: string;
+                is_image: boolean;
+            }>;
+            reactions: Array<{
+                emoji: string;
+                count: number;
+                reacted_by_me: boolean;
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+            }>;
+            pinned_at: number | null;
+            pinned_by: {
+                id: number;
+                display_name: string;
+            } | null;
+        };
+    };
+};
+
+export type PutConversationsByConversationIdMessagesByMessageIdPinResponse = PutConversationsByConversationIdMessagesByMessageIdPinResponses[keyof PutConversationsByConversationIdMessagesByMessageIdPinResponses];
 
 export type GetUsersData = {
     body?: never;
@@ -5505,7 +6564,7 @@ export type GetFilesByFileIdResponses = {
         message: 'File retrieved successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -5574,7 +6633,7 @@ export type PutFilesByFileIdResponses = {
         message: 'File updated successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -6531,12 +7590,20 @@ export type GetEventsResponses = {
         data: Array<{
             id: number;
             name: string;
-            type: 'camp' | 'event';
+            type: 'camp' | 'event' | 'recurring';
             status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
             description: string;
             location: string | null;
             start_date: string;
             end_date: string;
+            recurrence: {
+                frequency: 'weekly' | 'monthly';
+                interval: number;
+                weekdays: Array<number>;
+                monthly_mode: 'day_of_month' | 'weekday_of_month';
+                start_time: string | null;
+                end_time: string | null;
+            } | null;
             color: string | null;
             max_participants: number | null;
             participant_fee_cents: number | null;
@@ -6546,7 +7613,7 @@ export type GetEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -6557,6 +7624,14 @@ export type GetEventsResponses = {
             }>;
             staff_count: number;
             participant_count: number;
+            next_occurrence: {
+                id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                title: string | null;
+            } | null;
         }>;
     };
 };
@@ -6566,12 +7641,20 @@ export type GetEventsResponse = GetEventsResponses[keyof GetEventsResponses];
 export type PostEventsData = {
     body: {
         name: string;
-        type?: 'camp' | 'event';
+        type?: 'camp' | 'event' | 'recurring';
         status?: 'planning' | 'confirmed' | 'cancelled' | 'archived';
         description?: string;
         location?: string | null;
         start_date: string;
         end_date: string;
+        recurrence?: {
+            frequency: 'weekly' | 'monthly';
+            interval?: number;
+            weekdays?: Array<number>;
+            monthly_mode?: 'day_of_month' | 'weekday_of_month';
+            start_time?: string | null;
+            end_time?: string | null;
+        } | null;
         color?: string | null;
         max_participants?: number | null;
         participant_fee_cents?: number | null;
@@ -6585,12 +7668,12 @@ export type PostEventsData = {
 
 export type PostEventsErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / A recurring event can span at most three years / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / A recurring event can span at most three years / Syntax or validation error in request';
     };
     /**
      * Only the core team can create events
@@ -6615,12 +7698,20 @@ export type PostEventsResponses = {
         data: {
             id: number;
             name: string;
-            type: 'camp' | 'event';
+            type: 'camp' | 'event' | 'recurring';
             status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
             description: string;
             location: string | null;
             start_date: string;
             end_date: string;
+            recurrence: {
+                frequency: 'weekly' | 'monthly';
+                interval: number;
+                weekdays: Array<number>;
+                monthly_mode: 'day_of_month' | 'weekday_of_month';
+                start_time: string | null;
+                end_time: string | null;
+            } | null;
             color: string | null;
             max_participants: number | null;
             participant_fee_cents: number | null;
@@ -6630,7 +7721,7 @@ export type PostEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -6641,6 +7732,14 @@ export type PostEventsResponses = {
             }>;
             staff_count: number;
             participant_count: number;
+            next_occurrence: {
+                id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                title: string | null;
+            } | null;
         };
     };
 };
@@ -6748,12 +7847,20 @@ export type GetEventsByEventIdResponses = {
         data: {
             id: number;
             name: string;
-            type: 'camp' | 'event';
+            type: 'camp' | 'event' | 'recurring';
             status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
             description: string;
             location: string | null;
             start_date: string;
             end_date: string;
+            recurrence: {
+                frequency: 'weekly' | 'monthly';
+                interval: number;
+                weekdays: Array<number>;
+                monthly_mode: 'day_of_month' | 'weekday_of_month';
+                start_time: string | null;
+                end_time: string | null;
+            } | null;
             color: string | null;
             max_participants: number | null;
             participant_fee_cents: number | null;
@@ -6763,7 +7870,7 @@ export type GetEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -6774,6 +7881,14 @@ export type GetEventsByEventIdResponses = {
             }>;
             staff_count: number;
             participant_count: number;
+            next_occurrence: {
+                id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                title: string | null;
+            } | null;
         };
     };
 };
@@ -6783,12 +7898,20 @@ export type GetEventsByEventIdResponse = GetEventsByEventIdResponses[keyof GetEv
 export type PutEventsByEventIdData = {
     body?: {
         name?: string;
-        type?: 'camp' | 'event';
+        type?: 'camp' | 'event' | 'recurring';
         status?: 'planning' | 'confirmed' | 'cancelled' | 'archived';
         description?: string;
         location?: string | null;
         start_date?: string;
         end_date?: string;
+        recurrence?: {
+            frequency: 'weekly' | 'monthly';
+            interval?: number;
+            weekdays?: Array<number>;
+            monthly_mode?: 'day_of_month' | 'weekday_of_month';
+            start_time?: string | null;
+            end_time?: string | null;
+        } | null;
         color?: string | null;
         max_participants?: number | null;
         participant_fee_cents?: number | null;
@@ -6803,12 +7926,12 @@ export type PutEventsByEventIdData = {
 
 export type PutEventsByEventIdErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * end_date must not be before start_date / A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'end_date must not be before start_date / A recurring event needs a recurrence / The recurrence has no date between start_date and end_date / Syntax or validation error in request';
     };
     /**
      * You are not allowed to edit this event
@@ -6841,12 +7964,20 @@ export type PutEventsByEventIdResponses = {
         data: {
             id: number;
             name: string;
-            type: 'camp' | 'event';
+            type: 'camp' | 'event' | 'recurring';
             status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
             description: string;
             location: string | null;
             start_date: string;
             end_date: string;
+            recurrence: {
+                frequency: 'weekly' | 'monthly';
+                interval: number;
+                weekdays: Array<number>;
+                monthly_mode: 'day_of_month' | 'weekday_of_month';
+                start_time: string | null;
+                end_time: string | null;
+            } | null;
             color: string | null;
             max_participants: number | null;
             participant_fee_cents: number | null;
@@ -6856,7 +7987,7 @@ export type PutEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -6867,6 +7998,14 @@ export type PutEventsByEventIdResponses = {
             }>;
             staff_count: number;
             participant_count: number;
+            next_occurrence: {
+                id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                title: string | null;
+            } | null;
         };
     };
 };
@@ -6923,12 +8062,20 @@ export type GetEventsByEventIdOverviewResponses = {
             event: {
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
                 description: string;
                 location: string | null;
                 start_date: string;
                 end_date: string;
+                recurrence: {
+                    frequency: 'weekly' | 'monthly';
+                    interval: number;
+                    weekdays: Array<number>;
+                    monthly_mode: 'day_of_month' | 'weekday_of_month';
+                    start_time: string | null;
+                    end_time: string | null;
+                } | null;
                 color: string | null;
                 max_participants: number | null;
                 participant_fee_cents: number | null;
@@ -6938,7 +8085,7 @@ export type GetEventsByEventIdOverviewResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -6949,6 +8096,14 @@ export type GetEventsByEventIdOverviewResponses = {
                 }>;
                 staff_count: number;
                 participant_count: number;
+                next_occurrence: {
+                    id: number;
+                    date: string;
+                    start_time: string | null;
+                    end_time: string | null;
+                    location: string | null;
+                    title: string | null;
+                } | null;
             };
             today: string;
             is_running: boolean;
@@ -7024,6 +8179,33 @@ export type GetEventsByEventIdOverviewResponses = {
                 id: number;
                 name: string;
                 color: string | null;
+            }>;
+            next_occurrences: Array<{
+                id: number;
+                event_id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                custom_time: boolean;
+                custom_location: boolean;
+                title: string | null;
+                notes: string;
+                status: 'planned' | 'cancelled';
+                cancel_reason: string | null;
+                origin: 'rule' | 'manual';
+                duties: Array<{
+                    responsibility_id: number;
+                    users: Array<{
+                        id: number;
+                        username: string;
+                        display_name: string;
+                        email: string;
+                        phone: string | null;
+                        role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                    }>;
+                }>;
+                is_mine: boolean;
             }>;
             counts: {
                 participants: number;
@@ -8736,7 +9918,7 @@ export type GetEventsByEventIdProgramResponses = {
             }>;
             files: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -8835,7 +10017,7 @@ export type PostEventsByEventIdProgramResponses = {
             }>;
             files: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -8988,7 +10170,7 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
             }>;
             files: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -9080,7 +10262,7 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
             }>;
             files: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10358,7 +11540,7 @@ export type GetEventsByEventIdFilesResponses = {
         data: {
             folder: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10373,7 +11555,7 @@ export type GetEventsByEventIdFilesResponses = {
             } | null;
             path: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10388,7 +11570,7 @@ export type GetEventsByEventIdFilesResponses = {
             }>;
             items: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10461,7 +11643,7 @@ export type PostEventsByEventIdFilesResponses = {
         message: 'Document uploaded successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -10530,7 +11712,7 @@ export type PostEventsByEventIdFilesFoldersResponses = {
         message: 'Folder created successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -10630,7 +11812,7 @@ export type GetEventsByEventIdExpensesResponses = {
             } | null;
             receipt: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10737,7 +11919,7 @@ export type PostEventsByEventIdExpensesResponses = {
             } | null;
             receipt: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -10974,7 +12156,7 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
             } | null;
             receipt: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -11081,7 +12263,7 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
             } | null;
             receipt: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -11186,7 +12368,7 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
             } | null;
             receipt: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -11676,6 +12858,735 @@ export type GetEventsByEventIdAuditLogResponses = {
 
 export type GetEventsByEventIdAuditLogResponse = GetEventsByEventIdAuditLogResponses[keyof GetEventsByEventIdAuditLogResponses];
 
+export type GetEventsByEventIdOccurrencesData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: {
+        from?: string;
+        to?: string;
+    };
+    url: '/events/{eventId}/occurrences';
+};
+
+export type GetEventsByEventIdOccurrencesErrors = {
+    /**
+     * Only recurring events have dates / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only recurring events have dates / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to view the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view the dates';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdOccurrencesError = GetEventsByEventIdOccurrencesErrors[keyof GetEventsByEventIdOccurrencesErrors];
+
+export type GetEventsByEventIdOccurrencesResponses = {
+    /**
+     * Dates retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Dates retrieved successfully';
+        data: {
+            occurrences: Array<{
+                id: number;
+                event_id: number;
+                date: string;
+                start_time: string | null;
+                end_time: string | null;
+                location: string | null;
+                custom_time: boolean;
+                custom_location: boolean;
+                title: string | null;
+                notes: string;
+                status: 'planned' | 'cancelled';
+                cancel_reason: string | null;
+                origin: 'rule' | 'manual';
+                duties: Array<{
+                    responsibility_id: number;
+                    users: Array<{
+                        id: number;
+                        username: string;
+                        display_name: string;
+                        email: string;
+                        phone: string | null;
+                        role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                    }>;
+                }>;
+                is_mine: boolean;
+            }>;
+            responsibilities: Array<{
+                id: number;
+                title: string;
+                assignees: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+            }>;
+        };
+    };
+};
+
+export type GetEventsByEventIdOccurrencesResponse = GetEventsByEventIdOccurrencesResponses[keyof GetEventsByEventIdOccurrencesResponses];
+
+export type PostEventsByEventIdOccurrencesData = {
+    body: {
+        date: string;
+        start_time?: string | null;
+        end_time?: string | null;
+        location?: string | null;
+        title?: string | null;
+        notes?: string;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences';
+};
+
+export type PostEventsByEventIdOccurrencesErrors = {
+    /**
+     * Only recurring events have dates / end_time must be after start_time / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only recurring events have dates / end_time must be after start_time / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the dates';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdOccurrencesError = PostEventsByEventIdOccurrencesErrors[keyof PostEventsByEventIdOccurrencesErrors];
+
+export type PostEventsByEventIdOccurrencesResponses = {
+    /**
+     * Date added successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Date added successfully';
+        data: {
+            id: number;
+            event_id: number;
+            date: string;
+            start_time: string | null;
+            end_time: string | null;
+            location: string | null;
+            custom_time: boolean;
+            custom_location: boolean;
+            title: string | null;
+            notes: string;
+            status: 'planned' | 'cancelled';
+            cancel_reason: string | null;
+            origin: 'rule' | 'manual';
+            duties: Array<{
+                responsibility_id: number;
+                users: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdOccurrencesResponse = PostEventsByEventIdOccurrencesResponses[keyof PostEventsByEventIdOccurrencesResponses];
+
+export type PostEventsByEventIdOccurrencesPlanData = {
+    body: {
+        mode: 'standard' | 'rotate';
+        responsibility_ids?: Array<number>;
+        overwrite?: boolean;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences/plan';
+};
+
+export type PostEventsByEventIdOccurrencesPlanErrors = {
+    /**
+     * Only recurring events have dates / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only recurring events have dates / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the dates';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdOccurrencesPlanError = PostEventsByEventIdOccurrencesPlanErrors[keyof PostEventsByEventIdOccurrencesPlanErrors];
+
+export type PostEventsByEventIdOccurrencesPlanResponses = {
+    /**
+     * Duty roster filled successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Duty roster filled successfully';
+        data: {
+            occurrences: number;
+            duties: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdOccurrencesPlanResponse = PostEventsByEventIdOccurrencesPlanResponses[keyof PostEventsByEventIdOccurrencesPlanResponses];
+
+export type DeleteEventsByEventIdOccurrencesByOccurrenceIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        occurrenceId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences/{occurrenceId}';
+};
+
+export type DeleteEventsByEventIdOccurrencesByOccurrenceIdErrors = {
+    /**
+     * Dates of the series can only be cancelled
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Dates of the series can only be cancelled';
+    };
+    /**
+     * You are not allowed to manage the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the dates';
+    };
+    /**
+     * Date not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Date not found';
+    };
+};
+
+export type DeleteEventsByEventIdOccurrencesByOccurrenceIdError = DeleteEventsByEventIdOccurrencesByOccurrenceIdErrors[keyof DeleteEventsByEventIdOccurrencesByOccurrenceIdErrors];
+
+export type DeleteEventsByEventIdOccurrencesByOccurrenceIdResponses = {
+    /**
+     * Date deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Date deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdOccurrencesByOccurrenceIdResponse = DeleteEventsByEventIdOccurrencesByOccurrenceIdResponses[keyof DeleteEventsByEventIdOccurrencesByOccurrenceIdResponses];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdData = {
+    body?: {
+        date?: string;
+        start_time?: string | null;
+        end_time?: string | null;
+        location?: string | null;
+        title?: string | null;
+        notes?: string;
+        status?: 'planned' | 'cancelled';
+        cancel_reason?: string | null;
+    };
+    path: {
+        eventId: number;
+        occurrenceId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences/{occurrenceId}';
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdErrors = {
+    /**
+     * Only dates added by hand can be moved / end_time must be after start_time / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only dates added by hand can be moved / end_time must be after start_time / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the dates';
+    };
+    /**
+     * Date not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Date not found';
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdError = PutEventsByEventIdOccurrencesByOccurrenceIdErrors[keyof PutEventsByEventIdOccurrencesByOccurrenceIdErrors];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdResponses = {
+    /**
+     * Date updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Date updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            date: string;
+            start_time: string | null;
+            end_time: string | null;
+            location: string | null;
+            custom_time: boolean;
+            custom_location: boolean;
+            title: string | null;
+            notes: string;
+            status: 'planned' | 'cancelled';
+            cancel_reason: string | null;
+            origin: 'rule' | 'manual';
+            duties: Array<{
+                responsibility_id: number;
+                users: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdResponse = PutEventsByEventIdOccurrencesByOccurrenceIdResponses[keyof PutEventsByEventIdOccurrencesByOccurrenceIdResponses];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdData = {
+    body: {
+        user_ids: Array<number>;
+    };
+    path: {
+        eventId: number;
+        occurrenceId: number;
+        responsibilityId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences/{occurrenceId}/duties/{responsibilityId}';
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdErrors = {
+    /**
+     * Only staff of the event can be put on duty / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only staff of the event can be put on duty / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the dates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the dates';
+    };
+    /**
+     * Date not found / Responsibility not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Date not found / Responsibility not found';
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdError = PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdErrors[keyof PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdErrors];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdResponses = {
+    /**
+     * Duty updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Duty updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            date: string;
+            start_time: string | null;
+            end_time: string | null;
+            location: string | null;
+            custom_time: boolean;
+            custom_location: boolean;
+            title: string | null;
+            notes: string;
+            status: 'planned' | 'cancelled';
+            cancel_reason: string | null;
+            origin: 'rule' | 'manual';
+            duties: Array<{
+                responsibility_id: number;
+                users: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdResponse = PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdResponses[keyof PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdResponses];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeData = {
+    body: {
+        assigned: boolean;
+    };
+    path: {
+        eventId: number;
+        occurrenceId: number;
+        responsibilityId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/occurrences/{occurrenceId}/duties/{responsibilityId}/me';
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeErrors = {
+    /**
+     * This date is cancelled / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'This date is cancelled / Syntax or validation error in request';
+    };
+    /**
+     * Only staff of the event can sign up
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only staff of the event can sign up';
+    };
+    /**
+     * Date not found / Responsibility not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Date not found / Responsibility not found';
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeError = PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeErrors[keyof PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeErrors];
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeResponses = {
+    /**
+     * Duty updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Duty updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            date: string;
+            start_time: string | null;
+            end_time: string | null;
+            location: string | null;
+            custom_time: boolean;
+            custom_location: boolean;
+            title: string | null;
+            notes: string;
+            status: 'planned' | 'cancelled';
+            cancel_reason: string | null;
+            origin: 'rule' | 'manual';
+            duties: Array<{
+                responsibility_id: number;
+                users: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+            }>;
+            is_mine: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeResponse = PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeResponses[keyof PutEventsByEventIdOccurrencesByOccurrenceIdDutiesByResponsibilityIdMeResponses];
+
+export type GetEventsByEventIdCopyData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/copy';
+};
+
+export type GetEventsByEventIdCopyErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the core team can copy events
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can copy events';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdCopyError = GetEventsByEventIdCopyErrors[keyof GetEventsByEventIdCopyErrors];
+
+export type GetEventsByEventIdCopyResponses = {
+    /**
+     * Copy summary retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Copy summary retrieved successfully';
+        data: {
+            team: number;
+            groups: number;
+            rooms: number;
+            responsibilities: number;
+            program: number;
+            tasks: number;
+            notes: number;
+            announcements: number;
+            budget: number;
+            documents: number;
+            documents_size: number;
+            resources: number;
+            participants: number;
+        };
+    };
+};
+
+export type GetEventsByEventIdCopyResponse = GetEventsByEventIdCopyResponses[keyof GetEventsByEventIdCopyResponses];
+
+export type PostEventsByEventIdCopyData = {
+    body: {
+        name: string;
+        start_date: string;
+        end_date?: string;
+        include?: {
+            team?: boolean;
+            groups?: boolean;
+            rooms?: boolean;
+            responsibilities?: boolean;
+            program?: boolean;
+            tasks?: boolean;
+            notes?: boolean;
+            announcements?: boolean;
+            budget?: boolean;
+            documents?: boolean;
+            resources?: boolean;
+            participants?: boolean;
+        };
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/copy';
+};
+
+export type PostEventsByEventIdCopyErrors = {
+    /**
+     * end_date must not be before start_date / The recurrence has no date between start_date and end_date / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'end_date must not be before start_date / The recurrence has no date between start_date and end_date / Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can copy events
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can copy events';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdCopyError = PostEventsByEventIdCopyErrors[keyof PostEventsByEventIdCopyErrors];
+
+export type PostEventsByEventIdCopyResponses = {
+    /**
+     * Event copied successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Event copied successfully';
+        data: {
+            event: {
+                id: number;
+                name: string;
+                type: 'camp' | 'event' | 'recurring';
+                status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
+                description: string;
+                location: string | null;
+                start_date: string;
+                end_date: string;
+                recurrence: {
+                    frequency: 'weekly' | 'monthly';
+                    interval: number;
+                    weekdays: Array<number>;
+                    monthly_mode: 'day_of_month' | 'weekday_of_month';
+                    start_time: string | null;
+                    end_time: string | null;
+                } | null;
+                color: string | null;
+                max_participants: number | null;
+                participant_fee_cents: number | null;
+                budget_cents: number;
+                created_by: number | null;
+                created_at: number;
+                updated_at: number;
+                my_role: 'leader' | 'staff' | null;
+                is_member: boolean;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                leaders: Array<{
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                }>;
+                staff_count: number;
+                participant_count: number;
+                next_occurrence: {
+                    id: number;
+                    date: string;
+                    start_time: string | null;
+                    end_time: string | null;
+                    location: string | null;
+                    title: string | null;
+                } | null;
+            };
+            skipped_bookings: Array<string>;
+            skipped_files: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdCopyResponse = PostEventsByEventIdCopyResponses[keyof PostEventsByEventIdCopyResponses];
+
 export type GetOrgAnnouncementsData = {
     body?: never;
     path?: never;
@@ -11968,7 +13879,7 @@ export type GetOrgDocumentsResponses = {
         data: {
             folder: {
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -11983,7 +13894,7 @@ export type GetOrgDocumentsResponses = {
             } | null;
             path: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -11998,7 +13909,7 @@ export type GetOrgDocumentsResponses = {
             }>;
             items: Array<{
                 id: number;
-                scope: 'org' | 'event' | 'receipt';
+                scope: 'org' | 'event' | 'receipt' | 'message';
                 event_id: number | null;
                 parent_id: number | null;
                 kind: 'folder' | 'file';
@@ -12061,7 +13972,7 @@ export type PostOrgDocumentsResponses = {
         message: 'Document uploaded successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -12120,7 +14031,7 @@ export type PostOrgDocumentsFoldersResponses = {
         message: 'Folder created successfully';
         data: {
             id: number;
-            scope: 'org' | 'event' | 'receipt';
+            scope: 'org' | 'event' | 'receipt' | 'message';
             event_id: number | null;
             parent_id: number | null;
             kind: 'folder' | 'file';
@@ -12182,6 +14093,7 @@ export type GetOrgResourcesResponses = {
                 event: {
                     id: number;
                     name: string;
+                    type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
                 };
@@ -12251,6 +14163,7 @@ export type PostOrgResourcesResponses = {
                 event: {
                     id: number;
                     name: string;
+                    type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
                 };
@@ -12308,6 +14221,7 @@ export type GetOrgResourcesBookingsResponses = {
             event: {
                 id: number;
                 name: string;
+                type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
             };
@@ -12495,6 +14409,7 @@ export type PutOrgResourcesByResourceIdResponses = {
                 event: {
                     id: number;
                     name: string;
+                    type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
                 };
@@ -12572,6 +14487,7 @@ export type PostOrgResourcesByResourceIdBookingsResponses = {
             event: {
                 id: number;
                 name: string;
+                type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
             };
@@ -12625,10 +14541,11 @@ export type GetOrgCoreTeamOverviewResponses = {
             running_events: Array<{
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
                 start_date: string;
                 end_date: string;
+                next_date: string | null;
                 color: string | null;
                 staff_count: number;
                 participant_count: number;
@@ -12636,10 +14553,11 @@ export type GetOrgCoreTeamOverviewResponses = {
             upcoming_events: Array<{
                 id: number;
                 name: string;
-                type: 'camp' | 'event';
+                type: 'camp' | 'event' | 'recurring';
                 status: 'planning' | 'confirmed' | 'cancelled' | 'archived';
                 start_date: string;
                 end_date: string;
+                next_date: string | null;
                 color: string | null;
                 staff_count: number;
                 participant_count: number;
@@ -12863,8 +14781,10 @@ export type GetOrgCoreTeamStaffPlanningResponses = {
             events: Array<{
                 id: number;
                 name: string;
+                type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
+                dates: Array<string> | null;
                 color: string | null;
             }>;
             users: Array<{

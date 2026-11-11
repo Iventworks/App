@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
@@ -8,6 +8,7 @@ import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler } from "../../../../../utils/authHandler";
+import { EventSchedule } from "../../../../../utils/eventSchedule";
 import { getAuthUserId } from "../../../../../utils/guards";
 import { PermissionHelper } from "../../../../../utils/permissions";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
@@ -42,6 +43,7 @@ async function loadBookings(filter: { resourceIds?: number[]; eventId?: number }
 			event: {
 				id: DB.Tables.events.id,
 				name: DB.Tables.events.name,
+				type: DB.Tables.events.type,
 				start_date: DB.Tables.events.start_date,
 				end_date: DB.Tables.events.end_date,
 			},
@@ -87,6 +89,8 @@ async function toResponse(
 ): Promise<OrgResourcesModel.Resource[]> {
 	const bookings = await loadBookings({ resourceIds: resources.map((resource) => resource.id) });
 	const today = TimeUtils.today();
+	// A recurring event only uses its bookings on the days of its dates.
+	const schedule = await EventSchedule.load(bookings.map((row) => row.event));
 
 	return resources.map((resource) => {
 		const own = bookings.filter((row) => row.booking.resource_id === resource.id);
@@ -97,7 +101,7 @@ async function toResponse(
 				return booking;
 			}),
 			booked_now: own
-				.filter((row) => row.event.start_date <= today && today <= row.event.end_date)
+				.filter((row) => schedule.takesPlaceOn(row.event, today))
 				.reduce((sum, row) => sum + row.booking.quantity, 0),
 		};
 	});
@@ -393,24 +397,13 @@ router.post(
 			.get();
 		if (!event) return APIResponse.badRequest(c, "Event not found");
 
-		// Units already taken by bookings of events whose date range overlaps this event.
-		const overlapping = await DB.instance()
-			.select({ quantity: DB.Tables.resourceBookings.quantity })
-			.from(DB.Tables.resourceBookings)
-			.innerJoin(
-				DB.Tables.events,
-				and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, DB.Tables.resourceBookings.event_id)),
-			)
-			.where(
-				and(
-					inOrg(DB.Tables.resourceBookings),
-					eq(DB.Tables.resourceBookings.resource_id, resource.id),
-					lte(DB.Tables.events.start_date, event.end_date),
-					gte(DB.Tables.events.end_date, event.start_date),
-				),
-			)
-			.all();
-		const taken = overlapping.reduce((sum, row) => sum + row.quantity, 0);
+		// Units already taken by bookings of events that share a day with this event (a recurring
+		// event only counts on the days of its dates).
+		const others = await loadBookings({ resourceIds: [resource.id] });
+		const schedule = await EventSchedule.load([event, ...others.map((row) => row.event)]);
+		const taken = others
+			.filter((row) => schedule.overlap(row.event, event))
+			.reduce((sum, row) => sum + row.booking.quantity, 0);
 
 		if (taken + body.quantity > resource.quantity) {
 			return APIResponse.conflict(c, "Not enough units available");
@@ -445,6 +438,7 @@ router.post(
 			event: {
 				id: event.id,
 				name: event.name,
+				type: event.type,
 				start_date: event.start_date,
 				end_date: event.end_date,
 			},
