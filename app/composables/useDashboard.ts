@@ -4,7 +4,14 @@
  * refresh when the realtime channel says something changed, and are polled while the dashboard
  * layout is mounted — every minute without the channel, every five minutes as a safety net with it.
  */
-import { createSharedComposable, useDebounceFn, useIntervalFn, useMediaQuery } from "@vueuse/core";
+import {
+	breakpointsTailwind,
+	createSharedComposable,
+	useBreakpoints,
+	useDebounceFn,
+	useIntervalFn,
+} from "@vueuse/core";
+import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
 const BADGE_POLL_MS = 60_000;
 const BADGE_POLL_REALTIME_MS = 5 * 60_000;
@@ -12,6 +19,8 @@ const BADGE_POLL_REALTIME_MS = 5 * 60_000;
 const _useDashboard = () => {
 	const route = useRoute();
 	const router = useRouter();
+	const instance = useInstance();
+	const user = useUserInfoStore().peek();
 
 	const unreadMessages = ref(0);
 	const unreadNotifications = ref(0);
@@ -24,10 +33,15 @@ const _useDashboard = () => {
 	 * notifications are the `/notifications` page: the menu only closes on navigation, so a
 	 * slideover opened from it would stay hidden behind it.
 	 */
-	const notificationsAsSlideover = useMediaQuery("(min-width: 64rem)");
+	const notificationsAsSlideover = useBreakpoints(breakpointsTailwind).greaterOrEqual("lg");
 
-	/** The slideover on large screens, the page on small ones. */
+	/**
+	 * The slideover on large screens, the page on small ones. Nothing on the system host or for
+	 * accounts not activated yet: they have no notifications, and the route guard would send them
+	 * away from the page they are on (unsaved input and all).
+	 */
 	function openNotifications() {
+		if (instance.value?.kind !== "org" || !hasOrgRole(user.value?.role, "volunteer")) return;
 		if (notificationsAsSlideover.value) isNotificationsSlideoverOpen.value = true;
 		else void router.push("/notifications");
 	}

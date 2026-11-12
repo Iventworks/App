@@ -288,7 +288,8 @@ CMP (Crossover Management Portal) before; the repository still is.
   `ImgAppIcon` instead of hard-coded names; page titles are just the page (`"Aufgaben"`), the
   title template appends the org. Default assets: `public/static/brand/`.
 - **Shared components extended** (copies of `shared/frontend`, deliberately changed):
-  `DashboardStatCard` takes `to` (the whole card links) and `iconColor: "info"`;
+  `DashboardStatCard` takes `to` (the whole card links), `@click` (without `to`: a button over the
+  whole card, e.g. the notifications card opening the slideover) and `iconColor: "info"`;
   `DashboardDeleteModal` is German, its confirm word is `LÖSCHEN`, and `requireConfirmText` can
   turn the typing step off for small deletions; `DataTable`/`DateRangePicker` are translated, and
   `DataTable` keeps its actions right-aligned when they wrap below the filters and passes a

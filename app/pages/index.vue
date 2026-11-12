@@ -14,8 +14,9 @@ definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Übersicht", description: "Deine persönliche Übersicht" });
 
 const toast = useToast();
-// The notifications card opens them like the sidebar does: slideover or page by screen size.
-const { openNotifications } = useDashboard();
+// The notifications card opens them like the sidebar does (slideover or page by screen size) and
+// shows the live count, which drops while they are read in the slideover.
+const { openNotifications, unreadNotifications } = useDashboard();
 const user = await useUserInfoStore().use();
 
 const {
@@ -34,6 +35,8 @@ const {
 	}
 	return result.data;
 });
+// Same count, fresher than the sidebar's until its first refresh: no "0" flash on the card.
+if (dashboard.value) unreadNotifications.value = dashboard.value.unread_notifications;
 
 const firstName = computed(() => user.value?.display_name.split(" ")[0] ?? "");
 
@@ -194,7 +197,7 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 						/>
 						<DashboardStatCard
 							label="Benachrichtigungen"
-							:value="dashboard.unread_notifications"
+							:value="unreadNotifications"
 							icon="i-lucide-bell"
 							icon-color="amber"
 							hint="ungelesen"

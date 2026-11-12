@@ -103,9 +103,12 @@ const personalItems = computed<NavigationMenuItem[]>(() => [
 		label: "Benachrichtigungen",
 		icon: "i-lucide-bell",
 		badge: unreadNotifications.value > 0 ? String(unreadNotifications.value) : undefined,
-		// Large screens: the slideover over the current page. Small screens: a real link to the
-		// page, so the overlay menu closes like for every other item (see `openNotifications`).
-		...(notificationsAsSlideover.value ? { onSelect: openNotifications } : { to: "/notifications" }),
+		// Large screens: the slideover over the current page (still highlighted when the page itself
+		// is open). Small screens: a real link to the page, so the overlay menu closes like for every
+		// other item (see `openNotifications`).
+		...(notificationsAsSlideover.value
+			? { onSelect: openNotifications, active: route.path === "/notifications" }
+			: { to: "/notifications" }),
 	},
 ]);
 

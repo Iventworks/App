@@ -43,6 +43,7 @@ await load();
 					variant="card"
 					@open="open"
 					@remove="remove"
+					@retry="load"
 				/>
 			</DashboardPageBody>
 		</template>

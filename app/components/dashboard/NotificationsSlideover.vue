@@ -8,7 +8,7 @@ import type { NotificationItem } from "~/utils/types";
 
 const { isNotificationsSlideoverOpen } = useDashboard();
 const { notifications, loading, unreadCount, markingAll, load, open, markAllRead, remove } =
-	useNotifications(isNotificationsSlideoverOpen);
+	useNotifications();
 
 watch(isNotificationsSlideoverOpen, (isOpen) => {
 	if (isOpen) void load();
@@ -44,6 +44,7 @@ async function openNotification(notification: NotificationItem) {
 				variant="plain"
 				@open="openNotification"
 				@remove="remove"
+				@retry="load"
 			/>
 		</template>
 	</USlideover>

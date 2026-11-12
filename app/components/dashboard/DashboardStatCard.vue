@@ -7,7 +7,10 @@ interface Props {
 	hint?: string;
 	loading?: boolean;
 	to?: string;
-	/** Instead of `to`: run this on a click (the card becomes a button). */
+	/**
+	 * A click on the card. Without `to` the card gets a button over its whole area (a `<button>`
+	 * may not hold the card's block content); with `to` it runs before the link navigates.
+	 */
 	onClick?: () => void;
 }
 
@@ -31,15 +34,13 @@ const iconColorClasses: Record<NonNullable<Props["iconColor"]>, string> = {
 
 <template>
 	<component
-		:is="to ? 'NuxtLink' : onClick ? 'button' : 'div'"
+		:is="to ? 'NuxtLink' : 'div'"
 		:to="to"
-		:type="!to && onClick ? 'button' : undefined"
 		:class="[
-			'block',
+			'relative block',
 			to || onClick ? 'rounded-lg transition hover:ring-1 hover:ring-primary/40' : '',
-			!to && onClick ? 'w-full cursor-pointer text-left' : '',
 		]"
-		@click="!to && onClick?.()"
+		@click="to && onClick?.()"
 	>
 		<UCard class="h-full border-slate-800 bg-slate-900/60">
 			<div class="flex items-center gap-4">
@@ -53,5 +54,13 @@ const iconColorClasses: Record<NonNullable<Props["iconColor"]>, string> = {
 				</div>
 			</div>
 		</UCard>
+
+		<button
+			v-if="!to && onClick"
+			type="button"
+			class="absolute inset-0 cursor-pointer rounded-lg"
+			:aria-label="label"
+			@click="onClick"
+		/>
 	</component>
 </template>

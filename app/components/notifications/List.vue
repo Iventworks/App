@@ -14,9 +14,10 @@ withDefaults(
 	{ variant: "plain" },
 );
 
-defineEmits<{
+const emit = defineEmits<{
 	open: [notification: NotificationItem];
 	remove: [notification: NotificationItem];
+	retry: [];
 }>();
 
 const TYPE_ICONS: Record<string, string> = {
@@ -31,6 +32,16 @@ const TYPE_ICONS: Record<string, string> = {
 	expense_submitted: "i-lucide-receipt",
 	system: "i-lucide-info",
 };
+
+const retryActions = [
+	{
+		label: "Erneut versuchen",
+		icon: "i-lucide-refresh-cw",
+		color: "neutral" as const,
+		variant: "subtle" as const,
+		onClick: () => emit("retry"),
+	},
+];
 </script>
 
 <template>
@@ -38,8 +49,18 @@ const TYPE_ICONS: Record<string, string> = {
 		<UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-slate-400" />
 	</div>
 
+	<!-- Not loaded and not loading: the load failed. Not "empty", which would be wrong. -->
 	<UEmpty
-		v-else-if="!notifications?.length"
+		v-else-if="!notifications"
+		icon="i-lucide-cloud-off"
+		title="Benachrichtigungen konnten nicht geladen werden"
+		description="Prüfe deine Verbindung und versuch es noch einmal."
+		:actions="retryActions"
+		:variant="variant === 'plain' ? 'naked' : undefined"
+	/>
+
+	<UEmpty
+		v-else-if="!notifications.length"
 		icon="i-lucide-bell-off"
 		title="Keine Benachrichtigungen"
 		description="Hier erscheinen neue Aufgaben, Zuteilungen und Neuigkeiten."
@@ -59,36 +80,37 @@ const TYPE_ICONS: Record<string, string> = {
 			:key="notification.id"
 			:class="['group flex items-start gap-1 pe-2 hover:bg-elevated/50', variant === 'plain' && 'rounded-md']"
 		>
+			<!-- Only inline elements in a <button> (spans, styled as blocks where needed). -->
 			<button
 				type="button"
 				:class="[
 					'flex min-w-0 flex-1 items-start gap-3 text-left',
 					variant === 'card' ? 'px-4 py-3' : 'px-3 py-2.5',
 				]"
-				@click="$emit('open', notification)"
+				@click="emit('open', notification)"
 			>
-				<UChip color="primary" :show="!notification.read_at" inset>
-					<div class="flex size-9 items-center justify-center rounded-full bg-slate-800">
+				<UChip as="span" color="primary" :show="!notification.read_at" inset>
+					<span class="flex size-9 items-center justify-center rounded-full bg-slate-800">
 						<UIcon
 							:name="TYPE_ICONS[notification.type] ?? 'i-lucide-bell'"
 							class="size-4 text-primary-400"
 						/>
-					</div>
+					</span>
 				</UChip>
 
-				<div class="min-w-0 flex-1 text-sm">
-					<p class="flex items-start justify-between gap-2">
+				<span class="block min-w-0 flex-1 text-sm">
+					<span class="flex items-start justify-between gap-2">
 						<span :class="notification.read_at ? 'text-slate-300' : 'font-medium text-white'">
 							{{ notification.title }}
 						</span>
 						<time class="shrink-0 text-xs text-slate-500" :title="formatDate(notification.created_at)">
 							{{ formatRelative(notification.created_at) }}
 						</time>
-					</p>
-					<p v-if="notification.body" class="line-clamp-2 text-slate-400">
+					</span>
+					<span v-if="notification.body" class="line-clamp-2 text-slate-400">
 						{{ notification.body }}
-					</p>
-				</div>
+					</span>
+				</span>
 			</button>
 
 			<!-- Shown on hover with a mouse; always visible on touch screens (no hover there). -->
@@ -102,7 +124,7 @@ const TYPE_ICONS: Record<string, string> = {
 					variant === 'card' ? 'mt-3' : 'mt-2',
 				]"
 				aria-label="Benachrichtigung entfernen"
-				@click="$emit('remove', notification)"
+				@click="emit('remove', notification)"
 			/>
 		</li>
 	</ul>
