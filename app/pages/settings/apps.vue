@@ -83,41 +83,49 @@ const benefits = [
 							@click="onInstall"
 						/>
 
-						<div v-else class="rounded-lg bg-slate-800/60 p-4 text-sm">
-							<template v-if="platform === 'ios'">
-								<p class="font-medium text-white">In Safari:</p>
-								<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
-									<li>
-										Tippe unten auf
-										<UIcon name="i-lucide-share" class="inline size-4 align-text-bottom" />
-										„Teilen“.
-									</li>
-									<li>Wähle „Zum Home-Bildschirm“.</li>
-									<li>Tippe auf „Hinzufügen“.</li>
-								</ol>
-								<p class="mt-3 text-xs text-slate-500">
-									Auf iPhone und iPad klappt das nur in Safari, nicht in anderen Browsern.
-								</p>
-							</template>
-							<template v-else-if="platform === 'android'">
-								<p class="font-medium text-white">In Chrome:</p>
-								<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
-									<li>
-										Öffne das Menü
-										<UIcon name="i-lucide-ellipsis-vertical" class="inline size-4 align-text-bottom" />
-										oben rechts.
-									</li>
-									<li>Wähle „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.</li>
-								</ol>
-							</template>
-							<template v-else>
-								<p class="font-medium text-white">In Chrome oder Edge:</p>
-								<p class="mt-2 text-slate-300">
-									Klicke rechts in der Adressleiste auf das Installieren-Symbol
-									<UIcon name="i-lucide-monitor-down" class="inline size-4 align-text-bottom" />.
-									In Firefox und Safari am Mac geht das nicht – nutze {{ installName }} dort einfach im Browser.
-								</p>
-							</template>
+						<!-- The manual steps stay visible next to the button: a fallback if the browser's
+						     prompt doesn't open or was dismissed. -->
+						<div class="space-y-2">
+							<p v-if="canPrompt" class="text-xs text-slate-500">
+								Klappt der Button nicht? So geht’s von Hand:
+							</p>
+
+							<div class="rounded-lg bg-slate-800/60 p-4 text-sm">
+								<template v-if="platform === 'ios'">
+									<p class="font-medium text-white">In Safari:</p>
+									<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
+										<li>
+											Tippe unten auf
+											<UIcon name="i-lucide-share" class="inline size-4 align-text-bottom" />
+											„Teilen“.
+										</li>
+										<li>Wähle „Zum Home-Bildschirm“.</li>
+										<li>Tippe auf „Hinzufügen“.</li>
+									</ol>
+									<p class="mt-3 text-xs text-slate-500">
+										Auf iPhone und iPad klappt das nur in Safari, nicht in anderen Browsern.
+									</p>
+								</template>
+								<template v-else-if="platform === 'android'">
+									<p class="font-medium text-white">In Chrome:</p>
+									<ol class="mt-2 list-inside list-decimal space-y-1 text-slate-300">
+										<li>
+											Öffne das Menü
+											<UIcon name="i-lucide-ellipsis-vertical" class="inline size-4 align-text-bottom" />
+											oben rechts.
+										</li>
+										<li>Wähle „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.</li>
+									</ol>
+								</template>
+								<template v-else>
+									<p class="font-medium text-white">In Chrome oder Edge:</p>
+									<p class="mt-2 text-slate-300">
+										Klicke rechts in der Adressleiste auf das Installieren-Symbol
+										<UIcon name="i-lucide-monitor-down" class="inline size-4 align-text-bottom" />.
+										In Firefox und Safari am Mac geht das nicht – nutze {{ installName }} dort einfach im Browser.
+									</p>
+								</template>
+							</div>
 						</div>
 					</div>
 				</DashboardSectionCard>
