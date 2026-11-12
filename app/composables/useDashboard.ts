@@ -1,10 +1,10 @@
 /**
- * useDashboard — shared dashboard chrome state: the notifications slideover, keyboard
- * shortcuts and the unread badges in the sidebar. The badges refresh when the realtime channel
- * says something changed, and are polled while the dashboard layout is mounted — every minute
- * without the channel, every five minutes as a safety net with it.
+ * useDashboard — shared dashboard chrome state: notifications (slideover or page, see
+ * `openNotifications`), keyboard shortcuts and the unread badges in the sidebar. The badges
+ * refresh when the realtime channel says something changed, and are polled while the dashboard
+ * layout is mounted — every minute without the channel, every five minutes as a safety net with it.
  */
-import { createSharedComposable, useDebounceFn, useIntervalFn } from "@vueuse/core";
+import { createSharedComposable, useDebounceFn, useIntervalFn, useMediaQuery } from "@vueuse/core";
 
 const BADGE_POLL_MS = 60_000;
 const BADGE_POLL_REALTIME_MS = 5 * 60_000;
@@ -13,9 +13,33 @@ const _useDashboard = () => {
 	const route = useRoute();
 	const router = useRouter();
 
-	const isNotificationsSlideoverOpen = ref(false);
 	const unreadMessages = ref(0);
 	const unreadNotifications = ref(0);
+
+	// --- notifications ------------------------------------------------------------------------
+
+	const isNotificationsSlideoverOpen = ref(false);
+	/**
+	 * Tailwind's `lg`, where `UDashboardSidebar` stops being an overlay menu. Below it,
+	 * notifications are the `/notifications` page: the menu only closes on navigation, so a
+	 * slideover opened from it would stay hidden behind it.
+	 */
+	const notificationsAsSlideover = useMediaQuery("(min-width: 64rem)");
+
+	/** The slideover on large screens, the page on small ones. */
+	function openNotifications() {
+		if (notificationsAsSlideover.value) isNotificationsSlideoverOpen.value = true;
+		else void router.push("/notifications");
+	}
+
+	watch(
+		() => route.fullPath,
+		() => {
+			isNotificationsSlideoverOpen.value = false;
+		},
+	);
+
+	// --- badges -------------------------------------------------------------------------------
 
 	async function refreshBadges() {
 		if (!useAppCookies().sessionToken.get().value) return;
@@ -58,19 +82,15 @@ const _useDashboard = () => {
 		"g-k": () => router.push("/calendar"),
 		"g-s": () => router.push("/settings"),
 		n: () => {
-			isNotificationsSlideoverOpen.value = !isNotificationsSlideoverOpen.value;
+			if (isNotificationsSlideoverOpen.value) isNotificationsSlideoverOpen.value = false;
+			else openNotifications();
 		},
 	});
 
-	watch(
-		() => route.fullPath,
-		() => {
-			isNotificationsSlideoverOpen.value = false;
-		},
-	);
-
 	return {
 		isNotificationsSlideoverOpen,
+		notificationsAsSlideover,
+		openNotifications,
 		unreadMessages,
 		unreadNotifications,
 		refreshBadges,

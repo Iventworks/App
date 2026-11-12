@@ -25,7 +25,8 @@ const isCoreTeam = computed(() => hasOrgRole(role.value, "core_team"));
 const isAdmin = computed(() => hasOrgRole(role.value, "admin"));
 
 const {
-	isNotificationsSlideoverOpen,
+	notificationsAsSlideover,
+	openNotifications,
 	unreadMessages,
 	unreadNotifications,
 	startBadgePolling,
@@ -102,9 +103,9 @@ const personalItems = computed<NavigationMenuItem[]>(() => [
 		label: "Benachrichtigungen",
 		icon: "i-lucide-bell",
 		badge: unreadNotifications.value > 0 ? String(unreadNotifications.value) : undefined,
-		onSelect: () => {
-			isNotificationsSlideoverOpen.value = true;
-		},
+		// Large screens: the slideover over the current page. Small screens: a real link to the
+		// page, so the overlay menu closes like for every other item (see `openNotifications`).
+		...(notificationsAsSlideover.value ? { onSelect: openNotifications } : { to: "/notifications" }),
 	},
 ]);
 
@@ -245,7 +246,8 @@ const searchGroups = computed(() =>
 					id: "pages",
 					label: "Seiten",
 					items: [
-						...personalItems.value.filter((item) => item.to),
+						// Notifications have `onSelect` instead of `to` on large screens (the slideover).
+						...personalItems.value.filter((item) => item.to || item.onSelect),
 						...eventItems.value.flatMap((item) => (item.children ? item.children : [item])),
 						...organisationItems.value.filter((item) => item.to),
 						...settingsItems.filter((item) => item.to),
@@ -377,6 +379,6 @@ const searchGroups = computed(() =>
 
 		<slot />
 
-		<DashboardNotificationsSlideover />
+		<DashboardNotificationsSlideover v-if="!isSystem" />
 	</UDashboardGroup>
 </template>

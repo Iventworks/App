@@ -14,6 +14,8 @@ definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Übersicht", description: "Deine persönliche Übersicht" });
 
 const toast = useToast();
+// The notifications card opens them like the sidebar does: slideover or page by screen size.
+const { openNotifications } = useDashboard();
 const user = await useUserInfoStore().use();
 
 const {
@@ -196,6 +198,7 @@ const CONVERSATION_ICONS: Record<Dashboard["recent_conversations"][number]["type
 							icon="i-lucide-bell"
 							icon-color="amber"
 							hint="ungelesen"
+							@click="openNotifications"
 						/>
 						<DashboardStatCard
 							label="Nächste Freizeit / Event"
