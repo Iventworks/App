@@ -257,7 +257,8 @@ CMP (Crossover Management Portal) before; the repository still is.
   (`Iventworks für <org>`, home-screen label `Iventworks`; `useInstallName()` in the frontend), so
   it is found under the product's name. `/settings/apps` offers the install (`usePwaInstall`, which
   replays the `beforeinstallprompt` event caught by `plugins/pwaInstall.client.ts`) and the
-  Safari steps for iOS.
+  manual steps per platform, always — also next to the button, as a fallback. That plugin has
+  `order: -40` so it runs before every async plugin: Chrome fires the event once per page load.
   The service worker must never answer `/api/**` (`pwa.workbox.navigateFallbackDenylist`).
 - UI language is German, informal ("du").
 - **Content-Security-Policy** (pages: `server/plugins/csp.ts`, everything else:

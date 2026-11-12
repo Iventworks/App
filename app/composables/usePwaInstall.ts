@@ -16,7 +16,7 @@ export interface BeforeInstallPromptEvent extends Event {
 const deferredPrompt = shallowRef<BeforeInstallPromptEvent | null>(null);
 const installedNow = ref(false);
 
-/** Called by the client plugin as early as possible. */
+/** Called by the client plugin, which runs before every other plugin (see there). */
 export function registerPwaInstallListeners() {
 	window.addEventListener("beforeinstallprompt", (event) => {
 		// Keep the browser's mini-infobar from showing; we offer our own button.
