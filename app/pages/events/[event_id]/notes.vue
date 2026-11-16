@@ -79,9 +79,11 @@ const { value: activeTab, items: tabItems } = useQueryFilter("group", tabs, {
 	resetKeys: ["note"],
 });
 
-onBeforeRouteUpdate((to, from) => {
-	if (to.query.group !== from.query.group && !confirmDiscard()) return false;
+// Switching the area drops the open note; leaving the page drops it too.
+onBeforeRouteUpdate(async (to, from) => {
+	if (to.query.group !== from.query.group) return await confirmDiscard();
 });
+onBeforeRouteLeave(() => confirmDiscard());
 
 const tabNotes = computed(() =>
 	(notes.value ?? [])
@@ -102,8 +104,9 @@ const selectedNote = computed(() =>
 		: null,
 );
 
-function select(id: number | "new" | null) {
-	if (!confirmDiscard()) return;
+async function select(id: number | "new" | null) {
+	if (id === selectedId.value) return;
+	if (!(await confirmDiscard())) return;
 	const query = { ...route.query };
 	if (id === null) delete query.note;
 	else query.note = String(id);
@@ -143,8 +146,17 @@ const dirty = computed(
 			editor.pinned !== original.value.pinned),
 );
 
-function confirmDiscard() {
-	return !dirty.value || window.confirm("Ungespeicherte Änderungen verwerfen?");
+const askUnsaved = useUnsavedChangesDialog();
+
+/**
+ * Before switching or leaving: true when there is nothing to lose, or the person saved or
+ * discarded their changes in the dialog; false keeps them on the open note.
+ */
+async function confirmDiscard() {
+	if (!dirty.value) return true;
+	const choice = await askUnsaved("Die geöffnete Notiz hat ungespeicherte Änderungen.");
+	if (choice === "save") return await save({ openCreated: false });
+	return choice === "discard";
 }
 
 const canCreate = computed(() => {
@@ -160,12 +172,16 @@ const canCreate = computed(() => {
 	);
 });
 
-async function save() {
-	if (!isEditing.value || saving.value) return;
+/**
+ * Save the open note; true on success. `openCreated: false` stays put after creating a note
+ * (when saving on the way to another note or page).
+ */
+async function save(options: { openCreated?: boolean } = {}): Promise<boolean> {
+	if (!isEditing.value || saving.value) return false;
 	const title = editor.title.trim();
 	if (!title) {
 		toast.add({ title: "Bitte gib einen Titel ein", color: "warning" });
-		return;
+		return false;
 	}
 
 	saving.value = true;
@@ -192,16 +208,17 @@ async function save() {
 
 	if (!result.success) {
 		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
-		return;
+		return false;
 	}
 
 	original.value = { title, content: editor.content, pinned: editor.pinned };
 	editor.title = title;
 	toast.add({ title: "Notiz gespeichert", color: "success", icon: "i-lucide-check" });
 	await refresh();
-	if (!note) {
+	if (!note && (options.openCreated ?? true)) {
 		void router.replace({ query: { ...route.query, note: String(result.data.id) } });
 	}
+	return true;
 }
 
 defineShortcuts({
@@ -224,7 +241,7 @@ async function confirmDelete() {
 	}
 	toast.add({ title: "Notiz gelöscht", color: "success" });
 	original.value = { ...editor };
-	select(null);
+	await select(null);
 	await refresh();
 }
 
@@ -319,7 +336,7 @@ const activeGroup = computed(() =>
 							description="Sie wurde gelöscht oder ist in diesem Bereich nicht sichtbar."
 						/>
 
-						<UForm v-else-if="isEditing" :schema="schema" :state="editor" class="space-y-4" @submit="save">
+						<UForm v-else-if="isEditing" :schema="schema" :state="editor" class="space-y-4" @submit="save()">
 							<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
 								<UFormField name="title" class="flex-1">
 									<UInput

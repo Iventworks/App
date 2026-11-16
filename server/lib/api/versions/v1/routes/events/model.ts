@@ -174,6 +174,18 @@ export namespace EventsModel.Overview {
 		my_responsibilities: z.array(ResponsibilitySummary),
 		my_room: z.object({ id: z.number(), name: z.string() }).nullable(),
 		my_groups: z.array(z.object({ id: z.number(), name: z.string(), color: z.string().nullable() })),
+		/** Kleingruppen the caller leads. */
+		my_small_groups: z.array(
+			z.object({
+				id: z.number(),
+				name: z.string(),
+				color: z.string().nullable(),
+				meeting_point: z.string().nullable(),
+				participant_count: z.number(),
+			}),
+		),
+		/** Rooms the caller is responsible for. */
+		my_responsible_rooms: z.array(z.object({ id: z.number(), name: z.string() })),
 		/** Recurring events: the next planned dates with who is on duty. */
 		next_occurrences: z.array(Occurrences.ItemSchema),
 		counts: z.object({

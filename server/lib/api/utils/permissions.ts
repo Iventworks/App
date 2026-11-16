@@ -72,6 +72,10 @@ export class PermissionHelper {
 		"rooms:view": "staff",
 		"rooms:manage": "leader",
 
+		/** "Kleingruppen" of participants and who leads them. */
+		"small_groups:view": "staff",
+		"small_groups:manage": "leader",
+
 		"program:view": "staff",
 		"program:manage": "leader",
 

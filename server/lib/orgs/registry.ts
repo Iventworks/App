@@ -1,11 +1,12 @@
 import { and, isNotNull } from "drizzle-orm";
 import { DB } from "../db";
-import type { ORG_PRIMARY_COLORS } from "../db/schema";
+import type { ORG_PRIMARY_COLORS, USERNAME_MODES } from "../db/schema";
 import { ConfigHandler } from "../utils/config";
 import { AppConstants } from "../utils/constants";
 import { OrgContext } from "./context";
 
 export type OrgPrimaryColor = (typeof ORG_PRIMARY_COLORS)[number];
+export type UsernameMode = (typeof USERNAME_MODES)[number];
 
 /** What the registry keeps in memory per org — enough to answer a request without a query. */
 export interface OrgInfo {
@@ -18,6 +19,10 @@ export interface OrgInfo {
 	readonly file_sharing_enabled: boolean;
 	/** Expiry suggested for new share links, in days; null = none. */
 	readonly share_default_expiry_days: number | null;
+	/** How new accounts get their username (`UsernamePolicy`). */
+	readonly username_mode: UsernameMode;
+	/** E.g. `{FIRSTNAME}.{LASTNAME}` (`UsernameSchema`); used in `schema` mode. */
+	readonly username_schema: string;
 	/** `<slug>.<base host>` in multi-org mode, the APP_URL host otherwise (and for the system org). */
 	readonly default_domain: string;
 	/** The verified custom domain every other host of the org redirects to, or null. */
@@ -128,6 +133,8 @@ export class OrgRegistry {
 				primary_color: org.primary_color,
 				file_sharing_enabled: org.file_sharing_enabled,
 				share_default_expiry_days: org.share_default_expiry_days,
+				username_mode: org.username_mode,
+				username_schema: org.username_schema,
 				default_domain: defaultDomain,
 				primary_domain: usesCustomDomain ? primary : null,
 				url:

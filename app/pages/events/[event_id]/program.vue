@@ -6,20 +6,24 @@
  * the views via `provideEventProgramView`. Leaders drag & drop, resize and create items directly in
  * the grid (changes are applied optimistically and rolled back if the API refuses); staff get a
  * read-only view with a "Nur meine" filter. Phones get the agenda per day in both views.
+ * "PDF / Drucken" in the header exports the plan as a PDF (list or week grid) to download or print.
  */
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
-import type { GetEventsByEventIdProgramResponses } from "~/api-client";
+import type {
+	GetEventsByEventIdProgramResponses,
+	GetEventsByEventIdSmallGroupsResponses,
+} from "~/api-client";
 import type { UseSubrouterPathDynamics } from "~/composables/useSubrouterPathDynamics";
 import type { EventMember } from "~/utils/types";
 
 type ProgramItem = GetEventsByEventIdProgramResponses["200"]["data"][number];
+type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
 const { event, eventId, can } = await useCurrentEvent();
 const toast = useToast();
 const route = useRoute();
-const router = useRouter();
 
 const editable = computed(() => can("program:manage"));
 const programPath = computed(() => `/events/${eventId.value}/program`);
@@ -86,6 +90,17 @@ const { data: members } = await useAPIAsyncData(`event-${eventId.value}-members`
 	);
 	return result.success ? result.data : ([] as EventMember[]);
 });
+
+// Kleingruppen: shown for items "in Kleingruppen" (item modal) and in the PDF's appendix.
+const { data: smallGroups } = await useAPIAsyncData(
+	`event-${eventId.value}-small-groups`,
+	async () => {
+		const result = await useAPI((api) =>
+			api.getEventsByEventIdSmallGroups({ path: { eventId: eventId.value } }),
+		);
+		return result.success ? result.data : ([] as SmallGroup[]);
+	},
+);
 
 const days = computed(() => {
 	const result: string[] = [];
@@ -216,12 +231,9 @@ provideEventProgramView({
 	onMove,
 });
 
-// Printing uses the agenda, so switch to the list view first.
-async function print() {
-	await router.push(`${programPath.value}/list`);
-	await nextTick();
-	requestAnimationFrame(() => window.print());
-}
+// --- PDF export / print ---------------------------------------------------------------------
+
+const exportOpen = ref(false);
 </script>
 
 <template>
@@ -233,10 +245,11 @@ async function print() {
 						icon="i-lucide-printer"
 						color="neutral"
 						variant="ghost"
-						aria-label="Drucken"
-						class="hidden md:inline-flex"
-						@click="print"
-					/>
+						aria-label="PDF exportieren oder drucken"
+						@click="exportOpen = true"
+					>
+						<span class="hidden sm:inline">PDF / Drucken</span>
+					</UButton>
 				</template>
 			</DashboardPageHeader>
 
@@ -298,12 +311,23 @@ async function print() {
 		:draft="draft"
 		:editable="editable"
 		:members="members ?? []"
+		:small-groups="smallGroups ?? []"
 		@saved="refresh"
 		@deleted="refresh"
+	/>
+
+	<ProgramExportModal
+		v-model:open="exportOpen"
+		:event-name="event.name"
+		:days="days"
+		:items="items ?? []"
+		:small-groups="smallGroups ?? []"
+		:only-mine="onlyMine"
 	/>
 </template>
 
 <style>
+/* Ctrl+P on the list view still prints a plain agenda; the "PDF / Drucken" button prints the PDF. */
 @media print {
 	/* Print only the agenda: hide the dashboard chrome around it. */
 	aside,

@@ -3,12 +3,14 @@ import type {
 	GetEventsByEventIdParticipantsByParticipantIdResponses,
 	GetEventsByEventIdParticipantsResponses,
 	GetEventsByEventIdRoomsResponses,
+	GetEventsByEventIdSmallGroupsResponses,
 } from "~/api-client";
 
 type Participant = GetEventsByEventIdParticipantsResponses["200"]["data"][number];
 type StaffNote =
 	GetEventsByEventIdParticipantsByParticipantIdResponses["200"]["data"]["staff_notes"][number];
 type Room = GetEventsByEventIdRoomsResponses["200"]["data"][number];
+type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
 
 definePageMeta({ layout: "dashboard" });
 
@@ -66,6 +68,28 @@ const { data: rooms, refresh: refreshRooms } = await useAPIAsyncData(
 		return result.success ? result.data : ([] as Room[]);
 	},
 );
+
+const { data: smallGroups, refresh: refreshSmallGroups } = await useAPIAsyncData(
+	`event-${eventId.value}-small-groups`,
+	async () => {
+		const result = await useAPI((api) =>
+			api.getEventsByEventIdSmallGroups({ path: { eventId: eventId.value } }),
+		);
+		return result.success ? result.data : ([] as SmallGroup[]);
+	},
+);
+
+/** The participant's Kleingruppe with its leaders and the other members. */
+const smallGroup = computed(() => {
+	const groupId = participant.value?.small_group_id;
+	if (!groupId) return null;
+	const group = smallGroups.value?.find((entry) => entry.id === groupId);
+	if (!group) return null;
+	return {
+		group,
+		others: group.participants.filter((entry) => entry.id !== participantId.value),
+	};
+});
 
 const fullName = computed(() =>
 	participant.value ? `${participant.value.first_name} ${participant.value.last_name}` : "",
@@ -135,7 +159,7 @@ const HEALTH_TONES = {
 } as const;
 
 async function refreshAll() {
-	await Promise.all([refreshParticipants(), refreshNotes(), refreshRooms()]);
+	await Promise.all([refreshParticipants(), refreshNotes(), refreshRooms(), refreshSmallGroups()]);
 }
 
 // --- staff notes --------------------------------------------------------------------------
@@ -450,8 +474,48 @@ async function confirmDelete() {
 									</li>
 								</ul>
 								<p v-else class="text-sm text-slate-500">Allein im Zimmer.</p>
+								<p v-if="roommates.room.responsibles.length" class="mt-3 text-xs text-slate-400">
+									Verantwortlich:
+									<span class="text-slate-200">{{ roommates.room.responsibles.map((user) => user.display_name).join(", ") }}</span>
+								</p>
 							</template>
 							<p v-else class="text-sm text-slate-500">Noch keinem Zimmer zugeteilt.</p>
+						</DashboardSectionCard>
+
+						<DashboardSectionCard v-if="smallGroups?.length" title="Kleingruppe" icon="i-lucide-group">
+							<template v-if="smallGroup">
+								<NuxtLink
+									:to="`/events/${eventId}/small-groups`"
+									class="flex items-center gap-2 font-medium text-white hover:text-primary-300"
+								>
+									<span
+										class="size-2.5 shrink-0 rounded-full bg-slate-500"
+										:style="smallGroup.group.color ? { backgroundColor: smallGroup.group.color } : undefined"
+									/>
+									{{ smallGroup.group.name }}
+								</NuxtLink>
+								<p v-if="smallGroup.group.meeting_point" class="mt-1 flex items-center gap-1 text-xs text-slate-400">
+									<UIcon name="i-lucide-map-pin" class="size-3.5" /> {{ smallGroup.group.meeting_point }}
+								</p>
+								<p class="mt-2 text-xs uppercase tracking-wide text-slate-500">Leitung</p>
+								<p v-if="smallGroup.group.leaders.length" class="text-sm text-slate-200">
+									{{ smallGroup.group.leaders.map((leader) => leader.display_name).join(", ") }}
+								</p>
+								<p v-else class="text-sm text-amber-400">Noch niemand eingeteilt.</p>
+								<p class="mt-2 text-xs uppercase tracking-wide text-slate-500">Weitere Teilnehmende</p>
+								<ul v-if="smallGroup.others.length" class="mt-1 space-y-1 text-sm">
+									<li v-for="other in smallGroup.others" :key="other.id">
+										<NuxtLink
+											:to="`/events/${eventId}/participants/${other.id}`"
+											class="text-slate-300 hover:text-primary-300"
+										>
+											{{ other.first_name }} {{ other.last_name }}
+										</NuxtLink>
+									</li>
+								</ul>
+								<p v-else class="text-sm text-slate-500">Allein in der Gruppe.</p>
+							</template>
+							<p v-else class="text-sm text-slate-500">Noch keiner Kleingruppe zugeteilt.</p>
 						</DashboardSectionCard>
 					</div>
 				</div>
@@ -464,6 +528,7 @@ async function confirmDelete() {
 		:event-id="eventId"
 		:participant="participant"
 		:rooms="rooms ?? []"
+		:small-groups="smallGroups ?? []"
 		@saved="refreshAll"
 	/>
 

@@ -38,6 +38,7 @@ export class EventCopier {
 			team: countOf(T.eventMembers),
 			groups: countOf(T.eventGroups),
 			rooms: countOf(T.rooms),
+			small_groups: countOf(T.smallGroups),
 			responsibilities: countOf(T.responsibilities),
 			program: countOf(T.programItems),
 			tasks: countOf(T.tasks),
@@ -231,6 +232,77 @@ export class EventCopier {
 				}
 				const groupOf = (id: number | null) => (id === null ? null : (groupIds.get(id) ?? null));
 
+				// --- room responsibles: with the rooms, for the people on the copied team -------------
+				if (roomIds.size && team.size) {
+					const rows = tx
+						.select()
+						.from(T.roomResponsibles)
+						.where(
+							and(inOrg(T.roomResponsibles), inArray(T.roomResponsibles.room_id, [...roomIds.keys()])),
+						)
+						.all()
+						.filter((row) => team.has(row.user_id));
+					for (const row of rows) {
+						tx
+							.insert(T.roomResponsibles)
+							.values({ org_id, room_id: roomIds.get(row.room_id) as number, user_id: row.user_id })
+							.run();
+					}
+				}
+
+				// --- Kleingruppen: their leaders when `team` is copied ---------------------------------
+				const smallGroupIds = new Map<number, number>();
+				if (include.small_groups) {
+					const smallGroups = tx
+						.select()
+						.from(T.smallGroups)
+						.where(and(inOrg(T.smallGroups), eq(T.smallGroups.event_id, source.id)))
+						.all();
+					for (const group of smallGroups) {
+						const copy = tx
+							.insert(T.smallGroups)
+							.values({
+								org_id,
+								event_id: event.id,
+								name: group.name,
+								description: group.description,
+								meeting_point: group.meeting_point,
+								color: group.color,
+							})
+							.returning()
+							.get();
+						smallGroupIds.set(group.id, copy.id);
+					}
+					if (smallGroups.length && team.size) {
+						const leaders = tx
+							.select()
+							.from(T.smallGroupLeaders)
+							.where(
+								and(
+									inOrg(T.smallGroupLeaders),
+									inArray(
+										T.smallGroupLeaders.small_group_id,
+										smallGroups.map((group) => group.id),
+									),
+								),
+							)
+							.all()
+							.filter((row) => team.has(row.user_id));
+						for (const row of leaders) {
+							tx
+								.insert(T.smallGroupLeaders)
+								.values({
+									org_id,
+									small_group_id: smallGroupIds.get(row.small_group_id) as number,
+									user_id: row.user_id,
+								})
+								.run();
+						}
+					}
+				}
+				const smallGroupOf = (id: number | null) =>
+					id === null ? null : (smallGroupIds.get(id) ?? null);
+
 				// --- responsibilities ------------------------------------------------------------------
 				if (include.responsibilities) {
 					const responsibilities = tx
@@ -350,6 +422,7 @@ export class EventCopier {
 								color: item.color,
 								start_at: shift(item.start_at),
 								end_at: shift(item.end_at),
+								in_small_groups: item.in_small_groups,
 								created_by: options.userId,
 							})
 							.returning()
@@ -510,6 +583,7 @@ export class EventCopier {
 								org_id,
 								event_id: event.id,
 								room_id: roomOf(participant.room_id),
+								small_group_id: smallGroupOf(participant.small_group_id),
 								status: "registered",
 								fee_paid: false,
 							})
@@ -635,6 +709,7 @@ export namespace EventCopier {
 		"team",
 		"groups",
 		"rooms",
+		"small_groups",
 		"responsibilities",
 		"program",
 		"tasks",
@@ -653,8 +728,10 @@ export namespace EventCopier {
 		team: z.boolean().default(true),
 		/** Groups; their members when `team` is copied. */
 		groups: z.boolean().default(true),
-		/** Rooms; who sleeps where when `team` / `participants` are copied. */
+		/** Rooms; who sleeps where and who is responsible when `team` / `participants` are copied. */
 		rooms: z.boolean().default(true),
+		/** Kleingruppen; their leaders when `team` is copied, their participants with `participants`. */
+		small_groups: z.boolean().default(true),
 		/** Responsibilities; who has them when `team` is copied. */
 		responsibilities: z.boolean().default(true),
 		/** Program items at the same time of day, moved with the start date. */
@@ -679,6 +756,7 @@ export namespace EventCopier {
 		team: z.number(),
 		groups: z.number(),
 		rooms: z.number(),
+		small_groups: z.number(),
 		responsibilities: z.number(),
 		program: z.number(),
 		tasks: z.number(),

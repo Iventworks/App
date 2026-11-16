@@ -51,6 +51,14 @@ export const ORG_PRIMARY_COLORS = [
 export const ORG_ASSET_KINDS = ["logo", "icon"] as const;
 
 /**
+ * How new accounts get their username: `schema` builds it from first and last name
+ * (`orgs.username_schema`, see `server/lib/utils/usernameSchema.ts`), `free` lets the invitee
+ * (or the admin creating the account) pick it.
+ */
+export const USERNAME_MODES = ["schema", "free"] as const;
+export const DEFAULT_USERNAME_SCHEMA = "{FIRSTNAME}.{LASTNAME}";
+
+/**
  * Every tenant. All org data carries `org_id` (see `orgIdColumn`) and every query filters by it
  * (`inOrg`, enforced by the tenant guard in `server/lib/orgs/guard.ts`).
  * `kind = "system"` is the one internal org of the system admins (multi-org mode): it owns no
@@ -68,6 +76,9 @@ export const orgs = sqliteTable("orgs", {
 	file_sharing_enabled: integer({ mode: "boolean" }).notNull().default(true),
 	// Expiry suggested for new share links, in days; null = no expiry by default.
 	share_default_expiry_days: integer(),
+	// Applies to accounts created from now on; existing usernames are never changed.
+	username_mode: text({ enum: USERNAME_MODES }).notNull().default("schema"),
+	username_schema: text().notNull().default(DEFAULT_USERNAME_SCHEMA),
 	created_at: SQLUtils.getCreatedAtColumn(),
 	updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 });
@@ -429,6 +440,73 @@ export const eventGroupMembers = sqliteTable(
 	(table) => [primaryKey({ columns: [table.group_id, table.user_id] })],
 );
 
+/**
+ * Staff responsible for a room ("Zimmerverantwortliche"). Optional — rooms of the team usually
+ * have none, rooms with participants should have one or more. Always staff of the event.
+ * @deprecated Use DB.Tables.roomResponsibles to access this table.
+ */
+export const roomResponsibles = sqliteTable(
+	"room_responsibles",
+	{
+		org_id: orgIdColumn(),
+		room_id: integer()
+			.notNull()
+			.references(() => rooms.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		primaryKey({ columns: [table.room_id, table.user_id] }),
+		index("room_responsibles_user_id_idx").on(table.user_id),
+	],
+);
+
+/**
+ * "Kleingruppen": small groups of participants, each led by one or more staff members
+ * (`small_group_leaders`). A participant is in at most one (`participants.small_group_id`).
+ * Program items can take place in them (`program_items.in_small_groups`).
+ * @deprecated Use DB.Tables.smallGroups to access this table.
+ */
+export const smallGroups = sqliteTable(
+	"small_groups",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		event_id: integer()
+			.notNull()
+			.references(() => events.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		description: text().notNull().default(""),
+		// Where the group meets ("Treffpunkt"), e.g. "Gruppenraum 2" or "am Lagerfeuer".
+		meeting_point: text(),
+		color: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("small_groups_event_id_idx").on(table.event_id)],
+);
+
+/**
+ * Staff responsible for a Kleingruppe. Always staff of the event; one person may lead several.
+ * @deprecated Use DB.Tables.smallGroupLeaders to access this table.
+ */
+export const smallGroupLeaders = sqliteTable(
+	"small_group_leaders",
+	{
+		org_id: orgIdColumn(),
+		small_group_id: integer()
+			.notNull()
+			.references(() => smallGroups.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		primaryKey({ columns: [table.small_group_id, table.user_id] }),
+		index("small_group_leaders_user_id_idx").on(table.user_id),
+	],
+);
+
 // ---------------------------------------------------------------------------
 // Participants
 // ---------------------------------------------------------------------------
@@ -467,6 +545,7 @@ export const participants = sqliteTable(
 
 		notes: text().notNull().default(""),
 		room_id: integer().references(() => rooms.id, { onDelete: "set null" }),
+		small_group_id: integer().references(() => smallGroups.id, { onDelete: "set null" }),
 		status: text({ enum: PARTICIPANT_STATUSES }).notNull().default("registered"),
 		fee_paid: integer({ mode: "boolean" }).notNull().default(false),
 
@@ -613,6 +692,8 @@ export const programItems = sqliteTable(
 		color: text(),
 		start_at: integer().notNull(),
 		end_at: integer().notNull(),
+		// Takes place in the Kleingruppen (each group with its leaders at its meeting point).
+		in_small_groups: integer({ mode: "boolean" }).notNull().default(false),
 		created_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),

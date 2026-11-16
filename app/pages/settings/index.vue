@@ -42,7 +42,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 		api.putAccount({
 			body: {
 				display_name: event.data.display_name,
-				username: event.data.username,
+				// The org assigns usernames by its schema: not changeable here.
+				...(userInfo.value?.username_managed ? {} : { username: event.data.username }),
 				email: event.data.email,
 				phone,
 				current_password: event.data.current_password,
@@ -149,12 +150,21 @@ const rowUi = { root: "w-full sm:w-auto", container: "w-full sm:w-auto" };
 						<UFormField
 							name="username"
 							label="Benutzername"
-							description="Zum Anmelden. Kleinbuchstaben, Zahlen, Punkt, Unter- und Bindestrich."
+							:description="
+								userInfo.username_managed
+									? 'Zum Anmelden. Deine Organisation vergibt die Benutzernamen – wende dich an das Admin-Team, wenn er geändert werden soll.'
+									: 'Zum Anmelden. Kleinbuchstaben, Zahlen, Punkt, Unter- und Bindestrich.'
+							"
 							required
 							:class="rowClass"
 							:ui="rowUi"
 						>
-							<UInput v-model="profile.username" class="w-full sm:w-80" />
+							<UInput
+								v-model="profile.username"
+								:disabled="userInfo.username_managed"
+								:icon="userInfo.username_managed ? 'i-lucide-lock' : undefined"
+								class="w-full sm:w-80"
+							/>
 						</UFormField>
 
 						<UFormField

@@ -12,6 +12,7 @@ import { PasswordLinks } from "../../../../../utils/passwordLinks";
 import { UserPreferencesHandler } from "../../../../../utils/preferences";
 import { UserAccountSettings } from "../../../../../utils/shared-models/accountData";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
+import { UsernamePolicy } from "../../../../../utils/usernamePolicy";
 import { DOCS_TAGS } from "../../../docs";
 import { AdminUsersModel } from "./model";
 
@@ -93,7 +94,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create user",
 		description:
-			"Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one.",
+			"Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one. Under the org's username schema the username is built from `first_name` and `last_name` (a number is appended if it is taken) and `username` is ignored; otherwise `username` is required.",
 		tags: [DOCS_TAGS.ADMIN_API.USERS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -112,13 +113,30 @@ router.post(
 			return APIResponse.badRequest(c, "System admins always have the role admin");
 		}
 
+		const { password, first_name, last_name, username: requestedUsername, ...userData } = body;
+
+		// Under the org's schema the name decides the username (with a number if it is taken).
+		const schema = UsernamePolicy.enforcedSchema();
+		let username: string;
+		if (schema) {
+			if (!first_name || !last_name) {
+				return APIResponse.badRequest(c, "First and last name are required");
+			}
+			const assigned = await UsernamePolicy.assign(schema, first_name, last_name);
+			if (!assigned) return APIResponse.badRequest(c, "The name gives no valid username");
+			username = assigned;
+		} else {
+			if (!requestedUsername) return APIResponse.badRequest(c, "A username is required");
+			username = requestedUsername;
+		}
+
 		const duplicate = DB.instance()
 			.select()
 			.from(DB.Tables.users)
 			.where(
 				and(
 					inOrg(DB.Tables.users),
-					or(eq(DB.Tables.users.username, body.username), eq(DB.Tables.users.email, body.email)),
+					or(eq(DB.Tables.users.username, username), eq(DB.Tables.users.email, body.email)),
 				),
 			)
 			.get();
@@ -126,8 +144,6 @@ router.post(
 		if (duplicate) {
 			return APIResponse.conflict(c, "A user with the same username or email already exists");
 		}
-
-		const { password, ...userData } = body;
 
 		// No password: store the hash of a random secret nobody knows, so the account stays locked
 		// until the person sets their own through the link.
@@ -138,7 +154,7 @@ router.post(
 		const { createdUser, passwordLink } = await DB.instance().transaction(async (tx: DrizzleDB) => {
 			const createdUser = await tx
 				.insert(DB.Tables.users)
-				.values({ ...userData, role, org_id: OrgContext.id(), password_hash: passwordHash })
+				.values({ ...userData, username, role, org_id: OrgContext.id(), password_hash: passwordHash })
 				.returning()
 				.get();
 

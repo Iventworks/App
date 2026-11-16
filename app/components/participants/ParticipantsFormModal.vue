@@ -14,12 +14,17 @@ type Status = Participant["status"];
 type Gender = NonNullable<Participant["gender"]>;
 type SwimState = "yes" | "no" | "unknown";
 
-const props = defineProps<{
-	eventId: number;
-	/** The participant to edit; null creates a new one. */
-	participant: Participant | null;
-	rooms: { id: number; name: string }[];
-}>();
+const props = withDefaults(
+	defineProps<{
+		eventId: number;
+		/** The participant to edit; null creates a new one. */
+		participant: Participant | null;
+		rooms: { id: number; name: string }[];
+		/** The event's Kleingruppen; the field is hidden while there are none. */
+		smallGroups?: { id: number; name: string }[];
+	}>(),
+	{ smallGroups: () => [] },
+);
 
 const emit = defineEmits<{
 	saved: [participant: { id: number; status: Status }];
@@ -47,6 +52,7 @@ const FIELD_TABS: Record<string, string> = {
 	gender: "base",
 	status: "base",
 	room_id: "base",
+	small_group_id: "base",
 	fee_paid: "base",
 	email: "contact",
 	phone: "contact",
@@ -86,6 +92,7 @@ function emptyForm() {
 		photo_consent: false,
 		notes: "",
 		room_id: null as number | null,
+		small_group_id: null as number | null,
 		status: "registered" as Status,
 		fee_paid: false,
 		emergency_contacts: [] as { name: string; relation: string; phone: string }[],
@@ -120,6 +127,7 @@ watch(open, (isOpen) => {
 					photo_consent: p.photo_consent,
 					notes: p.notes,
 					room_id: p.room_id,
+					small_group_id: p.small_group_id,
 					status: p.status,
 					fee_paid: p.fee_paid,
 					emergency_contacts: p.emergency_contacts.map((contact) => ({
@@ -141,6 +149,10 @@ const swimOptions = [
 const roomOptions = computed(() => [
 	{ label: "Kein Zimmer", value: null },
 	...props.rooms.map((room) => ({ label: room.name, value: room.id })),
+]);
+const smallGroupOptions = computed(() => [
+	{ label: "Keine Kleingruppe", value: null },
+	...props.smallGroups.map((group) => ({ label: group.name, value: group.id })),
 ]);
 
 function addContact() {
@@ -179,6 +191,7 @@ function toBody() {
 		photo_consent: form.photo_consent,
 		notes: form.notes.trim(),
 		room_id: form.room_id,
+		small_group_id: form.small_group_id,
 		status: form.status,
 		fee_paid: form.fee_paid,
 		emergency_contacts: form.emergency_contacts
@@ -277,6 +290,14 @@ async function submit() {
 						</UFormField>
 						<UFormField label="Zimmer" name="room_id">
 							<USelectMenu v-model="form.room_id" :items="roomOptions" value-key="value" class="w-full" />
+						</UFormField>
+						<UFormField v-if="props.smallGroups.length" label="Kleingruppe" name="small_group_id">
+							<USelectMenu
+								v-model="form.small_group_id"
+								:items="smallGroupOptions"
+								value-key="value"
+								class="w-full"
+							/>
 						</UFormField>
 						<UFormField name="fee_paid" class="sm:col-span-2">
 							<USwitch v-model="form.fee_paid" label="Teilnahmebeitrag bezahlt" />

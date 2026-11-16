@@ -99,6 +99,9 @@ export namespace DB.Tables {
 	export const eventGroups = TableSchema.eventGroups;
 	export const eventGroupMembers = TableSchema.eventGroupMembers;
 	export const rooms = TableSchema.rooms;
+	export const roomResponsibles = TableSchema.roomResponsibles;
+	export const smallGroups = TableSchema.smallGroups;
+	export const smallGroupLeaders = TableSchema.smallGroupLeaders;
 	export const eventOccurrences = TableSchema.eventOccurrences;
 	export const occurrenceDuties = TableSchema.occurrenceDuties;
 
@@ -160,6 +163,9 @@ export namespace DB.Models {
 	export type EventGroup = typeof DB.Tables.eventGroups.$inferSelect;
 	export type EventGroupMember = typeof DB.Tables.eventGroupMembers.$inferSelect;
 	export type Room = typeof DB.Tables.rooms.$inferSelect;
+	export type RoomResponsible = typeof DB.Tables.roomResponsibles.$inferSelect;
+	export type SmallGroup = typeof DB.Tables.smallGroups.$inferSelect;
+	export type SmallGroupLeader = typeof DB.Tables.smallGroupLeaders.$inferSelect;
 	export type EventOccurrence = typeof DB.Tables.eventOccurrences.$inferSelect;
 	export type OccurrenceDuty = typeof DB.Tables.occurrenceDuties.$inferSelect;
 

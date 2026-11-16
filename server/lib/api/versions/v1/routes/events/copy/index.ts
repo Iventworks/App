@@ -24,6 +24,7 @@ const PART_LABELS: Record<EventCopier.Part, string> = {
 	team: "Team",
 	groups: "Gruppen",
 	rooms: "Zimmer",
+	small_groups: "Kleingruppen",
 	responsibilities: "Zuständigkeiten",
 	program: "Programm",
 	tasks: "Aufgaben",

@@ -472,6 +472,9 @@ onMounted(() => {
 							<p v-if="segment.item.location" class="truncate text-slate-400">
 								<UIcon name="i-lucide-map-pin" class="-mt-0.5 size-3" /> {{ segment.item.location }}
 							</p>
+							<p v-if="segment.item.in_small_groups" class="truncate text-info">
+								<UIcon name="i-lucide-group" class="-mt-0.5 size-3" /> Kleingruppen
+							</p>
 							<div v-if="segment.item.responsible.length" class="mt-1 flex -space-x-1">
 								<UAvatar
 									v-for="person in segment.item.responsible.slice(0, 4)"

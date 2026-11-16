@@ -43,6 +43,13 @@
       "when": 1794389264525,
       "tag": "0005_web_push",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794839340782,
+      "tag": "0006_small_groups_and_username_schema",
+      "breakpoints": true
     }
   ]
 }

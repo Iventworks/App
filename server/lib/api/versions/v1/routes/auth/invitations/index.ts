@@ -11,6 +11,7 @@ import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
 import { Notifier } from "../../../../../utils/notifications";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
+import { UsernamePolicy } from "../../../../../utils/usernamePolicy";
 import { DOCS_TAGS } from "../../../docs";
 import { AuthInvitationsModel } from "./model";
 
@@ -123,6 +124,7 @@ router.post(
 			display_name: invitation.display_name,
 			role: invitation.role,
 			expires_at: invitation.expires_at,
+			username_schema: UsernamePolicy.enforcedSchema(),
 		} satisfies AuthInvitationsModel.Inspect.Response);
 	},
 );
@@ -133,7 +135,7 @@ router.post(
 	APIRouteSpec.unauthenticated({
 		summary: "Accept an invitation",
 		description:
-			"Create the account for an invitation (username, display name and password) and sign in. The email address and role come from the invitation.",
+			"Create the account for an invitation and sign in. The email address and role come from the invitation. Under the org's username schema the username is built from `first_name` and `last_name` (with a number appended if it is taken); otherwise the invitee picks `username`.",
 		tags: [DOCS_TAGS.AUTH_INVITATIONS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -142,7 +144,7 @@ router.post(
 				AuthInvitationsModel.Accept.Response,
 			),
 			APIResponseSpec.badRequest(
-				"Invalid or expired invitation / Syntax or validation error in request",
+				"Invalid or expired invitation / First and last name are required / A username is required / The name gives no valid username / Syntax or validation error in request",
 			),
 			APIResponseSpec.forbidden("You are already authenticated"),
 			APIResponseSpec.conflict("Username or email already in use"),
@@ -164,12 +166,29 @@ router.post(
 			return APIResponse.tooManyRequests(c, "Too many attempts. Try again later.");
 		}
 
+		const schema = UsernamePolicy.enforcedSchema();
+		const firstName = body.first_name;
+		const lastName = body.last_name;
+		if (schema && (!firstName || !lastName)) {
+			return APIResponse.badRequest(c, "First and last name are required");
+		}
+		if (!schema && !body.username) {
+			return APIResponse.badRequest(c, "A username is required");
+		}
+
 		const passwordHash = await Bun.password.hash(body.password);
 
 		try {
 			const result = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				const invitation = await findPendingInvitation(tokenHash, tx);
 				if (!invitation) return { error: "invalid" as const };
+
+				// Under a schema the name decides (a number is appended if it is taken).
+				const username =
+					schema && firstName && lastName
+						? await UsernamePolicy.assign(schema, firstName, lastName, tx)
+						: (body.username ?? null);
+				if (!username) return { error: "name" as const };
 
 				const conflict = await tx
 					.select({ id: DB.Tables.users.id })
@@ -178,7 +197,7 @@ router.post(
 						and(
 							inOrg(DB.Tables.users),
 							or(
-								eq(DB.Tables.users.username, body.username),
+								eq(DB.Tables.users.username, username),
 								sql`lower(${DB.Tables.users.email}) = ${invitation.email.toLowerCase()}`,
 							),
 						),
@@ -190,7 +209,7 @@ router.post(
 					.insert(DB.Tables.users)
 					.values({
 						org_id: OrgContext.id(),
-						username: body.username,
+						username,
 						display_name: body.display_name,
 						email: invitation.email,
 						password_hash: passwordHash,
@@ -211,9 +230,13 @@ router.post(
 			});
 
 			if ("error" in result) {
-				return result.error === "invalid"
-					? APIResponse.badRequest(c, "Invalid or expired invitation")
-					: APIResponse.conflict(c, "Username or email already in use");
+				if (result.error === "invalid") {
+					return APIResponse.badRequest(c, "Invalid or expired invitation");
+				}
+				if (result.error === "name") {
+					return APIResponse.badRequest(c, "The name gives no valid username");
+				}
+				return APIResponse.conflict(c, "Username or email already in use");
 			}
 
 			inviteAttempts.delete(tokenHash);

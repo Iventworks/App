@@ -115,6 +115,25 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.insert(DB.Tables.eventGroupMembers)
 			.values({ org_id, group_id: group.id, user_id: volunteer.id })
 			.run();
+		db
+			.insert(DB.Tables.roomResponsibles)
+			.values({ org_id, room_id: room.id, user_id: volunteer.id })
+			.run();
+		const smallGroup = db
+			.insert(DB.Tables.smallGroups)
+			.values({
+				org_id,
+				event_id: event.id,
+				name: text("Kleingruppe"),
+				description: text("Kleingruppe"),
+				meeting_point: text("Treffpunkt"),
+			})
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.smallGroupLeaders)
+			.values({ org_id, small_group_id: smallGroup.id, user_id: volunteer.id })
+			.run();
 		const participant = db
 			.insert(DB.Tables.participants)
 			.values({
@@ -126,6 +145,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				medical_notes: text("Medizin"),
 				notes: text("Notiz"),
 				room_id: room.id,
+				small_group_id: smallGroup.id,
 			})
 			.returning()
 			.get();
@@ -446,6 +466,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				memberId: member.id,
 				groupId: group.id,
 				roomId: room.id,
+				smallGroupId: smallGroup.id,
 				participantId: participant.id,
 				programItemId: programItem.id,
 				responsibilityId: responsibility.id,

@@ -358,7 +358,7 @@ async function deleteEvent() {
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<p class="max-w-lg text-sm text-slate-400">
 								Legt ein neues Event nach dieser Vorlage an — zum Beispiel dieselbe Freizeit im nächsten
-								Jahr. Du wählst, was übernommen wird: Team, Gruppen, Zimmer, Zuständigkeiten, Programm,
+								Jahr. Du wählst, was übernommen wird: Team, Gruppen, Zimmer, Kleingruppen, Zuständigkeiten, Programm,
 								Aufgaben, Dokumente und mehr.
 							</p>
 							<UButton label="Kopieren …" icon="i-lucide-copy" color="neutral" variant="subtle" @click="copyOpen = true" />

@@ -68,6 +68,14 @@ const groups = computed(() =>
 								<span class="font-medium text-white">{{ item.title }}</span>
 								<UBadge v-if="item.is_mine" label="Du" color="primary" variant="subtle" size="sm" />
 								<UBadge v-if="item.category" :label="item.category" color="neutral" variant="outline" size="sm" />
+								<UBadge
+									v-if="item.in_small_groups"
+									label="Kleingruppen"
+									icon="i-lucide-group"
+									color="info"
+									variant="subtle"
+									size="sm"
+								/>
 							</span>
 							<span class="mt-0.5 block text-sm text-slate-400">
 								<template v-if="item.location">{{ item.location }}</template>

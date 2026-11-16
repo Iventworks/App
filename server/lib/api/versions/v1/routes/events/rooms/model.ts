@@ -19,6 +19,8 @@ export namespace EventRoomsModel {
 		.extend({
 			participants: z.array(Occupant),
 			staff: z.array(UserSummary.Schema),
+			/** Staff responsible for the room (optional; usual for rooms with participants). */
+			responsibles: z.array(UserSummary.Schema),
 			/** Participants + staff sleeping in the room. */
 			occupancy: z.number(),
 		});
@@ -34,6 +36,8 @@ export namespace EventRoomsModel {
 		name: z.string().trim().min(1).max(80),
 		capacity: z.number().int().min(0).max(1000).nullable(),
 		notes: z.string().max(2_000),
+		/** Event staff responsible for the room; replaces the whole set. */
+		responsible_ids: z.array(z.number().int().positive()).max(50),
 	};
 }
 
@@ -47,6 +51,7 @@ export namespace EventRoomsModel.Create {
 		name: EventRoomsModel.RoomFields.name,
 		capacity: EventRoomsModel.RoomFields.capacity.default(null),
 		notes: EventRoomsModel.RoomFields.notes.default(""),
+		responsible_ids: EventRoomsModel.RoomFields.responsible_ids.default([]),
 	});
 	export type Body = z.infer<typeof Body>;
 

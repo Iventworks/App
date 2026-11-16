@@ -2,7 +2,9 @@
 /**
  * Rooms ("Wer schläft wo?"). Everyone sees the room cards; leaders (`rooms:manage`) manage rooms
  * and switch to "Zimmer einteilen": drag people between rooms (desktop) or pick a room per
- * person (touch/keyboard), then save all changes at once.
+ * person (touch/keyboard), then save all changes at once. Rooms can have responsible staff
+ * ("Zimmerverantwortliche") — optional, but a room with participants and nobody responsible is
+ * flagged.
  */
 import * as z from "zod";
 import type {
@@ -139,7 +141,11 @@ const unassignedStaffView = computed(() =>
 	(members.value ?? []).filter((member) => member.room_id === null).map(staffPerson),
 );
 
-function roomWarnings(capacity: number | null, people: Person[]) {
+function roomWarnings(
+	capacity: number | null,
+	people: Person[],
+	responsibleCount: number | null = null,
+) {
 	const warnings: { key: string; label: string; color: "error" | "warning" }[] = [];
 	if (capacity !== null && people.length > capacity) {
 		warnings.push({
@@ -155,6 +161,10 @@ function roomWarnings(capacity: number | null, people: Person[]) {
 	);
 	if (genders.size > 1) {
 		warnings.push({ key: "mixed", label: "Gemischt", color: "warning" });
+	}
+	// Rooms of the team need nobody responsible; rooms with participants should have someone.
+	if (responsibleCount === 0 && people.some((person) => person.kind === "participant")) {
+		warnings.push({ key: "responsible", label: "Ohne Verantwortliche", color: "warning" });
 	}
 	return warnings;
 }
@@ -181,7 +191,11 @@ const roomCards = computed(() =>
 				age: null,
 			})),
 		];
-		return { room, people, warnings: roomWarnings(room.capacity, people) };
+		return {
+			room,
+			people,
+			warnings: roomWarnings(room.capacity, people, room.responsibles.length),
+		};
 	}),
 );
 
@@ -192,7 +206,8 @@ const visibleRoomCards = computed(() => {
 	return roomCards.value.filter(
 		(card) =>
 			card.room.name.toLowerCase().includes(term) ||
-			card.people.some((person) => person.name.toLowerCase().includes(term)),
+			card.people.some((person) => person.name.toLowerCase().includes(term)) ||
+			card.room.responsibles.some((user) => user.display_name.toLowerCase().includes(term)),
 	);
 });
 
@@ -239,7 +254,7 @@ const draftColumns = computed(() => {
 			name: room.name,
 			capacity: room.capacity,
 			people,
-			warnings: roomWarnings(room.capacity, people),
+			warnings: roomWarnings(room.capacity, people, room.responsibles.length),
 		};
 	});
 	return [
@@ -309,10 +324,11 @@ function cancelAssigning() {
 	assigning.value = false;
 }
 
-async function saveAssignments() {
+/** Save the draft; true when it was saved (or there was nothing to save). */
+async function saveAssignments(): Promise<boolean> {
 	if (changeCount.value === 0) {
 		assigning.value = false;
-		return;
+		return true;
 	}
 	savingAssignments.value = true;
 	const result = await useAPI((api) =>
@@ -325,19 +341,20 @@ async function saveAssignments() {
 			description: result.message,
 			color: "error",
 		});
-		return;
+		return false;
 	}
 	toast.add({ title: "Zimmereinteilung gespeichert", color: "success", icon: "i-lucide-check" });
 	assigning.value = false;
 	await refreshAll();
+	return true;
 }
 
-onBeforeRouteLeave(() => {
-	if (assigning.value && changeCount.value > 0) {
-		return window.confirm(
-			"Die Zimmereinteilung ist noch nicht gespeichert. Seite trotzdem verlassen?",
-		);
-	}
+const askUnsaved = useUnsavedChangesDialog();
+onBeforeRouteLeave(async () => {
+	if (!assigning.value || changeCount.value === 0) return true;
+	const choice = await askUnsaved("Die Zimmereinteilung ist noch nicht gespeichert.");
+	if (choice === "save") return await saveAssignments();
+	return choice === "discard";
 });
 
 // --- create / edit / delete rooms ---------------------------------------------------------
@@ -349,11 +366,21 @@ const schema = zPostEventsByEventIdRoomsBody.omit({ capacity: true }).extend({
 const formOpen = ref(false);
 const editing = ref<Room | null>(null);
 const saving = ref(false);
-const form = reactive({ name: "", capacity: "", notes: "" });
+const form = reactive({ name: "", capacity: "", notes: "", responsible_ids: [] as number[] });
+
+const staffOptions = computed(() =>
+	(members.value ?? [])
+		.map((member) => ({
+			label: member.user.display_name,
+			description: member.position ?? undefined,
+			value: member.user_id,
+		}))
+		.sort((a, b) => a.label.localeCompare(b.label, "de")),
+);
 
 function openCreate() {
 	editing.value = null;
-	Object.assign(form, { name: "", capacity: "", notes: "" });
+	Object.assign(form, { name: "", capacity: "", notes: "", responsible_ids: [] });
 	formOpen.value = true;
 }
 
@@ -363,6 +390,7 @@ function openEdit(room: Room) {
 		name: room.name,
 		capacity: room.capacity === null ? "" : String(room.capacity),
 		notes: room.notes,
+		responsible_ids: room.responsibles.map((user) => user.id),
 	});
 	formOpen.value = true;
 }
@@ -373,6 +401,7 @@ async function submit() {
 		name: form.name.trim(),
 		capacity: form.capacity === "" ? null : Number(form.capacity),
 		notes: form.notes.trim(),
+		responsible_ids: form.responsible_ids,
 	};
 	const target = editing.value;
 	const result = target
@@ -628,6 +657,14 @@ function roomMenu(room: Room) {
 								</div>
 							</div>
 
+							<p v-if="card.room.responsibles.length" class="flex items-start gap-1.5 text-xs text-slate-400">
+								<UIcon name="i-lucide-user-check" class="mt-px size-3.5 shrink-0 text-primary-400" />
+								<span>
+									Verantwortlich:
+									<span class="text-slate-200">{{ card.room.responsibles.map((user) => user.display_name).join(", ") }}</span>
+								</span>
+							</p>
+
 							<div class="space-y-1">
 								<div class="flex justify-between text-xs text-slate-400">
 									<span>Belegung</span>
@@ -701,6 +738,20 @@ function roomMenu(room: Room) {
 			</UFormField>
 			<UFormField label="Betten" name="capacity" description="Leer lassen, wenn unbegrenzt.">
 				<UInput v-model="form.capacity" inputmode="numeric" class="w-full" />
+			</UFormField>
+			<UFormField
+				label="Verantwortliche"
+				name="responsible_ids"
+				description="Optional. Zimmer mit Teilnehmenden sollten mindestens eine verantwortliche Person aus dem Team haben."
+			>
+				<USelectMenu
+					v-model="form.responsible_ids"
+					:items="staffOptions"
+					value-key="value"
+					multiple
+					placeholder="Personen aus dem Team auswählen"
+					class="w-full"
+				/>
 			</UFormField>
 			<UFormField label="Notizen" name="notes">
 				<UTextarea v-model="form.notes" :rows="2" autoresize placeholder="z. B. Erdgeschoss, barrierefrei" class="w-full" />

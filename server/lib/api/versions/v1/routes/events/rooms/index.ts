@@ -8,6 +8,7 @@ import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
+import { Notifier } from "../../../../../utils/notifications";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -17,7 +18,69 @@ type RoomsEnv = {
 	Variables: EventRouterEnv["Variables"] & { room: DB.Models.Room };
 };
 
+/** The handle of a synchronous transaction (see AGENTS.md › Transactions). */
+type Tx = Parameters<Parameters<DrizzleDB["transaction"]>[0]>[0];
+
 export const router = new Hono<RoomsEnv>().basePath("/:eventId/rooms");
+
+/** True when every id is a staff member of the event. */
+async function areEventMembers(eventId: number, userIds: number[]) {
+	const unique = [...new Set(userIds)];
+	if (unique.length === 0) return true;
+	const rows = await DB.instance()
+		.select({ user_id: DB.Tables.eventMembers.user_id })
+		.from(DB.Tables.eventMembers)
+		.where(
+			and(
+				inOrg(DB.Tables.eventMembers),
+				eq(DB.Tables.eventMembers.event_id, eventId),
+				inArray(DB.Tables.eventMembers.user_id, unique),
+			),
+		)
+		.all();
+	return rows.length === unique.length;
+}
+
+async function responsibleIdsOf(roomId: number) {
+	const rows = await DB.instance()
+		.select({ user_id: DB.Tables.roomResponsibles.user_id })
+		.from(DB.Tables.roomResponsibles)
+		.where(and(inOrg(DB.Tables.roomResponsibles), eq(DB.Tables.roomResponsibles.room_id, roomId)))
+		.all();
+	return rows.map((row) => row.user_id);
+}
+
+function replaceResponsibles(tx: Tx, roomId: number, userIds: number[]) {
+	tx
+		.delete(DB.Tables.roomResponsibles)
+		.where(and(inOrg(DB.Tables.roomResponsibles), eq(DB.Tables.roomResponsibles.room_id, roomId)))
+		.run();
+	const unique = [...new Set(userIds)];
+	if (unique.length) {
+		tx
+			.insert(DB.Tables.roomResponsibles)
+			.values(unique.map((user_id) => ({ org_id: OrgContext.id(), room_id: roomId, user_id })))
+			.run();
+	}
+}
+
+async function notifyResponsibles(
+	event: DB.Models.Event,
+	room: DB.Models.Room,
+	userIds: number[],
+	actorId: number,
+) {
+	await Notifier.notify(
+		userIds,
+		{
+			type: "room_assigned",
+			title: `Zimmer: ${room.name}`,
+			body: `Du bist für das Zimmer „${room.name}“ verantwortlich (${event.name}).`,
+			link: `/events/${event.id}/rooms`,
+		},
+		{ excludeUserId: actorId },
+	);
+}
 
 async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoomsModel.Room[]> {
 	const rooms = await DB.instance()
@@ -67,7 +130,17 @@ async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoom
 			),
 		)
 		.all();
-	const users = await UserSummary.fetchMap(staff.map((entry) => entry.user_id));
+	const responsibles = await DB.instance()
+		.select()
+		.from(DB.Tables.roomResponsibles)
+		.where(
+			and(inOrg(DB.Tables.roomResponsibles), inArray(DB.Tables.roomResponsibles.room_id, roomIds)),
+		)
+		.all();
+	const users = await UserSummary.fetchMap([
+		...staff.map((entry) => entry.user_id),
+		...responsibles.map((entry) => entry.user_id),
+	]);
 
 	return rooms.map((room) => {
 		const roomParticipants = participants
@@ -81,6 +154,11 @@ async function listRooms(eventId: number, onlyIds?: number[]): Promise<EventRoom
 			...room,
 			participants: roomParticipants,
 			staff: roomStaff,
+			responsibles: responsibles
+				.filter((entry) => entry.room_id === room.id)
+				.map((entry) => users.get(entry.user_id))
+				.filter((user): user is UserSummary.Schema => Boolean(user))
+				.sort((a, b) => a.display_name.localeCompare(b.display_name)),
 			occupancy: roomParticipants.length + roomStaff.length,
 		};
 	});
@@ -114,7 +192,8 @@ router.post(
 
 	APIRouteSpec.authenticated({
 		summary: "Create event room",
-		description: "Create a room. Requires leader rights.",
+		description:
+			"Create a room, optionally with responsible staff (`responsible_ids`, staff of the event). Requires leader rights.",
 		tags: [DOCS_TAGS.EVENTS.ROOMS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -132,22 +211,38 @@ router.post(
 		}
 
 		const event = c.get("event");
-		const body = c.req.valid("json") as EventRoomsModel.Create.Body;
+		const { userId } = c.get("eventAccess");
+		const { responsible_ids, ...body } = c.req.valid("json") as EventRoomsModel.Create.Body;
 
-		const room = await DB.instance()
-			.insert(DB.Tables.rooms)
-			.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
-			.returning()
-			.get();
+		if (!(await areEventMembers(event.id, responsible_ids))) {
+			return APIResponse.badRequest(c, "All responsible people must be staff of this event");
+		}
+
+		let room: DB.Models.Room;
+		try {
+			room = DB.instance().transaction((tx) => {
+				const created = tx
+					.insert(DB.Tables.rooms)
+					.values({ ...body, event_id: event.id, org_id: OrgContext.id() })
+					.returning()
+					.get();
+				replaceResponsibles(tx, created.id, responsible_ids);
+				return created;
+			});
+		} catch (error: any) {
+			Logger.error("Failed to create room", error.stack || error.message || error);
+			return APIResponse.serverError(c, "Failed to create room");
+		}
 
 		await AuditLog.record({
-			userId: c.get("eventAccess").userId,
+			userId,
 			eventId: event.id,
 			action: "create",
 			entityType: "room",
 			entityId: room.id,
 			summary: `Zimmer „${room.name}“ angelegt`,
 		});
+		await notifyResponsibles(event, room, responsible_ids, userId);
 
 		const [result] = await listRooms(event.id, [room.id]);
 		return APIResponse.created(c, "Room created successfully", result!);
@@ -323,7 +418,8 @@ router.put(
 
 	APIRouteSpec.authenticated({
 		summary: "Update event room",
-		description: "Update a room's name, capacity or notes. Requires leader rights.",
+		description:
+			"Update a room's name, capacity, notes or responsible staff (`responsible_ids` replaces the set). Requires leader rights.",
 		tags: [DOCS_TAGS.EVENTS.ROOMS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -342,23 +438,46 @@ router.put(
 
 		const event = c.get("event");
 		const room = c.get("room");
-		const body = c.req.valid("json") as EventRoomsModel.Update.Body;
+		const { userId } = c.get("eventAccess");
+		const { responsible_ids, ...fields } = c.req.valid("json") as EventRoomsModel.Update.Body;
 
-		const updated = await DB.instance()
-			.update(DB.Tables.rooms)
-			.set(body)
-			.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, room.id)))
-			.returning()
-			.get();
+		if (responsible_ids && !(await areEventMembers(event.id, responsible_ids))) {
+			return APIResponse.badRequest(c, "All responsible people must be staff of this event");
+		}
+		const previousResponsibles = responsible_ids ? await responsibleIdsOf(room.id) : [];
+
+		let updated: DB.Models.Room;
+		try {
+			updated = DB.instance().transaction((tx) => {
+				const row =
+					Object.keys(fields).length > 0
+						? tx
+								.update(DB.Tables.rooms)
+								.set(fields)
+								.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, room.id)))
+								.returning()
+								.get()
+						: room;
+				if (responsible_ids) replaceResponsibles(tx, room.id, responsible_ids);
+				return row;
+			});
+		} catch (error: any) {
+			Logger.error("Failed to update room", error.stack || error.message || error);
+			return APIResponse.serverError(c, "Failed to update room");
+		}
 
 		await AuditLog.record({
-			userId: c.get("eventAccess").userId,
+			userId,
 			eventId: event.id,
 			action: "update",
 			entityType: "room",
 			entityId: room.id,
 			summary: `Zimmer „${updated.name}“ bearbeitet`,
 		});
+		if (responsible_ids) {
+			const added = responsible_ids.filter((id) => !previousResponsibles.includes(id));
+			await notifyResponsibles(event, updated, added, userId);
+		}
 
 		const [result] = await listRooms(event.id, [room.id]);
 		return APIResponse.success(c, "Room updated successfully", result!);

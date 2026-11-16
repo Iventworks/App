@@ -4,10 +4,15 @@ import { DB } from "../../../../../db";
 import { UserDataPolicies } from "../../../../utils/shared-models/accountData";
 
 export namespace AccountModel.GetInfo {
-	export const Response = createSelectSchema(DB.Tables.users).omit({
-		org_id: true,
-		password_hash: true,
-	});
+	export const Response = createSelectSchema(DB.Tables.users)
+		.omit({
+			org_id: true,
+			password_hash: true,
+		})
+		.extend({
+			/** The org assigns usernames by its schema: the username can't be changed here. */
+			username_managed: z.boolean(),
+		});
 	export type Response = z.infer<typeof Response>;
 }
 

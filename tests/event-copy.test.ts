@@ -31,6 +31,7 @@ let svenSession: SeededSession;
 let sourceId: number;
 let roomId: number;
 let groupId: number;
+let smallGroupId: number;
 let folderId: number;
 let fileId: number;
 let orgFileId: number;
@@ -70,6 +71,7 @@ const ALL_PARTS = {
 	team: true,
 	groups: true,
 	rooms: true,
+	small_groups: true,
 	responsibilities: true,
 	program: true,
 	tasks: true,
@@ -122,6 +124,19 @@ beforeAll(async () => {
 		.run();
 
 	groupId = (await post(`${base}/groups`, { name: "Küchenteam", member_ids: [sven.id] })).id;
+	await makeAPIRequest(`${base}/rooms/${roomId}`, {
+		method: "PUT",
+		authToken: coreSession.token,
+		body: { responsible_ids: [sven.id] },
+	});
+	smallGroupId = (
+		await post(`${base}/small-groups`, {
+			name: "Füchse",
+			meeting_point: "Lagerfeuer",
+			color: "#22c55e",
+			leader_ids: [sven.id],
+		})
+	).id;
 	await post(`${base}/responsibilities`, {
 		title: "Erste Hilfe",
 		location: "Haus 1",
@@ -140,6 +155,7 @@ beforeAll(async () => {
 		end_at: TimeUtils.instantOf("2026-07-07", "10:30"),
 		responsible_user_ids: [sven.id],
 		file_ids: [fileId, orgFileId],
+		in_small_groups: true,
 	});
 
 	await post(`${base}/tasks`, {
@@ -165,6 +181,7 @@ beforeAll(async () => {
 		birth_date: "2012-05-01",
 		allergies: "Nüsse",
 		room_id: roomId,
+		small_group_id: smallGroupId,
 		status: "confirmed",
 		fee_paid: true,
 		emergency_contacts: [{ name: "Papa Muster", relation: "Vater", phone: "0170 111" }],
@@ -205,6 +222,7 @@ describe("Copy summary", () => {
 			team: 3,
 			groups: 1,
 			rooms: 1,
+			small_groups: 1,
 			responsibilities: 1,
 			program: 1,
 			tasks: 2,
@@ -379,6 +397,9 @@ describe("Copying everything", () => {
 		});
 		const rooms = await api(`/v1/events/${copyId}/rooms`);
 		expect(mia!.room_id).toBe(rooms[0].id);
+		const smallGroups = await api(`/v1/events/${copyId}/small-groups`);
+		expect(mia!.small_group_id).toBe(smallGroups[0].id);
+		expect(mia!.small_group_id).not.toBe(smallGroupId);
 
 		expect(
 			db()
@@ -395,6 +416,19 @@ describe("Copying everything", () => {
 				.where(eq(DB.Tables.participantNotes.participant_id, mia!.id))
 				.all(),
 		).toHaveLength(0);
+	});
+
+	test("Kleingruppen with their leaders, rooms with their responsibles, the program flag", async () => {
+		const [group] = await api(`/v1/events/${copyId}/small-groups`);
+		expect(group).toMatchObject({ name: "Füchse", meeting_point: "Lagerfeuer", color: "#22c55e" });
+		expect(group.leaders.map((leader: any) => leader.id)).toEqual([sven.id]);
+		expect(group.participants.map((participant: any) => participant.first_name)).toEqual(["Mia"]);
+
+		const [room] = await api(`/v1/events/${copyId}/rooms`);
+		expect(room.responsibles.map((user: any) => user.id)).toEqual([sven.id]);
+
+		const [item] = await api(`/v1/events/${copyId}/program`);
+		expect(item.in_small_groups).toBe(true);
 	});
 
 	test("expenses and the old audit trail stay with the original", async () => {
@@ -476,6 +510,10 @@ describe("Choosing what to copy", () => {
 		expect(responsibility.assignees).toHaveLength(0);
 		const [item] = await api(`/v1/events/${id}/program`);
 		expect(item.responsible).toHaveLength(0);
+		const [smallGroup] = await api(`/v1/events/${id}/small-groups`);
+		expect(smallGroup.leaders).toHaveLength(0);
+		const [room] = await api(`/v1/events/${id}/rooms`);
+		expect(room.responsibles).toHaveLength(0);
 		const tasks = await api(`/v1/events/${id}/tasks`);
 		expect(tasks.every((task: any) => (task.assignee?.id ?? task.assignee_id ?? null) === null)).toBe(
 			true,

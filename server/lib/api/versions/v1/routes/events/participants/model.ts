@@ -16,6 +16,13 @@ export namespace EventParticipantsModel {
 	});
 	export type RoomRef = z.infer<typeof RoomRef>;
 
+	export const SmallGroupRef = z.object({
+		id: z.number(),
+		name: z.string(),
+		color: z.string().nullable(),
+	});
+	export type SmallGroupRef = z.infer<typeof SmallGroupRef>;
+
 	export const Participant = createSelectSchema(DB.Tables.participants)
 		.omit({ org_id: true })
 		.extend({
@@ -27,6 +34,8 @@ export namespace EventParticipantsModel {
 			/** Age in full years on the event's start date (null without birth date). */
 			age: z.number().nullable(),
 			room: RoomRef.nullable(),
+			/** The participant's Kleingruppe. */
+			small_group: SmallGroupRef.nullable(),
 			emergency_contacts: z.array(EmergencyContact),
 			note_count: z.number(),
 		});
@@ -88,6 +97,8 @@ export namespace EventParticipantsModel {
 		photo_consent: z.boolean(),
 		notes: longText,
 		room_id: z.number().int().positive().nullable(),
+		/** The participant's Kleingruppe (one at most). */
+		small_group_id: z.number().int().positive().nullable(),
 		status: z.enum(PARTICIPANT_STATUSES),
 		fee_paid: z.boolean(),
 		emergency_contacts: z.array(EmergencyContactInput).max(5),
@@ -127,6 +138,7 @@ export namespace EventParticipantsModel.Create {
 		photo_consent: F.photo_consent.default(false),
 		notes: F.notes.default(""),
 		room_id: F.room_id.default(null),
+		small_group_id: F.small_group_id.default(null),
 		/**
 		 * Defaults to `registered`. When the event's `max_participants` is reached, a new
 		 * participant with an active status (`registered`/`confirmed`) is created with

@@ -5,12 +5,14 @@ import { OrgContext } from "../../../../../../orgs/context";
 import { DomainService } from "../../../../../../orgs/domains";
 import { OrgRegistry } from "../../../../../../orgs/registry";
 import { OrgService } from "../../../../../../orgs/service";
+import { UsernameSchema } from "../../../../../../utils/usernameSchema";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { getAuthUserId } from "../../../../../utils/guards";
 import { createOrgDomainRouter } from "../../../../../utils/orgDomainRoutes";
 import { OrgModel } from "../../../../../utils/shared-models/orgData";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
+import { UsernamePolicy } from "../../../../../utils/usernamePolicy";
 import { DOCS_TAGS } from "../../../docs";
 import { AdminOrganizationModel } from "./model";
 
@@ -25,10 +27,13 @@ const ASSET_LABELS = { logo: "Logo", icon: "Icon" } as const;
 
 function settings(): AdminOrganizationModel.Settings {
 	const org = OrgContext.current();
+	// The effective policy: the system org always chooses freely.
+	const usernames = UsernamePolicy.current();
 	return {
 		org: OrgModel.from(org),
 		multi_org: OrgRegistry.isMultiOrg(),
 		domain_self_service: DomainService.selfService(),
+		accounts: { username_mode: usernames.mode, username_schema: usernames.schema },
 	};
 }
 
@@ -49,7 +54,8 @@ router.put(
 	"/",
 	APIRouteSpec.authenticated({
 		summary: "Update organisation",
-		description: "Change the display name, the primary colour and the share-link settings.",
+		description:
+			"Change the display name, the primary colour, the share-link settings and how new accounts get their username (`username_mode`, `username_schema` — only applies to accounts created afterwards).",
 		tags: [TAG],
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Organisation updated successfully", AdminOrganizationModel.Settings),
@@ -58,6 +64,11 @@ router.put(
 	zValidator("json", AdminOrganizationModel.Update.Body),
 	async (c) => {
 		const body = c.req.valid("json") as AdminOrganizationModel.Update.Body;
+		if (body.username_schema !== undefined) {
+			const problem = UsernameSchema.validate(body.username_schema);
+			if (problem) return APIResponse.badRequest(c, problem);
+		}
+
 		const before = OrgContext.current();
 		const org = await OrgService.update(before.id, body);
 
@@ -83,6 +94,15 @@ router.put(
 					? `Freigabelinks laufen standardmäßig nach ${org.share_default_expiry_days} Tagen ab`
 					: "Freigabelinks ohne Standard-Ablauf",
 			);
+		}
+		if (body.username_mode !== undefined && body.username_mode !== before.username_mode) {
+			changes.push(
+				org.username_mode === "schema"
+					? `Benutzernamen nach Schema „${org.username_schema}“`
+					: "Benutzernamen frei wählbar",
+			);
+		} else if (body.username_schema !== undefined && org.username_schema !== before.username_schema) {
+			changes.push(`Benutzernamen-Schema „${before.username_schema}“ → „${org.username_schema}“`);
 		}
 		if (changes.length) {
 			await AuditLog.record({

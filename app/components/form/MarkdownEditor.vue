@@ -22,6 +22,30 @@ const props = withDefaults(
 
 const content = defineModel<string>({ default: "" });
 
+// `UEditor` re-serialises the markdown it is given and emits the result even though nobody typed
+// (a trailing paragraph after a final list or heading, `*` lists become `-`, …). Passing that on
+// would make every form "unsaved" right after opening it. So changes only reach the model once the
+// person has interacted with the editor; a new value from outside starts over.
+const touched = ref(false);
+let lastEmitted: string | null = null;
+
+const editorContent = computed({
+	get: () => content.value,
+	set: (value: string) => {
+		if (!touched.value) return;
+		lastEmitted = value;
+		content.value = value;
+	},
+});
+
+watch(content, (value) => {
+	if (value !== lastEmitted) touched.value = false;
+});
+
+function markTouched() {
+	if (!props.readonly) touched.value = true;
+}
+
 const toolbarItems: EditorToolbarItem[][] = [
 	[
 		{ kind: "heading", level: 2, icon: "i-lucide-heading-2", tooltip: { text: "Überschrift" } },
@@ -62,10 +86,17 @@ const toolbarItems: EditorToolbarItem[][] = [
 			'overflow-hidden rounded-lg',
 			props.readonly ? '' : 'border border-slate-800 bg-slate-950/40 focus-within:border-primary/60',
 		]"
+		@keydown.capture="markTouched"
+		@beforeinput.capture="markTouched"
+		@compositionstart.capture="markTouched"
+		@pointerdown.capture="markTouched"
+		@paste.capture="markTouched"
+		@cut.capture="markTouched"
+		@drop.capture="markTouched"
 	>
 		<UEditor
 			v-slot="{ editor }"
-			v-model="content"
+			v-model="editorContent"
 			content-type="markdown"
 			:editable="!props.readonly"
 			:placeholder="props.readonly ? undefined : props.placeholder"

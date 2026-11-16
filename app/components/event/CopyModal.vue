@@ -40,8 +40,15 @@ const PARTS: { key: Part; label: string; hint: string; icon: string; default: bo
 	{
 		key: "rooms",
 		label: "Zimmer",
-		hint: "Und wer wo schläft, für alle übernommenen Personen.",
+		hint: "Mit Verantwortlichen und wer wo schläft, für alle übernommenen Personen.",
 		icon: "i-lucide-bed-double",
+		default: true,
+	},
+	{
+		key: "small_groups",
+		label: "Kleingruppen",
+		hint: "Mit ihren Leitenden (wenn das Team übernommen wird) und Teilnehmenden.",
+		icon: "i-lucide-group",
 		default: true,
 	},
 	{

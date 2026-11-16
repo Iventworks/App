@@ -537,6 +537,7 @@ router.post(
 						category: item.category,
 						color: item.color,
 						start_at,
+						in_small_groups: item.in_small_groups,
 						end_at: start_at + (item.end_at - item.start_at),
 						created_by: userId,
 					})

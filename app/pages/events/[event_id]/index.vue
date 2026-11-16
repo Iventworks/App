@@ -149,6 +149,12 @@ const quickLinks = computed(() => {
 					},
 				]),
 		{
+			label: "Kleingruppen",
+			icon: "i-lucide-group",
+			to: `${base.value}/small-groups`,
+			permission: "small_groups:view",
+		},
+		{
 			label: "Team",
 			icon: "i-lucide-contact",
 			to: `${base.value}/staff`,
@@ -693,6 +699,38 @@ function announcementActions(announcement: Announcement) {
 											{{ overview.my_room.name }}
 										</p>
 										<p v-else class="text-slate-500">Noch kein Zimmer zugeteilt.</p>
+										<p v-if="overview.my_responsible_rooms.length" class="flex items-start gap-2 text-xs text-slate-400">
+											<UIcon name="i-lucide-user-check" class="mt-px size-3.5 shrink-0 text-primary-400" />
+											<span>
+												Verantwortlich für
+												<NuxtLink :to="`${base}/rooms`" class="text-slate-200 hover:text-primary-300">
+													{{ overview.my_responsible_rooms.map((room) => room.name).join(", ") }}
+												</NuxtLink>
+											</span>
+										</p>
+									</div>
+
+									<div v-if="overview.my_small_groups.length" class="space-y-2">
+										<p class="font-medium text-slate-300">
+											{{ overview.my_small_groups.length === 1 ? "Meine Kleingruppe" : "Meine Kleingruppen" }}
+										</p>
+										<ul class="space-y-1.5">
+											<li v-for="group in overview.my_small_groups" :key="group.id" class="flex items-center gap-2">
+												<span
+													class="size-2.5 shrink-0 rounded-full bg-slate-500"
+													:style="group.color ? { backgroundColor: group.color } : undefined"
+												/>
+												<NuxtLink
+													:to="`${base}/small-groups`"
+													class="min-w-0 flex-1 truncate text-white hover:text-primary-300"
+												>
+													{{ group.name }}
+												</NuxtLink>
+												<span class="shrink-0 text-xs text-slate-500">
+													{{ group.participant_count }} TN<template v-if="group.meeting_point"> · {{ group.meeting_point }}</template>
+												</span>
+											</li>
+										</ul>
 									</div>
 
 									<div class="space-y-2">

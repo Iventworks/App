@@ -1,4 +1,5 @@
 import { OrgRegistry } from "../../server/lib/orgs/registry";
+import { OrgService } from "../../server/lib/orgs/service";
 
 /** The org every test request goes to unless it sends another host. */
 export const TEST_ORG_SLUG = "test";
@@ -18,4 +19,15 @@ export function testOrg() {
 /** Headers for a request to `host` (another org, the system host, an unknown host). */
 export function hostHeaders(host: string) {
 	return { "X-Iventworks-Host": host };
+}
+
+/**
+ * Switch how the test org gives new accounts their username. The org is shared by every test
+ * file, so restore the default (`schema`) afterwards, e.g. in `afterAll`.
+ */
+export async function setTestOrgUsernameMode(mode: "schema" | "free", schema?: string) {
+	await OrgService.update(testOrg().id, {
+		username_mode: mode,
+		...(schema ? { username_schema: schema } : {}),
+	});
 }

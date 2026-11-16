@@ -3,16 +3,20 @@ import type { DropdownMenuItem, TableColumn } from "@nuxt/ui";
 import type {
 	GetEventsByEventIdParticipantsResponses,
 	GetEventsByEventIdRoomsResponses,
+	GetEventsByEventIdSmallGroupsResponses,
 } from "~/api-client";
 
 type Participant = GetEventsByEventIdParticipantsResponses["200"]["data"][number];
 type Room = GetEventsByEventIdRoomsResponses["200"]["data"][number];
+type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
 
 /** Table row: the participant plus derived columns used for filtering. */
 type Row = Participant & {
 	full_name: string;
 	/** Room id, or -1 for "ohne Zimmer" (select filters can't hold 0/null). */
 	room_key: number;
+	/** Kleingruppe id, or -1 for "ohne Kleingruppe". */
+	small_group_key: number;
 	care_flags: string[];
 };
 
@@ -56,11 +60,22 @@ const { data: rooms, refresh: refreshRooms } = await useAPIAsyncData(
 	},
 );
 
+const { data: smallGroups, refresh: refreshSmallGroups } = await useAPIAsyncData(
+	`event-${eventId.value}-small-groups`,
+	async () => {
+		const result = await useAPI((api) =>
+			api.getEventsByEventIdSmallGroups({ path: { eventId: eventId.value } }),
+		);
+		return result.success ? result.data : ([] as SmallGroup[]);
+	},
+);
+
 const rows = computed<Row[]>(() =>
 	(participants.value ?? []).map((participant) => ({
 		...participant,
 		full_name: `${participant.last_name}, ${participant.first_name}`,
 		room_key: participant.room_id ?? NO_ROOM,
+		small_group_key: participant.small_group_id ?? NO_ROOM,
 		care_flags: [
 			participant.allergies.trim() ? "allergies" : "",
 			participant.medications.trim() ? "medications" : "",
@@ -92,6 +107,8 @@ const columns = computed<TableColumn<Row>[]>(() => [
 	{ accessorKey: "age", header: "Alter" },
 	{ accessorKey: "gender", header: "Geschlecht" },
 	{ accessorKey: "room_key", header: "Zimmer" },
+	// Only once the event has Kleingruppen.
+	...(smallGroups.value?.length ? [{ accessorKey: "small_group_key", header: "Kleingruppe" }] : []),
 	{ accessorKey: "status", header: "Status" },
 	{ accessorKey: "care_flags", header: "Hinweise", enableSorting: false },
 	{ accessorKey: "guardian_phone", header: "Notfall-Telefon", enableSorting: false },
@@ -118,6 +135,20 @@ const filters = computed(() => [
 			...(rooms.value ?? []).map((room) => ({ label: room.name, value: room.id })),
 		],
 	},
+	...(smallGroups.value?.length
+		? [
+				{
+					column: "small_group_key" as const,
+					type: "multi-select" as const,
+					placeholder: "Alle Kleingruppen",
+					icon: "i-lucide-group",
+					options: [
+						{ label: "Ohne Kleingruppe", value: NO_ROOM },
+						...smallGroups.value.map((group) => ({ label: group.name, value: group.id })),
+					],
+				},
+			]
+		: []),
 	{
 		column: "care_flags" as const,
 		type: "multi-select" as const,
@@ -180,7 +211,7 @@ function openEdit(participant: Participant) {
 }
 
 async function onSaved() {
-	await Promise.all([refresh(), refreshRooms()]);
+	await Promise.all([refresh(), refreshRooms(), refreshSmallGroups()]);
 }
 
 // --- delete -------------------------------------------------------------------------------
@@ -362,6 +393,17 @@ async function exportCsv() {
 						<span v-else class="text-slate-600">–</span>
 					</template>
 
+					<template #small_group_key-cell="{ row }">
+						<span v-if="row.original.small_group" class="flex items-center gap-1.5 text-slate-300">
+							<span
+								class="size-2 shrink-0 rounded-full bg-slate-500"
+								:style="row.original.small_group.color ? { backgroundColor: row.original.small_group.color } : undefined"
+							/>
+							{{ row.original.small_group.name }}
+						</span>
+						<span v-else class="text-slate-600">–</span>
+					</template>
+
 					<template #status-cell="{ row }">
 						<UBadge
 							:label="PARTICIPANT_STATUS_LABELS[row.original.status]"
@@ -415,6 +457,7 @@ async function exportCsv() {
 		:event-id="eventId"
 		:participant="editing"
 		:rooms="rooms ?? []"
+		:small-groups="smallGroups ?? []"
 		@saved="onSaved"
 	/>
 

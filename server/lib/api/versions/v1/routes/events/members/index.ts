@@ -319,7 +319,7 @@ router.delete(
 	APIRouteSpec.authenticated({
 		summary: "Remove event staff member",
 		description:
-			"Remove a user from the event. Their group memberships, program and responsibility assignments in this event are removed and their tasks become unassigned.",
+			"Remove a user from the event. Their group memberships, program and responsibility assignments, Kleingruppen they lead and rooms they are responsible for in this event are removed and their tasks become unassigned.",
 		tags: [DOCS_TAGS.EVENTS.MEMBERS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -375,6 +375,46 @@ router.delete(
 								inOrg(DB.Tables.programItemResponsibles),
 								inArray(DB.Tables.programItemResponsibles.program_item_id, programIds),
 								eq(DB.Tables.programItemResponsibles.user_id, member.user_id),
+							),
+						)
+						.run();
+				}
+
+				const smallGroupIds = (
+					await tx
+						.select({ id: DB.Tables.smallGroups.id })
+						.from(DB.Tables.smallGroups)
+						.where(and(inOrg(DB.Tables.smallGroups), eq(DB.Tables.smallGroups.event_id, event.id)))
+						.all()
+				).map((row) => row.id);
+				if (smallGroupIds.length) {
+					await tx
+						.delete(DB.Tables.smallGroupLeaders)
+						.where(
+							and(
+								inOrg(DB.Tables.smallGroupLeaders),
+								inArray(DB.Tables.smallGroupLeaders.small_group_id, smallGroupIds),
+								eq(DB.Tables.smallGroupLeaders.user_id, member.user_id),
+							),
+						)
+						.run();
+				}
+
+				const roomIds = (
+					await tx
+						.select({ id: DB.Tables.rooms.id })
+						.from(DB.Tables.rooms)
+						.where(and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.event_id, event.id)))
+						.all()
+				).map((row) => row.id);
+				if (roomIds.length) {
+					await tx
+						.delete(DB.Tables.roomResponsibles)
+						.where(
+							and(
+								inOrg(DB.Tables.roomResponsibles),
+								inArray(DB.Tables.roomResponsibles.room_id, roomIds),
+								eq(DB.Tables.roomResponsibles.user_id, member.user_id),
 							),
 						)
 						.run();

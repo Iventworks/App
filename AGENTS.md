@@ -88,11 +88,22 @@ CMP (Crossover Management Portal) before; the repository still is.
   column gets a refinement. Write German summaries to `AuditLog.record` (never medical details) and
   use `Notifier.notify` for assignments.
 - **No signup** — accounts come from admins, two ways:
-  - *Invitation* (`/admin/invitations`): email link, the invitee picks username and password at
-    `/auth/accept-invite?token=…` (`/auth/invitations/*`).
+  - *Invitation* (`/admin/invitations`): email link, the invitee sets their name and password (and
+    picks a username in free mode) at `/auth/accept-invite?token=…` (`/auth/invitations/*`).
   - *Direct* (`POST /admin/users`, "Benutzer anlegen"): with a password, or without one — then the
     response carries a one-time link (`PasswordLinks`, 7 days, `/auth/reset-password?token=…`)
     that the admin hands over. Admins can also issue such a link later (`…/password-link`).
+- **Usernames** per org (`orgs.username_mode`, *Administration → Organisation*): `schema` (default,
+  `orgs.username_schema`, default `{FIRSTNAME}.{LASTNAME}`) builds the username from first and last
+  name — for invitations and direct creation; `free` lets the invitee / admin pick it. Rules live in
+  `server/lib/utils/usernameSchema.ts` (pure, also imported by the frontend so previews match):
+  `{FIRSTNAME}` is the first of the first names, `{LASTNAME}` the whole last name, umlauts spelled
+  out (ä → ae, ß → ss), the result follows `UserDataPolicies.Username`. `UsernamePolicy.assign`
+  appends a number when taken (`max.mueller2`). Only applies when an account is created — existing
+  usernames are never rewritten. Under a schema `PUT /account` refuses username changes (403,
+  `username_managed` on `GET /account`); admins can still rename. The system org always chooses
+  freely. Tests: the shared test org is in `schema` mode; `setTestOrgUsernameMode` switches it (restore
+  it in `afterAll`).
 - **User management** (modelled on LeiOS Hub): `/admin/users` list → `/admin/users/[user_id]`
   with sub-routes *Übersicht* / *Aktivität* (`useSubrouterPathDynamics` +
   `useSubrouterInjectedData("admin_user")`). Admins can suspend accounts (`suspended_at`,
@@ -174,6 +185,29 @@ CMP (Crossover Management Portal) before; the repository still is.
   leaders' notes about staff, notes about participants, the dates of a series (they come from the
   rule). A new event table or column that belongs to an event must be added to `EventCopier` (or
   consciously left out) and to its `summary`.
+- **Kleingruppen** (`small_groups`, `routes/events/small-groups/`, page `/events/{id}/small-groups`):
+  small groups of participants, each led by one or more people from the event's team
+  (`small_group_leaders`, notified with `small_group_assigned`), with an optional meeting point
+  ("Treffpunkt"). A participant is in at most one (`participants.small_group_id`, `ON DELETE SET
+  NULL`); one person may lead several. Program items can take place in them
+  (`program_items.in_small_groups`): the item, the agenda and the PDF then show every group with its
+  leaders and meeting point. Permissions `small_groups:view` / `small_groups:manage`. Copied as the
+  `small_groups` part (leaders with `team`, members with `participants`).
+- **Room responsibles** (`room_responsibles`, `responsible_ids` on the room routes, notified with
+  `room_assigned`): optional staff responsible for a room; rooms with participants but nobody
+  responsible are flagged "Ohne Verantwortliche" in the UI. Leaving an event's team also ends the
+  person's Kleingruppen leadership and room responsibility.
+- **Program PDF** (`app/utils/programPdf.ts`, `ProgramExportModal`): built in the browser with jsPDF
+  + jspdf-autotable, loaded with dynamic `import()` only when exporting. Layouts "Liste" (A4
+  portrait) and "Wochenraster" (A4 landscape, lanes like `WeekGrid`), optional Kleingruppen
+  appendix. Standard PDF fonts only (no font files, no requests); never call jsPDF's `.html()` /
+  SVG paths — they pull in html2canvas/dompurify/canvg. Printing loads the blob into a hidden frame
+  (desktop) or a new tab with auto-print (Safari, touch devices), falling back to a download.
+- **Confirmations** use our modals, never `window.confirm`/`alert`: `useConfirmDialog()` (any
+  question) and `useUnsavedChangesDialog()` ("Speichern / Verwerfen / Weiter bearbeiten") — both
+  return a promise, so route guards can `await` them. `FormMarkdownEditor` only passes changes on
+  after the person interacted with it: `UEditor` re-serialises the markdown it is given (trailing
+  paragraph after a list, list markers), which would otherwise mark every form as unsaved.
 - **Realtime** (`server/lib/realtime/`, the style guide has no spec): one WebSocket per tab at
   `/ws/realtime` (`server/routes/ws/realtime.ts` → `RealtimeGateway`). It only *signals*
   (`conversation` changed, `typing`, `presence`, `notification`); the data always comes from the

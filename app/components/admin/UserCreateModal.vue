@@ -3,10 +3,15 @@
  * Create an account directly (the alternative to an email invitation). The admin either sets the
  * first password or lets the API create a one-time link to hand over. On the system host the
  * account is a system admin: no role to choose (always admin).
+ *
+ * Usernames follow the org's setting (`GET /admin/organization` › `accounts`): under a schema the
+ * admin enters first and last name and the username is shown, not typed (the API builds it and
+ * appends a number if it is taken); otherwise the admin picks it.
  */
 import type { FormError, FormSubmitEvent } from "@nuxt/ui";
 import * as z from "zod";
 import type { AdminUser, PasswordLink } from "~/utils/types";
+import { UsernameSchema } from "~~/server/lib/utils/usernameSchema";
 
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ created: [user: AdminUser, link: PasswordLink | null] }>();
@@ -15,10 +20,30 @@ const toast = useToast();
 const saving = ref(false);
 const isSystem = computed(() => useInstance().value?.kind === "system");
 
+// --- username policy ------------------------------------------------------------------------
+
+const policyLoading = ref(false);
+/** The org's username schema, or null when admins pick usernames freely. */
+const usernameSchema = ref<string | null>(null);
+
+async function loadPolicy() {
+	policyLoading.value = true;
+	const result = await useAPI((api) => api.getAdminOrganization({}));
+	policyLoading.value = false;
+	usernameSchema.value =
+		result.success && result.data.accounts.username_mode === "schema"
+			? result.data.accounts.username_schema
+			: null;
+}
+
+// --- form -----------------------------------------------------------------------------------
+
 const schema = z
 	.object({
-		display_name: z.string().trim().min(1).max(64),
-		username: usernameField(),
+		first_name: z.string().trim().max(64),
+		last_name: z.string().trim().max(64),
+		display_name: z.string().trim().min(1, "Anzeigename ist erforderlich").max(64),
+		username: z.string().trim(),
 		email: z.email("Ungültige E-Mail-Adresse"),
 		phone: z.string().trim().max(40),
 		role: z.enum(["admin", "core_team", "volunteer", "unverified"]),
@@ -27,6 +52,26 @@ const schema = z
 		confirm_password: z.string(),
 	})
 	.superRefine((data, ctx) => {
+		if (usernameSchema.value) {
+			if (!data.first_name) {
+				ctx.addIssue({ code: "custom", path: ["first_name"], message: "Vorname ist erforderlich" });
+			}
+			if (!data.last_name) {
+				ctx.addIssue({ code: "custom", path: ["last_name"], message: "Nachname ist erforderlich" });
+			}
+			if (data.first_name && data.last_name && !generatedUsername.value) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["username"],
+					message: "Aus diesem Namen entsteht kein gültiger Benutzername.",
+				});
+			}
+		} else {
+			const result = usernameField().safeParse(data.username);
+			for (const issue of result.error?.issues ?? []) {
+				ctx.addIssue({ code: "custom", path: ["username"], message: issue.message });
+			}
+		}
 		if (data.password_mode !== "password") return;
 		const result = newPasswordField().safeParse(data.password);
 		for (const issue of result.error?.issues ?? []) {
@@ -36,6 +81,8 @@ const schema = z
 type Schema = z.output<typeof schema>;
 
 const emptyState = (): Schema => ({
+	first_name: "",
+	last_name: "",
 	display_name: "",
 	username: "",
 	email: "",
@@ -47,16 +94,38 @@ const emptyState = (): Schema => ({
 });
 const state = reactive<Schema>(emptyState());
 
+const usernameTouched = ref(false);
+const displayNameTouched = ref(false);
+
 watch(open, (value) => {
-	if (value) Object.assign(state, emptyState());
+	if (!value) return;
+	Object.assign(state, emptyState());
+	usernameTouched.value = false;
+	displayNameTouched.value = false;
+	void loadPolicy();
 });
 
-// Suggest a username from the display name until the admin edits it.
-const usernameTouched = ref(false);
+/** Under a schema: what the API will build (before a number for a taken name). */
+const generatedUsername = computed(() =>
+	usernameSchema.value
+		? UsernameSchema.generate(usernameSchema.value, state.first_name, state.last_name)
+		: "",
+);
+
+// Under a schema the display name starts as "Vorname Nachname" until the admin edits it.
+watch(
+	() => [state.first_name, state.last_name],
+	([first, last]) => {
+		if (!usernameSchema.value || displayNameTouched.value) return;
+		state.display_name = `${first ?? ""} ${last ?? ""}`.trim().replace(/\s+/g, " ");
+	},
+);
+
+// Without a schema: suggest a username from the display name until the admin edits it.
 watch(
 	() => state.display_name,
 	(name) => {
-		if (usernameTouched.value) return;
+		if (usernameSchema.value || usernameTouched.value) return;
 		state.username = name
 			.toLowerCase()
 			.normalize("NFKD")
@@ -67,9 +136,6 @@ watch(
 			.slice(0, 40);
 	},
 );
-watch(open, () => {
-	usernameTouched.value = false;
-});
 
 function validate(data: Partial<Schema>): FormError[] {
 	if (data.password_mode === "password" && data.password !== data.confirm_password) {
@@ -94,12 +160,22 @@ const passwordModes = [
 
 async function submit(event: FormSubmitEvent<Schema>) {
 	saving.value = true;
-	const { password_mode, password, confirm_password: _, phone, ...rest } = event.data;
+	const {
+		password_mode,
+		password,
+		confirm_password: _,
+		phone,
+		first_name,
+		last_name,
+		username,
+		...rest
+	} = event.data;
 	const result = await useAPI((api) =>
 		api.postAdminUsers({
 			body: {
 				...rest,
 				phone: phone || null,
+				...(usernameSchema.value ? { first_name, last_name } : { username }),
 				...(password_mode === "password" ? { password } : {}),
 			},
 		}),
@@ -111,7 +187,9 @@ async function submit(event: FormSubmitEvent<Schema>) {
 			title: "Konto konnte nicht angelegt werden",
 			description:
 				(result.code as number) === 409
-					? "Benutzername oder E-Mail-Adresse ist bereits vergeben."
+					? usernameSchema.value
+						? "Diese E-Mail-Adresse ist bereits vergeben."
+						: "Benutzername oder E-Mail-Adresse ist bereits vergeben."
 					: result.message,
 			icon: "i-lucide-alert-circle",
 			color: "error",
@@ -121,6 +199,7 @@ async function submit(event: FormSubmitEvent<Schema>) {
 
 	toast.add({
 		title: `${result.data.user.display_name} angelegt`,
+		description: `Benutzername: ${result.data.user.username}`,
 		icon: "i-lucide-check",
 		color: "success",
 	});
@@ -139,20 +218,51 @@ async function submit(event: FormSubmitEvent<Schema>) {
 				: 'Das Konto ist sofort da – ohne Einladung per E-Mail.'
 		"
 		icon="i-lucide-user-plus"
+		:loading="policyLoading"
 	>
 		<UForm :schema="schema" :state="state" :validate="validate" class="space-y-4" @submit="submit">
 			<div class="grid gap-4 sm:grid-cols-2">
-				<UFormField label="Anzeigename" name="display_name" required>
-					<UInput v-model="state.display_name" placeholder="Lea Leiterin" class="w-full" autofocus />
-				</UFormField>
-				<UFormField label="Benutzername" name="username" required>
-					<UInput
-						v-model="state.username"
-						placeholder="lea.leiterin"
-						class="w-full"
-						@update:model-value="usernameTouched = true"
-					/>
-				</UFormField>
+				<template v-if="usernameSchema">
+					<UFormField label="Vorname" name="first_name" required>
+						<UInput v-model="state.first_name" placeholder="Lea" class="w-full" autofocus />
+					</UFormField>
+					<UFormField label="Nachname" name="last_name" required>
+						<UInput v-model="state.last_name" placeholder="Leiterin" class="w-full" />
+					</UFormField>
+					<UFormField label="Anzeigename" name="display_name" required>
+						<UInput
+							v-model="state.display_name"
+							class="w-full"
+							@update:model-value="displayNameTouched = true"
+						/>
+					</UFormField>
+					<UFormField
+						label="Benutzername"
+						name="username"
+						:description="`Nach dem Schema ${usernameSchema}. Ist er vergeben, wird eine Zahl angehängt.`"
+					>
+						<UInput
+							:model-value="generatedUsername"
+							placeholder="ergibt sich aus dem Namen"
+							disabled
+							icon="i-lucide-lock"
+							class="w-full font-mono"
+						/>
+					</UFormField>
+				</template>
+				<template v-else>
+					<UFormField label="Anzeigename" name="display_name" required>
+						<UInput v-model="state.display_name" placeholder="Lea Leiterin" class="w-full" autofocus />
+					</UFormField>
+					<UFormField label="Benutzername" name="username" required>
+						<UInput
+							v-model="state.username"
+							placeholder="lea.leiterin"
+							class="w-full"
+							@update:model-value="usernameTouched = true"
+						/>
+					</UFormField>
+				</template>
 				<UFormField label="E-Mail" name="email" required>
 					<UInput v-model="state.email" type="email" class="w-full" />
 				</UFormField>

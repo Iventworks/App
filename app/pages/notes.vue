@@ -195,11 +195,13 @@ async function confirmDelete() {
 	await refresh();
 }
 
-// Warn before leaving the page with unsaved changes.
-onBeforeRouteLeave(() => {
-	if (isDirty.value) {
-		return window.confirm("Du hast ungespeicherte Änderungen. Seite trotzdem verlassen?");
-	}
+// Ask before leaving the page with unsaved changes: save, discard or stay.
+const askUnsaved = useUnsavedChangesDialog();
+onBeforeRouteLeave(async () => {
+	if (!isDirty.value) return true;
+	const choice = await askUnsaved("Die geöffnete Notiz hat ungespeicherte Änderungen.");
+	if (choice === "save") return await save();
+	return choice === "discard";
 });
 </script>
 

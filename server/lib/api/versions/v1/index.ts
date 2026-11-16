@@ -66,7 +66,16 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 		"Staff sub-groups such as Küchenteam or Musikteam",
 		DOCS_TAGS.EVENTS.EVENTS,
 	],
-	[DOCS_TAGS.EVENTS.ROOMS, "Rooms and who sleeps where", DOCS_TAGS.EVENTS.EVENTS],
+	[
+		DOCS_TAGS.EVENTS.ROOMS,
+		"Rooms, who sleeps where and who is responsible",
+		DOCS_TAGS.EVENTS.EVENTS,
+	],
+	[
+		DOCS_TAGS.EVENTS.SMALL_GROUPS,
+		'Small groups of participants ("Kleingruppen") and the staff leading them',
+		DOCS_TAGS.EVENTS.EVENTS,
+	],
 	[
 		DOCS_TAGS.EVENTS.PARTICIPANTS,
 		"Participants incl. medical info and emergency contacts",

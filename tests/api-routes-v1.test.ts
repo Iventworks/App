@@ -13,7 +13,7 @@ import { type OrgInfo, OrgRegistry } from "../server/lib/orgs/registry";
 import { OrgService } from "../server/lib/orgs/service";
 import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
-import { hostHeaders, SYSTEM_HOST, testOrg } from "./helpers/orgs";
+import { hostHeaders, SYSTEM_HOST, setTestOrgUsernameMode, testOrg } from "./helpers/orgs";
 import { type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
 let testUser: SeededUser;
@@ -398,7 +398,11 @@ describe("Auth reset-password routes", async () => {
 describe("Account routes", async () => {
 	let session_token: string;
 
+	// Renaming oneself needs free choice; under a schema it is refused (`username-schema.test.ts`).
+	afterAll(() => setTestOrgUsernameMode("schema"));
+
 	beforeAll(async () => {
+		await setTestOrgUsernameMode("free");
 		session_token = await seedSession(testUser.id).then((s) => s.token);
 	});
 
@@ -1139,6 +1143,9 @@ describe("Org isolation: auth, account and admin", async () => {
 				body: {
 					username: `orgid_${randomUUID().slice(0, 8)}`,
 					display_name: "Org-ID",
+					// Either policy: the username is used in free mode, the name under a schema.
+					first_name: "Org",
+					last_name: "Isolation",
 					email: `${randomUUID()}@example.com`,
 					role: "volunteer",
 					org_id: other.id,

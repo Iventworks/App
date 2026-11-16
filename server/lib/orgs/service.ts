@@ -3,7 +3,7 @@ import { DB } from "../db";
 import { FileStorage } from "../utils/fileStorage";
 import { Logger } from "../utils/logger";
 import { OrgContext } from "./context";
-import { type OrgInfo, type OrgPrimaryColor, OrgRegistry } from "./registry";
+import { type OrgInfo, type OrgPrimaryColor, OrgRegistry, type UsernameMode } from "./registry";
 
 /** One DNS label: lower-case letters, digits and inner hyphens, 2–40 characters. */
 export const ORG_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])$/;
@@ -109,6 +109,8 @@ export class OrgService {
 			primary_color?: OrgPrimaryColor;
 			file_sharing_enabled?: boolean;
 			share_default_expiry_days?: number | null;
+			username_mode?: UsernameMode;
+			username_schema?: string;
 		},
 	): Promise<OrgInfo> {
 		const set: Partial<typeof DB.Tables.orgs.$inferInsert> = { updated_at: Date.now() };
@@ -120,6 +122,8 @@ export class OrgService {
 		if (changes.share_default_expiry_days !== undefined) {
 			set.share_default_expiry_days = changes.share_default_expiry_days;
 		}
+		if (changes.username_mode !== undefined) set.username_mode = changes.username_mode;
+		if (changes.username_schema !== undefined) set.username_schema = changes.username_schema.trim();
 
 		await OrgContext.unscoped(() =>
 			DB.instance().update(DB.Tables.orgs).set(set).where(eq(DB.Tables.orgs.id, orgId)).run(),

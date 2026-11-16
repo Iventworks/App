@@ -6,6 +6,7 @@
 import * as z from "zod";
 import { DEFAULT_BRAND } from "~/composables/stores/useInstanceStore";
 import type { OrgPrimaryColor, OrgSettings } from "~/utils/types";
+import { UsernameSchema } from "~~/server/lib/utils/usernameSchema";
 
 const toast = useToast();
 const settings = useSubrouterInjectedData<OrgSettings>("organization").inject();
@@ -145,6 +146,88 @@ async function saveSharing(changes: {
 	toast.add({ title: "Gespeichert", icon: "i-lucide-check", color: "success" });
 	await settings.refresh();
 }
+
+// --- usernames --------------------------------------------------------------------------------
+
+type UsernameMode = OrgSettings["accounts"]["username_mode"];
+
+const accounts = computed(() => settings.data.value.accounts);
+const usernameForm = reactive<{ mode: UsernameMode; schema: string }>({
+	mode: accounts.value.username_mode,
+	schema: accounts.value.username_schema,
+});
+watch(accounts, (value) => {
+	usernameForm.mode = value.username_mode;
+	usernameForm.schema = value.username_schema;
+});
+
+const USERNAME_MODES: { value: UsernameMode; label: string; description: string }[] = [
+	{
+		value: "schema",
+		label: "Nach Schema",
+		description:
+			"Der Benutzername wird aus Vor- und Nachname gebildet – bei Einladungen und wenn du Konten direkt anlegst.",
+	},
+	{
+		value: "free",
+		label: "Frei wählbar",
+		description:
+			"Eingeladene wählen ihren Benutzernamen selbst; beim direkten Anlegen gibst du ihn vor.",
+	},
+];
+
+const USERNAME_EXAMPLES = [
+	{ first: "Max", last: "Mustermann" },
+	{ first: "Anna Maria", last: "Müller-Lüdenscheidt" },
+	{ first: "Zoë", last: "von der Heide" },
+];
+
+const schemaError = computed(() =>
+	usernameForm.mode === "schema" ? UsernameSchema.validate(usernameForm.schema) : null,
+);
+const usernameExamples = computed(() =>
+	USERNAME_EXAMPLES.map((example) => ({
+		name: `${example.first} ${example.last}`,
+		username: schemaError.value
+			? "–"
+			: UsernameSchema.generate(usernameForm.schema, example.first, example.last) || "–",
+	})),
+);
+const usernameDirty = computed(
+	() =>
+		usernameForm.mode !== accounts.value.username_mode ||
+		usernameForm.schema.trim() !== accounts.value.username_schema,
+);
+
+function insertPlaceholder(token: string) {
+	usernameForm.schema = `${usernameForm.schema}${token}`;
+}
+
+const savingUsernames = ref(false);
+async function saveUsernames() {
+	if (schemaError.value) return;
+	savingUsernames.value = true;
+	const result = await useAPI((api) =>
+		api.putAdminOrganization({
+			body: {
+				username_mode: usernameForm.mode,
+				// Free mode keeps the stored schema; only send it when it is in use.
+				...(usernameForm.mode === "schema" ? { username_schema: usernameForm.schema.trim() } : {}),
+			},
+		}),
+	);
+	savingUsernames.value = false;
+	if (!result.success) {
+		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	toast.add({
+		title: "Benutzernamen-Einstellung gespeichert",
+		icon: "i-lucide-check",
+		color: "success",
+	});
+	await settings.refresh();
+}
 </script>
 
 <template>
@@ -249,6 +332,76 @@ async function saveSharing(changes: {
 							@click="onRemove(kind)"
 						/>
 					</div>
+				</div>
+			</div>
+		</DashboardSectionCard>
+
+		<DashboardSectionCard
+			title="Benutzernamen"
+			description="Wie neue Konten ihren Benutzernamen bekommen"
+			icon="i-lucide-at-sign"
+		>
+			<div class="space-y-4">
+				<URadioGroup v-model="usernameForm.mode" :items="USERNAME_MODES" value-key="value" variant="card" />
+
+				<div v-if="usernameForm.mode === 'schema'" class="space-y-3">
+					<UFormField
+						name="username_schema"
+						label="Schema"
+						:error="schemaError ?? undefined"
+						description="Vorname ist immer der erste Vorname, Nachname der ganze Nachname. Umlaute werden ausgeschrieben (ä → ae, ß → ss). Ist ein Name schon vergeben, wird eine Zahl angehängt (max.mustermann2)."
+					>
+						<UInput v-model="usernameForm.schema" class="w-full font-mono sm:w-96" placeholder="{FIRSTNAME}.{LASTNAME}" />
+					</UFormField>
+					<div class="flex flex-wrap gap-1.5">
+						<UButton
+							v-for="placeholder in UsernameSchema.PLACEHOLDERS"
+							:key="placeholder.token"
+							:label="placeholder.token"
+							:title="placeholder.label"
+							size="xs"
+							color="neutral"
+							variant="subtle"
+							class="font-mono"
+							@click="insertPlaceholder(placeholder.token)"
+						/>
+					</div>
+					<div class="rounded-lg border border-slate-800 bg-slate-950/60">
+						<p class="border-b border-slate-800 px-3 py-2 text-xs uppercase tracking-wide text-slate-500">Vorschau</p>
+						<ul class="divide-y divide-slate-800 text-sm">
+							<li v-for="example in usernameExamples" :key="example.name" class="flex justify-between gap-4 px-3 py-2">
+								<span class="text-slate-400">{{ example.name }}</span>
+								<span class="font-mono text-white">{{ example.username }}</span>
+							</li>
+						</ul>
+					</div>
+				</div>
+
+				<UAlert
+					icon="i-lucide-info"
+					color="neutral"
+					variant="subtle"
+					description="Gilt nur für neue Konten. Bestehende Benutzernamen bleiben, wie sie sind. Solange ein Schema gilt, können Mitglieder ihren Benutzernamen nicht selbst ändern – Admins schon."
+				/>
+
+				<div class="flex justify-end gap-2">
+					<UButton
+						v-if="usernameDirty"
+						label="Verwerfen"
+						color="neutral"
+						variant="ghost"
+						@click="
+							usernameForm.mode = accounts.username_mode;
+							usernameForm.schema = accounts.username_schema;
+						"
+					/>
+					<UButton
+						label="Speichern"
+						icon="i-lucide-save"
+						:loading="savingUsernames"
+						:disabled="!usernameDirty || Boolean(schemaError)"
+						@click="saveUsernames"
+					/>
 				</div>
 			</div>
 		</DashboardSectionCard>

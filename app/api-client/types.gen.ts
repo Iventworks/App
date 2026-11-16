@@ -1219,6 +1219,7 @@ export type PostAuthInvitationsInspectResponses = {
             display_name: string | null;
             role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             expires_at: number;
+            username_schema: string | null;
         };
     };
 };
@@ -1231,7 +1232,9 @@ export type PostAuthInvitationsAcceptData = {
          * The invitation token from the invite link
          */
         token: string;
-        username: string;
+        username?: string;
+        first_name?: string;
+        last_name?: string;
         display_name: string;
         /**
          * New password for the account
@@ -1245,12 +1248,12 @@ export type PostAuthInvitationsAcceptData = {
 
 export type PostAuthInvitationsAcceptErrors = {
     /**
-     * Invalid or expired invitation / Syntax or validation error in request
+     * Invalid or expired invitation / First and last name are required / A username is required / The name gives no valid username / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Invalid or expired invitation / Syntax or validation error in request';
+        message: 'Invalid or expired invitation / First and last name are required / A username is required / The name gives no valid username / Syntax or validation error in request';
     };
     /**
      * You are already authenticated
@@ -1374,6 +1377,7 @@ export type GetAccountResponses = {
             last_login_at: number | null;
             last_seen_at: number | null;
             created_at: number;
+            username_managed: boolean;
         };
     };
 };
@@ -1412,6 +1416,14 @@ export type PutAccountErrors = {
         success: false;
         code: 401;
         message: 'Your Auth Context is not a session';
+    };
+    /**
+     * Usernames are assigned by your organisation
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Usernames are assigned by your organisation';
     };
     /**
      * Username or email already in use
@@ -1989,7 +2001,7 @@ export type GetAdminUsersResponse = GetAdminUsersResponses[keyof GetAdminUsersRe
 
 export type PostAdminUsersData = {
     body: {
-        username: string;
+        username?: string;
         display_name: string;
         email: string;
         role?: 'admin' | 'core_team' | 'volunteer' | 'unverified';
@@ -1998,6 +2010,8 @@ export type PostAdminUsersData = {
          * New password for the account
          */
         password?: string;
+        first_name?: string;
+        last_name?: string;
     };
     path?: never;
     query?: never;
@@ -2841,6 +2855,10 @@ export type GetAdminOrganizationResponses = {
             };
             multi_org: boolean;
             domain_self_service: boolean;
+            accounts: {
+                username_mode: 'schema' | 'free';
+                username_schema: string;
+            };
         };
     };
 };
@@ -2853,6 +2871,11 @@ export type PutAdminOrganizationData = {
         primary_color?: 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose';
         file_sharing_enabled?: boolean;
         share_default_expiry_days?: number | null;
+        username_mode?: 'schema' | 'free';
+        /**
+         * E.g. `{FIRSTNAME}.{LASTNAME}`; see `UsernameSchema.PLACEHOLDERS`
+         */
+        username_schema?: string;
     };
     path?: never;
     query?: never;
@@ -2896,6 +2919,10 @@ export type PutAdminOrganizationResponses = {
             };
             multi_org: boolean;
             domain_self_service: boolean;
+            accounts: {
+                username_mode: 'schema' | 'free';
+                username_schema: string;
+            };
         };
     };
 };
@@ -2948,6 +2975,10 @@ export type DeleteAdminOrganizationAssetsByKindResponses = {
             };
             multi_org: boolean;
             domain_self_service: boolean;
+            accounts: {
+                username_mode: 'schema' | 'free';
+                username_schema: string;
+            };
         };
     };
 };
@@ -3005,6 +3036,10 @@ export type PutAdminOrganizationAssetsByKindResponses = {
             };
             multi_org: boolean;
             domain_self_service: boolean;
+            accounts: {
+                username_mode: 'schema' | 'free';
+                username_schema: string;
+            };
         };
     };
 };
@@ -7925,7 +7960,7 @@ export type GetEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -8033,7 +8068,7 @@ export type PostEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -8182,7 +8217,7 @@ export type GetEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -8299,7 +8334,7 @@ export type PutEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -8397,7 +8432,7 @@ export type GetEventsByEventIdOverviewResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -8491,6 +8526,17 @@ export type GetEventsByEventIdOverviewResponses = {
                 id: number;
                 name: string;
                 color: string | null;
+            }>;
+            my_small_groups: Array<{
+                id: number;
+                name: string;
+                color: string | null;
+                meeting_point: string | null;
+                participant_count: number;
+            }>;
+            my_responsible_rooms: Array<{
+                id: number;
+                name: string;
             }>;
             next_occurrences: Array<{
                 id: number;
@@ -9172,6 +9218,14 @@ export type GetEventsByEventIdRoomsResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            responsibles: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
             occupancy: number;
         }>;
     };
@@ -9184,6 +9238,7 @@ export type PostEventsByEventIdRoomsData = {
         name: string;
         capacity?: number | null;
         notes?: string;
+        responsible_ids?: Array<number>;
     };
     path: {
         eventId: number;
@@ -9244,6 +9299,14 @@ export type PostEventsByEventIdRoomsResponses = {
                 birth_date: string | null;
             }>;
             staff: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            responsibles: Array<{
                 id: number;
                 username: string;
                 display_name: string;
@@ -9335,6 +9398,14 @@ export type PutEventsByEventIdRoomsAssignmentsResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            responsibles: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
             occupancy: number;
         }>;
     };
@@ -9400,6 +9471,7 @@ export type PutEventsByEventIdRoomsByRoomIdData = {
         name?: string;
         capacity?: number | null;
         notes?: string;
+        responsible_ids?: Array<number>;
     };
     path: {
         eventId: number;
@@ -9468,12 +9540,399 @@ export type PutEventsByEventIdRoomsByRoomIdResponses = {
                 phone: string | null;
                 role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             }>;
+            responsibles: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
             occupancy: number;
         };
     };
 };
 
 export type PutEventsByEventIdRoomsByRoomIdResponse = PutEventsByEventIdRoomsByRoomIdResponses[keyof PutEventsByEventIdRoomsByRoomIdResponses];
+
+export type GetEventsByEventIdSmallGroupsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/small-groups';
+};
+
+export type GetEventsByEventIdSmallGroupsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not a member of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not a member of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdSmallGroupsError = GetEventsByEventIdSmallGroupsErrors[keyof GetEventsByEventIdSmallGroupsErrors];
+
+export type GetEventsByEventIdSmallGroupsResponses = {
+    /**
+     * Small groups retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Small groups retrieved successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            meeting_point: string | null;
+            color: string | null;
+            created_at: number;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+                status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            }>;
+            participant_count: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdSmallGroupsResponse = GetEventsByEventIdSmallGroupsResponses[keyof GetEventsByEventIdSmallGroupsResponses];
+
+export type PostEventsByEventIdSmallGroupsData = {
+    body: {
+        name: string;
+        description?: string;
+        meeting_point?: string | null;
+        color?: string | null;
+        leader_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/small-groups';
+};
+
+export type PostEventsByEventIdSmallGroupsErrors = {
+    /**
+     * All leaders must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All leaders must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the small groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the small groups of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdSmallGroupsError = PostEventsByEventIdSmallGroupsErrors[keyof PostEventsByEventIdSmallGroupsErrors];
+
+export type PostEventsByEventIdSmallGroupsResponses = {
+    /**
+     * Small group created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Small group created successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            meeting_point: string | null;
+            color: string | null;
+            created_at: number;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+                status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            }>;
+            participant_count: number;
+        };
+    };
+};
+
+export type PostEventsByEventIdSmallGroupsResponse = PostEventsByEventIdSmallGroupsResponses[keyof PostEventsByEventIdSmallGroupsResponses];
+
+export type PutEventsByEventIdSmallGroupsAssignmentsData = {
+    body: {
+        participants: Array<{
+            participant_id: number;
+            small_group_id: number | null;
+        }>;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/small-groups/assignments';
+};
+
+export type PutEventsByEventIdSmallGroupsAssignmentsErrors = {
+    /**
+     * Unknown small group or participant for this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Unknown small group or participant for this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the small groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the small groups of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PutEventsByEventIdSmallGroupsAssignmentsError = PutEventsByEventIdSmallGroupsAssignmentsErrors[keyof PutEventsByEventIdSmallGroupsAssignmentsErrors];
+
+export type PutEventsByEventIdSmallGroupsAssignmentsResponses = {
+    /**
+     * Small group assignments updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Small group assignments updated successfully';
+        data: Array<{
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            meeting_point: string | null;
+            color: string | null;
+            created_at: number;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+                status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            }>;
+            participant_count: number;
+        }>;
+    };
+};
+
+export type PutEventsByEventIdSmallGroupsAssignmentsResponse = PutEventsByEventIdSmallGroupsAssignmentsResponses[keyof PutEventsByEventIdSmallGroupsAssignmentsResponses];
+
+export type DeleteEventsByEventIdSmallGroupsBySmallGroupIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        smallGroupId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/small-groups/{smallGroupId}';
+};
+
+export type DeleteEventsByEventIdSmallGroupsBySmallGroupIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage the small groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the small groups of this event';
+    };
+    /**
+     * Small group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Small group not found';
+    };
+};
+
+export type DeleteEventsByEventIdSmallGroupsBySmallGroupIdError = DeleteEventsByEventIdSmallGroupsBySmallGroupIdErrors[keyof DeleteEventsByEventIdSmallGroupsBySmallGroupIdErrors];
+
+export type DeleteEventsByEventIdSmallGroupsBySmallGroupIdResponses = {
+    /**
+     * Small group deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Small group deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdSmallGroupsBySmallGroupIdResponse = DeleteEventsByEventIdSmallGroupsBySmallGroupIdResponses[keyof DeleteEventsByEventIdSmallGroupsBySmallGroupIdResponses];
+
+export type PutEventsByEventIdSmallGroupsBySmallGroupIdData = {
+    body?: {
+        name?: string;
+        description?: string;
+        meeting_point?: string | null;
+        color?: string | null;
+        leader_ids?: Array<number>;
+    };
+    path: {
+        eventId: number;
+        smallGroupId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/small-groups/{smallGroupId}';
+};
+
+export type PutEventsByEventIdSmallGroupsBySmallGroupIdErrors = {
+    /**
+     * All leaders must be staff of this event / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'All leaders must be staff of this event / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage the small groups of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage the small groups of this event';
+    };
+    /**
+     * Small group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Small group not found';
+    };
+};
+
+export type PutEventsByEventIdSmallGroupsBySmallGroupIdError = PutEventsByEventIdSmallGroupsBySmallGroupIdErrors[keyof PutEventsByEventIdSmallGroupsBySmallGroupIdErrors];
+
+export type PutEventsByEventIdSmallGroupsBySmallGroupIdResponses = {
+    /**
+     * Small group updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Small group updated successfully';
+        data: {
+            id: number;
+            event_id: number;
+            name: string;
+            description: string;
+            meeting_point: string | null;
+            color: string | null;
+            created_at: number;
+            leaders: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            participants: Array<{
+                id: number;
+                first_name: string;
+                last_name: string;
+                gender: 'female' | 'male' | 'diverse' | null;
+                birth_date: string | null;
+                status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
+            }>;
+            participant_count: number;
+        };
+    };
+};
+
+export type PutEventsByEventIdSmallGroupsBySmallGroupIdResponse = PutEventsByEventIdSmallGroupsBySmallGroupIdResponses[keyof PutEventsByEventIdSmallGroupsBySmallGroupIdResponses];
 
 export type GetEventsByEventIdParticipantsData = {
     body?: never;
@@ -9544,6 +10003,7 @@ export type GetEventsByEventIdParticipantsResponses = {
             photo_consent: boolean;
             notes: string;
             room_id: number | null;
+            small_group_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
             created_at: number;
@@ -9553,6 +10013,11 @@ export type GetEventsByEventIdParticipantsResponses = {
             room: {
                 id: number;
                 name: string;
+            } | null;
+            small_group: {
+                id: number;
+                name: string;
+                color: string | null;
             } | null;
             emergency_contacts: Array<{
                 id: number;
@@ -9588,6 +10053,7 @@ export type PostEventsByEventIdParticipantsData = {
         photo_consent?: boolean;
         notes?: string;
         room_id?: number | null;
+        small_group_id?: number | null;
         status?: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
         fee_paid?: boolean;
         emergency_contacts?: Array<{
@@ -9605,12 +10071,12 @@ export type PostEventsByEventIdParticipantsData = {
 
 export type PostEventsByEventIdParticipantsErrors = {
     /**
-     * The room does not belong to this event / Syntax or validation error in request
+     * The room or small group does not belong to this event / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'The room does not belong to this event / Syntax or validation error in request';
+        message: 'The room or small group does not belong to this event / Syntax or validation error in request';
     };
     /**
      * You are not allowed to manage participants
@@ -9660,6 +10126,7 @@ export type PostEventsByEventIdParticipantsResponses = {
             photo_consent: boolean;
             notes: string;
             room_id: number | null;
+            small_group_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
             created_at: number;
@@ -9669,6 +10136,11 @@ export type PostEventsByEventIdParticipantsResponses = {
             room: {
                 id: number;
                 name: string;
+            } | null;
+            small_group: {
+                id: number;
+                name: string;
+                color: string | null;
             } | null;
             emergency_contacts: Array<{
                 id: number;
@@ -9866,6 +10338,7 @@ export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
             photo_consent: boolean;
             notes: string;
             room_id: number | null;
+            small_group_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
             created_at: number;
@@ -9875,6 +10348,11 @@ export type GetEventsByEventIdParticipantsByParticipantIdResponses = {
             room: {
                 id: number;
                 name: string;
+            } | null;
+            small_group: {
+                id: number;
+                name: string;
+                color: string | null;
             } | null;
             emergency_contacts: Array<{
                 id: number;
@@ -9924,6 +10402,7 @@ export type PutEventsByEventIdParticipantsByParticipantIdData = {
         photo_consent?: boolean;
         notes?: string;
         room_id?: number | null;
+        small_group_id?: number | null;
         status?: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
         fee_paid?: boolean;
         emergency_contacts?: Array<{
@@ -9942,12 +10421,12 @@ export type PutEventsByEventIdParticipantsByParticipantIdData = {
 
 export type PutEventsByEventIdParticipantsByParticipantIdErrors = {
     /**
-     * The room does not belong to this event / Syntax or validation error in request
+     * The room or small group does not belong to this event / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'The room does not belong to this event / Syntax or validation error in request';
+        message: 'The room or small group does not belong to this event / Syntax or validation error in request';
     };
     /**
      * You are not allowed to manage participants
@@ -9997,6 +10476,7 @@ export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
             photo_consent: boolean;
             notes: string;
             room_id: number | null;
+            small_group_id: number | null;
             status: 'registered' | 'confirmed' | 'waitlist' | 'cancelled';
             fee_paid: boolean;
             created_at: number;
@@ -10006,6 +10486,11 @@ export type PutEventsByEventIdParticipantsByParticipantIdResponses = {
             room: {
                 id: number;
                 name: string;
+            } | null;
+            small_group: {
+                id: number;
+                name: string;
+                color: string | null;
             } | null;
             emergency_contacts: Array<{
                 id: number;
@@ -10217,6 +10702,7 @@ export type GetEventsByEventIdProgramResponses = {
             color: string | null;
             start_at: number;
             end_at: number;
+            in_small_groups: boolean;
             created_by: number | null;
             created_at: number;
             updated_at: number;
@@ -10259,6 +10745,7 @@ export type PostEventsByEventIdProgramData = {
         color?: string | null;
         start_at: number;
         end_at: number;
+        in_small_groups?: boolean;
         responsible_user_ids?: Array<number>;
         file_ids?: Array<number>;
     };
@@ -10316,6 +10803,7 @@ export type PostEventsByEventIdProgramResponses = {
             color: string | null;
             start_at: number;
             end_at: number;
+            in_small_groups: boolean;
             created_by: number | null;
             created_at: number;
             updated_at: number;
@@ -10411,6 +10899,7 @@ export type PutEventsByEventIdProgramByProgramItemIdData = {
         color?: string | null;
         start_at?: number;
         end_at?: number;
+        in_small_groups?: boolean;
         responsible_user_ids?: Array<number>;
         file_ids?: Array<number>;
     };
@@ -10469,6 +10958,7 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
             color: string | null;
             start_at: number;
             end_at: number;
+            in_small_groups: boolean;
             created_by: number | null;
             created_at: number;
             updated_at: number;
@@ -10561,6 +11051,7 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
             color: string | null;
             start_at: number;
             end_at: number;
+            in_small_groups: boolean;
             created_by: number | null;
             created_at: number;
             updated_at: number;
@@ -13764,6 +14255,7 @@ export type GetEventsByEventIdCopyResponses = {
             team: number;
             groups: number;
             rooms: number;
+            small_groups: number;
             responsibilities: number;
             program: number;
             tasks: number;
@@ -13789,6 +14281,7 @@ export type PostEventsByEventIdCopyData = {
             team?: boolean;
             groups?: boolean;
             rooms?: boolean;
+            small_groups?: boolean;
             responsibilities?: boolean;
             program?: boolean;
             tasks?: boolean;
@@ -13871,7 +14364,7 @@ export type PostEventsByEventIdCopyResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;

@@ -30,6 +30,7 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	event_member: { label: "Team", icon: "i-lucide-user-check" },
 	event_group: { label: "Gruppe", icon: "i-lucide-users-round" },
 	room: { label: "Zimmer", icon: "i-lucide-bed-double" },
+	small_group: { label: "Kleingruppe", icon: "i-lucide-group" },
 	participant: { label: "Teilnehmende", icon: "i-lucide-user-round" },
 	participant_note: { label: "Teilnehmer-Notiz", icon: "i-lucide-notebook-pen" },
 	program_item: { label: "Programmpunkt", icon: "i-lucide-calendar-clock" },
@@ -81,6 +82,8 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 			return eventPath ? `${eventPath}/groups` : null;
 		case "room":
 			return eventPath ? `${eventPath}/rooms` : null;
+		case "small_group":
+			return eventPath ? `${eventPath}/small-groups` : null;
 		case "program_item":
 			return eventPath ? `${eventPath}/program` : null;
 		case "responsibility":

@@ -703,13 +703,16 @@ export const zPostAuthInvitationsInspectResponse = z.object({
             'volunteer',
             'unverified'
         ]),
-        expires_at: z.number()
+        expires_at: z.number(),
+        username_schema: z.string().nullable()
     })
 });
 
 export const zPostAuthInvitationsAcceptBody = z.object({
     token: z.string().min(1).max(256),
-    username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/),
+    username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/).optional(),
+    first_name: z.string().min(1).max(64).optional(),
+    last_name: z.string().min(1).max(64).optional(),
     display_name: z.string().min(1).max(64),
     password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/)
 });
@@ -768,7 +771,8 @@ export const zGetAccountResponse = z.object({
         suspended_reason: z.string().nullable(),
         last_login_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         last_seen_at: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
-        created_at: z.int().gte(-9007199254740991).lte(9007199254740991)
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        username_managed: z.boolean()
     })
 });
 
@@ -1041,7 +1045,7 @@ export const zGetAdminUsersResponse = z.object({
 });
 
 export const zPostAdminUsersBody = z.object({
-    username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/),
+    username: z.string().min(5).max(40).regex(/^(?!.*[.-]{2})(?!.*--)(?!.*\.\.)[a-z0-9](?:[a-z0-9._-]{3,38}[a-z0-9_])?$/).optional(),
     display_name: z.string().min(1).max(64),
     email: z.email().regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/),
     role: z.enum([
@@ -1051,7 +1055,9 @@ export const zPostAdminUsersBody = z.object({
         'unverified'
     ]).optional(),
     phone: z.string().max(40).nullish(),
-    password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/).optional()
+    password: z.string().min(8).max(50).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/).optional(),
+    first_name: z.string().min(1).max(64).optional(),
+    last_name: z.string().min(1).max(64).optional()
 });
 
 /**
@@ -1642,7 +1648,11 @@ export const zGetAdminOrganizationResponse = z.object({
             icon_url: z.string().nullable()
         }),
         multi_org: z.boolean(),
-        domain_self_service: z.boolean()
+        domain_self_service: z.boolean(),
+        accounts: z.object({
+            username_mode: z.enum(['schema', 'free']),
+            username_schema: z.string()
+        })
     })
 });
 
@@ -1668,7 +1678,9 @@ export const zPutAdminOrganizationBody = z.object({
         'rose'
     ]).optional(),
     file_sharing_enabled: z.boolean().optional(),
-    share_default_expiry_days: z.int().gte(1).lte(3650).nullish()
+    share_default_expiry_days: z.int().gte(1).lte(3650).nullish(),
+    username_mode: z.enum(['schema', 'free']).optional(),
+    username_schema: z.string().min(1).max(60).optional()
 });
 
 /**
@@ -1711,7 +1723,11 @@ export const zPutAdminOrganizationResponse = z.object({
             icon_url: z.string().nullable()
         }),
         multi_org: z.boolean(),
-        domain_self_service: z.boolean()
+        domain_self_service: z.boolean(),
+        accounts: z.object({
+            username_mode: z.enum(['schema', 'free']),
+            username_schema: z.string()
+        })
     })
 });
 
@@ -1759,7 +1775,11 @@ export const zDeleteAdminOrganizationAssetsByKindResponse = z.object({
             icon_url: z.string().nullable()
         }),
         multi_org: z.boolean(),
-        domain_self_service: z.boolean()
+        domain_self_service: z.boolean(),
+        accounts: z.object({
+            username_mode: z.enum(['schema', 'free']),
+            username_schema: z.string()
+        })
     })
 });
 
@@ -1811,7 +1831,11 @@ export const zPutAdminOrganizationAssetsByKindResponse = z.object({
             icon_url: z.string().nullable()
         }),
         multi_org: z.boolean(),
-        domain_self_service: z.boolean()
+        domain_self_service: z.boolean(),
+        accounts: z.object({
+            username_mode: z.enum(['schema', 'free']),
+            username_schema: z.string()
+        })
     })
 });
 
@@ -4801,6 +4825,8 @@ export const zGetEventsResponse = z.object({
             'participants:add_note',
             'rooms:view',
             'rooms:manage',
+            'small_groups:view',
+            'small_groups:manage',
             'program:view',
             'program:manage',
             'responsibilities:view',
@@ -4941,6 +4967,8 @@ export const zPostEventsResponse = z.object({
             'participants:add_note',
             'rooms:view',
             'rooms:manage',
+            'small_groups:view',
+            'small_groups:manage',
             'program:view',
             'program:manage',
             'responsibilities:view',
@@ -5067,6 +5095,8 @@ export const zGetEventsByEventIdResponse = z.object({
             'participants:add_note',
             'rooms:view',
             'rooms:manage',
+            'small_groups:view',
+            'small_groups:manage',
             'program:view',
             'program:manage',
             'responsibilities:view',
@@ -5210,6 +5240,8 @@ export const zPutEventsByEventIdResponse = z.object({
             'participants:add_note',
             'rooms:view',
             'rooms:manage',
+            'small_groups:view',
+            'small_groups:manage',
             'program:view',
             'program:manage',
             'responsibilities:view',
@@ -5323,6 +5355,8 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
                 'participants:add_note',
                 'rooms:view',
                 'rooms:manage',
+                'small_groups:view',
+                'small_groups:manage',
                 'program:view',
                 'program:manage',
                 'responsibilities:view',
@@ -5471,6 +5505,17 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
             id: z.number(),
             name: z.string(),
             color: z.string().nullable()
+        })),
+        my_small_groups: z.array(z.object({
+            id: z.number(),
+            name: z.string(),
+            color: z.string().nullable(),
+            meeting_point: z.string().nullable(),
+            participant_count: z.number()
+        })),
+        my_responsible_rooms: z.array(z.object({
+            id: z.number(),
+            name: z.string()
         })),
         next_occurrences: z.array(z.object({
             id: z.number(),
@@ -5854,6 +5899,19 @@ export const zGetEventsByEventIdRoomsResponse = z.object({
                 'unverified'
             ])
         })),
+        responsibles: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
         occupancy: z.number()
     }))
 });
@@ -5861,7 +5919,8 @@ export const zGetEventsByEventIdRoomsResponse = z.object({
 export const zPostEventsByEventIdRoomsBody = z.object({
     name: z.string().min(1).max(80),
     capacity: z.int().gte(0).lte(1000).nullish().default(null),
-    notes: z.string().max(2000).optional().default('')
+    notes: z.string().max(2000).optional().default(''),
+    responsible_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([])
 });
 
 export const zPostEventsByEventIdRoomsPath = z.object({
@@ -5894,6 +5953,19 @@ export const zPostEventsByEventIdRoomsResponse = z.object({
             birth_date: z.string().nullable()
         })),
         staff: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        responsibles: z.array(z.object({
             id: z.number(),
             username: z.string(),
             display_name: z.string(),
@@ -5963,6 +6035,19 @@ export const zPutEventsByEventIdRoomsAssignmentsResponse = z.object({
                 'unverified'
             ])
         })),
+        responsibles: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
         occupancy: z.number()
     }))
 });
@@ -5985,7 +6070,8 @@ export const zDeleteEventsByEventIdRoomsByRoomIdResponse = z.object({
 export const zPutEventsByEventIdRoomsByRoomIdBody = z.object({
     name: z.string().min(1).max(80).optional(),
     capacity: z.int().gte(0).lte(1000).nullish(),
-    notes: z.string().max(2000).optional()
+    notes: z.string().max(2000).optional(),
+    responsible_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional()
 });
 
 export const zPutEventsByEventIdRoomsByRoomIdPath = z.object({
@@ -6031,7 +6117,271 @@ export const zPutEventsByEventIdRoomsByRoomIdResponse = z.object({
                 'unverified'
             ])
         })),
+        responsibles: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
         occupancy: z.number()
+    })
+});
+
+export const zGetEventsByEventIdSmallGroupsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Small groups retrieved successfully
+ */
+export const zGetEventsByEventIdSmallGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Small groups retrieved successfully'),
+    data: z.array(z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        event_id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        meeting_point: z.string().nullable(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        leaders: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        participants: z.array(z.object({
+            id: z.number(),
+            first_name: z.string(),
+            last_name: z.string(),
+            gender: z.enum([
+                'female',
+                'male',
+                'diverse'
+            ]).nullable(),
+            birth_date: z.string().nullable(),
+            status: z.enum([
+                'registered',
+                'confirmed',
+                'waitlist',
+                'cancelled'
+            ])
+        })),
+        participant_count: z.number()
+    }))
+});
+
+export const zPostEventsByEventIdSmallGroupsBody = z.object({
+    name: z.string().min(1).max(80),
+    description: z.string().max(2000).optional().default(''),
+    meeting_point: z.string().max(200).nullish().default(null),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish().default(null),
+    leader_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([])
+});
+
+export const zPostEventsByEventIdSmallGroupsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Small group created successfully
+ */
+export const zPostEventsByEventIdSmallGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Small group created successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        event_id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        meeting_point: z.string().nullable(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        leaders: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        participants: z.array(z.object({
+            id: z.number(),
+            first_name: z.string(),
+            last_name: z.string(),
+            gender: z.enum([
+                'female',
+                'male',
+                'diverse'
+            ]).nullable(),
+            birth_date: z.string().nullable(),
+            status: z.enum([
+                'registered',
+                'confirmed',
+                'waitlist',
+                'cancelled'
+            ])
+        })),
+        participant_count: z.number()
+    })
+});
+
+export const zPutEventsByEventIdSmallGroupsAssignmentsBody = z.object({
+    participants: z.array(z.object({
+        participant_id: z.int().gt(0).lte(9007199254740991),
+        small_group_id: z.int().gt(0).lte(9007199254740991).nullable()
+    })).min(1).max(2000)
+});
+
+export const zPutEventsByEventIdSmallGroupsAssignmentsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Small group assignments updated successfully
+ */
+export const zPutEventsByEventIdSmallGroupsAssignmentsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Small group assignments updated successfully'),
+    data: z.array(z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        event_id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        meeting_point: z.string().nullable(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        leaders: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        participants: z.array(z.object({
+            id: z.number(),
+            first_name: z.string(),
+            last_name: z.string(),
+            gender: z.enum([
+                'female',
+                'male',
+                'diverse'
+            ]).nullable(),
+            birth_date: z.string().nullable(),
+            status: z.enum([
+                'registered',
+                'confirmed',
+                'waitlist',
+                'cancelled'
+            ])
+        })),
+        participant_count: z.number()
+    }))
+});
+
+export const zDeleteEventsByEventIdSmallGroupsBySmallGroupIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    smallGroupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Small group deleted successfully
+ */
+export const zDeleteEventsByEventIdSmallGroupsBySmallGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Small group deleted successfully'),
+    data: z.null()
+});
+
+export const zPutEventsByEventIdSmallGroupsBySmallGroupIdBody = z.object({
+    name: z.string().min(1).max(80).optional(),
+    description: z.string().max(2000).optional(),
+    meeting_point: z.string().max(200).nullish(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+    leader_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional()
+});
+
+export const zPutEventsByEventIdSmallGroupsBySmallGroupIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    smallGroupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Small group updated successfully
+ */
+export const zPutEventsByEventIdSmallGroupsBySmallGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Small group updated successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        event_id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        meeting_point: z.string().nullable(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        leaders: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        participants: z.array(z.object({
+            id: z.number(),
+            first_name: z.string(),
+            last_name: z.string(),
+            gender: z.enum([
+                'female',
+                'male',
+                'diverse'
+            ]).nullable(),
+            birth_date: z.string().nullable(),
+            status: z.enum([
+                'registered',
+                'confirmed',
+                'waitlist',
+                'cancelled'
+            ])
+        })),
+        participant_count: z.number()
     })
 });
 
@@ -6080,6 +6430,7 @@ export const zGetEventsByEventIdParticipantsResponse = z.object({
         photo_consent: z.boolean(),
         notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        small_group_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
             'confirmed',
@@ -6094,6 +6445,11 @@ export const zGetEventsByEventIdParticipantsResponse = z.object({
         room: z.object({
             id: z.number(),
             name: z.string()
+        }).nullable(),
+        small_group: z.object({
+            id: z.number(),
+            name: z.string(),
+            color: z.string().nullable()
         }).nullable(),
         emergency_contacts: z.array(z.object({
             id: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6129,6 +6485,7 @@ export const zPostEventsByEventIdParticipantsBody = z.object({
     photo_consent: z.boolean().optional().default(false),
     notes: z.string().max(10000).optional().default(''),
     room_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    small_group_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
     status: z.enum([
         'registered',
         'confirmed',
@@ -6178,6 +6535,7 @@ export const zPostEventsByEventIdParticipantsResponse = z.object({
         photo_consent: z.boolean(),
         notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        small_group_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
             'confirmed',
@@ -6192,6 +6550,11 @@ export const zPostEventsByEventIdParticipantsResponse = z.object({
         room: z.object({
             id: z.number(),
             name: z.string()
+        }).nullable(),
+        small_group: z.object({
+            id: z.number(),
+            name: z.string(),
+            color: z.string().nullable()
         }).nullable(),
         emergency_contacts: z.array(z.object({
             id: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6284,6 +6647,7 @@ export const zGetEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         photo_consent: z.boolean(),
         notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        small_group_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
             'confirmed',
@@ -6298,6 +6662,11 @@ export const zGetEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         room: z.object({
             id: z.number(),
             name: z.string()
+        }).nullable(),
+        small_group: z.object({
+            id: z.number(),
+            name: z.string(),
+            color: z.string().nullable()
         }).nullable(),
         emergency_contacts: z.array(z.object({
             id: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6352,6 +6721,7 @@ export const zPutEventsByEventIdParticipantsByParticipantIdBody = z.object({
     photo_consent: z.boolean().optional(),
     notes: z.string().max(10000).optional(),
     room_id: z.int().gt(0).lte(9007199254740991).nullish(),
+    small_group_id: z.int().gt(0).lte(9007199254740991).nullish(),
     status: z.enum([
         'registered',
         'confirmed',
@@ -6402,6 +6772,7 @@ export const zPutEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         photo_consent: z.boolean(),
         notes: z.string(),
         room_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
+        small_group_id: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         status: z.enum([
             'registered',
             'confirmed',
@@ -6416,6 +6787,11 @@ export const zPutEventsByEventIdParticipantsByParticipantIdResponse = z.object({
         room: z.object({
             id: z.number(),
             name: z.string()
+        }).nullable(),
+        small_group: z.object({
+            id: z.number(),
+            name: z.string(),
+            color: z.string().nullable()
         }).nullable(),
         emergency_contacts: z.array(z.object({
             id: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6527,6 +6903,7 @@ export const zGetEventsByEventIdProgramResponse = z.object({
         color: z.string().nullable(),
         start_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         end_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        in_small_groups: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6575,6 +6952,7 @@ export const zPostEventsByEventIdProgramBody = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish().default(null),
     start_at: z.int().gte(0).lte(9007199254740991),
     end_at: z.int().gte(0).lte(9007199254740991),
+    in_small_groups: z.boolean().optional().default(false),
     responsible_user_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([]),
     file_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional().default([])
 });
@@ -6600,6 +6978,7 @@ export const zPostEventsByEventIdProgramResponse = z.object({
         color: z.string().nullable(),
         start_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         end_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        in_small_groups: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6663,6 +7042,7 @@ export const zPutEventsByEventIdProgramByProgramItemIdBody = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
     start_at: z.int().gte(0).lte(9007199254740991).optional(),
     end_at: z.int().gte(0).lte(9007199254740991).optional(),
+    in_small_groups: z.boolean().optional(),
     responsible_user_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional(),
     file_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(50).optional()
 });
@@ -6689,6 +7069,7 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
         color: z.string().nullable(),
         start_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         end_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        in_small_groups: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6755,6 +7136,7 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
         color: z.string().nullable(),
         start_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         end_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        in_small_groups: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -8851,6 +9233,7 @@ export const zGetEventsByEventIdCopyResponse = z.object({
         team: z.number(),
         groups: z.number(),
         rooms: z.number(),
+        small_groups: z.number(),
         responsibilities: z.number(),
         program: z.number(),
         tasks: z.number(),
@@ -8872,6 +9255,7 @@ export const zPostEventsByEventIdCopyBody = z.object({
         team: z.boolean().optional().default(true),
         groups: z.boolean().optional().default(true),
         rooms: z.boolean().optional().default(true),
+        small_groups: z.boolean().optional().default(true),
         responsibilities: z.boolean().optional().default(true),
         program: z.boolean().optional().default(true),
         tasks: z.boolean().optional().default(true),
@@ -8885,6 +9269,7 @@ export const zPostEventsByEventIdCopyBody = z.object({
         team: true,
         groups: true,
         rooms: true,
+        small_groups: true,
         responsibilities: true,
         program: true,
         tasks: true,
@@ -8958,6 +9343,8 @@ export const zPostEventsByEventIdCopyResponse = z.object({
                 'participants:add_note',
                 'rooms:view',
                 'rooms:manage',
+                'small_groups:view',
+                'small_groups:manage',
                 'program:view',
                 'program:manage',
                 'responsibilities:view',

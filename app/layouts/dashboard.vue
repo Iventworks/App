@@ -126,6 +126,7 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 		{ label: "Programm", icon: "i-lucide-calendar-range", to: `${base}/program` },
 		{ label: "Teilnehmende", icon: "i-lucide-users", to: `${base}/participants` },
 		...(recurring ? [] : [{ label: "Zimmer", icon: "i-lucide-bed-double", to: `${base}/rooms` }]),
+		{ label: "Kleingruppen", icon: "i-lucide-group", to: `${base}/small-groups` },
 		{ label: "Team", icon: "i-lucide-contact", to: `${base}/staff` },
 		{ label: "Gruppen", icon: "i-lucide-users-round", to: `${base}/groups` },
 		{ label: "Zuständigkeiten", icon: "i-lucide-badge-check", to: `${base}/responsibilities` },

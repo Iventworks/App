@@ -1,23 +1,33 @@
 <script setup lang="ts">
 /**
  * Program item details. Staff see a read-only view (time, place, description, responsible people,
- * linked documents); leaders (`editable`) edit it, duplicate it to another slot or delete it.
- * Pass `item` to edit an existing item or `draft` (start/end) to create one.
+ * linked documents, and the Kleingruppen when it takes place in them); leaders (`editable`) edit
+ * it, duplicate it to another slot or delete it. Pass `item` to edit an existing item or `draft`
+ * (start/end) to create one.
  */
 import * as z from "zod";
-import type { GetEventsByEventIdProgramResponses } from "~/api-client";
+import type {
+	GetEventsByEventIdProgramResponses,
+	GetEventsByEventIdSmallGroupsResponses,
+} from "~/api-client";
 import { zPostEventsByEventIdProgramBody } from "~/api-client/zod.gen";
 import type { EventMember, FileItem } from "~/utils/types";
 
 type ProgramItem = GetEventsByEventIdProgramResponses["200"]["data"][number];
+type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
 
-const props = defineProps<{
-	eventId: number;
-	item: ProgramItem | null;
-	draft: { start_at: number; end_at: number } | null;
-	editable: boolean;
-	members: EventMember[];
-}>();
+const props = withDefaults(
+	defineProps<{
+		eventId: number;
+		item: ProgramItem | null;
+		draft: { start_at: number; end_at: number } | null;
+		editable: boolean;
+		members: EventMember[];
+		/** The event's Kleingruppen, shown for items that take place in them. */
+		smallGroups?: SmallGroup[];
+	}>(),
+	{ smallGroups: () => [] },
+);
 
 const emit = defineEmits<{
 	saved: [];
@@ -46,6 +56,7 @@ const form = reactive({
 	color: COLOR_PRESETS[0] as string | null,
 	start: "",
 	end: "",
+	in_small_groups: false,
 	responsible_user_ids: [] as number[],
 });
 const files = ref<FileItem[]>([]);
@@ -68,6 +79,7 @@ watch(open, (isOpen) => {
 		color: item ? item.color : COLOR_PRESETS[0],
 		start: toDateTimeInput(start),
 		end: toDateTimeInput(end),
+		in_small_groups: item?.in_small_groups ?? false,
 		responsible_user_ids: item?.responsible.map((person) => person.id) ?? [],
 	});
 	files.value = item ? [...item.files] : [];
@@ -115,6 +127,7 @@ async function submit() {
 		color: form.color,
 		start_at,
 		end_at,
+		in_small_groups: form.in_small_groups,
 		responsible_user_ids: form.responsible_user_ids,
 		file_ids: files.value.map((file) => file.id),
 	};
@@ -228,6 +241,31 @@ function fileLink(file: FileItem) {
 
 			<ContentMarkdownView v-if="item.description" :content="item.description" />
 
+			<div v-if="item.in_small_groups">
+				<p class="mb-2 flex items-center gap-2 text-sm font-medium text-slate-300">
+					<UIcon name="i-lucide-group" class="size-4 text-primary-400" />
+					Findet in den Kleingruppen statt
+				</p>
+				<ul v-if="smallGroups.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
+					<li v-for="group in smallGroups" :key="group.id" class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
+						<span class="flex min-w-0 items-center gap-2 font-medium text-white">
+							<span
+								class="size-2.5 shrink-0 rounded-full bg-slate-500"
+								:style="group.color ? { backgroundColor: group.color } : undefined"
+							/>
+							{{ group.name }}
+						</span>
+						<span v-if="group.meeting_point" class="flex items-center gap-1 text-slate-400">
+							<UIcon name="i-lucide-map-pin" class="size-3.5" /> {{ group.meeting_point }}
+						</span>
+						<span class="ml-auto text-xs text-slate-400">
+							{{ group.leaders.length ? group.leaders.map((leader) => leader.display_name).join(", ") : "ohne Leitung" }}
+						</span>
+					</li>
+				</ul>
+				<p v-else class="text-sm text-slate-500">Für dieses Event sind noch keine Kleingruppen angelegt.</p>
+			</div>
+
 			<div v-if="item.responsible.length">
 				<p class="mb-2 text-sm font-medium text-slate-300">Zuständig</p>
 				<div class="flex flex-wrap gap-2">
@@ -302,6 +340,17 @@ function fileLink(file: FileItem) {
 						@click="form.color = color"
 					/>
 				</div>
+			</UFormField>
+
+			<UFormField
+				name="in_small_groups"
+				:description="
+					smallGroups.length
+						? `Jede der ${smallGroups.length} Kleingruppen mit ihrer Leitung an ihrem Treffpunkt.`
+						: 'Lege die Kleingruppen unter „Kleingruppen“ an, damit sie hier erscheinen.'
+				"
+			>
+				<USwitch v-model="form.in_small_groups" label="Findet in Kleingruppen statt" />
 			</UFormField>
 
 			<UFormField label="Zuständige Personen" name="responsible_user_ids">

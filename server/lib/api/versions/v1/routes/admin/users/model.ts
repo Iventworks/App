@@ -70,7 +70,8 @@ export namespace AdminUsersModel.GetAll {
 
 export namespace AdminUsersModel.Create {
 	const InsertSchema = createInsertSchema(DB.Tables.users, {
-		username: UserDataPolicies.Username,
+		// Required when the org lets admins pick it; built from the name under a schema.
+		username: UserDataPolicies.Username.optional(),
 		display_name: z.string().trim().min(1).max(64),
 		email: z.email(),
 		// A refinement replaces the column's optionality — keep it optional explicitly.
@@ -83,6 +84,9 @@ export namespace AdminUsersModel.Create {
 	 */
 	export const Body = InsertSchema.extend({
 		password: UserDataPolicies.Password.optional(),
+		/** Required under the org's username schema (`GET /admin/organization` › `accounts`). */
+		first_name: z.string().trim().min(1).max(64).optional(),
+		last_name: z.string().trim().min(1).max(64).optional(),
 	});
 	export type Body = z.infer<typeof Body>;
 

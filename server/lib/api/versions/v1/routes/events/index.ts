@@ -379,7 +379,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "Get event overview",
 		description:
-			"Everything the caller needs at a glance: today's and upcoming program, news, their tasks, responsibilities, room and groups.",
+			"Everything the caller needs at a glance: today's and upcoming program, news, their tasks, responsibilities, room, groups, the Kleingruppen they lead and the rooms they are responsible for.",
 		tags: [DOCS_TAGS.EVENTS.EVENTS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -537,6 +537,66 @@ router.get(
 					.get()) ?? null)
 			: null;
 
+		const mySmallGroups = await db
+			.select({
+				id: DB.Tables.smallGroups.id,
+				name: DB.Tables.smallGroups.name,
+				color: DB.Tables.smallGroups.color,
+				meeting_point: DB.Tables.smallGroups.meeting_point,
+			})
+			.from(DB.Tables.smallGroupLeaders)
+			.innerJoin(
+				DB.Tables.smallGroups,
+				and(
+					inOrg(DB.Tables.smallGroups),
+					eq(DB.Tables.smallGroups.id, DB.Tables.smallGroupLeaders.small_group_id),
+				),
+			)
+			.where(
+				and(
+					inOrg(DB.Tables.smallGroupLeaders),
+					eq(DB.Tables.smallGroups.event_id, event.id),
+					eq(DB.Tables.smallGroupLeaders.user_id, userId),
+				),
+			)
+			.orderBy(asc(DB.Tables.smallGroups.name))
+			.all();
+		const smallGroupCounts = mySmallGroups.length
+			? await db
+					.select({ id: DB.Tables.participants.small_group_id, value: count() })
+					.from(DB.Tables.participants)
+					.where(
+						and(
+							inOrg(DB.Tables.participants),
+							eq(DB.Tables.participants.event_id, event.id),
+							inArray(
+								DB.Tables.participants.small_group_id,
+								mySmallGroups.map((group) => group.id),
+							),
+							ne(DB.Tables.participants.status, "cancelled"),
+						),
+					)
+					.groupBy(DB.Tables.participants.small_group_id)
+					.all()
+			: [];
+
+		const myResponsibleRooms = await db
+			.select({ id: DB.Tables.rooms.id, name: DB.Tables.rooms.name })
+			.from(DB.Tables.roomResponsibles)
+			.innerJoin(
+				DB.Tables.rooms,
+				and(inOrg(DB.Tables.rooms), eq(DB.Tables.rooms.id, DB.Tables.roomResponsibles.room_id)),
+			)
+			.where(
+				and(
+					inOrg(DB.Tables.roomResponsibles),
+					eq(DB.Tables.rooms.event_id, event.id),
+					eq(DB.Tables.roomResponsibles.user_id, userId),
+				),
+			)
+			.orderBy(asc(DB.Tables.rooms.name))
+			.all();
+
 		const openTasks = await db
 			.select({ value: count() })
 			.from(DB.Tables.tasks)
@@ -614,6 +674,11 @@ router.get(
 			my_responsibilities: myResponsibilities,
 			my_room: myRoom,
 			my_groups: myGroups,
+			my_small_groups: mySmallGroups.map((group) => ({
+				...group,
+				participant_count: smallGroupCounts.find((entry) => entry.id === group.id)?.value ?? 0,
+			})),
+			my_responsible_rooms: myResponsibleRooms,
 			next_occurrences: nextOccurrences,
 			counts: {
 				participants: eventWithAccess!.participant_count,
@@ -629,6 +694,7 @@ router.get(
 router.route("/", (await import("./members")).router);
 router.route("/", (await import("./groups")).router);
 router.route("/", (await import("./rooms")).router);
+router.route("/", (await import("./small-groups")).router);
 router.route("/", (await import("./participants")).router);
 router.route("/", (await import("./program")).router);
 router.route("/", (await import("./responsibilities")).router);

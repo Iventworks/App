@@ -30,6 +30,7 @@ export const DOCS_TAGS = {
 		MEMBERS: "Events / Staff",
 		GROUPS: "Events / Groups",
 		ROOMS: "Events / Rooms",
+		SMALL_GROUPS: "Events / Small groups",
 		PARTICIPANTS: "Events / Participants",
 		OCCURRENCES: "Events / Dates & duty roster",
 		PROGRAM: "Events / Program",

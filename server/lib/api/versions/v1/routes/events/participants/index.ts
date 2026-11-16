@@ -58,6 +58,23 @@ async function validateRoom(eventId: number, roomId: number | null | undefined) 
 	return room ? null : "The room does not belong to this event";
 }
 
+/** A Kleingruppe id must belong to the event (null always passes). */
+async function validateSmallGroup(eventId: number, smallGroupId: number | null | undefined) {
+	if (!smallGroupId) return null;
+	const group = await DB.instance()
+		.select({ id: DB.Tables.smallGroups.id })
+		.from(DB.Tables.smallGroups)
+		.where(
+			and(
+				inOrg(DB.Tables.smallGroups),
+				eq(DB.Tables.smallGroups.id, smallGroupId),
+				eq(DB.Tables.smallGroups.event_id, eventId),
+			),
+		)
+		.get();
+	return group ? null : "The small group does not belong to this event";
+}
+
 async function replaceEmergencyContacts(
 	participantId: number,
 	contacts: EventParticipantsModel.EmergencyContactInput[],
@@ -131,6 +148,25 @@ async function toResponse(
 				.all()
 		: [];
 
+	const smallGroupIds = [
+		...new Set(
+			participants
+				.map((participant) => participant.small_group_id)
+				.filter((id): id is number => id !== null),
+		),
+	];
+	const smallGroups = smallGroupIds.length
+		? await DB.instance()
+				.select({
+					id: DB.Tables.smallGroups.id,
+					name: DB.Tables.smallGroups.name,
+					color: DB.Tables.smallGroups.color,
+				})
+				.from(DB.Tables.smallGroups)
+				.where(and(inOrg(DB.Tables.smallGroups), inArray(DB.Tables.smallGroups.id, smallGroupIds)))
+				.all()
+		: [];
+
 	const contacts = await DB.instance()
 		.select()
 		.from(DB.Tables.participantEmergencyContacts)
@@ -157,6 +193,7 @@ async function toResponse(
 		medical_visible: medicalVisible,
 		age: TimeUtils.ageOn(participant.birth_date, event.start_date),
 		room: rooms.find((room) => room.id === participant.room_id) ?? null,
+		small_group: smallGroups.find((group) => group.id === participant.small_group_id) ?? null,
 		emergency_contacts: contacts.filter((contact) => contact.participant_id === participant.id),
 		note_count: medicalVisible
 			? (noteCounts.find((entry) => entry.participant_id === participant.id)?.value ?? 0)
@@ -292,7 +329,7 @@ router.post(
 				EventParticipantsModel.Create.Response,
 			),
 			APIResponseSpec.badRequest(
-				"The room does not belong to this event / Syntax or validation error in request",
+				"The room or small group does not belong to this event / Syntax or validation error in request",
 			),
 			APIResponseSpec.notFound("Event not found"),
 			APIResponseSpec.forbidden("You are not allowed to manage participants"),
@@ -312,6 +349,8 @@ router.post(
 
 		const roomError = await validateRoom(event.id, body.room_id);
 		if (roomError) return APIResponse.badRequest(c, roomError);
+		const smallGroupError = await validateSmallGroup(event.id, body.small_group_id);
+		if (smallGroupError) return APIResponse.badRequest(c, smallGroupError);
 
 		let status = body.status;
 		if (event.max_participants !== null && ACTIVE_STATUSES.includes(status)) {
@@ -415,6 +454,7 @@ router.get(
 			"Alter",
 			"Geschlecht",
 			"Zimmer",
+			"Kleingruppe",
 			"Status",
 			"Beitrag bezahlt",
 			"E-Mail",
@@ -439,6 +479,7 @@ router.get(
 			participant.age,
 			participant.gender ? GENDER_LABELS[participant.gender] : null,
 			participant.room?.name ?? null,
+			participant.small_group?.name ?? null,
 			STATUS_LABELS[participant.status],
 			participant.fee_paid,
 			participant.email,
@@ -552,7 +593,7 @@ router.put(
 				EventParticipantsModel.Update.Response,
 			),
 			APIResponseSpec.badRequest(
-				"The room does not belong to this event / Syntax or validation error in request",
+				"The room or small group does not belong to this event / Syntax or validation error in request",
 			),
 			APIResponseSpec.notFound("Participant not found"),
 			APIResponseSpec.forbidden("You are not allowed to manage participants"),
@@ -580,6 +621,8 @@ router.put(
 
 		const roomError = await validateRoom(event.id, body.room_id);
 		if (roomError) return APIResponse.badRequest(c, roomError);
+		const smallGroupError = await validateSmallGroup(event.id, body.small_group_id);
+		if (smallGroupError) return APIResponse.badRequest(c, smallGroupError);
 
 		let updated: DB.Models.Participant;
 		try {

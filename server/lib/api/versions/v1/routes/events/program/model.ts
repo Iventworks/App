@@ -34,6 +34,8 @@ export namespace EventProgramModel {
 			.nullable(),
 		start_at: z.number().int().nonnegative(),
 		end_at: z.number().int().nonnegative(),
+		/** Takes place in the Kleingruppen of the event (each with its leaders at its meeting point). */
+		in_small_groups: z.boolean(),
 		/** Staff members of the event responsible for this item (replaces the set). */
 		responsible_user_ids: z.array(z.number().int().positive()).max(50),
 		/** Event documents or organisation documents (files or folders) to attach. */
@@ -66,6 +68,7 @@ export namespace EventProgramModel.Create {
 			color: F.color.default(null),
 			start_at: F.start_at,
 			end_at: F.end_at,
+			in_small_groups: F.in_small_groups.default(false),
 			responsible_user_ids: F.responsible_user_ids.default([]),
 			file_ids: F.file_ids.default([]),
 		})

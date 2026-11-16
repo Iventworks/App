@@ -17,7 +17,7 @@ import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
 import { createMemoryTransport } from "./helpers/memory-transport";
-import { hostHeaders, TEST_HOST } from "./helpers/orgs";
+import { hostHeaders, setTestOrgUsernameMode, TEST_HOST } from "./helpers/orgs";
 import {
 	addEventMember,
 	type SeededSession,
@@ -64,6 +64,10 @@ beforeAll(async () => {
 });
 
 describe("Invitations", () => {
+	// These tests cover free choice; `username-schema.test.ts` covers the schema (the default).
+	beforeAll(() => setTestOrgUsernameMode("free"));
+	afterAll(() => setTestOrgUsernameMode("schema"));
+
 	const captured: CapturedEmail[] = [];
 	const invitedEmail = `invitee-${randomUUID().slice(0, 8)}@example.com`;
 	let inviteToken: string;
@@ -341,6 +345,10 @@ describe("Admin users and audit log", () => {
 });
 
 describe("Admin user management", () => {
+	// Usernames picked by the admin; `username-schema.test.ts` covers the schema (the default).
+	beforeAll(() => setTestOrgUsernameMode("free"));
+	afterAll(() => setTestOrgUsernameMode("schema"));
+
 	const login = (username: string, password: string, status = 200) =>
 		makeAPIRequest("/v1/auth/login", { method: "POST", body: { username, password } }, status);
 

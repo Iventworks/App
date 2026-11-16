@@ -9,6 +9,7 @@ import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../utils/preferences";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
+import { UsernamePolicy } from "../../../../utils/usernamePolicy";
 import { DOCS_TAGS } from "../../docs";
 import { AccountModel } from "./model";
 
@@ -55,7 +56,10 @@ router.get(
 			throw new Error("User not found but session exists");
 		}
 
-		const userWithoutSensitive = AccountModel.GetInfo.Response.parse(user);
+		const userWithoutSensitive = AccountModel.GetInfo.Response.parse({
+			...user,
+			username_managed: UsernamePolicy.enforcedSchema() !== null,
+		});
 
 		return APIResponse.success(c, "Account information retrieved successfully", userWithoutSensitive);
 	},
@@ -66,7 +70,8 @@ router.put(
 
 	APIRouteSpec.authenticated({
 		summary: "Update account information",
-		description: "Update information about the authenticated user's account.",
+		description:
+			"Update information about the authenticated user's account. The username can only be changed while the org lets people choose it (`username_managed` is false).",
 		tags: [DOCS_TAGS.ACCOUNT],
 
 		// A wrong password is a 400, not a 401: clients treat 401 as "session expired" and sign out.
@@ -76,6 +81,7 @@ router.put(
 			APIResponseSpec.badRequest(
 				"Current password is incorrect / Syntax or validation error in request",
 			),
+			APIResponseSpec.forbidden("Usernames are assigned by your organisation"),
 			APIResponseSpec.conflict("Username or email already in use"),
 		),
 	}),
@@ -101,6 +107,15 @@ router.put(
 		// (and then take the account over via password reset). See docs/10-auth.md.
 		if (!(await Bun.password.verify(current_password, user.password_hash))) {
 			return APIResponse.badRequest(c, "Current password is incorrect");
+		}
+
+		// Under the org's username schema nobody renames themselves (admins still can).
+		if (
+			updates.username &&
+			updates.username !== user.username &&
+			UsernamePolicy.enforcedSchema() !== null
+		) {
+			return APIResponse.forbidden(c, "Usernames are assigned by your organisation");
 		}
 
 		// Check for conflicts if changing username or email
