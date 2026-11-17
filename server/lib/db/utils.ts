@@ -16,6 +16,11 @@ export declare class DrizzleDB extends BaseSQLiteDatabase<
 export namespace DrizzleDB {
 	export type BunSQLite = ReturnType<typeof drizzle_bun>;
 	export type D1 = ReturnType<typeof drizzle_d1>;
+	/**
+	 * The database or the handle of a synchronous transaction (`DB.instance().transaction((tx) =>
+	 * …)`, AGENTS.md › Transactions): queries return their rows directly, without `await`.
+	 */
+	export type Sync = Pick<BunSQLite, "select" | "insert" | "update" | "delete">;
 }
 
 export class SQLUtils {

@@ -95,13 +95,17 @@ router.put(
 					: "Freigabelinks ohne Standard-Ablauf",
 			);
 		}
-		if (body.username_mode !== undefined && body.username_mode !== before.username_mode) {
+		const modeChanged = org.username_mode !== before.username_mode;
+		const schemaChanged = org.username_schema !== before.username_schema;
+		if (modeChanged) {
 			changes.push(
 				org.username_mode === "schema"
 					? `Benutzernamen nach Schema „${org.username_schema}“`
 					: "Benutzernamen frei wählbar",
 			);
-		} else if (body.username_schema !== undefined && org.username_schema !== before.username_schema) {
+		}
+		// Switching to the schema already names the new one.
+		if (schemaChanged && !(modeChanged && org.username_mode === "schema")) {
 			changes.push(`Benutzernamen-Schema „${before.username_schema}“ → „${org.username_schema}“`);
 		}
 		if (changes.length) {

@@ -35,6 +35,23 @@ describe("UsernameSchema", () => {
 		expect(generate("Zoë", "Lefèvre")).toBe("zoe.lefevre");
 		expect(generate("Seán", "O'Brien")).toBe("sean.obrien");
 		expect(generate("Łukasz", "Søren")).toBe("lukasz.soeren");
+		// Decomposed umlauts (u + combining diaeresis, as pasted from macOS or a PDF) too.
+		expect(generate("Jürgen", "Müller")).toBe("juergen.mueller");
+	});
+
+	test("Cyrillic and Greek are written in Latin letters (ICAO, as in passports)", () => {
+		expect(generate("Иван", "Петров")).toBe("ivan.petrov");
+		expect(generate("Юлия", "Щербакова")).toBe("iuliia.shcherbakova");
+		expect(generate("Олександр", "Їжак")).toBe("oleksandr.izhak");
+		expect(generate("Γιώργος", "Παπαδόπουλος")).toBe("giorgos.papadopoulos");
+	});
+
+	test("names in a script without Latin spelling: the person picks the username", () => {
+		expect(generate("伟", "王")).toBe("");
+		expect(UsernameSchema.needsChosenUsername(UsernameSchema.DEFAULT, "伟", "王")).toBe(true);
+		// No letters at all is not a name in another script, just invalid.
+		expect(UsernameSchema.needsChosenUsername(UsernameSchema.DEFAULT, "!!!", "???")).toBe(false);
+		expect(UsernameSchema.needsChosenUsername(UsernameSchema.DEFAULT, "Max", "Muster")).toBe(false);
 	});
 
 	test("other placeholders and literals", () => {
@@ -59,9 +76,13 @@ describe("UsernameSchema", () => {
 		expect(UsernameSchema.candidate("max.mustermann", 0)).toBe("max.mustermann");
 		expect(UsernameSchema.candidate("max.mustermann", 1)).toBe("max.mustermann2");
 		expect(UsernameSchema.candidate("max.mustermann", 9)).toBe("max.mustermann10");
-		// Too short alone, fine with a number.
+		// Too short alone: counted from 1, padded to the minimum length.
 		expect(UsernameSchema.candidate("a.li", 0)).toBeNull();
-		expect(UsernameSchema.candidate("a.li", 1)).toBe("a.li2");
+		expect(UsernameSchema.candidate("a.li", 1)).toBe("a.li1");
+		expect(UsernameSchema.candidate("a.li", 2)).toBe("a.li2");
+		expect(UsernameSchema.candidate("li", 1)).toBe("li001");
+		expect(UsernameSchema.candidate("li", 2)).toBe("li002");
+		expect(UsernameSchema.candidate("li", 1000)).toBe("li1000");
 		// A 40-character base is shortened to fit the number.
 		const base = "a".repeat(40);
 		expect(UsernameSchema.candidate(base, 1)).toBe(`${"a".repeat(39)}2`);
@@ -141,6 +162,25 @@ describe("Organisation setting", () => {
 		expect(log.some((entry) => entry.summary.includes("Benutzernamen frei wählbar"))).toBe(true);
 
 		await setTestOrgUsernameMode("schema", UsernameSchema.DEFAULT);
+	});
+
+	test("changing mode and schema at once logs both", async () => {
+		const before = Date.now() - 1;
+		await makeAPIRequest("/v1/admin/organization", {
+			method: "PUT",
+			authToken: adminSession.token,
+			body: { username_mode: "free", username_schema: "{LASTNAME}" },
+		});
+		await setTestOrgUsernameMode("schema", UsernameSchema.DEFAULT);
+
+		const [entry] = DB.instance()
+			.select()
+			.from(DB.Tables.auditLogs)
+			.where(eq(DB.Tables.auditLogs.entity_type, "organization"))
+			.all()
+			.filter((row) => row.created_at >= before);
+		expect(entry?.summary).toContain("Benutzernamen frei wählbar");
+		expect(entry?.summary).toContain("„{FIRSTNAME}.{LASTNAME}“ → „{LASTNAME}“");
 	});
 });
 
@@ -282,6 +322,35 @@ describe("Creating accounts under the schema", () => {
 			await rename("selbst.gewaehlt");
 		} finally {
 			await setTestOrgUsernameMode("schema");
+		}
+	});
+
+	test("a name the schema can't spell: the username is picked instead", async () => {
+		await create({ first_name: "伟", last_name: "王", display_name: "王伟" }, 400);
+		const created = await create({
+			first_name: "伟",
+			last_name: "王",
+			display_name: "王伟",
+			username: "wei.wang",
+		});
+		expect(created.user.username).toBe("wei.wang");
+		// Taken: no number is appended to a picked name.
+		await create(
+			{ first_name: "伟", last_name: "王", display_name: "王伟", username: "wei.wang" },
+			409,
+		);
+	});
+
+	test("short names get a padded number, not a jump to 100", async () => {
+		await setTestOrgUsernameMode("schema", "{LASTNAME}");
+		try {
+			const lastName = `Q${randomUUID().slice(0, 1).replace(/\d/, "x")}`;
+			const first = await create({ first_name: "Kim", last_name: lastName, display_name: "Kim" });
+			expect(first.user.username).toBe(`${lastName.toLowerCase()}001`);
+			const second = await create({ first_name: "Kim", last_name: lastName, display_name: "Kim" });
+			expect(second.user.username).toBe(`${lastName.toLowerCase()}002`);
+		} finally {
+			await setTestOrgUsernameMode("schema", UsernameSchema.DEFAULT);
 		}
 	});
 

@@ -316,7 +316,7 @@ export const postAuthInvitationsInspect = <TComposable extends Composable = '$fe
 /**
  * Accept an invitation
  *
- * Create the account for an invitation and sign in. The email address and role come from the invitation. Under the org's username schema the username is built from `first_name` and `last_name` (with a number appended if it is taken); otherwise the invitee picks `username`.
+ * Create the account for an invitation and sign in. The email address and role come from the invitation. Under the org's username schema the username is built from `first_name` and `last_name` (with a number appended if it is taken); otherwise, or when the name is in a script the schema can't spell (e.g. Chinese), the invitee picks `username`.
  */
 export const postAuthInvitationsAccept = <TComposable extends Composable = '$fetch', DefaultT extends PostAuthInvitationsAcceptResponse = PostAuthInvitationsAcceptResponse>(options: Options<TComposable, PostAuthInvitationsAcceptData, PostAuthInvitationsAcceptResponse, DefaultT>): RequestResult<TComposable, PostAuthInvitationsAcceptResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostAuthInvitationsAcceptResponse | DefaultT, PostAuthInvitationsAcceptError, DefaultT>({
     url: '/auth/invitations/accept',
@@ -537,7 +537,7 @@ export const getAdminUsers = <TComposable extends Composable = '$fetch', Default
 /**
  * Create user
  *
- * Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one. Under the org's username schema the username is built from `first_name` and `last_name` (a number is appended if it is taken) and `username` is ignored; otherwise `username` is required.
+ * Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one. Under the org's username schema the username is built from `first_name` and `last_name` (a number is appended if it is taken) and `username` is ignored, unless the name is in a script the schema can't spell (e.g. Chinese): then `username` is required. Without a schema `username` is required.
  */
 export const postAdminUsers = <TComposable extends Composable = '$fetch', DefaultT extends PostAdminUsersResponse = PostAdminUsersResponse>(options: Options<TComposable, PostAdminUsersData, PostAdminUsersResponse, DefaultT>): RequestResult<TComposable, PostAdminUsersResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostAdminUsersResponse | DefaultT, PostAdminUsersError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

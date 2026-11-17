@@ -62,8 +62,8 @@ function registerAttempt(tokenHash: string): boolean {
 }
 
 /** A pending (not accepted, not expired) invitation for a token, or null. */
-async function findPendingInvitation(tokenHash: string, tx: DrizzleDB = DB.instance()) {
-	const invitation = await tx
+function findPendingInvitation(tokenHash: string, tx: DrizzleDB.Sync = DB.instance()) {
+	const invitation = tx
 		.select()
 		.from(DB.Tables.invitations)
 		.where(
@@ -114,7 +114,7 @@ router.post(
 			return APIResponse.tooManyRequests(c, "Too many attempts. Try again later.");
 		}
 
-		const invitation = await findPendingInvitation(tokenHash);
+		const invitation = findPendingInvitation(tokenHash);
 		if (!invitation) {
 			return APIResponse.badRequest(c, "Invalid or expired invitation");
 		}
@@ -135,7 +135,7 @@ router.post(
 	APIRouteSpec.unauthenticated({
 		summary: "Accept an invitation",
 		description:
-			"Create the account for an invitation and sign in. The email address and role come from the invitation. Under the org's username schema the username is built from `first_name` and `last_name` (with a number appended if it is taken); otherwise the invitee picks `username`.",
+			"Create the account for an invitation and sign in. The email address and role come from the invitation. Under the org's username schema the username is built from `first_name` and `last_name` (with a number appended if it is taken); otherwise, or when the name is in a script the schema can't spell (e.g. Chinese), the invitee picks `username`.",
 		tags: [DOCS_TAGS.AUTH_INVITATIONS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -166,31 +166,29 @@ router.post(
 			return APIResponse.tooManyRequests(c, "Too many attempts. Try again later.");
 		}
 
-		const schema = UsernamePolicy.enforcedSchema();
-		const firstName = body.first_name;
-		const lastName = body.last_name;
-		if (schema && (!firstName || !lastName)) {
-			return APIResponse.badRequest(c, "First and last name are required");
-		}
-		if (!schema && !body.username) {
-			return APIResponse.badRequest(c, "A username is required");
-		}
-
+		// Hashed first: from checking the invitation to storing the account nothing may `await`, so a
+		// parallel request can't use the same invitation or take the same username in between
+		// (synchronous transaction, AGENTS.md › Transactions).
 		const passwordHash = await Bun.password.hash(body.password);
 
+		type Outcome =
+			| { user: DB.Models.User; invitation: DB.Models.Invitation }
+			| { error: "invalid" | "conflict" | keyof typeof UsernamePolicy.RESOLVE_ERRORS };
+
 		try {
-			const result = await DB.instance().transaction(async (tx: DrizzleDB) => {
-				const invitation = await findPendingInvitation(tokenHash, tx);
+			const result = DB.instance().transaction((tx): Outcome => {
+				const invitation = findPendingInvitation(tokenHash, tx);
 				if (!invitation) return { error: "invalid" as const };
 
 				// Under a schema the name decides (a number is appended if it is taken).
-				const username =
-					schema && firstName && lastName
-						? await UsernamePolicy.assign(schema, firstName, lastName, tx)
-						: (body.username ?? null);
-				if (!username) return { error: "name" as const };
+				const resolved = UsernamePolicy.resolve(
+					{ firstName: body.first_name, lastName: body.last_name, requested: body.username },
+					tx,
+				);
+				if ("error" in resolved) return resolved;
+				const { username } = resolved;
 
-				const conflict = await tx
+				const conflict = tx
 					.select({ id: DB.Tables.users.id })
 					.from(DB.Tables.users)
 					.where(
@@ -205,7 +203,7 @@ router.post(
 					.get();
 				if (conflict) return { error: "conflict" as const };
 
-				const user = await tx
+				const user = tx
 					.insert(DB.Tables.users)
 					.values({
 						org_id: OrgContext.id(),
@@ -218,28 +216,28 @@ router.post(
 					.returning()
 					.get();
 
-				await tx
+				tx
 					.update(DB.Tables.invitations)
 					.set({ accepted_at: Date.now(), accepted_user_id: user.id })
 					.where(and(inOrg(DB.Tables.invitations), eq(DB.Tables.invitations.id, invitation.id)))
 					.run();
 
-				const session = await SessionHandler.createSession(user.id, tx);
-
-				return { user, invitation, session };
+				return { user, invitation };
 			});
 
 			if ("error" in result) {
 				if (result.error === "invalid") {
 					return APIResponse.badRequest(c, "Invalid or expired invitation");
 				}
-				if (result.error === "name") {
-					return APIResponse.badRequest(c, "The name gives no valid username");
+				if (result.error === "conflict") {
+					return APIResponse.conflict(c, "Username or email already in use");
 				}
-				return APIResponse.conflict(c, "Username or email already in use");
+				return APIResponse.badRequest(c, UsernamePolicy.RESOLVE_ERRORS[result.error]);
 			}
 
 			inviteAttempts.delete(tokenHash);
+			// After the transaction: creating a session awaits (token hashing).
+			const session = await SessionHandler.createSession(result.user.id);
 
 			await AuditLog.record({
 				userId: result.user.id,
@@ -260,7 +258,7 @@ router.post(
 			return APIResponse.created(
 				c,
 				"Invitation accepted successfully",
-				result.session satisfies AuthInvitationsModel.Accept.Response,
+				session satisfies AuthInvitationsModel.Accept.Response,
 			);
 		} catch (error: any) {
 			Logger.error("Failed to accept invitation", error.stack || error.message || error);

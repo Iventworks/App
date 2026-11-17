@@ -94,13 +94,16 @@ CMP (Crossover Management Portal) before; the repository still is.
     response carries a one-time link (`PasswordLinks`, 7 days, `/auth/reset-password?token=…`)
     that the admin hands over. Admins can also issue such a link later (`…/password-link`).
 - **Usernames** per org (`orgs.username_mode`, *Administration → Organisation*): `schema` (default,
-  `orgs.username_schema`, default `{FIRSTNAME}.{LASTNAME}`) builds the username from first and last
-  name — for invitations and direct creation; `free` lets the invitee / admin pick it. Rules live in
+  also for orgs that existed before; `orgs.username_schema`, default `{FIRSTNAME}.{LASTNAME}`)
+  builds the username from first and last name — for invitations and direct creation; `free` lets the invitee / admin pick it. Rules live in
   `server/lib/utils/usernameSchema.ts` (pure, also imported by the frontend so previews match):
   `{FIRSTNAME}` is the first of the first names, `{LASTNAME}` the whole last name, umlauts spelled
-  out (ä → ae, ß → ss), the result follows `UserDataPolicies.Username`. `UsernamePolicy.assign`
-  appends a number when taken (`max.mueller2`). Only applies when an account is created — existing
-  usernames are never rewritten. Under a schema `PUT /account` refuses username changes (403,
+  out (ä → ae, ß → ss), Cyrillic and Greek transliterated (ICAO), the result follows
+  `UserDataPolicies.Username`. A name in another script (Chinese, Arabic, …) gives none: then the
+  username is picked as in free mode (`needsChosenUsername`). `UsernamePolicy.resolve`/`assign`
+  append a number when taken (`max.mueller2`; too-short names `li001`). They are synchronous: no
+  `await` between picking the name and inserting the account, or parallel requests collide on the
+  unique index. Only applies when an account is created — existing usernames are never rewritten. Under a schema `PUT /account` refuses username changes (403,
   `username_managed` on `GET /account`); admins can still rename. The system org always chooses
   freely. Tests: the shared test org is in `schema` mode; `setTestOrgUsernameMode` switches it (restore
   it in `afterAll`).

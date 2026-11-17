@@ -5,6 +5,13 @@ import { GENDERS, PARTICIPANT_STATUSES } from "../../../../../../db/schema";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventSmallGroupsModel {
+	/**
+	 * Who a group's participants are: registered or confirmed. Waitlisted (and cancelled) people keep
+	 * their `small_group_id` but are not listed or counted — as on the page's assignment board — until
+	 * they take part again.
+	 */
+	export const MEMBER_STATUSES: DB.Models.Participant["status"][] = ["registered", "confirmed"];
+
 	export const Member = z.object({
 		id: z.number(),
 		first_name: z.string(),
@@ -20,7 +27,7 @@ export namespace EventSmallGroupsModel {
 		.extend({
 			/** Staff responsible for the group, by name. */
 			leaders: z.array(UserSummary.Schema),
-			/** Participants in the group (not cancelled), by last name. */
+			/** Participants in the group (`MEMBER_STATUSES`), by last name. */
 			participants: z.array(Member),
 			participant_count: z.number(),
 		});

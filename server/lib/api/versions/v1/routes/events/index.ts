@@ -21,6 +21,7 @@ import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { EventsModel } from "./model";
+import { EventSmallGroupsModel } from "./small-groups/model";
 import { withAccess } from "./view";
 
 export const router = new Hono<EventRouterEnv>().basePath("/events");
@@ -573,7 +574,7 @@ router.get(
 								DB.Tables.participants.small_group_id,
 								mySmallGroups.map((group) => group.id),
 							),
-							ne(DB.Tables.participants.status, "cancelled"),
+							inArray(DB.Tables.participants.status, EventSmallGroupsModel.MEMBER_STATUSES),
 						),
 					)
 					.groupBy(DB.Tables.participants.small_group_id)

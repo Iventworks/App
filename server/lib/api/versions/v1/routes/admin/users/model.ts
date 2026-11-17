@@ -70,7 +70,8 @@ export namespace AdminUsersModel.GetAll {
 
 export namespace AdminUsersModel.Create {
 	const InsertSchema = createInsertSchema(DB.Tables.users, {
-		// Required when the org lets admins pick it; built from the name under a schema.
+		// Required when the org lets admins pick it; built from the name under a schema (unless the
+		// name is in a script the schema can't spell: `UsernameSchema.needsChosenUsername`).
 		username: UserDataPolicies.Username.optional(),
 		display_name: z.string().trim().min(1).max(64),
 		email: z.email(),

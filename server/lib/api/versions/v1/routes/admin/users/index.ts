@@ -94,7 +94,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create user",
 		description:
-			"Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one. Under the org's username schema the username is built from `first_name` and `last_name` (a number is appended if it is taken) and `username` is ignored; otherwise `username` is required.",
+			"Create an account directly (no invitation). Without a password the account cannot log in yet: the response carries a one-time link (7 days) for the person to choose one. Under the org's username schema the username is built from `first_name` and `last_name` (a number is appended if it is taken) and `username` is ignored, unless the name is in a script the schema can't spell (e.g. Chinese): then `username` is required. Without a schema `username` is required.",
 		tags: [DOCS_TAGS.ADMIN_API.USERS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -115,20 +115,24 @@ router.post(
 
 		const { password, first_name, last_name, username: requestedUsername, ...userData } = body;
 
+		// Hashed first: from picking the username to storing the account nothing may `await`, or a
+		// parallel request could take the same name (or email) in between.
+		// No password: store the hash of a random secret nobody knows, so the account stays locked
+		// until the person sets their own through the link.
+		const passwordHash = await Bun.password.hash(
+			password ?? crypto.randomUUID() + crypto.randomUUID(),
+		);
+
 		// Under the org's schema the name decides the username (with a number if it is taken).
-		const schema = UsernamePolicy.enforcedSchema();
-		let username: string;
-		if (schema) {
-			if (!first_name || !last_name) {
-				return APIResponse.badRequest(c, "First and last name are required");
-			}
-			const assigned = await UsernamePolicy.assign(schema, first_name, last_name);
-			if (!assigned) return APIResponse.badRequest(c, "The name gives no valid username");
-			username = assigned;
-		} else {
-			if (!requestedUsername) return APIResponse.badRequest(c, "A username is required");
-			username = requestedUsername;
+		const resolved = UsernamePolicy.resolve({
+			firstName: first_name,
+			lastName: last_name,
+			requested: requestedUsername,
+		});
+		if ("error" in resolved) {
+			return APIResponse.badRequest(c, UsernamePolicy.RESOLVE_ERRORS[resolved.error]);
 		}
+		const { username } = resolved;
 
 		const duplicate = DB.instance()
 			.select()
@@ -145,25 +149,15 @@ router.post(
 			return APIResponse.conflict(c, "A user with the same username or email already exists");
 		}
 
-		// No password: store the hash of a random secret nobody knows, so the account stays locked
-		// until the person sets their own through the link.
-		const passwordHash = await Bun.password.hash(
-			password ?? crypto.randomUUID() + crypto.randomUUID(),
-		);
+		const createdUser = DB.instance()
+			.insert(DB.Tables.users)
+			.values({ ...userData, username, role, org_id: OrgContext.id(), password_hash: passwordHash })
+			.returning()
+			.get();
 
-		const { createdUser, passwordLink } = await DB.instance().transaction(async (tx: DrizzleDB) => {
-			const createdUser = await tx
-				.insert(DB.Tables.users)
-				.values({ ...userData, username, role, org_id: OrgContext.id(), password_hash: passwordHash })
-				.returning()
-				.get();
-
-			const passwordLink = password
-				? null
-				: await PasswordLinks.issue(createdUser.id, PasswordLinks.ADMIN_TTL_MS, tx);
-
-			return { createdUser, passwordLink };
-		});
+		const passwordLink = password
+			? null
+			: await PasswordLinks.issue(createdUser.id, PasswordLinks.ADMIN_TTL_MS);
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),

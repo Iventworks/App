@@ -94,7 +94,7 @@ const fields = computed<AuthFormField[]>(() =>
 					type: "text",
 					label: "Benutzername",
 					description:
-						"Wird aus deinem Namen gebildet. Ist er schon vergeben, wird eine Zahl angehängt.",
+						"Wird aus deinem Namen gebildet. Ist er schon vergeben, wird eine Zahl angehängt. Lässt sich aus deinem Namen keiner bilden (z. B. in chinesischer Schrift), wählst du ihn selbst.",
 				},
 				...passwordFields,
 			]
@@ -120,7 +120,7 @@ const fields = computed<AuthFormField[]>(() =>
 );
 
 /** What the API will build from the name (before a number for a taken name). */
-function previewUsername(state: { first_name?: string; last_name?: string }) {
+function previewUsername(state: FormState) {
 	if (!usernameSchema.value) return "";
 	return UsernameSchema.generate(
 		usernameSchema.value,
@@ -128,6 +128,26 @@ function previewUsername(state: { first_name?: string; last_name?: string }) {
 		state.last_name ?? "",
 	);
 }
+
+/** Under a schema: the name is in a script it can't spell (e.g. Chinese), so the invitee picks. */
+function choosesUsername(state: FormState) {
+	return (
+		!!usernameSchema.value &&
+		UsernameSchema.needsChosenUsername(
+			usernameSchema.value,
+			state.first_name ?? "",
+			state.last_name ?? "",
+		)
+	);
+}
+
+/** Under a schema the display name is "Vorname Nachname". */
+function displayNameOf(state: FormState) {
+	return `${state.first_name ?? ""} ${state.last_name ?? ""}`.replace(/\s+/g, " ").trim();
+}
+
+/** The form state inside a field slot (UAuthForm types it loosely). */
+const slotState = (slotProps: unknown) => (slotProps as { state: FormState }).state;
 
 // Mirrors the backend's `UserDataPolicies`. No `.trim()` on passwords.
 const passwordSchema = {
@@ -147,6 +167,8 @@ const schema = computed(() =>
 					.trim()
 					.min(1, "Nachname ist erforderlich")
 					.max(64),
+				// Only used when the name gives no username (checked in `validate`).
+				username: z.string().trim().optional(),
 				...passwordSchema,
 			})
 		: z.object({
@@ -171,7 +193,19 @@ function validate(state: FormState): FormError[] {
 		errors.push({ name: "confirm_password", message: "Passwörter stimmen nicht überein" });
 	}
 	if (usernameSchema.value && state.first_name?.trim() && state.last_name?.trim()) {
-		if (!previewUsername(state)) {
+		// The API allows 64 characters for the display name built from both.
+		if (displayNameOf(state).length > 64) {
+			errors.push({
+				name: "last_name",
+				message: "Vor- und Nachname dürfen zusammen höchstens 64 Zeichen lang sein.",
+			});
+		}
+		if (choosesUsername(state)) {
+			const result = usernameField().safeParse(state.username ?? "");
+			for (const issue of result.error?.issues ?? []) {
+				errors.push({ name: "username", message: issue.message });
+			}
+		} else if (!previewUsername(state)) {
 			errors.push({
 				name: "username",
 				message:
@@ -189,17 +223,16 @@ async function onSubmit(payload: FormSubmitEvent<FormState>) {
 	loading.value = true;
 
 	const data = payload.data;
-	const firstName = data.first_name?.trim() ?? "";
-	const lastName = data.last_name?.trim() ?? "";
 	const result = await useAPI(
 		(api) =>
 			api.postAuthInvitationsAccept({
 				body: usernameSchema.value
 					? {
 							token,
-							first_name: firstName,
-							last_name: lastName,
-							display_name: `${firstName} ${lastName}`.replace(/\s+/g, " "),
+							first_name: data.first_name?.trim() ?? "",
+							last_name: data.last_name?.trim() ?? "",
+							display_name: displayNameOf(data),
+							...(choosesUsername(data) ? { username: data.username?.trim() ?? "" } : {}),
 							password: data.password ?? "",
 						}
 					: {
@@ -219,7 +252,7 @@ async function onSubmit(payload: FormSubmitEvent<FormState>) {
 			title: "Konto konnte nicht angelegt werden",
 			description:
 				(result.code as number) === 409
-					? usernameSchema.value
+					? usernameSchema.value && !choosesUsername(data)
 						? "Für diese E-Mail-Adresse gibt es schon ein Konto."
 						: "Dieser Benutzername ist bereits vergeben."
 					: result.message || "Bitte versuche es erneut.",
@@ -265,7 +298,15 @@ async function onSubmit(payload: FormSubmitEvent<FormState>) {
 	>
 		<template v-if="usernameSchema" #username-field="slotProps">
 			<UInput
-				:model-value="previewUsername((slotProps as { state: FormState }).state)"
+				v-if="choosesUsername(slotState(slotProps))"
+				:model-value="slotState(slotProps).username ?? ''"
+				placeholder="z. B. wei.wang"
+				class="w-full"
+				@update:model-value="slotState(slotProps).username = String($event)"
+			/>
+			<UInput
+				v-else
+				:model-value="previewUsername(slotState(slotProps))"
 				placeholder="ergibt sich aus deinem Namen"
 				disabled
 				icon="i-lucide-lock"

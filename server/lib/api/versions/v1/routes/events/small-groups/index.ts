@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
@@ -149,7 +149,7 @@ async function listSmallGroups(
 				inOrg(DB.Tables.participants),
 				eq(DB.Tables.participants.event_id, eventId),
 				inArray(DB.Tables.participants.small_group_id, groupIds),
-				ne(DB.Tables.participants.status, "cancelled"),
+				inArray(DB.Tables.participants.status, EventSmallGroupsModel.MEMBER_STATUSES),
 			),
 		)
 		.orderBy(asc(DB.Tables.participants.last_name), asc(DB.Tables.participants.first_name))

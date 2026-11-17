@@ -248,6 +248,46 @@ describe("Kleingruppen", () => {
 		]);
 	});
 
+	test("waitlisted participants keep their group but are not listed until they take part", async () => {
+		const wally = await makeAPIRequest(`${base()}/participants`, {
+			method: "POST",
+			authToken: leaderSession.token,
+			body: { first_name: "Wally", last_name: "Warte", status: "waitlist", small_group_id: foxes },
+		});
+		const foxesNow = async () =>
+			(
+				await makeAPIRequest(`${base()}/small-groups`, {
+					authToken: leaderSession.token,
+					expectedBodySchema: EventSmallGroupsModel.GetAll.Response,
+				})
+			).find((group) => group.id === foxes)!;
+		const overviewCount = async () =>
+			(
+				await makeAPIRequest(`${base()}/overview`, {
+					authToken: annaSession.token,
+					expectedBodySchema: EventsModel.Overview.Response,
+				})
+			).my_small_groups.find((group) => group.id === foxes)?.participant_count;
+
+		expect((await foxesNow()).participants.map((p) => p.first_name)).toEqual(["Tom"]);
+		expect(await overviewCount()).toBe(1);
+
+		await makeAPIRequest(`${base()}/participants/${wally.id}`, {
+			method: "PUT",
+			authToken: leaderSession.token,
+			body: { status: "confirmed" },
+		});
+		const foxesAfter = await foxesNow();
+		expect(foxesAfter.participants.map((p) => p.first_name).sort()).toEqual(["Tom", "Wally"]);
+		expect(foxesAfter.participant_count).toBe(2);
+		expect(await overviewCount()).toBe(2);
+
+		await makeAPIRequest(`${base()}/participants/${wally.id}`, {
+			method: "DELETE",
+			authToken: leaderSession.token,
+		});
+	});
+
 	test("program items can take place in the Kleingruppen", async () => {
 		const item = await makeAPIRequest(`${base()}/program`, {
 			method: "POST",

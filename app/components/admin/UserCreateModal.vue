@@ -23,17 +23,25 @@ const isSystem = computed(() => useInstance().value?.kind === "system");
 // --- username policy ------------------------------------------------------------------------
 
 const policyLoading = ref(false);
+/** Set when the setting couldn't be loaded: then the form can't know which fields the API needs. */
+const policyError = ref<string | null>(null);
 /** The org's username schema, or null when admins pick usernames freely. */
 const usernameSchema = ref<string | null>(null);
 
 async function loadPolicy() {
+	policyError.value = null;
+	usernameSchema.value = null;
+	// System admins always pick their username (the system host has no organisation settings).
+	if (isSystem.value) return;
 	policyLoading.value = true;
 	const result = await useAPI((api) => api.getAdminOrganization({}));
 	policyLoading.value = false;
+	if (!result.success) {
+		policyError.value = result.message || "Bitte versuche es erneut.";
+		return;
+	}
 	usernameSchema.value =
-		result.success && result.data.accounts.username_mode === "schema"
-			? result.data.accounts.username_schema
-			: null;
+		result.data.accounts.username_mode === "schema" ? result.data.accounts.username_schema : null;
 }
 
 // --- form -----------------------------------------------------------------------------------
@@ -42,7 +50,11 @@ const schema = z
 	.object({
 		first_name: z.string().trim().max(64),
 		last_name: z.string().trim().max(64),
-		display_name: z.string().trim().min(1, "Anzeigename ist erforderlich").max(64),
+		display_name: z
+			.string()
+			.trim()
+			.min(1, "Anzeigename ist erforderlich")
+			.max(64, "Höchstens 64 Zeichen"),
 		username: z.string().trim(),
 		email: z.email("Ungültige E-Mail-Adresse"),
 		phone: z.string().trim().max(40),
@@ -59,6 +71,8 @@ const schema = z
 			if (!data.last_name) {
 				ctx.addIssue({ code: "custom", path: ["last_name"], message: "Nachname ist erforderlich" });
 			}
+		}
+		if (usernameSchema.value && !choosesUsername.value) {
 			if (data.first_name && data.last_name && !generatedUsername.value) {
 				ctx.addIssue({
 					code: "custom",
@@ -110,6 +124,16 @@ const generatedUsername = computed(() =>
 	usernameSchema.value
 		? UsernameSchema.generate(usernameSchema.value, state.first_name, state.last_name)
 		: "",
+);
+
+/**
+ * Under a schema the admin still picks the username when the name is in a script the schema can't
+ * spell (e.g. Chinese) — the API accepts `username` then.
+ */
+const choosesUsername = computed(
+	() =>
+		!!usernameSchema.value &&
+		UsernameSchema.needsChosenUsername(usernameSchema.value, state.first_name, state.last_name),
 );
 
 // Under a schema the display name starts as "Vorname Nachname" until the admin edits it.
@@ -175,7 +199,8 @@ async function submit(event: FormSubmitEvent<Schema>) {
 			body: {
 				...rest,
 				phone: phone || null,
-				...(usernameSchema.value ? { first_name, last_name } : { username }),
+				...(usernameSchema.value ? { first_name, last_name } : {}),
+				...(!usernameSchema.value || choosesUsername.value ? { username } : {}),
 				...(password_mode === "password" ? { password } : {}),
 			},
 		}),
@@ -187,7 +212,7 @@ async function submit(event: FormSubmitEvent<Schema>) {
 			title: "Konto konnte nicht angelegt werden",
 			description:
 				(result.code as number) === 409
-					? usernameSchema.value
+					? usernameSchema.value && !choosesUsername.value
 						? "Diese E-Mail-Adresse ist bereits vergeben."
 						: "Benutzername oder E-Mail-Adresse ist bereits vergeben."
 					: result.message,
@@ -220,7 +245,27 @@ async function submit(event: FormSubmitEvent<Schema>) {
 		icon="i-lucide-user-plus"
 		:loading="policyLoading"
 	>
-		<UForm :schema="schema" :state="state" :validate="validate" class="space-y-4" @submit="submit">
+		<div v-if="policyError" class="space-y-4">
+			<UAlert
+				icon="i-lucide-alert-circle"
+				color="error"
+				variant="subtle"
+				title="Einstellungen für Benutzernamen nicht geladen"
+				:description="policyError"
+			/>
+			<div class="flex justify-end gap-2">
+				<UButton label="Abbrechen" color="neutral" variant="ghost" @click="open = false" />
+				<UButton label="Erneut versuchen" icon="i-lucide-refresh-cw" @click="loadPolicy" />
+			</div>
+		</div>
+		<UForm
+			v-else
+			:schema="schema"
+			:state="state"
+			:validate="validate"
+			class="space-y-4"
+			@submit="submit"
+		>
 			<div class="grid gap-4 sm:grid-cols-2">
 				<template v-if="usernameSchema">
 					<UFormField label="Vorname" name="first_name" required>
@@ -237,6 +282,16 @@ async function submit(event: FormSubmitEvent<Schema>) {
 						/>
 					</UFormField>
 					<UFormField
+						v-if="choosesUsername"
+						label="Benutzername"
+						name="username"
+						description="Aus diesem Namen lässt sich keiner bilden – bitte wähle einen."
+						required
+					>
+						<UInput v-model="state.username" placeholder="z. B. wei.wang" class="w-full" />
+					</UFormField>
+					<UFormField
+						v-else
 						label="Benutzername"
 						name="username"
 						:description="`Nach dem Schema ${usernameSchema}. Ist er vergeben, wird eine Zahl angehängt.`"

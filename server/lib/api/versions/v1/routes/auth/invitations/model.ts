@@ -28,7 +28,10 @@ export namespace AuthInvitationsModel.Inspect {
 export namespace AuthInvitationsModel.Accept {
 	export const Body = z.object({
 		token: z.string().min(1).max(256).describe("The invitation token from the invite link"),
-		/** Required when the org lets people pick their username; ignored under a schema. */
+		/**
+		 * Required when the org lets people pick their username; ignored under a schema, unless the
+		 * name is in a script the schema can't spell (`UsernameSchema.needsChosenUsername`).
+		 */
 		username: UserDataPolicies.Username.optional(),
 		/** Required under a username schema (`username_schema` of the inspect response). */
 		first_name: z.string().trim().min(1).max(64).optional(),
