@@ -58,7 +58,7 @@ function insertRoom(event_id: number, name: string) {
 }
 
 function insertFile(scope: "event" | "org" | "receipt", event_id: number | null, name: string) {
-	return DB.instance()
+	const id = DB.instance()
 		.insert(DB.Tables.files)
 		.values({
 			org_id: OrgContext.id(),
@@ -68,9 +68,18 @@ function insertFile(scope: "event" | "org" | "receipt", event_id: number | null,
 			name,
 			mime_type: "application/pdf",
 			size: 10,
+			// Org documents are Kernteam-only unless opened to members.
+			custom_access: scope === "org",
 		})
 		.returning()
 		.get().id;
+	if (scope === "org") {
+		DB.instance()
+			.insert(DB.Tables.fileAccess)
+			.values({ org_id: OrgContext.id(), file_id: id, principal: "members" })
+			.run();
+	}
+	return id;
 }
 
 beforeAll(async () => {

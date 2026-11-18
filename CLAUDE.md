@@ -55,6 +55,10 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
   `auth.global.ts` switch on `kind`.
 - Event pages start with `const { event, can } = await useCurrentEvent();` and hide controls with
   `can("participants:manage")` etc. — the API enforces the same permissions.
+- Document pages: `const library = useDocumentLibrary({ scope: "org" | "event", … })` and
+  `<FilesBrowser scope="…" v-bind="library" />` (`manage-access` on management pages). What a
+  person may do comes with each listed item (`item.permissions`) — never derive it from roles in
+  the page (AGENTS.md › Document access lists).
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
 - `UDashboardToolbar` is only for sub-route navigation
   (`<UNavigationMenu :items="subrouterPathDynamics.links.value" highlight class="-mx-1 flex-1" />`,

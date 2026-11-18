@@ -4,6 +4,7 @@
  * one — what the link allows (presets), expiry, optional password and an internal note.
  */
 import { Utils } from "~/utils";
+import { type RightsPreset, rightsPresetFor, rightsPresetsFor } from "~/utils/filePermissions";
 import type { FileItem, FileShare, SharePermissions } from "~/utils/types";
 
 const props = defineProps<{ item: FileItem | null }>();
@@ -13,79 +14,10 @@ const emit = defineEmits<{ changed: [] }>();
 const toast = useToast();
 const instance = useInstance();
 
-type PresetKey = "view" | "upload" | "edit" | "full" | "dropbox" | "file-edit";
-interface Preset {
-	key: PresetKey;
-	label: string;
-	description: string;
-	icon: string;
-	permissions: SharePermissions;
-}
+const presets = computed(() => rightsPresetsFor(props.item?.kind));
 
-const FOLDER_PRESETS: Preset[] = [
-	{
-		key: "view",
-		label: "Nur ansehen",
-		description: "Ansehen und herunterladen",
-		icon: "i-lucide-eye",
-		permissions: { read: true, upload: false, edit: false, delete: false },
-	},
-	{
-		key: "upload",
-		label: "Ansehen & hochladen",
-		description: "Dazu Dateien und Ordner hinzufügen",
-		icon: "i-lucide-upload",
-		permissions: { read: true, upload: true, edit: false, delete: false },
-	},
-	{
-		key: "edit",
-		label: "Bearbeiten",
-		description: "Dazu umbenennen und Dateien ersetzen",
-		icon: "i-lucide-pencil",
-		permissions: { read: true, upload: true, edit: true, delete: false },
-	},
-	{
-		key: "full",
-		label: "Vollzugriff",
-		description: "Dazu Dateien und Ordner löschen",
-		icon: "i-lucide-shield",
-		permissions: { read: true, upload: true, edit: true, delete: true },
-	},
-	{
-		key: "dropbox",
-		label: "Nur hochladen",
-		description: "Dateiablage: hochladen, ohne den Inhalt zu sehen",
-		icon: "i-lucide-inbox",
-		permissions: { read: false, upload: true, edit: false, delete: false },
-	},
-];
-const FILE_PRESETS: Preset[] = [
-	{
-		key: "view",
-		label: "Nur ansehen",
-		description: "Ansehen und herunterladen",
-		icon: "i-lucide-eye",
-		permissions: { read: true, upload: false, edit: false, delete: false },
-	},
-	{
-		key: "file-edit",
-		label: "Bearbeiten",
-		description: "Dazu eine neue Fassung hochladen",
-		icon: "i-lucide-pencil",
-		permissions: { read: true, upload: false, edit: true, delete: false },
-	},
-];
-
-const presets = computed(() => (props.item?.kind === "folder" ? FOLDER_PRESETS : FILE_PRESETS));
-
-function presetFor(permissions: SharePermissions): Preset | undefined {
-	return presets.value.find(
-		(preset) =>
-			preset.permissions.read === permissions.read &&
-			preset.permissions.upload === permissions.upload &&
-			preset.permissions.edit === permissions.edit &&
-			preset.permissions.delete === permissions.delete,
-	);
+function presetFor(permissions: SharePermissions): RightsPreset | undefined {
+	return rightsPresetFor(props.item?.kind, permissions);
 }
 
 // --- links ------------------------------------------------------------------------------------
@@ -153,7 +85,7 @@ const formOpen = ref(false);
 const editing = ref<FileShare | null>(null);
 const saving = ref(false);
 const form = reactive({
-	preset: "view" as PresetKey,
+	preset: "view" as string,
 	label: "",
 	/** `YYYY-MM-DD`; "" = never. */
 	expires: "",

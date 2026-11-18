@@ -56,7 +56,11 @@ const server = Bun.serve({
 
 		let body: ArrayBuffer | undefined;
 		if (request.body) {
-			const limit = RequestLimits.limitFor(request.headers, uploadLimit);
+			const limit = RequestLimits.limitFor(
+				request.headers,
+				uploadLimit,
+				new URL(request.url).pathname,
+			);
 			const read = await RequestLimits.readBody(request, limit);
 			if (read === null) return RequestLimits.tooLarge(limit);
 			body = read;

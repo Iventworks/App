@@ -1,5 +1,9 @@
 import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
+import { CollabState } from "../api/utils/collabState";
+import { FileTrash } from "../api/utils/fileTrash";
+import { FileVersions } from "../api/utils/fileVersions";
 import { DB } from "../db";
+import { OfficeTokens } from "../office/tokens";
 import { OrgContext } from "../orgs/context";
 import { FileStorage } from "./fileStorage";
 import { Logger } from "./logger";
@@ -15,7 +19,7 @@ export class Housekeeping {
 	static readonly EXPIRED_SHARE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 	/**
-	 * Stored files no `files` row points at (an upload interrupted between writing the blob and the
+	 * Stored files no `files` or `file_versions` row points at (an upload interrupted between writing the blob and the
 	 * row, a crash during a delete) are removed once they are this old — the grace period keeps
 	 * uploads that are still being written.
 	 */
@@ -75,18 +79,33 @@ export class Housekeeping {
 			.returning({ id: DB.Tables.files.id })
 			.all();
 
+		// Versions beyond the retention (their blobs go with the sweep below), and stale locks.
+		// The Papierkorb's old items, then versions beyond the retention (blobs go with the sweep).
+		const trash = await FileTrash.purgeExpired(now);
+		await OfficeTokens.pruneExpired(now);
+		const versions = await FileVersions.prune(now);
+		await CollabState.pruneIdle(now);
+		await db.delete(DB.Tables.fileLocks).where(lt(DB.Tables.fileLocks.expires_at, now)).run();
+
 		const referenced = await db
 			.select({ storage_key: DB.Tables.files.storage_key })
 			.from(DB.Tables.files)
 			.where(isNotNull(DB.Tables.files.storage_key))
 			.all();
+		const versionBlobs = await db
+			.select({ storage_key: DB.Tables.fileVersions.storage_key })
+			.from(DB.Tables.fileVersions)
+			.all();
 		const orphanBlobs = await FileStorage.removeUnreferenced(
-			new Set(referenced.map((row) => row.storage_key!)),
+			new Set([
+				...referenced.map((row) => row.storage_key!),
+				...versionBlobs.map((row) => row.storage_key),
+			]),
 			now - Housekeeping.ORPHAN_BLOB_GRACE_MS,
 		);
 
 		Logger.info(
-			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s), ${shares.length} expired share link(s), ${unsentAttachments.length} unsent attachment(s), ${orphanBlobs} orphaned file(s).`,
+			`Housekeeping: removed ${sessions.length} expired session(s), ${resets.length} password reset(s), ${invitations.length} invitation(s), ${notifications.length} old notification(s), ${shares.length} expired share link(s), ${unsentAttachments.length} unsent attachment(s), ${trash} item(s) from the Papierkorb, ${versions} old file version(s), ${orphanBlobs} orphaned file(s).`,
 		);
 		return {
 			sessions: sessions.length,
@@ -95,6 +114,8 @@ export class Housekeeping {
 			notifications: notifications.length,
 			shares: shares.length,
 			unsentAttachments: unsentAttachments.length,
+			trash,
+			versions,
 			orphanBlobs,
 		};
 	}

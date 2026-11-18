@@ -50,6 +50,7 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	org_domain: { label: "Domain", icon: "i-lucide-globe" },
 	org: { label: "Organisation", icon: "i-lucide-building" },
 	file_share: { label: "Freigabelink", icon: "i-lucide-share-2" },
+	org_group: { label: "Organisationsgruppe", icon: "i-lucide-users-round" },
 };
 
 export function auditEntity(type: string) {
@@ -99,7 +100,8 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 		case "budget_item":
 			return eventPath ? `${eventPath}/finances/budget` : null;
 		case "file":
-			return eventPath ? `${eventPath}/documents` : "/documents";
+			// The org log is admin-only, and admins manage the library in the Kernteam area.
+			return eventPath ? `${eventPath}/documents` : "/core-team/documents";
 		case "announcement":
 			return eventPath ? eventPath : "/news";
 		case "resource":
@@ -109,6 +111,8 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 			return options.isAdmin ? "/admin/organization" : null;
 		case "file_share":
 			return options.isAdmin ? "/admin/shares" : null;
+		case "org_group":
+			return options.isAdmin ? "/admin/groups" : null;
 		case "org_domain":
 			return options.isAdmin ? "/admin/organization/domains" : null;
 		case "org":

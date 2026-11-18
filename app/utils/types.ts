@@ -6,6 +6,7 @@
 import type {
 	GetAccountApikeysResponses,
 	GetAccountResponses,
+	GetAdminGroupsResponses,
 	GetAdminOrganizationDomainsResponses,
 	GetAdminOrganizationResponses,
 	GetAdminSharesResponses,
@@ -20,8 +21,11 @@ import type {
 	GetEventsByEventIdOccurrencesResponses,
 	GetEventsByEventIdTasksResponses,
 	GetEventsResponses,
+	GetFilesByFileIdAccessCandidatesResponses,
+	GetFilesByFileIdAccessResponses,
 	GetFilesByFileIdSharesResponses,
 	GetNotificationsResponses,
+	GetOrgDocumentsTrashResponses,
 	GetSharesByTokenItemsResponses,
 	GetSharesByTokenResponses,
 	GetSystemDomainsResponses,
@@ -78,6 +82,29 @@ export type NotificationItem = GetNotificationsResponses["200"]["data"]["items"]
 
 export type FolderListing = GetEventsByEventIdFilesResponses["200"]["data"];
 export type FileItem = FolderListing["items"][number];
+/** What the caller may do with a document or folder. */
+export type FilePermissions = FolderListing["permissions"];
+/** Who has access to a document or folder (own, inherited or the library's default list). */
+export type FileAccessView = GetFilesByFileIdAccessResponses["200"]["data"];
+export type FileAccessEntry = FileAccessView["entries"][number];
+export type FileAccessRights = FileAccessEntry["permissions"];
+export type FileAccessCandidate = GetFilesByFileIdAccessCandidatesResponses["200"]["data"][number];
+
+export type OrgGroup = GetAdminGroupsResponses["200"]["data"][number];
+
+/** Office documents that can be created empty (with an office server). */
+export type OfficeType = "docx" | "xlsx" | "pptx";
+
+/** An item in the Papierkorb of a document library. */
+export type TrashItem = GetOrgDocumentsTrashResponses["200"]["data"][number];
+
+/** The Papierkorb calls of one library (org documents or one event's), for `FilesBrowser`. */
+export interface TrashAdapter {
+	list: () => Promise<TrashItem[] | null>;
+	restore: (fileId: number) => Promise<boolean>;
+	purge: (fileId: number) => Promise<boolean>;
+	empty: () => Promise<boolean>;
+}
 
 /** A full account as admins see it (`/admin/users`). */
 export type AdminUser = GetAdminUsersResponses["200"]["data"][number];

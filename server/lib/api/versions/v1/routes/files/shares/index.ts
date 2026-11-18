@@ -4,8 +4,7 @@ import type { DB } from "../../../../../../db";
 import { OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
-import { AuthHandler } from "../../../../../utils/authHandler";
-import { FileAccess } from "../../../../../utils/fileAccess";
+import type { FileAccess } from "../../../../../utils/fileAccess";
 import { FileShares } from "../../../../../utils/fileShares";
 import { getAuthUserId } from "../../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
@@ -13,12 +12,18 @@ import { DOCS_TAGS } from "../../../docs";
 import { FileSharesModel } from "./model";
 
 type SharesEnv = {
-	Variables: { file: DB.Models.File; share: DB.Models.FileShare };
+	Variables: {
+		file: DB.Models.File;
+		permissions: FileAccess.Permissions;
+		share: DB.Models.FileShare;
+	};
 };
 
 /**
- * Share links of one file or folder (`file` is loaded and read-checked by the files router).
- * Managing them needs the right to manage the whole library (`FileAccess.canShare`).
+ * Share links of one file or folder (`file` and the caller's `permissions` are loaded by the files
+ * router). Managing them needs the right to manage the library (`permissions.manage`: Kernteam for
+ * org documents, Leitung for event documents), so a link never grants more than its creator has.
+ * Receipts and chat attachments are never shared.
  */
 export const router = new Hono<SharesEnv>().basePath("/:fileId/shares");
 
@@ -43,7 +48,8 @@ router.use("*", async (c, next) => {
 	if (!OrgContext.current().file_sharing_enabled) {
 		return APIResponse.forbidden(c, "Share links are switched off for this organisation");
 	}
-	if (!(await FileAccess.canShare(AuthHandler.AuthContext.get(c), c.get("file")))) {
+	const file = c.get("file");
+	if ((file.scope !== "org" && file.scope !== "event") || !c.get("permissions").manage) {
 		return APIResponse.forbidden(c, "You are not allowed to share this item");
 	}
 	await next();

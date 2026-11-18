@@ -707,7 +707,7 @@ describe("Organisation documents", () => {
 		return form;
 	}
 
-	test("everyone reads, only the core team writes", async () => {
+	test("new documents are Kernteam-only until opened to members", async () => {
 		await makeAPIRequest(
 			"/v1/org/documents",
 			{
@@ -744,12 +744,39 @@ describe("Organisation documents", () => {
 		expect(file.size).toBe(10);
 		expect(file.content_url).not.toBeNull();
 
+		const hidden = await makeAPIRequest("/v1/org/documents", {
+			authToken: volunteerSession.token,
+			expectedBodySchema: OrgDocumentsModel.GetAll.Response,
+		});
+		expect(hidden.items.some((item) => item.id === folder.id)).toBe(false);
+		await makeAPIRequest(
+			`/v1/org/documents?parent_id=${folder.id}`,
+			{ authToken: volunteerSession.token },
+			404,
+		);
+
+		await makeAPIRequest(`/v1/files/${folder.id}/access`, {
+			method: "PUT",
+			authToken: coreSession.token,
+			body: {
+				custom: true,
+				entries: [
+					{
+						principal: "members",
+						permissions: { read: true, upload: false, edit: false, delete: false },
+					},
+				],
+			},
+		});
+
 		const root = await makeAPIRequest("/v1/org/documents", {
 			authToken: volunteerSession.token,
 			expectedBodySchema: OrgDocumentsModel.GetAll.Response,
 		});
 		expect(root.folder).toBeNull();
 		expect(root.items.some((item) => item.id === folder.id)).toBe(true);
+		expect(root.permissions.upload).toBe(false);
+		expect(root.access).toBeNull();
 
 		const inside = await makeAPIRequest(`/v1/org/documents?parent_id=${folder.id}`, {
 			authToken: volunteerSession.token,

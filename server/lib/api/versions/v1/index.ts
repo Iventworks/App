@@ -23,6 +23,7 @@ import { router as sharesRouter } from "./routes/shares";
 import { router as systemRouter } from "./routes/system";
 import { router as tasksRouter } from "./routes/tasks";
 import { router as usersRouter } from "./routes/users";
+import { router as wopiRouter } from "./routes/wopi";
 
 // [tag, description, parent tag (for nested display in Scalar)]
 const TAG_DEFINITIONS: [string, string, string?][] = [
@@ -115,6 +116,11 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[
 		DOCS_TAGS.ADMIN_API.ORGANIZATION,
 		"Your organisation's name, colour, logo, icon and custom domains",
+		DOCS_TAGS.ADMIN_API.BASE,
+	],
+	[
+		DOCS_TAGS.ADMIN_API.GROUPS,
+		"Groups of people across the organisation, used for access to documents",
 		DOCS_TAGS.ADMIN_API.BASE,
 	],
 
@@ -216,6 +222,7 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 					DOCS_TAGS.ADMIN_API.INVITATIONS,
 					DOCS_TAGS.ADMIN_API.AUDIT_LOG,
 					DOCS_TAGS.ADMIN_API.ORGANIZATION,
+					DOCS_TAGS.ADMIN_API.GROUPS,
 				],
 			},
 			{
@@ -262,6 +269,8 @@ router.route("/", pushRouter);
 router.route("/", usersRouter);
 router.route("/", filesRouter);
 router.route("/", sharesRouter);
+// The office server's WOPI calls (own protocol, not in the OpenAPI spec).
+router.route("/", wopiRouter);
 
 router.route("/", eventsRouter);
 router.route("/", orgRouter);

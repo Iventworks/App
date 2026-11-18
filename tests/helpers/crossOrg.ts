@@ -1,9 +1,9 @@
-import { getTableName } from "drizzle-orm";
+import { and, eq, getTableName } from "drizzle-orm";
 import { getTableConfig, type SQLiteTable } from "drizzle-orm/sqlite-core";
 import { APIKeyHandler, SessionHandler } from "../../server/lib/api/utils/authHandler";
 import { FileShares } from "../../server/lib/api/utils/fileShares";
 import { DB } from "../../server/lib/db";
-import { OrgContext } from "../../server/lib/orgs/context";
+import { inOrg, OrgContext } from "../../server/lib/orgs/context";
 import type { OrgInfo } from "../../server/lib/orgs/registry";
 import { LCrypt } from "../../server/lib/utils/crypto/lcrypt";
 
@@ -175,6 +175,73 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			})
 			.returning()
 			.get();
+		// A version and an editor lock (the rows only need to exist for the attacks).
+		const version = db
+			.insert(DB.Tables.fileVersions)
+			.values({
+				org_id,
+				file_id: folder.id,
+				storage_key: `version-${marker}`,
+				size: 1,
+				modified_by: admin.id,
+				modified_at: now,
+			})
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.fileLocks)
+			.values({
+				org_id,
+				file_id: eventFile.id,
+				kind: "editor",
+				lock_id: text("Sperre"),
+				user_id: admin.id,
+				expires_at: now + 86_400_000,
+			})
+			.run();
+
+		// A shared editing state (on the org folder; the rows only need to exist).
+		db
+			.insert(DB.Tables.fileCollab)
+			.values({ org_id, file_id: folder.id, state: Buffer.from([0, 0]), seq: 1, updated_at: now })
+			.run();
+		db
+			.insert(DB.Tables.fileCollabUpdates)
+			.values({
+				org_id,
+				file_id: folder.id,
+				seq: 1,
+				data: Buffer.from([0, 0]),
+				client_id: 1,
+				user_id: admin.id,
+			})
+			.run();
+
+		// Org group and access lists on both libraries.
+		const orgGroup = db
+			.insert(DB.Tables.orgGroups)
+			.values({ org_id, name: text("Orggruppe"), description: text("Orggruppe") })
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.orgGroupMembers)
+			.values({ org_id, group_id: orgGroup.id, user_id: volunteer.id })
+			.run();
+		for (const id of [folder.id, eventFile.id]) {
+			db
+				.update(DB.Tables.files)
+				.set({ custom_access: true })
+				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, id)))
+				.run();
+		}
+		db
+			.insert(DB.Tables.fileAccess)
+			.values([
+				{ org_id, file_id: folder.id, principal: "org_group", org_group_id: orgGroup.id },
+				{ org_id, file_id: folder.id, principal: "user", user_id: volunteer.id },
+				{ org_id, file_id: eventFile.id, principal: "event_group", event_group_id: group.id },
+			])
+			.run();
 		const programItem = db
 			.insert(DB.Tables.programItems)
 			.values({
@@ -465,6 +532,8 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				userId: volunteer.id,
 				memberId: member.id,
 				groupId: group.id,
+				orgGroupId: orgGroup.id,
+				versionId: version.id,
 				roomId: room.id,
 				smallGroupId: smallGroup.id,
 				participantId: participant.id,

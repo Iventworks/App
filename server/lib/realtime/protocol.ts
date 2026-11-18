@@ -33,7 +33,12 @@ export namespace RealtimeProtocol {
 		/** `last_seen_at` comes with going offline. */
 		| { type: "presence"; user_id: number; online: boolean; last_seen_at?: number }
 		/** The receiver has new notifications. */
-		| { type: "notification" };
+		| { type: "notification" }
+		/**
+		 * A shared Markdown document changed (new updates, someone's cursor, someone joined or
+		 * left): pull it (`POST /files/{file_id}/collab`). `seq`: the newest update, if known.
+		 */
+		| { type: "document"; file_id: number; seq: number | null };
 
 	export type ClientEvent =
 		| { type: "ping" }

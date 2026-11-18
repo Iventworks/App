@@ -6,6 +6,7 @@
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
+import { filePreviewKind } from "~/utils/filePreview";
 import type { PublicShareInfo, PublicShareItem, PublicShareListing } from "~/utils/types";
 
 definePageMeta({ layout: "public" });
@@ -329,7 +330,12 @@ function onRowClick(item: PublicShareItem) {
 	else if (item.content_url) window.open(fileURL(item.content_url), "_blank", "noopener");
 }
 
-const isImage = computed(() => (info.value?.item?.mime_type ?? "").startsWith("image/"));
+/** Files with an in-app preview; others only get the buttons above. */
+const previewable = computed(() => {
+	const item = info.value?.item;
+	if (!item || item.kind !== "file") return false;
+	return !["none", "office"].includes(filePreviewKind(item.name, item.mime_type));
+});
 </script>
 
 <template>
@@ -373,7 +379,6 @@ const isImage = computed(() => (info.value?.item?.mime_type ?? "").startsWith("i
 			<!-- A single file -->
 			<UCard v-if="!isFolder" class="border-slate-800 bg-slate-900/60">
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-					<img v-if="isImage && info.item.content_url" :src="fileURL(info.item.content_url)" :alt="info.item.name" class="max-h-64 rounded-md object-contain sm:max-w-sm" />
 					<div class="flex-1 space-y-1 text-sm text-slate-400">
 						<p>{{ formatFileSize(info.item.size) }} · zuletzt geändert {{ formatDate(info.item.updated_at) }}</p>
 					</div>
@@ -384,6 +389,17 @@ const isImage = computed(() => (info.value?.item?.mime_type ?? "").startsWith("i
 					</div>
 				</div>
 			</UCard>
+
+			<!-- Preview of the shared file (PDF, image, Markdown, CSV, text). -->
+			<FilesPreview
+				v-if="!isFolder && previewable && info.item.content_url && permissions?.read"
+				:key="`${info.item.id}-${info.item.updated_at}`"
+				:url="fileURL(info.item.content_url) as string"
+				:download-url="fileURL(info.item.content_url, true)"
+				:name="info.item.name"
+				:mime-type="info.item.mime_type"
+				:size="info.item.size"
+			/>
 
 			<!-- A folder -->
 			<div v-else class="relative space-y-4" @dragover="onDragOver" @dragleave="isOver = false" @drop="onDrop">

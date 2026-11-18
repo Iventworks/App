@@ -8,7 +8,9 @@ import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
+import { AuthHandler } from "../../../../../utils/authHandler";
 import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
+import { FileAccess } from "../../../../../utils/fileAccess";
 import { FileService } from "../../../../../utils/fileService";
 import { Notifier } from "../../../../../utils/notifications";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
@@ -27,6 +29,7 @@ const BAD_REQUEST_MESSAGES =
 
 /** Responsibles must be staff of the event; files event documents or org documents. */
 async function validateRefs(
+	c: Context<ProgramEnv>,
 	eventId: number,
 	refs: { responsible_user_ids?: number[]; file_ids?: number[] },
 ): Promise<string | null> {
@@ -61,6 +64,13 @@ async function validateRefs(
 				(file.scope === "org" && file.event_id === null),
 		);
 		if (allowed.length !== fileIds.length) {
+			return "A linked file does not belong to this event or the organisation library";
+		}
+		// Only what the caller can open themselves (restricted folders, Kernteam-only org documents).
+		const readable = await FileAccess.readableIds(AuthHandler.AuthContext.get(c), allowed, {
+			eventAccess: { ...c.get("eventAccess"), eventId },
+		});
+		if (readable.size !== fileIds.length) {
 			return "A linked file does not belong to this event or the organisation library";
 		}
 	}
@@ -173,6 +183,13 @@ async function toResponse(
 		.orderBy(asc(DB.Tables.files.kind), asc(DB.Tables.files.name))
 		.all();
 
+	// Attachments the caller may not open (restricted folders) are left out.
+	const readable = await FileAccess.readableIds(
+		AuthHandler.AuthContext.get(c),
+		[...new Map(fileLinks.map((link) => [link.file.id, link.file])).values()],
+		{ eventAccess: { ...c.get("eventAccess"), eventId: c.get("event").id } },
+	);
+
 	const users = await UserSummary.fetchMap(responsibles.map((entry) => entry.user_id));
 
 	return items.map((item) => {
@@ -186,7 +203,7 @@ async function toResponse(
 				.filter((user): user is UserSummary.Schema => Boolean(user))
 				.sort((a, b) => a.display_name.localeCompare(b.display_name)),
 			files: fileLinks
-				.filter((link) => link.program_item_id === item.id)
+				.filter((link) => link.program_item_id === item.id && readable.has(link.file.id))
 				.map((link) => FileService.toResponse(link.file)),
 			is_mine: responsibleIds.includes(userId),
 		};
@@ -285,7 +302,7 @@ router.post(
 			"json",
 		) as EventProgramModel.Create.Body;
 
-		const refError = await validateRefs(event.id, { responsible_user_ids, file_ids });
+		const refError = await validateRefs(c, event.id, { responsible_user_ids, file_ids });
 		if (refError) return APIResponse.badRequest(c, refError);
 
 		let item: DB.Models.ProgramItem;
@@ -383,7 +400,7 @@ router.put(
 			return APIResponse.badRequest(c, "end_at must be after start_at");
 		}
 
-		const refError = await validateRefs(event.id, { responsible_user_ids, file_ids });
+		const refError = await validateRefs(c, event.id, { responsible_user_ids, file_ids });
 		if (refError) return APIResponse.badRequest(c, refError);
 
 		const previousResponsibles = await getResponsibleIds(item.id);

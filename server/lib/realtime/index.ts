@@ -67,6 +67,13 @@ export namespace Realtime {
 		);
 	}
 
+	/** A shared document changed: everyone editing it pulls (see `Collab`). */
+	export function documentChanged(userIds: Iterable<number>, fileId: number, seq: number | null) {
+		const orgId = currentOrgId();
+		if (orgId === null) return;
+		RealtimeHub.sendToUsers(orgId, userIds, { type: "document", file_id: fileId, seq });
+	}
+
 	/** These people have new notifications. */
 	export function notificationsChanged(userIds: Iterable<number>) {
 		const orgId = currentOrgId();

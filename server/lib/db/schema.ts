@@ -275,6 +275,49 @@ export const invitations = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------
+// Organisation groups
+// ---------------------------------------------------------------------------
+
+/**
+ * Groups of people across the organisation ("Technikteam", "Leitungskreis"), managed by admins.
+ * Used to grant access to organisation documents (`file_access.org_group_id`).
+ * @deprecated Use DB.Tables.orgGroups to access this table.
+ */
+export const orgGroups = sqliteTable(
+	"org_groups",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		name: text().notNull(),
+		description: text().notNull().default(""),
+		color: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("org_groups_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * @deprecated Use DB.Tables.orgGroupMembers to access this table.
+ */
+export const orgGroupMembers = sqliteTable(
+	"org_group_members",
+	{
+		org_id: orgIdColumn(),
+		group_id: integer()
+			.notNull()
+			.references(() => orgGroups.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.group_id, table.user_id] }),
+		index("org_group_members_user_id_idx").on(table.user_id),
+	],
+);
+
+// ---------------------------------------------------------------------------
 // Events (camps & events) and their staff
 // ---------------------------------------------------------------------------
 
@@ -593,10 +636,11 @@ export const FILE_SCOPES = ["org", "event", "receipt", "message"] as const;
 export const FILE_KINDS = ["folder", "file"] as const;
 
 /**
- * Documents and folders. `scope = org` is the organisation-wide library (read: everyone,
- * write: core team), `scope = event` an event's documents, `scope = receipt` expense proofs,
- * `scope = message` chat attachments (readable by everyone in the chat `conversation_id`; while
- * `message_id` is null the upload is not sent yet and only its uploader sees it).
+ * Documents and folders. `scope = org` is the organisation-wide library, `scope = event` an
+ * event's documents (who may do what in both: `file_access`, `custom_access` and `FileAccess`),
+ * `scope = receipt` expense proofs, `scope = message` chat attachments (readable by everyone in
+ * the chat `conversation_id`; while `message_id` is null the upload is not sent yet and only its
+ * uploader sees it).
  * Blobs live on disk under `<DATA_DIR>/uploads/<storage_key>`.
  * @deprecated Use DB.Tables.files to access this table.
  */
@@ -619,6 +663,15 @@ export const files = sqliteTable(
 		size: integer().notNull().default(0),
 		storage_key: text(),
 		uploaded_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// Who wrote the current contents (upload, new version, editor); null: through a share link.
+		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// Own access list (`file_access`) for this item and everything below it, instead of the
+		// parent folder's. Only org and event documents.
+		custom_access: integer({ mode: "boolean" }).notNull().default(false),
+		// In the Papierkorb since then (org and event documents; a folder goes in with what is
+		// inside it). Housekeeping deletes it for good after `FileTrash.RETENTION_DAYS`.
+		deleted_at: integer(),
+		deleted_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
@@ -628,6 +681,7 @@ export const files = sqliteTable(
 		index("files_parent_id_idx").on(table.parent_id),
 		index("files_message_id_idx").on(table.message_id),
 		index("files_conversation_id_idx").on(table.conversation_id),
+		index("files_deleted_at_idx").on(table.deleted_at),
 	],
 );
 
@@ -666,6 +720,187 @@ export const fileShares = sqliteTable(
 	(table) => [
 		index("file_shares_org_id_idx").on(table.org_id),
 		index("file_shares_file_id_idx").on(table.file_id),
+	],
+);
+
+/**
+ * Earlier contents of a file ("Versionen"): when contents are replaced (new upload, editor,
+ * share link, office), the old blob is kept here — at most one per author every few minutes
+ * while someone keeps saving (`FileVersions`). Housekeeping thins them out; the blobs count as
+ * referenced. Never copied with an event.
+ * @deprecated Use DB.Tables.fileVersions to access this table.
+ */
+export const fileVersions = sqliteTable(
+	"file_versions",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		storage_key: text().notNull(),
+		size: integer().notNull().default(0),
+		mime_type: text(),
+		// Who wrote these contents, and when (the file's `modified_by` / `updated_at` back then).
+		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
+		modified_at: integer().notNull(),
+		// When they were replaced.
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("file_versions_org_id_idx").on(table.org_id),
+		index("file_versions_file_id_idx").on(table.file_id),
+	],
+);
+
+/**
+ * Shared editing of a Markdown document (`Collab`): the Yjs document as a merged base (`state`
+ * up to `base_seq`) plus the updates after it (`file_collab_updates`). `seq` is the newest
+ * update, `saved_seq` the newest one written back into the file. While nothing was sent yet
+ * (`seq = 0`), one client (`init_client`, until `init_until`) fills the document from the file.
+ * Discarded when the contents change any other way, and once a session ends fully saved.
+ * @deprecated Use DB.Tables.fileCollab to access this table.
+ */
+export const fileCollab = sqliteTable(
+	"file_collab",
+	{
+		org_id: orgIdColumn(),
+		file_id: integer()
+			.primaryKey()
+			.references(() => files.id, { onDelete: "cascade" }),
+		state: blob({ mode: "buffer" }),
+		base_seq: integer().notNull().default(0),
+		seq: integer().notNull().default(0),
+		saved_seq: integer().notNull().default(0),
+		init_client: integer(),
+		init_until: integer().notNull().default(0),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [index("file_collab_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * Yjs updates of a shared editing session, in order (`seq` per file).
+ * @deprecated Use DB.Tables.fileCollabUpdates to access this table.
+ */
+export const fileCollabUpdates = sqliteTable(
+	"file_collab_updates",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		seq: integer().notNull(),
+		data: blob({ mode: "buffer" }).notNull(),
+		// The Yjs client that sent it (not echoed back to it).
+		client_id: integer().notNull(),
+		user_id: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("file_collab_updates_org_id_idx").on(table.org_id),
+		uniqueIndex("file_collab_updates_file_seq_unique").on(table.file_id, table.seq),
+	],
+);
+
+/**
+ * Access tokens of the office server (WOPI, `server/lib/office`): one per person, file and editor
+ * opening, stored hashed. Tied to the login session that opened the editor — logging out ends it —
+ * and checked again on every call (the person's current rights).
+ * @deprecated Use DB.Tables.wopiTokens to access this table.
+ */
+export const wopiTokens = sqliteTable(
+	"wopi_tokens",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		token_hash: text().notNull().unique(),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		session_id: text()
+			.notNull()
+			.references(() => sessions.id, { onDelete: "cascade" }),
+		// Opened for editing (otherwise view only), when the token was made.
+		can_write: integer({ mode: "boolean" }).notNull().default(false),
+		expires_at: integer().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("wopi_tokens_org_id_idx").on(table.org_id),
+		index("wopi_tokens_file_id_idx").on(table.file_id),
+	],
+);
+
+export const FILE_LOCK_KINDS = ["editor", "office"] as const;
+
+/**
+ * Who is editing a file right now (`FileLocks`): a shared Markdown editing session (`editor`,
+ * `user_id` null — the people are in `Collab`) or the office server. Nobody can replace, restore
+ * or delete it meanwhile. Locks expire unless renewed.
+ * @deprecated Use DB.Tables.fileLocks to access this table.
+ */
+export const fileLocks = sqliteTable(
+	"file_locks",
+	{
+		org_id: orgIdColumn(),
+		file_id: integer()
+			.primaryKey()
+			.references(() => files.id, { onDelete: "cascade" }),
+		kind: text({ enum: FILE_LOCK_KINDS }).notNull(),
+		// Random id the holder sends with its writes (or the office server's lock string).
+		lock_id: text().notNull(),
+		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
+		expires_at: integer().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("file_locks_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * Who gets in: everyone in the org (`members`, org documents), everyone on the event's team
+ * (`team`, event documents), an org group, an event group or one person.
+ */
+export const FILE_ACCESS_PRINCIPALS = [
+	"members",
+	"team",
+	"org_group",
+	"event_group",
+	"user",
+] as const;
+
+/**
+ * Access list of a file or folder with `custom_access` — for it and everything below it, until an
+ * item with its own list. The rights are those of share links (`file_shares`): read, upload, edit,
+ * delete. Kernteam (org documents) and Leitung (event documents) always have full access and are
+ * never listed. One row per principal; the list is always replaced as a whole.
+ * @deprecated Use DB.Tables.fileAccess to access this table.
+ */
+export const fileAccess = sqliteTable(
+	"file_access",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		principal: text({ enum: FILE_ACCESS_PRINCIPALS }).notNull(),
+		org_group_id: integer().references(() => orgGroups.id, { onDelete: "cascade" }),
+		event_group_id: integer().references(() => eventGroups.id, { onDelete: "cascade" }),
+		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
+		can_read: integer({ mode: "boolean" }).notNull().default(true),
+		can_upload: integer({ mode: "boolean" }).notNull().default(false),
+		can_edit: integer({ mode: "boolean" }).notNull().default(false),
+		can_delete: integer({ mode: "boolean" }).notNull().default(false),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("file_access_org_id_idx").on(table.org_id),
+		index("file_access_file_id_idx").on(table.file_id),
 	],
 );
 

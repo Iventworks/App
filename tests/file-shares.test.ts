@@ -493,7 +493,7 @@ describe("Admin overview and clean-up", () => {
 		const all = await makeAPIRequest("/v1/admin/shares", { authToken: admin.token });
 		const entry = all.find((s: any) => s.id === share.id);
 		expect(entry.file.name).toBe("Anhänge");
-		expect(entry.file.path).toBe(`/documents?folder=${subFolderId}`);
+		expect(entry.file.path).toBe(`/core-team/documents?folder=${subFolderId}`);
 		expect(all.some((s: any) => s.file.event?.name === "Sommerfreizeit")).toBe(true);
 
 		await makeAPIRequest(`/v1/admin/shares/${share.id}`, {

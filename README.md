@@ -87,7 +87,7 @@ Organisation roles (`users.role`, per org), highest first:
 
 | Role | Can |
 | --- | --- |
-| `admin` | Users, invitations, full audit log, the org's branding and domains — plus everything below |
+| `admin` | Users, invitations, org groups, full audit log, the org's branding and domains — plus everything below |
 | `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat. Acts as **leader in every event** — but sees participants' health data and the team's notes about them only in events they are on the team of. |
 | `volunteer` | The portal: own dashboard, tasks, chats, calendar, notes; the events they are staff of |
 | `unverified` | Only their own account settings (`/pending` page) |
@@ -96,6 +96,11 @@ Event roles (`event_members.role`): `leader` ("Leitung") and `staff` ("Mitarbeit
 manage the event (participants, program, rooms, staff, groups, budget, expense review, stats,
 audit log); staff see everything operational (incl. participants' medical info), add participant
 notes, create tasks/notes, upload documents and submit expenses.
+
+Documents (org library and event documents) also have access lists per folder or file, like
+Nextcloud Team folders: org documents are Kernteam-only until opened to all members, org groups or
+single people; event documents are open to the whole team until the Leitung restricts a folder to
+itself, event groups or single people. Kernteam (org) and Leitung (event) always have full access.
 
 The server is the authority: `server/lib/api/utils/permissions.ts` (`PermissionHelper`) holds both
 permission matrices; `GET /events/{eventId}` returns the caller's `permissions` so the UI can hide
@@ -106,9 +111,13 @@ controls.
 One layout (`app/layouts/dashboard.vue`) with route-switched sidebars:
 
 - **Main** (`/`, `/tasks`, `/messages`, `/calendar`, `/notes`, `/events/**`, `/news`,
-  `/documents`): personal space, the event switcher with the selected event's pages, organisation.
-- **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins) and **Kernteam**
-  (`/core-team/**`, core team): each with a "Zurück zum Portal" link.
+  `/documents`, `/files/<id>`): personal space, the event switcher with the selected event's pages,
+  organisation. `/documents` is the org library as members see it; `/files/<id>` opens a file
+  (preview, live Markdown editing, the Office editor, versions).
+- **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins — incl. *Gruppen* at
+  `/admin/groups`) and **Kernteam** (`/core-team/**`, core team — incl. *Dokumente verwalten* at
+  `/core-team/documents`: the whole library with access and share links): each with a "Zurück zum
+  Portal" link.
 - **System** (multi-org base domain only): organisations, system admins, their invitations and
   audit log under `/admin/**`.
 
@@ -163,6 +172,25 @@ menu creates `<org address>/s/<token>` with what it allows (view, upload, edit, 
 upload-only drop box), an optional password and an expiry. Only the shared item and what lies
 below it are reachable through a link. Org admins see every link under *Administration →
 Freigabelinks*, can switch sharing off for the org and set a default expiry.
+
+Files open on their own page with a preview (PDF via pdf.js, images, Markdown, CSV, text).
+**Markdown documents** (`.md`, *Neu → Dokument*) are edited in the browser together, live.
+Every change keeps the old contents as a **version** (restorable for 30 days), and deleted
+documents go to the **Papierkorb** for 30 days.
+
+**Office documents** (docx, xlsx, pptx, odt, …) open in the browser with
+[Euro-Office](https://euro-office.github.io/) — optional, it needs its own container (at least
+4 GB RAM) and its own public host name:
+
+1. Start it: `docker compose --profile office up -d` (service `eurooffice` in
+   `docker/docker-compose.yml`, `WOPI_ENABLED=true`).
+2. Let the reverse proxy serve e.g. `https://office.example.org` from it (port 31317).
+3. Set `IVENTWORKS_OFFICE_URL=https://office.example.org` and
+   `IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice`, restart Iventworks.
+
+The office server calls back on each org's public address; it must be able to reach it (hairpin
+through the proxy). Use its own host name, never a path or port of the app's: its scripts would
+otherwise share the app's origin.
 
 ## Configuration
 

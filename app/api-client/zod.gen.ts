@@ -49,7 +49,8 @@ export const zGetInstanceResponse = z.object({
             logo_url: z.string().nullable(),
             icon_url: z.string().nullable()
         }).nullable(),
-        redirect_to: z.string().nullable()
+        redirect_to: z.string().nullable(),
+        office: z.boolean()
     })
 });
 
@@ -2050,6 +2051,128 @@ export const zDeleteAdminSharesByShareIdResponse = z.object({
     code: z.literal(200),
     message: z.literal('Share link deleted successfully'),
     data: z.null()
+});
+
+/**
+ * Groups retrieved successfully
+ */
+export const zGetAdminGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Groups retrieved successfully'),
+    data: z.array(z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    }))
+});
+
+export const zPostAdminGroupsBody = z.object({
+    name: z.string().min(1).max(80),
+    description: z.string().max(2000).optional().default(''),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish().default(null),
+    member_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(2000).optional().default([])
+});
+
+/**
+ * Group created successfully
+ */
+export const zPostAdminGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Group created successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    })
+});
+
+export const zDeleteAdminGroupsByGroupIdPath = z.object({
+    groupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Group deleted successfully
+ */
+export const zDeleteAdminGroupsByGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Group deleted successfully'),
+    data: z.null()
+});
+
+export const zPutAdminGroupsByGroupIdBody = z.object({
+    name: z.string().min(1).max(80).optional(),
+    description: z.string().max(2000).optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+    member_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(2000).optional()
+});
+
+export const zPutAdminGroupsByGroupIdPath = z.object({
+    groupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Group updated successfully
+ */
+export const zPutAdminGroupsByGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Group updated successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    })
 });
 
 /**
@@ -4223,6 +4346,78 @@ export const zGetFilesByFileIdContentQuery = z.object({
  */
 export const zGetFilesByFileIdContentResponse = z.string();
 
+export const zPutFilesByFileIdContentBody = z.object({
+    file: z.string()
+});
+
+export const zPutFilesByFileIdContentPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * File replaced successfully
+ */
+export const zPutFilesByFileIdContentResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('File replaced successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
 export const zGetFilesByFileIdContentByFilenamePath = z.object({
     fileId: z.int().gt(0).lte(9007199254740991),
     filename: z.string().max(255)
@@ -4280,7 +4475,50 @@ export const zGetFilesByFileIdResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable(),
+        path: z.array(z.object({
+            id: z.number(),
+            name: z.string()
+        })),
+        event: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable()
     })
 });
 
@@ -4318,8 +4556,384 @@ export const zPutFilesByFileIdResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
     })
+});
+
+export const zPostFilesByFileIdCollabBody = z.object({
+    client_id: z.int().gte(0).lte(4294967296),
+    after: z.int().gte(0).lte(9007199254740991).nullable(),
+    updates: z.array(z.string().max(1500000)).max(50).optional().default([]),
+    init: z.boolean().optional().default(false),
+    awareness: z.string().max(12000).nullish(),
+    leave: z.boolean().optional().default(false)
+});
+
+export const zPostFilesByFileIdCollabPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Document synced successfully (no data after `leave`)
+ */
+export const zPostFilesByFileIdCollabResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Document synced successfully (no data after `leave`)'),
+    data: z.object({
+        seq: z.number(),
+        saved_seq: z.number(),
+        state: z.string().nullable(),
+        updates: z.array(z.object({
+            seq: z.number(),
+            data: z.string()
+        })),
+        initialize: z.boolean(),
+        ready: z.boolean(),
+        participants: z.array(z.object({
+            client_id: z.number(),
+            user: z.object({
+                id: z.number(),
+                display_name: z.string()
+            }),
+            color: z.string()
+        })),
+        awareness: z.array(z.object({
+            client_id: z.number(),
+            data: z.string()
+        }))
+    })
+});
+
+export const zPutFilesByFileIdCollabContentBody = z.object({
+    client_id: z.int().gte(0).lte(4294967296),
+    seq: z.int().gt(0).lte(9007199254740991),
+    content: z.string().max(500000)
+});
+
+export const zPutFilesByFileIdCollabContentPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Document saved successfully
+ */
+export const zPutFilesByFileIdCollabContentResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Document saved successfully'),
+    data: z.object({
+        saved_seq: z.number(),
+        saved: z.boolean()
+    })
+});
+
+export const zPostFilesByFileIdOfficePath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Editor ready
+ */
+export const zPostFilesByFileIdOfficeResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Editor ready'),
+    data: z.object({
+        url: z.string(),
+        access_token: z.string(),
+        access_token_ttl: z.number(),
+        mode: z.enum(['edit', 'view'])
+    })
+});
+
+export const zGetFilesByFileIdVersionsPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Versions retrieved successfully
+ */
+export const zGetFilesByFileIdVersionsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Versions retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        size: z.number(),
+        mime_type: z.string().nullable(),
+        modified_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        modified_at: z.number(),
+        created_at: z.number(),
+        content_url: z.string()
+    }))
+});
+
+export const zGetFilesByFileIdVersionsByVersionIdContentPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    versionId: z.int().gt(0).lte(9007199254740991)
+});
+
+export const zGetFilesByFileIdVersionsByVersionIdContentQuery = z.object({
+    download: z.enum(['0', '1']).optional()
+});
+
+/**
+ * The version's content
+ */
+export const zGetFilesByFileIdVersionsByVersionIdContentResponse = z.string();
+
+export const zGetFilesByFileIdVersionsByVersionIdContentByFilenamePath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    versionId: z.int().gt(0).lte(9007199254740991),
+    filename: z.string().max(255)
+});
+
+export const zGetFilesByFileIdVersionsByVersionIdContentByFilenameQuery = z.object({
+    download: z.enum(['0', '1']).optional()
+});
+
+/**
+ * The version's content
+ */
+export const zGetFilesByFileIdVersionsByVersionIdContentByFilenameResponse = z.string();
+
+export const zPostFilesByFileIdVersionsByVersionIdRestorePath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991),
+    versionId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Version restored successfully
+ */
+export const zPostFilesByFileIdVersionsByVersionIdRestoreResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Version restored successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zGetFilesByFileIdAccessPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Access list retrieved successfully
+ */
+export const zGetFilesByFileIdAccessResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Access list retrieved successfully'),
+    data: z.object({
+        custom: z.boolean(),
+        inherited_from: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable(),
+        entries: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        }))
+    })
+});
+
+export const zPutFilesByFileIdAccessBody = z.object({
+    custom: z.boolean(),
+    entries: z.array(z.object({
+        principal: z.enum([
+            'members',
+            'team',
+            'org_group',
+            'event_group',
+            'user'
+        ]),
+        id: z.int().gt(0).lte(9007199254740991).nullish(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        })
+    })).max(200).optional().default([])
+});
+
+export const zPutFilesByFileIdAccessPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Access list updated successfully
+ */
+export const zPutFilesByFileIdAccessResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Access list updated successfully'),
+    data: z.object({
+        custom: z.boolean(),
+        inherited_from: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable(),
+        entries: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        }))
+    })
+});
+
+export const zGetFilesByFileIdAccessCandidatesPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Candidates retrieved successfully
+ */
+export const zGetFilesByFileIdAccessCandidatesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Candidates retrieved successfully'),
+    data: z.array(z.object({
+        principal: z.enum([
+            'members',
+            'team',
+            'org_group',
+            'event_group',
+            'user'
+        ]),
+        id: z.number().nullable(),
+        label: z.string(),
+        description: z.string().nullable(),
+        color: z.string().nullable()
+    }))
 });
 
 export const zGetFilesByFileIdSharesPath = z.object({
@@ -6938,7 +7552,42 @@ export const zGetEventsByEventIdProgramResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         is_mine: z.boolean()
     }))
@@ -7013,7 +7662,42 @@ export const zPostEventsByEventIdProgramResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7104,7 +7788,42 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7171,7 +7890,42 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7984,7 +8738,42 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -8004,7 +8793,42 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -8024,8 +8848,76 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
-        }))
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
+        })),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }),
+        access: z.object({
+            custom: z.boolean(),
+            inherited_from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        }).nullable()
     })
 });
 
@@ -8063,7 +8955,42 @@ export const zPostEventsByEventIdFilesResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
     })
 });
 
@@ -8101,7 +9028,368 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zPostEventsByEventIdFilesMarkdownBody = z.object({
+    name: z.string().min(1).max(200),
+    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
+});
+
+export const zPostEventsByEventIdFilesMarkdownPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Document created successfully
+ */
+export const zPostEventsByEventIdFilesMarkdownResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Document created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zDeleteEventsByEventIdFilesTrashPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Papierkorb emptied successfully
+ */
+export const zDeleteEventsByEventIdFilesTrashResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Papierkorb emptied successfully'),
+    data: z.null()
+});
+
+export const zGetEventsByEventIdFilesTrashPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Papierkorb retrieved successfully
+ */
+export const zGetEventsByEventIdFilesTrashResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Papierkorb retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable(),
+        deleted_at: z.number(),
+        deleted_by: z.object({
+            id: z.number(),
+            display_name: z.string()
+        }).nullable(),
+        location: z.array(z.string()),
+        purge_at: z.number(),
+        can_restore: z.boolean(),
+        can_purge: z.boolean()
+    }))
+});
+
+export const zPostEventsByEventIdFilesTrashByFileIdRestorePath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Restored successfully
+ */
+export const zPostEventsByEventIdFilesTrashByFileIdRestoreResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Restored successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zDeleteEventsByEventIdFilesTrashByFileIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Deleted successfully
+ */
+export const zDeleteEventsByEventIdFilesTrashByFileIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Deleted successfully'),
+    data: z.null()
+});
+
+export const zPostEventsByEventIdFilesOfficeBody = z.object({
+    name: z.string().min(1).max(200),
+    type: z.enum([
+        'docx',
+        'xlsx',
+        'pptx'
+    ]),
+    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
+});
+
+export const zPostEventsByEventIdFilesOfficePath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Document created successfully
+ */
+export const zPostEventsByEventIdFilesOfficeResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Document created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
     })
 });
 
@@ -8190,7 +9478,42 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8281,7 +9604,42 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8431,7 +9789,42 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8519,7 +9912,42 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8612,7 +10040,42 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -9533,7 +10996,8 @@ export const zPutOrgAnnouncementsByAnnouncementIdResponse = z.object({
 });
 
 export const zGetOrgDocumentsQuery = z.object({
-    parent_id: z.int().gt(0).lte(9007199254740991).optional()
+    parent_id: z.int().gt(0).lte(9007199254740991).optional(),
+    view: z.enum(['member']).optional()
 });
 
 /**
@@ -9562,7 +11026,42 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -9582,7 +11081,42 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -9602,8 +11136,76 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
-        }))
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable(),
+            editing: z.object({
+                kind: z.enum(['editor', 'office']),
+                users: z.array(z.object({
+                    id: z.number(),
+                    display_name: z.string()
+                })),
+                expires_at: z.number()
+            }).nullable()
+        })),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }),
+        access: z.object({
+            custom: z.boolean(),
+            inherited_from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        }).nullable()
     })
 });
 
@@ -9637,7 +11239,42 @@ export const zPostOrgDocumentsResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
     })
 });
 
@@ -9671,7 +11308,350 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zPostOrgDocumentsMarkdownBody = z.object({
+    name: z.string().min(1).max(200),
+    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
+});
+
+/**
+ * Document created successfully
+ */
+export const zPostOrgDocumentsMarkdownResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Document created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+/**
+ * Papierkorb emptied successfully
+ */
+export const zDeleteOrgDocumentsTrashResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Papierkorb emptied successfully'),
+    data: z.null()
+});
+
+/**
+ * Papierkorb retrieved successfully
+ */
+export const zGetOrgDocumentsTrashResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Papierkorb retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable(),
+        deleted_at: z.number(),
+        deleted_by: z.object({
+            id: z.number(),
+            display_name: z.string()
+        }).nullable(),
+        location: z.array(z.string()),
+        purge_at: z.number(),
+        can_restore: z.boolean(),
+        can_purge: z.boolean()
+    }))
+});
+
+export const zPostOrgDocumentsTrashByFileIdRestorePath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Restored successfully
+ */
+export const zPostOrgDocumentsTrashByFileIdRestoreResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Restored successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
+    })
+});
+
+export const zDeleteOrgDocumentsTrashByFileIdPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Deleted successfully
+ */
+export const zDeleteOrgDocumentsTrashByFileIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Deleted successfully'),
+    data: z.null()
+});
+
+export const zPostOrgDocumentsOfficeBody = z.object({
+    name: z.string().min(1).max(200),
+    type: z.enum([
+        'docx',
+        'xlsx',
+        'pptx'
+    ]),
+    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
+});
+
+/**
+ * Document created successfully
+ */
+export const zPostOrgDocumentsOfficeResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Document created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'receipt',
+            'message'
+        ]),
+        event_id: z.number().nullable(),
+        parent_id: z.number().nullable(),
+        kind: z.enum(['folder', 'file']),
+        name: z.string(),
+        mime_type: z.string().nullable(),
+        size: z.number(),
+        uploaded_by: z.number().nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        content_url: z.string().nullable(),
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable(),
+        editing: z.object({
+            kind: z.enum(['editor', 'office']),
+            users: z.array(z.object({
+                id: z.number(),
+                display_name: z.string()
+            })),
+            expires_at: z.number()
+        }).nullable()
     })
 });
 

@@ -22,7 +22,7 @@ const Entry = FileShares.View.extend({
 		scope: z.enum(FILE_SCOPES),
 		event: z.object({ id: z.number(), name: z.string() }).nullable(),
 		folder_id: z.number().nullable(),
-		/** Where the item lives in the app (`/documents?folder=…`). */
+		/** Where the item is managed in the app (`/core-team/documents?folder=…`). */
 		path: z.string(),
 	}),
 });

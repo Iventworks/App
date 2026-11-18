@@ -3,9 +3,13 @@ import { z } from "zod";
 import { DB } from "../../db";
 import { FILE_SCOPES } from "../../db/schema";
 import type { DrizzleDB } from "../../db/utils";
+import { OfficeTemplates } from "../../office/templates";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
+import { CollabState } from "./collabState";
+import { FileVersions } from "./fileVersions";
+import { FileAccessModel } from "./shared-models/fileAccess";
 
 /** Locks down inline responses: no script, no plugins, no requests to anywhere. */
 const INLINE_CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
@@ -52,6 +56,8 @@ export class FileService {
 		"image/heif",
 		"application/pdf",
 	]);
+
+	static readonly MARKDOWN_MIME_TYPE = "text/markdown";
 
 	static isInlineSafe(mimeType: string | null | undefined) {
 		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
@@ -125,6 +131,8 @@ export class FileService {
 					parentId === null
 						? isNull(DB.Tables.files.parent_id)
 						: eq(DB.Tables.files.parent_id, parentId),
+					// The Papierkorb is listed on its own (`FileTrash`).
+					isNull(DB.Tables.files.deleted_at),
 				),
 			)
 			// Folders first ("folder" > "file"), then by name.
@@ -144,6 +152,23 @@ export class FileService {
 			currentId = folder.parent_id;
 		}
 		return path;
+	}
+
+	/** Whether something on the path (root → item) is in the Papierkorb. */
+	static isTrashed(path: readonly Pick<DB.Models.File, "deleted_at">[]) {
+		return path.some((entry) => entry.deleted_at !== null);
+	}
+
+	/** Whether the file or a folder above it is in the Papierkorb. */
+	static async isInTrash(file: DB.Models.File, tx: DrizzleDB = DB.instance()) {
+		if (file.deleted_at !== null) return true;
+		if (file.parent_id === null) return false;
+		return FileService.isTrashed(await FileService.getPath(file.parent_id, tx));
+	}
+
+	/** The library a file belongs to. */
+	static locationOf(file: Pick<DB.Models.File, "scope" | "event_id">): FileService.Location {
+		return { scope: file.scope, eventId: file.event_id ?? null };
 	}
 
 	static isInLocation(file: DB.Models.File, location: FileService.Location) {
@@ -218,6 +243,7 @@ export class FileService {
 					size,
 					storage_key: storageKey,
 					uploaded_by: userId,
+					modified_by: userId,
 				})
 				.returning()
 				.get();
@@ -225,6 +251,36 @@ export class FileService {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+	}
+
+	/** A new, empty office document (Word, Excel, PowerPoint; the extension is added when missing). */
+	static async createOffice(
+		location: FileService.Location,
+		parentId: number | null,
+		name: string,
+		type: OfficeTemplates.Type,
+		userId: number,
+	) {
+		const cleaned = FileService.sanitizeName(name);
+		const fileName = cleaned.toLowerCase().endsWith(`.${type}`) ? cleaned : `${cleaned}.${type}`;
+		const file = new File([OfficeTemplates.blank(type)], fileName, {
+			type: OfficeTemplates.MIME_TYPES[type],
+		});
+		return await FileService.upload(location, parentId, file, userId);
+	}
+
+	/** A new Markdown document (`.md` is added to the name when missing). */
+	static async createMarkdown(
+		location: FileService.Location,
+		parentId: number | null,
+		name: string,
+		content: string,
+		userId: number,
+	) {
+		const cleaned = FileService.sanitizeName(name);
+		const fileName = /\.(md|markdown)$/i.test(cleaned) ? cleaned : `${cleaned}.md`;
+		const file = new File([content], fileName, { type: FileService.MARKDOWN_MIME_TYPE });
+		return await FileService.upload(location, parentId, file, userId);
 	}
 
 	static async update(
@@ -261,37 +317,79 @@ export class FileService {
 		return new Set(rows.map((row) => row.file_id));
 	}
 
-	/** Items for a listing, with the "shared" flag looked up in one query. */
-	static async toResponses(files: DB.Models.File[], tx: DrizzleDB = DB.instance()) {
+	/**
+	 * Items for a listing, with the "shared" flag looked up in one query. `extra` adds the caller's
+	 * permissions and (for managers) the item's own access list.
+	 */
+	static async toResponses(
+		files: DB.Models.File[],
+		extra: (file: DB.Models.File) => Omit<FileService.ResponseOptions, "shared"> = () => ({}),
+		tx: DrizzleDB = DB.instance(),
+	) {
 		const shared = await FileService.sharedIds(
 			files.map((file) => file.id),
 			tx,
 		);
-		return files.map((file) => FileService.toResponse(file, { shared: shared.has(file.id) }));
+		return files.map((file) =>
+			FileService.toResponse(file, { ...extra(file), shared: shared.has(file.id) }),
+		);
 	}
 
-	/** Replace a file's contents (same row, new blob); the old blob is removed afterwards. */
-	static async replaceContent(file: DB.Models.File, upload: File, tx: DrizzleDB = DB.instance()) {
+	/**
+	 * Replace a file's contents (same row, new blob). The old contents become a version
+	 * (`FileVersions`). `userId` null: through a share link. Returns null when the upload is too
+	 * large.
+	 */
+	static async replaceContent(
+		file: DB.Models.File,
+		upload: Blob,
+		userId: number | null,
+		/**
+		 * `keepCollab`: written by the shared Markdown editing session itself. `session`: several
+		 * people save in turns (shared editing, the office server) — versions per interval, not
+		 * per author (default: `keepCollab`).
+		 */
+		options: { keepCollab?: boolean; session?: boolean } = {},
+	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
+		let updated: DB.Models.File;
 		try {
-			const updated = await tx
-				.update(DB.Tables.files)
-				.set({
-					storage_key: storageKey,
-					size,
-					mime_type: upload.type || "application/octet-stream",
-					updated_at: Date.now(),
-				})
-				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
-				.returning()
-				.get();
-			await FileStorage.remove([file.storage_key]);
-			return updated;
+			updated = await FileVersions.replace(
+				file,
+				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
+				userId,
+				{ session: options.session ?? options.keepCollab },
+			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+		// Contents from outside: a shared editing state of the old text is worthless now.
+		if (!options.keepCollab) await CollabState.discard(file.id);
+		return updated;
+	}
+
+	/** Save text as the new contents (the shared Markdown editor). */
+	static async replaceText(
+		file: DB.Models.File,
+		text: string,
+		userId: number,
+		options: { keepCollab?: boolean } = {},
+	) {
+		const mimeType = FileService.isMarkdownName(file.name)
+			? FileService.MARKDOWN_MIME_TYPE
+			: (file.mime_type ?? "text/plain");
+		return await FileService.replaceContent(
+			file,
+			new Blob([text], { type: mimeType }),
+			userId,
+			options,
+		);
+	}
+
+	static isMarkdownName(name: string) {
+		return /\.(md|markdown)$/i.test(name);
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */
@@ -304,7 +402,7 @@ export class FileService {
 		return path.some((entry) => entry.id === folderId);
 	}
 
-	/** Delete a file or a folder with everything below it, including the blobs on disk. */
+	/** Delete a file or a folder with everything below it, including the blobs on disk (and versions). */
 	static async deleteRecursive(file: DB.Models.File, tx: DrizzleDB = DB.instance()) {
 		const ids: number[] = [file.id];
 		const storageKeys: (string | null)[] = [file.storage_key];
@@ -321,6 +419,8 @@ export class FileService {
 			frontier = children.filter((child) => child.kind === "folder").map((child) => child.id);
 		}
 
+		storageKeys.push(...(await FileVersions.storageKeys(ids, tx)));
+
 		// Children go via ON DELETE CASCADE; deleting them explicitly keeps it correct even if
 		// foreign keys were ever disabled.
 		await tx
@@ -333,15 +433,19 @@ export class FileService {
 	/** Remove every blob that belongs to an event (call before deleting the event). */
 	static async deleteAllForEvent(eventId: number, tx: DrizzleDB = DB.instance()) {
 		const rows = await tx
-			.select({ storage_key: DB.Tables.files.storage_key })
+			.select({ id: DB.Tables.files.id, storage_key: DB.Tables.files.storage_key })
 			.from(DB.Tables.files)
 			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
 			.all();
+		const versionKeys = await FileVersions.storageKeys(
+			rows.map((row) => row.id),
+			tx,
+		);
 		await tx
 			.delete(DB.Tables.files)
 			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
 			.run();
-		await FileStorage.remove(rows.map((row) => row.storage_key));
+		await FileStorage.remove([...rows.map((row) => row.storage_key), ...versionKeys]);
 	}
 
 	static sanitizeName(name: string) {
@@ -353,7 +457,10 @@ export class FileService {
 		return cleaned || "Unbenannt";
 	}
 
-	static toResponse(file: DB.Models.File, options: { shared?: boolean } = {}): FileService.Item {
+	static toResponse(
+		file: DB.Models.File,
+		options: FileService.ResponseOptions = {},
+	): FileService.Item {
 		return {
 			id: file.id,
 			scope: file.scope,
@@ -368,6 +475,10 @@ export class FileService {
 			updated_at: file.updated_at,
 			content_url: file.kind === "file" ? FileService.contentPath(file) : null,
 			shared: options.shared ?? false,
+			custom_access: file.custom_access,
+			permissions: options.permissions ?? null,
+			access: options.access ?? null,
+			editing: options.editing ?? null,
 		};
 	}
 }
@@ -398,14 +509,41 @@ export namespace FileService {
 		content_url: z.string().nullable(),
 		/** Has a share link for people without an account (listings only; false elsewhere). */
 		shared: z.boolean(),
+		/** Has its own access list instead of its folder's (org and event documents). */
+		custom_access: z.boolean(),
+		/** What the caller may do with it (listings and uploads of org and event documents). */
+		permissions: FileAccessModel.Permissions.nullable(),
+		/** Its own access list — only for managers and only on items with `custom_access`. */
+		access: z.array(FileAccessModel.Entry).nullable(),
+		/** Someone is editing it right now (listings and the file page). */
+		editing: z
+			.object({
+				/** `editor`: a shared Markdown editing session; `office`: the office server. */
+				kind: z.enum(["editor", "office"]),
+				/** Who is in it (editor sessions). */
+				users: z.array(z.object({ id: z.number(), display_name: z.string() })),
+				expires_at: z.number(),
+			})
+			.nullable(),
 	});
 	export type Item = z.infer<typeof ItemSchema>;
+
+	export interface ResponseOptions {
+		shared?: boolean;
+		permissions?: FileAccessModel.Permissions | null;
+		access?: FileAccessModel.Entry[] | null;
+		editing?: Item["editing"];
+	}
 
 	/** Folder listing with breadcrumb path. */
 	export const FolderListingSchema = z.object({
 		folder: ItemSchema.nullable(),
 		path: z.array(ItemSchema),
 		items: z.array(ItemSchema),
+		/** What the caller may do in this folder (the root when `folder` is null). */
+		permissions: FileAccessModel.Permissions,
+		/** Who has access to this folder and where that comes from — managers only. */
+		access: FileAccessModel.View.nullable(),
 	});
 	export type FolderListing = z.infer<typeof FolderListingSchema>;
 
@@ -421,8 +559,28 @@ export namespace FileService {
 	});
 	export type CreateFolderBody = z.infer<typeof CreateFolderBody>;
 
+	export const CreateMarkdownBody = z.object({
+		/** `.md` is added when missing. */
+		name: z.string().trim().min(1).max(200),
+		parent_id: z.number().int().positive().nullable().optional(),
+	});
+	export type CreateMarkdownBody = z.infer<typeof CreateMarkdownBody>;
+
+	export const CreateOfficeBody = z.object({
+		/** The extension is added when missing. */
+		name: z.string().trim().min(1).max(200),
+		type: z.enum(["docx", "xlsx", "pptx"]),
+		parent_id: z.number().int().positive().nullable().optional(),
+	});
+	export type CreateOfficeBody = z.infer<typeof CreateOfficeBody>;
+
 	export const ListQuery = z.object({
 		parent_id: z.coerce.number().int().positive().optional(),
+		/**
+		 * `member`: list as a member sees it — managers get no extra rights (the org library's
+		 * member view at `/documents`).
+		 */
+		view: z.enum(["member"]).optional(),
 	});
 	export type ListQuery = z.infer<typeof ListQuery>;
 }

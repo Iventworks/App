@@ -142,6 +142,72 @@ CMP (Crossover Management Portal) before; the repository still is.
   text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as
   an `application/octet-stream` attachment so it can never run script on the app origin.
   Housekeeping deletes stored files no `files` row references (after a day's grace).
+- **File page and previews** (`/files/[file_id]`, `FilesPreview`, `FilesPdfViewer`,
+  `app/utils/filePreview.ts`): files from the browsers open in the app (`?from=` leads the
+  breadcrumb back to the library page); the share page uses the same preview. PDFs render with
+  pdf.js (`pdfjs-dist` legacy build — the browser's own viewer is missing in the iOS app and on
+  Android), loaded with dynamic `import()` only when a PDF opens; the worker comes from our bundle
+  (`?url`), WebAssembly is off (`useWasm: false`, the CSP has no `wasm-unsafe-eval`), pdf.js 6
+  evaluates no strings. Pages render near the screen and are released after (canvases ≤ 16 MP for
+  iOS). Text previews fetch the content and show it as text — Markdown through the notes editor,
+  CSV as a table — never as HTML; images only for the inline-safe types (no SVG). Office files
+  open in the office editor when one is configured (see "Office documents"), else download. "Neu → Dokument (Markdown)" creates a `.md` file (its title as heading) and
+  opens it in the editor (`?edit=1`).
+- **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
+  a new version, shared editing, a share link, restoring) goes through
+  `FileService.replaceContent`, which keeps the old blob as a version — while the same person keeps
+  saving (or anyone in a shared editing session), at most one every ten minutes. `files.modified_by`
+  is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
+  never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
+  removes its version blobs. Versions are never copied with an event.
+- **Papierkorb** (`files.deleted_at` / `deleted_by`, `FileTrash`): deleting an org or event
+  document (also through a share link, `deleted_by` null) moves it to the Papierkorb — a folder
+  with everything inside; receipts and attachments are deleted right away. Items in the
+  Papierkorb, or below a folder in it, are gone everywhere else: listings skip them
+  (`FileService.listFolder`), the `/files/{id}` loader answers 404 (`FileService.isInTrash`),
+  `FileAccess.evaluateFile` gives nothing, share links stop, program attachments and event copies
+  leave them out. Managers (Kernteam / Leitung) see and restore everything and delete for good,
+  everyone else sees and restores what they deleted (`…/trash` on both libraries). Restoring goes
+  back into the folder — the top level when it is gone or in the Papierkorb too. Housekeeping
+  deletes after 30 days (rows below go by `ON DELETE CASCADE`, blobs with the orphan sweep). A new
+  query on `files` for documents must skip `deleted_at` (and what is below it).
+- **Shared editing of Markdown documents** (like Nextcloud Text; `Collab` in
+  `server/lib/api/utils/collab.ts`, `CollabProvider` + `FilesCollabEditor` in the frontend): the
+  document is a Yjs document synced over REST — `POST /files/{id}/collab` joins (`after: null` →
+  whole state), sends updates and awareness, pulls, leaves; the realtime channel only signals
+  `{ type: "document" }` (the rule above holds: no data over the socket). Stored as a merged base
+  plus updates (`file_collab`, `file_collab_updates`, compacted after 200); who is in a session and
+  their cursors live in memory (`CollabSessions`, one server, like the realtime hub). The first tab
+  of a fresh session fills the document from the file (`initialize`, a 15 s claim); the others
+  wait. The browsers write the Markdown back (`PUT …/collab/content` with the `seq` it reflects;
+  only newer texts, one save at a time per file) — the author soon after typing, anyone after a
+  while for changes nobody saved. While anyone is in a session, the file is locked
+  (`file_locks`, kind `editor`, renewed with every request, two minutes): no uploads, restores or
+  deletes (409). The last person leaving fully saved drops the state; contents changed from
+  outside drop it too (`CollabState.discard`). The server rewrites awareness: only the sender's
+  own entry, with the account's name and a colour. Listings and the file page show who is editing
+  (`editing.users`). Needs edit rights; only `.md` files.
+- **Office documents** (Euro-Office over WOPI, optional — `IVENTWORKS_OFFICE_URL`,
+  `server/lib/office`, `routes/wopi`, `FilesOfficeFrame`): `POST /files/{id}/office` (browser
+  sessions only) creates an access token (`wopi_tokens`, hashed, tied to the login session, 10 h)
+  and the editor URL from the office server's discovery; the browser posts the token to the editor
+  in a frame — the office server's code never runs on our origin (that is why not its document
+  API, whose `api.js` would). The office server calls `<org url>/api/v1/wopi/files/{id}` (the
+  org's public address, so the org comes from the host as always, and the office server keeps
+  blocking private addresses against SSRF). Deviations, all deliberate:
+  - WOPI routes answer in WOPI's own format (raw JSON, bytes, status codes, `X-WOPI-*` headers),
+    not the API envelope, and are not in the OpenAPI spec.
+  - Every call checks the proof signature (`WopiProof`, keys from the discovery; invalid → 500 as
+    MS-WOPI says) and the token again: session, person, file (not in the Papierkorb), current
+    rights (`OfficeTokens.resolve`).
+  - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
+    large as uploads (`RequestLimits.limitFor`, path-based).
+  - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
+    server never hold a file at once. Saves keep versions per interval (`session: true`).
+  - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`).
+  - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
+    libraries) creates an empty docx/xlsx/pptx built in code (`OfficeTemplates`: the smallest valid
+    OOXML packages, zipped without compression) and opens it in the editor (`?office=1`).
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace
@@ -150,15 +216,44 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Every request through a link resolves its file ids with `FileShares.resolveInShare` — the
     shared item or something below the shared folder, nothing else. The shared item itself is
     never renamed or deleted through its link. Receipts are never shared.
-  - Only people who manage the whole library create links (`FileAccess.canShare`: org documents →
-    `org_documents:write`, event documents → `files:manage_all`), so a link never grants more than
-    its creator has.
+  - Only managers of the library create links (`permissions.manage`: org documents → Kernteam,
+    event documents → Leitung), so a link never grants more than its creator has. Receipts and
+    chat attachments are never shared.
   - Unknown, expired and disabled links all answer 404; org admins can switch sharing off
     (`orgs.file_sharing_enabled`, also stops existing links) and set a default expiry.
   - Changes through a link are audited without a user ("über Freigabelink …"); creating, changing
     and revoking links are audited as `file_share`. Admins see all links under
     *Administration → Freigabelinks*. Public API: `/shares/{token}/…`; page: `pages/s/[token].vue`
     (layout `public`).
+- **Document access lists** (like Nextcloud Team folders; `file_access`, `files.custom_access`,
+  `FileAccess` in `server/lib/api/utils/fileAccess.ts`, lists in `fileAccessLists.ts`):
+  - Managers always may do everything, including access and share links: the Kernteam for org
+    documents (`org_documents:write`), the Leitung for event documents (`files:manage_all`, which
+    includes the Kernteam — it acts as Leitung in every event, also for restricted folders).
+  - Everyone else gets the rights of the nearest item above with its own list (`custom_access`);
+    without one, the library default: org documents are Kernteam-only, event documents are open to
+    the whole team (view + upload). Rights are those of share links (read, upload, edit, delete,
+    same presets in the UI — `app/utils/filePermissions.ts`); files only take view or edit.
+    Entries name `members` / `org_group` / `user` (org) or `team` / `event_group` / a team
+    member (event); managers are never listed. No deny rules.
+  - An item is only visible when every folder above it can be read; an upload-only folder shows,
+    its contents don't. Items with their own list are renamed, moved or deleted by managers only.
+    Own uploads may be renamed, moved, replaced and deleted while you may still upload there.
+  - Every file route checks the caller's `permissions` (loaded in the `/files/{fileId}` loader;
+    listings carry them per item, managers also get `access`). Moving needs `delete` on the item
+    and upload rights on the target. Program items only show attachments the caller can open and
+    only link what the caller can open (`FileAccess.readableIds`).
+  - Pages: `/documents` is the member view (`view=member`: the Kernteam sees it like a member),
+    `/core-team/documents` manages the library (access, links, Kernteam-only items). Event
+    documents are one page; the Leitung sees the access controls there.
+  - Migration `0007` kept existing org documents visible: their top level got "Alle Mitglieder:
+    ansehen".
+  - People added to a list by name get a notification (`document_shared`); everyone/team/groups
+    don't (noise). The access dialog warns when an entry can't open the folder above (it would
+    never find the item).
+- **Org groups** (`org_groups`, `org_group_members`, `/admin/groups`, page *Administration →
+  Gruppen*): groups across the org, managed by admins only, used in access lists of org documents.
+  Deleting a group removes its access entries (`ON DELETE CASCADE`).
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`). Wall-clock times (`HH:MM`) become instants
   with `TimeUtils.instantOf`; moving an instant by whole days keeps its time of day across DST
@@ -183,7 +278,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   `server/lib/api/utils/eventCopy.ts`): master data always, the rest per part (`include`). People
   only come along with `team` (and only accounts that can still sign in); program items and due
   dates move with the new start (`TimeUtils.shiftDays`), tasks are open again, participants are
-  registered again and unpaid, documents are real copies (`FileStorage.copy`), resource bookings
+  registered again and unpaid, documents are real copies (`FileStorage.copy`) with their access
+  lists (group entries with the groups, people with the team; what can't come along is dropped, so
+  a restricted folder stays restricted), resource bookings
   only where the resource is free on the new days. Never copied: expenses, chats, audit log, the
   leaders' notes about staff, notes about participants, the dates of a series (they come from the
   rule). A new event table or column that belongs to an event must be added to `EventCopier` (or

@@ -66,7 +66,41 @@ services:
       # (it is in the backups); never change it, or every device has to switch push on again.
       IVENTWORKS_WEB_PUSH_SUBJECT: ${IVENTWORKS_WEB_PUSH_SUBJECT:-}
 
+      # Office documents in the browser (optional; needs the `eurooffice` service below). The
+      # office server's own public host name — never a path or port of the app's host, or its
+      # scripts would share the app's origin. The office server calls back on each org's normal
+      # address; internally this server only fetches its discovery.
+      IVENTWORKS_OFFICE_URL: ${IVENTWORKS_OFFICE_URL:-}
+      IVENTWORKS_OFFICE_INTERNAL_URL: ${IVENTWORKS_OFFICE_INTERNAL_URL:-}
+
     volumes:
       - /opt/iventworks/data:/opt/iventworks/data
       - /opt/iventworks/config:/opt/iventworks/config
       - /opt/iventworks/backups:/opt/iventworks/backups
+
+  # Euro-Office (the engine behind "Nextcloud Office") for docx/xlsx/pptx/odt… in the browser,
+  # with co-editing. Optional: start it with `docker compose --profile office up -d`, then set
+  # IVENTWORKS_OFFICE_URL=https://office.example.org (served by the reverse proxy to the port
+  # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice. Needs at least 4 GB RAM.
+  eurooffice:
+    profiles: [office]
+    # Pin a release (e.g. :v9.3.1) once it works for you.
+    image: ghcr.io/euro-office/documentserver:latest
+    container_name: eurooffice
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:31317:80"
+    environment:
+      # Iventworks talks WOPI to it (signed calls, keys generated on first start).
+      WOPI_ENABLED: "true"
+      # Its own document API (not used by Iventworks) stays locked behind JWT; without
+      # JWT_SECRET it generates one and keeps it in the private volume.
+      JWT_ENABLED: "true"
+      # Keep it from fetching private addresses (SSRF): Iventworks is reached on its public address.
+      ALLOW_PRIVATE_IP_ADDRESS: "false"
+      EXAMPLE_ENABLED: "false"
+    volumes:
+      - /opt/eurooffice/data:/var/lib/euro-office/documentserver
+      # Keys and secrets (incl. the WOPI proof keys) — keep it, or open editors break on restart.
+      - /opt/eurooffice/private:/var/www/euro-office/Data
+      - /opt/eurooffice/logs:/var/log/euro-office/documentserver

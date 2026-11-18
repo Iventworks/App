@@ -9,8 +9,10 @@ import { AppConstants } from "../../../../../utils/constants";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
 import { getClientIP } from "../../../../utils/clientInfo";
+import { FileLocks } from "../../../../utils/fileLocks";
 import { FileService } from "../../../../utils/fileService";
 import { FileShares } from "../../../../utils/fileShares";
+import { FileTrash } from "../../../../utils/fileTrash";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { PublicSharesModel } from "./model";
@@ -390,8 +392,11 @@ router.put(
 		const file = await inShare(c, fileId);
 		if (!file || file.kind !== "file") return APIResponse.notFound(c, "File not found");
 
+		if (await FileLocks.blocking(file.id)) {
+			return APIResponse.conflict(c, "The file is being edited right now");
+		}
 		const { file: upload } = c.req.valid("form") as PublicSharesModel.ReplaceForm;
-		const updated = await FileService.replaceContent(file, upload);
+		const updated = await FileService.replaceContent(file, upload, null);
 		if (!updated) return APIResponse.badRequest(c, "File is too large");
 
 		await audit(c, "update", updated, `Inhalt von „${updated.name}“ ersetzt`);
@@ -419,12 +424,16 @@ router.delete(
 		const file = await inShare(c, fileId);
 		if (!file || file.id === c.get("root").id) return APIResponse.notFound(c, "File not found");
 
-		await FileService.deleteRecursive(file);
+		if (await FileLocks.blocking(file.id)) {
+			return APIResponse.conflict(c, "The file is being edited right now");
+		}
+		// Into the Papierkorb: the Kernteam / Leitung can undo what a link deleted.
+		await FileTrash.trash(file, null);
 		await audit(
 			c,
 			"delete",
 			file,
-			`${file.kind === "folder" ? "Ordner" : "Datei"} „${file.name}“ gelöscht`,
+			`${file.kind === "folder" ? "Ordner" : "Datei"} „${file.name}“ in den Papierkorb verschoben`,
 		);
 		return APIResponse.successNoData(c, "Deleted successfully");
 	},

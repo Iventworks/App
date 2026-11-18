@@ -57,6 +57,7 @@ export namespace Notifier {
 		| "announcement"
 		| "expense_reviewed"
 		| "expense_submitted"
+		| "document_shared"
 		| "system";
 
 	export interface Payload {
