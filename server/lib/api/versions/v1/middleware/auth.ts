@@ -17,10 +17,11 @@ function isPublicAuthPath(fullPath: string) {
 	return PUBLIC_AUTH_PATHS.some((publicPath) => path.startsWith(publicPath));
 }
 
-// The one place the browser's session cookie counts as authentication: reading a file's contents,
-// so `<img src>`, links and new tabs work without the `Authorization` header (read-only, and the
-// cookie is SameSite=Lax, so other sites can't use it). Everything else needs the header.
-const COOKIE_AUTH_PATH = /\/v1\/files\/\d+\/content(?:\/[^/]*)?$/;
+// The one place the browser's session cookie counts as authentication: reading a file's contents
+// (or an earlier version's), so `<img src>`, links and new tabs work without the `Authorization`
+// header (read-only, and the cookie is SameSite=Lax, so other sites can't use it). Everything else
+// needs the header.
+const COOKIE_AUTH_PATH = /\/v1\/files\/\d+\/(?:versions\/\d+\/)?content(?:\/[^/]*)?$/;
 const SESSION_COOKIE = `${AppConstants.APP_KEYS_PREFIX}_session_token`;
 
 function cookieAuthHeader(c: Context): string | undefined {

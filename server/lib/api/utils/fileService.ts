@@ -6,6 +6,7 @@ import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
+import { FileVersions } from "./fileVersions";
 import { FileAccessModel } from "./shared-models/fileAccess";
 
 /** Locks down inline responses: no script, no plugins, no requests to anywhere. */
@@ -53,6 +54,8 @@ export class FileService {
 		"image/heif",
 		"application/pdf",
 	]);
+
+	static readonly MARKDOWN_MIME_TYPE = "text/markdown";
 
 	static isInlineSafe(mimeType: string | null | undefined) {
 		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
@@ -224,6 +227,7 @@ export class FileService {
 					size,
 					storage_key: storageKey,
 					uploaded_by: userId,
+					modified_by: userId,
 				})
 				.returning()
 				.get();
@@ -231,6 +235,20 @@ export class FileService {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+	}
+
+	/** A new Markdown document (`.md` is added to the name when missing). */
+	static async createMarkdown(
+		location: FileService.Location,
+		parentId: number | null,
+		name: string,
+		content: string,
+		userId: number,
+	) {
+		const cleaned = FileService.sanitizeName(name);
+		const fileName = /\.(md|markdown)$/i.test(cleaned) ? cleaned : `${cleaned}.md`;
+		const file = new File([content], fileName, { type: FileService.MARKDOWN_MIME_TYPE });
+		return await FileService.upload(location, parentId, file, userId);
 	}
 
 	static async update(
@@ -285,28 +303,36 @@ export class FileService {
 		);
 	}
 
-	/** Replace a file's contents (same row, new blob); the old blob is removed afterwards. */
-	static async replaceContent(file: DB.Models.File, upload: File, tx: DrizzleDB = DB.instance()) {
+	/**
+	 * Replace a file's contents (same row, new blob). The old contents become a version
+	 * (`FileVersions`). `userId` null: through a share link. Returns null when the upload is too
+	 * large.
+	 */
+	static async replaceContent(file: DB.Models.File, upload: Blob, userId: number | null) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
 		try {
-			const updated = await tx
-				.update(DB.Tables.files)
-				.set({
-					storage_key: storageKey,
-					size,
-					mime_type: upload.type || "application/octet-stream",
-					updated_at: Date.now(),
-				})
-				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
-				.returning()
-				.get();
-			await FileStorage.remove([file.storage_key]);
-			return updated;
+			return await FileVersions.replace(
+				file,
+				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
+				userId,
+			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+	}
+
+	/** Save text as the new contents (the Markdown editor). */
+	static async replaceText(file: DB.Models.File, text: string, userId: number) {
+		const mimeType = FileService.isMarkdownName(file.name)
+			? FileService.MARKDOWN_MIME_TYPE
+			: (file.mime_type ?? "text/plain");
+		return await FileService.replaceContent(file, new Blob([text], { type: mimeType }), userId);
+	}
+
+	static isMarkdownName(name: string) {
+		return /\.(md|markdown)$/i.test(name);
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */
@@ -319,7 +345,7 @@ export class FileService {
 		return path.some((entry) => entry.id === folderId);
 	}
 
-	/** Delete a file or a folder with everything below it, including the blobs on disk. */
+	/** Delete a file or a folder with everything below it, including the blobs on disk (and versions). */
 	static async deleteRecursive(file: DB.Models.File, tx: DrizzleDB = DB.instance()) {
 		const ids: number[] = [file.id];
 		const storageKeys: (string | null)[] = [file.storage_key];
@@ -336,6 +362,8 @@ export class FileService {
 			frontier = children.filter((child) => child.kind === "folder").map((child) => child.id);
 		}
 
+		storageKeys.push(...(await FileVersions.storageKeys(ids, tx)));
+
 		// Children go via ON DELETE CASCADE; deleting them explicitly keeps it correct even if
 		// foreign keys were ever disabled.
 		await tx
@@ -348,15 +376,19 @@ export class FileService {
 	/** Remove every blob that belongs to an event (call before deleting the event). */
 	static async deleteAllForEvent(eventId: number, tx: DrizzleDB = DB.instance()) {
 		const rows = await tx
-			.select({ storage_key: DB.Tables.files.storage_key })
+			.select({ id: DB.Tables.files.id, storage_key: DB.Tables.files.storage_key })
 			.from(DB.Tables.files)
 			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
 			.all();
+		const versionKeys = await FileVersions.storageKeys(
+			rows.map((row) => row.id),
+			tx,
+		);
 		await tx
 			.delete(DB.Tables.files)
 			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, eventId)))
 			.run();
-		await FileStorage.remove(rows.map((row) => row.storage_key));
+		await FileStorage.remove([...rows.map((row) => row.storage_key), ...versionKeys]);
 	}
 
 	static sanitizeName(name: string) {
@@ -389,6 +421,7 @@ export class FileService {
 			custom_access: file.custom_access,
 			permissions: options.permissions ?? null,
 			access: options.access ?? null,
+			editing: options.editing ?? null,
 		};
 	}
 }
@@ -425,6 +458,14 @@ export namespace FileService {
 		permissions: FileAccessModel.Permissions.nullable(),
 		/** Its own access list — only for managers and only on items with `custom_access`. */
 		access: z.array(FileAccessModel.Entry).nullable(),
+		/** Someone is editing it right now (listings and the file page). */
+		editing: z
+			.object({
+				kind: z.enum(["editor", "office"]),
+				user: z.object({ id: z.number(), display_name: z.string() }).nullable(),
+				expires_at: z.number(),
+			})
+			.nullable(),
 	});
 	export type Item = z.infer<typeof ItemSchema>;
 
@@ -432,6 +473,7 @@ export namespace FileService {
 		shared?: boolean;
 		permissions?: FileAccessModel.Permissions | null;
 		access?: FileAccessModel.Entry[] | null;
+		editing?: Item["editing"];
 	}
 
 	/** Folder listing with breadcrumb path. */
@@ -457,6 +499,13 @@ export namespace FileService {
 		parent_id: z.number().int().positive().nullable().optional(),
 	});
 	export type CreateFolderBody = z.infer<typeof CreateFolderBody>;
+
+	export const CreateMarkdownBody = z.object({
+		/** `.md` is added when missing. */
+		name: z.string().trim().min(1).max(200),
+		parent_id: z.number().int().positive().nullable().optional(),
+	});
+	export type CreateMarkdownBody = z.infer<typeof CreateMarkdownBody>;
 
 	export const ListQuery = z.object({
 		parent_id: z.coerce.number().int().positive().optional(),

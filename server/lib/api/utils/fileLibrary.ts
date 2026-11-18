@@ -1,6 +1,7 @@
 import type { DB } from "../../db";
 import { FileAccess } from "./fileAccess";
 import { FileAccessLists } from "./fileAccessLists";
+import { FileLocks } from "./fileLocks";
 import { FileService } from "./fileService";
 
 type Failure = { ok: false; status: 400 | 403 | 404; message: string };
@@ -54,6 +55,11 @@ export namespace FileLibrary {
 			);
 		}
 
+		// "Wird bearbeitet von …"
+		const editing = await FileLocks.describe(
+			(await FileLocks.forFiles(visible.map((item) => item.file.id))).values(),
+		);
+
 		return {
 			ok: true,
 			data: {
@@ -69,6 +75,7 @@ export namespace FileLibrary {
 					(file) => ({
 						permissions: permissionsOf.get(file.id) ?? null,
 						access: viewer.manager && file.custom_access ? (itemAccess.get(file.id) ?? []) : null,
+						editing: editing.get(file.id) ?? null,
 					}),
 				),
 				permissions,
@@ -100,6 +107,12 @@ export namespace FileLibrary {
 			return { ok: false, status: 400, message: "Parent folder not found" };
 		}
 		return permissions.upload ? { ok: true, parentId: folder.id } : denied;
+	}
+
+	/** The starting text of a new Markdown document: its title as heading. */
+	export function markdownTemplate(name: string) {
+		const title = name.replace(/\.(md|markdown)$/i, "").trim();
+		return title ? `# ${title}\n\n` : "";
 	}
 
 	/** A newly created item with the caller's permissions on it. */

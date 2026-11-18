@@ -61,6 +61,20 @@ async function createFolder(name: string, parentId: number | null) {
 	}
 	return result.success;
 }
+async function createMarkdown(name: string, parentId: number | null) {
+	const result = await useAPI((api) =>
+		api.postOrgDocumentsMarkdown({ body: { name, parent_id: parentId } }),
+	);
+	if (!result.success) {
+		toast.add({
+			title: "Dokument konnte nicht angelegt werden",
+			description: result.message,
+			color: "error",
+		});
+		return null;
+	}
+	return result.data;
+}
 </script>
 
 <template>
@@ -92,6 +106,7 @@ async function createFolder(name: string, parentId: number | null) {
 					:load="load"
 					:upload="upload"
 					:create-folder="createFolder"
+					:create-markdown="createMarkdown"
 					empty-description="Hier legt das Kernteam Leitfäden, Vorlagen und Werkzeuge ab. Fehlt etwas oder ist veraltet? Sag dem Kernteam Bescheid."
 				/>
 			</DashboardPageBody>

@@ -6959,6 +6959,114 @@ export type GetFilesByFileIdContentResponses = {
 
 export type GetFilesByFileIdContentResponse = GetFilesByFileIdContentResponses[keyof GetFilesByFileIdContentResponses];
 
+export type PutFilesByFileIdContentData = {
+    body: {
+        /**
+         * The new contents
+         */
+        file: Blob | File;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/content';
+};
+
+export type PutFilesByFileIdContentErrors = {
+    /**
+     * Only files have contents / File is too large / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only files have contents / File is too large / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+    /**
+     * The file is being edited right now
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The file is being edited right now';
+    };
+};
+
+export type PutFilesByFileIdContentError = PutFilesByFileIdContentErrors[keyof PutFilesByFileIdContentErrors];
+
+export type PutFilesByFileIdContentResponses = {
+    /**
+     * File replaced successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'File replaced successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PutFilesByFileIdContentResponse = PutFilesByFileIdContentResponses[keyof PutFilesByFileIdContentResponses];
+
 export type GetFilesByFileIdContentByFilenameData = {
     body?: never;
     path: {
@@ -7142,6 +7250,14 @@ export type GetFilesByFileIdResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
             path: Array<{
                 id: number;
                 name: string;
@@ -7240,11 +7356,582 @@ export type PutFilesByFileIdResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
         };
     };
 };
 
 export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
+
+export type PutFilesByFileIdTextData = {
+    body: {
+        content: string;
+        lock_id: string;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/text';
+};
+
+export type PutFilesByFileIdTextErrors = {
+    /**
+     * Only Markdown documents can be edited here / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only Markdown documents can be edited here / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to edit this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+    /**
+     * You are not editing this document (any more)
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'You are not editing this document (any more)';
+    };
+};
+
+export type PutFilesByFileIdTextError = PutFilesByFileIdTextErrors[keyof PutFilesByFileIdTextErrors];
+
+export type PutFilesByFileIdTextResponses = {
+    /**
+     * Document saved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Document saved successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PutFilesByFileIdTextResponse = PutFilesByFileIdTextResponses[keyof PutFilesByFileIdTextResponses];
+
+export type DeleteFilesByFileIdLockData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: {
+        lock_id?: string;
+        force?: '0' | '1';
+    };
+    url: '/files/{fileId}/lock';
+};
+
+export type DeleteFilesByFileIdLockErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only managers can end someone else's editing
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only managers can end someone else\'s editing';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type DeleteFilesByFileIdLockError = DeleteFilesByFileIdLockErrors[keyof DeleteFilesByFileIdLockErrors];
+
+export type DeleteFilesByFileIdLockResponses = {
+    /**
+     * Lock released successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Lock released successfully';
+        data: null;
+    };
+};
+
+export type DeleteFilesByFileIdLockResponse = DeleteFilesByFileIdLockResponses[keyof DeleteFilesByFileIdLockResponses];
+
+export type PostFilesByFileIdLockData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/lock';
+};
+
+export type PostFilesByFileIdLockErrors = {
+    /**
+     * Only Markdown documents can be edited here
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only Markdown documents can be edited here';
+    };
+    /**
+     * You are not allowed to edit this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type PostFilesByFileIdLockError = PostFilesByFileIdLockErrors[keyof PostFilesByFileIdLockErrors];
+
+export type PostFilesByFileIdLockResponses = {
+    /**
+     * Lock checked successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Lock checked successfully';
+        data: {
+            acquired: boolean;
+            lock_id: string | null;
+            expires_at: number | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostFilesByFileIdLockResponse = PostFilesByFileIdLockResponses[keyof PostFilesByFileIdLockResponses];
+
+export type PutFilesByFileIdLockData = {
+    body: {
+        lock_id: string;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/lock';
+};
+
+export type PutFilesByFileIdLockErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+    /**
+     * You are not editing this document (any more)
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'You are not editing this document (any more)';
+    };
+};
+
+export type PutFilesByFileIdLockError = PutFilesByFileIdLockErrors[keyof PutFilesByFileIdLockErrors];
+
+export type PutFilesByFileIdLockResponses = {
+    /**
+     * Lock renewed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Lock renewed successfully';
+        data: {
+            acquired: boolean;
+            lock_id: string | null;
+            expires_at: number | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PutFilesByFileIdLockResponse = PutFilesByFileIdLockResponses[keyof PutFilesByFileIdLockResponses];
+
+export type GetFilesByFileIdVersionsData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/versions';
+};
+
+export type GetFilesByFileIdVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetFilesByFileIdVersionsError = GetFilesByFileIdVersionsErrors[keyof GetFilesByFileIdVersionsErrors];
+
+export type GetFilesByFileIdVersionsResponses = {
+    /**
+     * Versions retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Versions retrieved successfully';
+        data: Array<{
+            id: number;
+            size: number;
+            mime_type: string | null;
+            modified_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            modified_at: number;
+            created_at: number;
+            content_url: string;
+        }>;
+    };
+};
+
+export type GetFilesByFileIdVersionsResponse = GetFilesByFileIdVersionsResponses[keyof GetFilesByFileIdVersionsResponses];
+
+export type GetFilesByFileIdVersionsByVersionIdContentData = {
+    body?: never;
+    path: {
+        fileId: number;
+        versionId: number;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/files/{fileId}/versions/{versionId}/content';
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * Version not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Version not found';
+    };
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentError = GetFilesByFileIdVersionsByVersionIdContentErrors[keyof GetFilesByFileIdVersionsByVersionIdContentErrors];
+
+export type GetFilesByFileIdVersionsByVersionIdContentResponses = {
+    /**
+     * The version's content
+     */
+    200: Blob | File;
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentResponse = GetFilesByFileIdVersionsByVersionIdContentResponses[keyof GetFilesByFileIdVersionsByVersionIdContentResponses];
+
+export type GetFilesByFileIdVersionsByVersionIdContentByFilenameData = {
+    body?: never;
+    path: {
+        fileId: number;
+        versionId: number;
+        filename: string;
+    };
+    query?: {
+        download?: '0' | '1';
+    };
+    url: '/files/{fileId}/versions/{versionId}/content/{filename}';
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentByFilenameErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to access this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to access this file';
+    };
+    /**
+     * Version not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Version not found';
+    };
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentByFilenameError = GetFilesByFileIdVersionsByVersionIdContentByFilenameErrors[keyof GetFilesByFileIdVersionsByVersionIdContentByFilenameErrors];
+
+export type GetFilesByFileIdVersionsByVersionIdContentByFilenameResponses = {
+    /**
+     * The version's content
+     */
+    200: Blob | File;
+};
+
+export type GetFilesByFileIdVersionsByVersionIdContentByFilenameResponse = GetFilesByFileIdVersionsByVersionIdContentByFilenameResponses[keyof GetFilesByFileIdVersionsByVersionIdContentByFilenameResponses];
+
+export type PostFilesByFileIdVersionsByVersionIdRestoreData = {
+    body?: never;
+    path: {
+        fileId: number;
+        versionId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/versions/{versionId}/restore';
+};
+
+export type PostFilesByFileIdVersionsByVersionIdRestoreErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to edit this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this file';
+    };
+    /**
+     * Version not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Version not found';
+    };
+    /**
+     * The file is being edited right now
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The file is being edited right now';
+    };
+};
+
+export type PostFilesByFileIdVersionsByVersionIdRestoreError = PostFilesByFileIdVersionsByVersionIdRestoreErrors[keyof PostFilesByFileIdVersionsByVersionIdRestoreErrors];
+
+export type PostFilesByFileIdVersionsByVersionIdRestoreResponses = {
+    /**
+     * Version restored successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Version restored successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostFilesByFileIdVersionsByVersionIdRestoreResponse = PostFilesByFileIdVersionsByVersionIdRestoreResponses[keyof PostFilesByFileIdVersionsByVersionIdRestoreResponses];
 
 export type GetFilesByFileIdAccessData = {
     body?: never;
@@ -11207,6 +11894,14 @@ export type GetEventsByEventIdProgramResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             is_mine: boolean;
         }>;
@@ -11329,6 +12024,14 @@ export type PostEventsByEventIdProgramResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             is_mine: boolean;
         };
@@ -11505,6 +12208,14 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             is_mine: boolean;
         };
@@ -11619,6 +12330,14 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             is_mine: boolean;
         };
@@ -12918,6 +13637,14 @@ export type GetEventsByEventIdFilesResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             path: Array<{
                 id: number;
@@ -12954,6 +13681,14 @@ export type GetEventsByEventIdFilesResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             items: Array<{
                 id: number;
@@ -12990,6 +13725,14 @@ export type GetEventsByEventIdFilesResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             permissions: {
                 read: boolean;
@@ -13111,6 +13854,14 @@ export type PostEventsByEventIdFilesResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
         };
     };
 };
@@ -13201,11 +13952,117 @@ export type PostEventsByEventIdFilesFoldersResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
         };
     };
 };
 
 export type PostEventsByEventIdFilesFoldersResponse = PostEventsByEventIdFilesFoldersResponses[keyof PostEventsByEventIdFilesFoldersResponses];
+
+export type PostEventsByEventIdFilesMarkdownData = {
+    body: {
+        name: string;
+        parent_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/markdown';
+};
+
+export type PostEventsByEventIdFilesMarkdownErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add documents here
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add documents here';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdFilesMarkdownError = PostEventsByEventIdFilesMarkdownErrors[keyof PostEventsByEventIdFilesMarkdownErrors];
+
+export type PostEventsByEventIdFilesMarkdownResponses = {
+    /**
+     * Document created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFilesMarkdownResponse = PostEventsByEventIdFilesMarkdownResponses[keyof PostEventsByEventIdFilesMarkdownResponses];
 
 export type GetEventsByEventIdExpensesData = {
     body?: never;
@@ -13322,6 +14179,14 @@ export type GetEventsByEventIdExpensesResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13450,6 +14315,14 @@ export type PostEventsByEventIdExpensesResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13708,6 +14581,14 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13836,6 +14717,14 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13962,6 +14851,14 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -15497,6 +16394,14 @@ export type GetOrgDocumentsResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             } | null;
             path: Array<{
                 id: number;
@@ -15533,6 +16438,14 @@ export type GetOrgDocumentsResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             items: Array<{
                 id: number;
@@ -15569,6 +16482,14 @@ export type GetOrgDocumentsResponses = {
                         delete: boolean;
                     };
                 }> | null;
+                editing: {
+                    kind: 'editor' | 'office';
+                    user: {
+                        id: number;
+                        display_name: string;
+                    } | null;
+                    expires_at: number;
+                } | null;
             }>;
             permissions: {
                 read: boolean;
@@ -15680,6 +16601,14 @@ export type PostOrgDocumentsResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
         };
     };
 };
@@ -15760,11 +16689,107 @@ export type PostOrgDocumentsFoldersResponses = {
                     delete: boolean;
                 };
             }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
         };
     };
 };
 
 export type PostOrgDocumentsFoldersResponse = PostOrgDocumentsFoldersResponses[keyof PostOrgDocumentsFoldersResponses];
+
+export type PostOrgDocumentsMarkdownData = {
+    body: {
+        name: string;
+        parent_id?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/documents/markdown';
+};
+
+export type PostOrgDocumentsMarkdownErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add documents here
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add documents here';
+    };
+};
+
+export type PostOrgDocumentsMarkdownError = PostOrgDocumentsMarkdownErrors[keyof PostOrgDocumentsMarkdownErrors];
+
+export type PostOrgDocumentsMarkdownResponses = {
+    /**
+     * Document created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                user: {
+                    id: number;
+                    display_name: string;
+                } | null;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostOrgDocumentsMarkdownResponse = PostOrgDocumentsMarkdownResponses[keyof PostOrgDocumentsMarkdownResponses];
 
 export type GetOrgResourcesData = {
     body?: never;

@@ -10,7 +10,9 @@ import { AuthHandler } from "../../../../utils/authHandler";
 import { FileAccess } from "../../../../utils/fileAccess";
 import { FileAccessLists } from "../../../../utils/fileAccessLists";
 import { FileLibrary } from "../../../../utils/fileLibrary";
+import { FileLocks } from "../../../../utils/fileLocks";
 import { FileService } from "../../../../utils/fileService";
+import { FileVersions } from "../../../../utils/fileVersions";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
@@ -128,8 +130,11 @@ router.get(
 						.get()) ?? null)
 				: null;
 
+		const lock = await FileLocks.current(file.id);
+		const editing = lock ? ((await FileLocks.describe([lock])).get(file.id) ?? null) : null;
+
 		return APIResponse.success(c, "File retrieved successfully", {
-			...FileService.toResponse(file, { permissions: c.get("permissions") }),
+			...FileService.toResponse(file, { permissions: c.get("permissions"), editing }),
 			path: path.map((folder) => ({ id: folder.id, name: folder.name })),
 			event,
 		} satisfies FilesModel.Details.Response);
@@ -243,6 +248,9 @@ router.delete(
 		if (!c.get("permissions").delete) {
 			return APIResponse.forbidden(c, "You are not allowed to change this file");
 		}
+		if (await FileLocks.blocking(file.id, getAuthUserId(c))) {
+			return APIResponse.conflict(c, "The file is being edited right now");
+		}
 
 		try {
 			await FileService.deleteRecursive(file);
@@ -261,6 +269,360 @@ router.delete(
 		});
 
 		return APIResponse.successNoData(c, "File deleted successfully");
+	},
+);
+
+// --- contents: new versions, the Markdown editor ------------------------------------------
+
+const EDIT_FORBIDDEN = "You are not allowed to edit this file";
+const LOCKED = "The file is being edited right now";
+const NOT_EDITING = "You are not editing this document (any more)";
+
+router.put(
+	"/:fileId/content",
+
+	APIRouteSpec.authenticated({
+		summary: "Upload new contents",
+		description:
+			"Replace a file's contents with an upload (multipart/form-data, field `file`) — „Neue Fassung“. Needs `permissions.edit`; the old contents become a version. Refused while someone else is editing the file.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("File replaced successfully", FilesModel.Item),
+			APIResponseSpec.badRequest(
+				"Only files have contents / File is too large / Syntax or validation error in request",
+			),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
+			APIResponseSpec.conflict(LOCKED),
+		),
+	}),
+
+	zValidator("form", FilesModel.Upload.Form, undefined, { media: "multipart/form-data" }),
+
+	async (c) => {
+		const file = c.get("file");
+		const userId = getAuthUserId(c);
+		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
+		if (file.kind !== "file") return APIResponse.badRequest(c, "Only files have contents");
+		if (await FileLocks.blocking(file.id, userId)) return APIResponse.conflict(c, LOCKED);
+
+		const { file: upload } = c.req.valid("form") as FilesModel.Upload.Form;
+		const updated = await FileService.replaceContent(file, upload, userId);
+		if (!updated) return APIResponse.badRequest(c, "File is too large");
+
+		await AuditLog.record({
+			userId,
+			eventId: auditEventId(file),
+			action: "update",
+			entityType: "file",
+			entityId: file.id,
+			summary: `Neue Fassung von ${describeItem(file)} hochgeladen`,
+		});
+
+		return APIResponse.success(
+			c,
+			"File replaced successfully",
+			FileService.toResponse(updated, { permissions: c.get("permissions") }),
+		);
+	},
+);
+
+router.put(
+	"/:fileId/text",
+
+	APIRouteSpec.authenticated({
+		summary: "Save Markdown document",
+		description:
+			"The Markdown editor's save: the whole text replaces the contents of a `.md` document. Needs `permissions.edit` and the editor lock (`lock_id` from `POST /files/{fileId}/lock`). Saving often is fine — while the same person keeps saving, at most one version is kept every few minutes.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Document saved successfully", FilesModel.Item),
+			APIResponseSpec.badRequest(
+				"Only Markdown documents can be edited here / Syntax or validation error in request",
+			),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
+			APIResponseSpec.conflict(NOT_EDITING),
+		),
+	}),
+
+	zValidator("json", FilesModel.Text.Body),
+
+	async (c) => {
+		const file = c.get("file");
+		const userId = getAuthUserId(c);
+		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
+		if (file.kind !== "file" || !FileService.isMarkdownName(file.name)) {
+			return APIResponse.badRequest(c, "Only Markdown documents can be edited here");
+		}
+
+		const body = c.req.valid("json") as FilesModel.Text.Body;
+		if (!(await FileLocks.holds(file.id, userId, body.lock_id))) {
+			return APIResponse.conflict(c, NOT_EDITING);
+		}
+
+		const updated = await FileService.replaceText(file, body.content, userId);
+		if (!updated) return APIResponse.badRequest(c, "File is too large");
+		await FileLocks.renew(file.id, userId, body.lock_id);
+
+		return APIResponse.success(
+			c,
+			"Document saved successfully",
+			FileService.toResponse(updated, { permissions: c.get("permissions") }),
+		);
+	},
+);
+
+router.post(
+	"/:fileId/lock",
+
+	APIRouteSpec.authenticated({
+		summary: "Start editing",
+		description:
+			"Take the editor lock of a Markdown document (`permissions.edit`). `acquired: false` when someone else is editing it (`editing`). The lock expires after two minutes unless renewed (`PUT`) — the editor renews it every minute and with every save.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Lock checked successfully", FilesModel.Lock.Response),
+			APIResponseSpec.badRequest("Only Markdown documents can be edited here"),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
+		),
+	}),
+
+	async (c) => {
+		const file = c.get("file");
+		const userId = getAuthUserId(c);
+		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
+		if (file.kind !== "file" || !FileService.isMarkdownName(file.name)) {
+			return APIResponse.badRequest(c, "Only Markdown documents can be edited here");
+		}
+
+		const result = FileLocks.acquire(file.id, userId);
+		const editing = (await FileLocks.describe([result.lock])).get(file.id) ?? null;
+		if (!result.ok) {
+			return APIResponse.success(c, "Lock checked successfully", {
+				acquired: false,
+				lock_id: null,
+				expires_at: null,
+				editing,
+			} satisfies FilesModel.Lock.Response);
+		}
+
+		await AuditLog.record({
+			userId,
+			eventId: auditEventId(file),
+			action: "update",
+			entityType: "file",
+			entityId: file.id,
+			summary: `${describeItem(file)} im Editor geöffnet`,
+		});
+
+		return APIResponse.success(c, "Lock checked successfully", {
+			acquired: true,
+			lock_id: result.lock.lock_id,
+			expires_at: result.lock.expires_at,
+			editing,
+		} satisfies FilesModel.Lock.Response);
+	},
+);
+
+router.put(
+	"/:fileId/lock",
+
+	APIRouteSpec.authenticated({
+		summary: "Keep editing",
+		description: "Renew the editor lock. 409 when it is gone (expired, taken over in another tab).",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Lock renewed successfully", FilesModel.Lock.Response),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.conflict(NOT_EDITING),
+		),
+	}),
+
+	zValidator("json", FilesModel.Lock.RenewBody),
+
+	async (c) => {
+		const file = c.get("file");
+		const { lock_id } = c.req.valid("json") as FilesModel.Lock.RenewBody;
+		const lock = await FileLocks.renew(file.id, getAuthUserId(c), lock_id);
+		if (!lock) return APIResponse.conflict(c, NOT_EDITING);
+		return APIResponse.success(c, "Lock renewed successfully", {
+			acquired: true,
+			lock_id: lock.lock_id,
+			expires_at: lock.expires_at,
+			editing: (await FileLocks.describe([lock])).get(file.id) ?? null,
+		} satisfies FilesModel.Lock.Response);
+	},
+);
+
+router.delete(
+	"/:fileId/lock",
+
+	APIRouteSpec.authenticated({
+		summary: "Stop editing",
+		description:
+			"Release the editor lock (`lock_id`). With `force=1` managers (Kernteam / Leitung) end someone else's editing.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.successNoData("Lock released successfully"),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.forbidden("Only managers can end someone else's editing"),
+		),
+	}),
+
+	zValidator("query", FilesModel.Lock.ReleaseQuery),
+
+	async (c) => {
+		const file = c.get("file");
+		const userId = getAuthUserId(c);
+		const { lock_id, force } = c.req.valid("query") as FilesModel.Lock.ReleaseQuery;
+		if (force === "1") {
+			if (!c.get("permissions").manage) {
+				return APIResponse.forbidden(c, "Only managers can end someone else's editing");
+			}
+			if (await FileLocks.release(file.id, null)) {
+				await AuditLog.record({
+					userId,
+					eventId: auditEventId(file),
+					action: "update",
+					entityType: "file",
+					entityId: file.id,
+					summary: `Bearbeitung von ${describeItem(file)} beendet`,
+				});
+			}
+		} else if (lock_id && (await FileLocks.holds(file.id, userId, lock_id))) {
+			await FileLocks.release(file.id, lock_id);
+		}
+		return APIResponse.successNoData(c, "Lock released successfully");
+	},
+);
+
+// --- versions -------------------------------------------------------------------------------
+
+router.get(
+	"/:fileId/versions",
+
+	APIRouteSpec.authenticated({
+		summary: "List versions",
+		description:
+			"Earlier contents of a file, newest first: who wrote them and when, with the path of their contents. Kept for 30 days (the newest ten longer).",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Versions retrieved successfully", FilesModel.Versions.Response),
+			APIResponseSpec.notFound("File not found"),
+			APIResponseSpec.forbidden("You are not allowed to access this file"),
+		),
+	}),
+
+	async (c) => {
+		const file = c.get("file");
+		if (!c.get("permissions").read) {
+			return APIResponse.forbidden(c, "You are not allowed to access this file");
+		}
+		const versions = await FileVersions.toResponses(file, await FileVersions.list(file.id));
+		return APIResponse.success(
+			c,
+			"Versions retrieved successfully",
+			versions satisfies FilesModel.Versions.Response,
+		);
+	},
+);
+
+router.get(
+	"/:fileId/versions/:versionId/content/:filename?",
+
+	APIRouteSpec.authenticated({
+		summary: "Get version contents",
+		description:
+			"The bytes of an earlier version, like `GET /files/{fileId}/content` (the session cookie works here too; `download=1` forces a download).",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: {
+			200: {
+				description: "The version's content",
+				content: {
+					"application/octet-stream": { schema: { type: "string", format: "binary" } },
+				},
+			},
+			...APIResponseSpec.notFound("Version not found"),
+			...APIResponseSpec.forbidden("You are not allowed to access this file"),
+		},
+	}),
+
+	zValidator("param", FilesModel.Versions.ContentParams),
+	zValidator("query", FilesModel.Content.Query),
+
+	async (c) => {
+		const file = c.get("file");
+		if (!c.get("permissions").read) {
+			return APIResponse.forbidden(c, "You are not allowed to access this file");
+		}
+		const { versionId } = c.req.valid("param") as FilesModel.Versions.ContentParams;
+		const version = await FileVersions.get(file.id, versionId);
+		if (!version) return APIResponse.notFound(c, "Version not found");
+
+		const { download } = c.req.valid("query") as FilesModel.Content.Query;
+		const response = await FileService.contentResponse(
+			{ ...file, storage_key: version.storage_key, mime_type: version.mime_type, size: version.size },
+			{ download: download === "1" },
+		);
+		return response ?? APIResponse.notFound(c, "Version not found");
+	},
+);
+
+router.post(
+	"/:fileId/versions/:versionId/restore",
+
+	APIRouteSpec.authenticated({
+		summary: "Restore version",
+		description:
+			"Make an earlier version the current contents again (`permissions.edit`); the current contents become a version, so this can be undone. Refused while someone else is editing the file.",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Version restored successfully", FilesModel.Item),
+			APIResponseSpec.notFound("Version not found"),
+			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
+			APIResponseSpec.conflict(LOCKED),
+		),
+	}),
+
+	zValidator("param", FilesModel.Versions.Params),
+
+	async (c) => {
+		const file = c.get("file");
+		const userId = getAuthUserId(c);
+		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
+		if (await FileLocks.blocking(file.id, userId)) return APIResponse.conflict(c, LOCKED);
+
+		const { versionId } = c.req.valid("param") as FilesModel.Versions.Params;
+		const version = await FileVersions.get(file.id, versionId);
+		if (!version) return APIResponse.notFound(c, "Version not found");
+
+		const updated = FileVersions.restore(file, version, userId);
+
+		await AuditLog.record({
+			userId,
+			eventId: auditEventId(file),
+			action: "update",
+			entityType: "file",
+			entityId: file.id,
+			summary: `Ältere Fassung von ${describeItem(file)} wiederhergestellt`,
+			metadata: { version_modified_at: version.modified_at },
+		});
+
+		return APIResponse.success(
+			c,
+			"Version restored successfully",
+			FileService.toResponse(updated, { permissions: c.get("permissions") }),
+		);
 	},
 );
 

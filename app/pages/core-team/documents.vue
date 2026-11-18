@@ -53,6 +53,20 @@ async function createFolder(name: string, parentId: number | null) {
 	}
 	return result.success;
 }
+async function createMarkdown(name: string, parentId: number | null) {
+	const result = await useAPI((api) =>
+		api.postOrgDocumentsMarkdown({ body: { name, parent_id: parentId } }),
+	);
+	if (!result.success) {
+		toast.add({
+			title: "Dokument konnte nicht angelegt werden",
+			description: result.message,
+			color: "error",
+		});
+		return null;
+	}
+	return result.data;
+}
 </script>
 
 <template>
@@ -83,6 +97,7 @@ async function createFolder(name: string, parentId: number | null) {
 					:load="load"
 					:upload="upload"
 					:create-folder="createFolder"
+					:create-markdown="createMarkdown"
 					manage-access
 					:sharing-enabled="sharingEnabled"
 					empty-description="Neue Ordner und Dateien sieht zuerst nur das Kernteam. Über „Zugriff“ gibst du sie für alle Mitglieder, Gruppen oder einzelne Personen frei."

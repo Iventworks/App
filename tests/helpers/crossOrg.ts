@@ -175,6 +175,31 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			})
 			.returning()
 			.get();
+		// A version and an editor lock (the rows only need to exist for the attacks).
+		const version = db
+			.insert(DB.Tables.fileVersions)
+			.values({
+				org_id,
+				file_id: folder.id,
+				storage_key: `version-${marker}`,
+				size: 1,
+				modified_by: admin.id,
+				modified_at: now,
+			})
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.fileLocks)
+			.values({
+				org_id,
+				file_id: eventFile.id,
+				kind: "editor",
+				lock_id: text("Sperre"),
+				user_id: admin.id,
+				expires_at: now + 86_400_000,
+			})
+			.run();
+
 		// Org group and access lists on both libraries.
 		const orgGroup = db
 			.insert(DB.Tables.orgGroups)
@@ -491,6 +516,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				memberId: member.id,
 				groupId: group.id,
 				orgGroupId: orgGroup.id,
+				versionId: version.id,
 				roomId: room.id,
 				smallGroupId: smallGroup.id,
 				participantId: participant.id,

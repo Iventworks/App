@@ -115,6 +115,8 @@ export namespace DB.Tables {
 	export const files = TableSchema.files;
 	export const fileShares = TableSchema.fileShares;
 	export const fileAccess = TableSchema.fileAccess;
+	export const fileVersions = TableSchema.fileVersions;
+	export const fileLocks = TableSchema.fileLocks;
 
 	export const programItems = TableSchema.programItems;
 	export const programItemResponsibles = TableSchema.programItemResponsibles;
@@ -184,6 +186,8 @@ export namespace DB.Models {
 	export type File = typeof DB.Tables.files.$inferSelect;
 	export type FileShare = typeof DB.Tables.fileShares.$inferSelect;
 	export type FileAccessEntry = typeof DB.Tables.fileAccess.$inferSelect;
+	export type FileVersion = typeof DB.Tables.fileVersions.$inferSelect;
+	export type FileLock = typeof DB.Tables.fileLocks.$inferSelect;
 
 	export type ProgramItem = typeof DB.Tables.programItems.$inferSelect;
 	export type Responsibility = typeof DB.Tables.responsibilities.$inferSelect;

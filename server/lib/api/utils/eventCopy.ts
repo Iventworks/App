@@ -372,6 +372,7 @@ export class EventCopier {
 									size: blob?.size ?? 0,
 									storage_key: blob?.storageKey ?? null,
 									uploaded_by: options.userId,
+									modified_by: options.userId,
 									custom_access: file.custom_access,
 								})
 								.returning()

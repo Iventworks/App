@@ -66,6 +66,23 @@ async function createFolder(name: string, parentId: number | null) {
 
 // Share links for externals: only the Leitung creates them, while the org allows them.
 const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
+async function createMarkdown(name: string, parentId: number | null) {
+	const result = await useAPI((api) =>
+		api.postEventsByEventIdFilesMarkdown({
+			path: { eventId: eventId.value },
+			body: { name, parent_id: parentId },
+		}),
+	);
+	if (!result.success) {
+		toast.add({
+			title: "Dokument konnte nicht angelegt werden",
+			description: result.message,
+			color: "error",
+		});
+		return null;
+	}
+	return result.data;
+}
 </script>
 
 <template>
@@ -82,6 +99,7 @@ const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_ena
 					:load="load"
 					:upload="upload"
 					:create-folder="createFolder"
+					:create-markdown="createMarkdown"
 					:manage-access="can('files:manage_all')"
 					:sharing-enabled="sharingEnabled"
 					empty-description="Lade Ablaufpläne, Präsentationen, Listen oder Fotos für das Team hoch."

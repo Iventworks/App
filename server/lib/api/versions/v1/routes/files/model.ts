@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FileService } from "../../../../utils/fileService";
+import { FileVersions } from "../../../../utils/fileVersions";
 import { FileAccessModel } from "../../../../utils/shared-models/fileAccess";
 
 export namespace FilesModel {
@@ -64,4 +65,60 @@ export namespace FilesModel.Access {
 
 	export const Candidates = z.array(FileAccessModel.Candidate);
 	export type Candidates = z.infer<typeof Candidates>;
+}
+
+export namespace FilesModel.Upload {
+	/** New contents for a file ("Neue Fassung"). */
+	export const Form = z.object({
+		file: z.file().describe("The new contents"),
+	});
+	export type Form = z.infer<typeof Form>;
+}
+
+export namespace FilesModel.Text {
+	/** The Markdown editor's save: the whole text, with the editor lock. */
+	export const Body = z.object({
+		content: z.string().max(1_000_000),
+		lock_id: z.string().min(1).max(200),
+	});
+	export type Body = z.infer<typeof Body>;
+}
+
+export namespace FilesModel.Lock {
+	export const Response = z.object({
+		/** false: someone else is editing (`editing`). */
+		acquired: z.boolean(),
+		/** Send it with every save and renewal. */
+		lock_id: z.string().nullable(),
+		expires_at: z.number().nullable(),
+		editing: FileService.ItemSchema.shape.editing,
+	});
+	export type Response = z.infer<typeof Response>;
+
+	export const RenewBody = z.object({ lock_id: z.string().min(1).max(200) });
+	export type RenewBody = z.infer<typeof RenewBody>;
+
+	export const ReleaseQuery = z.object({
+		lock_id: z.string().min(1).max(200).optional(),
+		/** `1`: end someone else's editing (managers only). */
+		force: z.enum(["0", "1"]).optional(),
+	});
+	export type ReleaseQuery = z.infer<typeof ReleaseQuery>;
+}
+
+export namespace FilesModel.Versions {
+	export const Response = z.array(FileVersions.ItemSchema);
+	export type Response = z.infer<typeof Response>;
+
+	export const Params = z.object({
+		fileId: z.coerce.number().int().positive(),
+		versionId: z.coerce.number().int().positive(),
+	});
+	export type Params = z.infer<typeof Params>;
+
+	export const ContentParams = Params.extend({
+		/** Only names the browser tab and the download; not checked. */
+		filename: z.string().max(255).optional(),
+	});
+	export type ContentParams = z.infer<typeof ContentParams>;
 }

@@ -27,6 +27,8 @@ const props = withDefaults(
 		load: (parentId: number | null) => Promise<FolderListing | null>;
 		upload?: (file: File, parentId: number | null) => Promise<boolean>;
 		createFolder?: (name: string, parentId: number | null) => Promise<boolean>;
+		/** Create a Markdown document; it then opens in the editor. */
+		createMarkdown?: (name: string, parentId: number | null) => Promise<FileItem | null>;
 		/** Show who has access and let managers change it. */
 		manageAccess?: boolean;
 		/** Share links are possible (the org allows them); only managers create them. */
@@ -37,6 +39,7 @@ const props = withDefaults(
 		rootLabel: "Dokumente",
 		upload: undefined,
 		createFolder: undefined,
+		createMarkdown: undefined,
 		manageAccess: false,
 		sharingEnabled: false,
 		emptyDescription: "Hier wurden noch keine Dateien abgelegt.",
@@ -203,15 +206,25 @@ function onZoneDrop(event: DragEvent) {
 	void uploadFiles(event.dataTransfer?.files ?? null);
 }
 
-// --- new folder / rename ------------------------------------------------------------------
+// --- new folder / new document / rename -----------------------------------------------------
 
 const folderModalOpen = ref(false);
 const folderName = ref("");
 const renameTarget = ref<FileItem | null>(null);
+/** What the name dialog creates when it doesn't rename. */
+const createKind = ref<"folder" | "document">("folder");
 const saving = ref(false);
 
 function openNewFolder() {
 	renameTarget.value = null;
+	createKind.value = "folder";
+	folderName.value = "";
+	folderModalOpen.value = true;
+}
+
+function openNewDocument() {
+	renameTarget.value = null;
+	createKind.value = "document";
 	folderName.value = "";
 	folderModalOpen.value = true;
 }
@@ -221,6 +234,14 @@ function openRename(item: FileItem) {
 	folderName.value = item.name;
 	folderModalOpen.value = true;
 }
+
+const nameModal = computed(() => {
+	if (renameTarget.value)
+		return { title: "Umbenennen", icon: "i-lucide-pencil", submit: "Speichern" };
+	return createKind.value === "document"
+		? { title: "Neues Dokument", icon: "i-lucide-file-pen-line", submit: "Anlegen & bearbeiten" }
+		: { title: "Neuer Ordner", icon: "i-lucide-folder-plus", submit: "Anlegen" };
+});
 
 async function submitFolderModal() {
 	const name = folderName.value.trim();
@@ -235,6 +256,14 @@ async function submitFolderModal() {
 		if (!result.success) {
 			toast.add({ title: "Umbenennen fehlgeschlagen", description: result.message, color: "error" });
 		}
+	} else if (createKind.value === "document" && props.createMarkdown) {
+		const created = await props.createMarkdown(name, folderId.value);
+		saving.value = false;
+		folderModalOpen.value = false;
+		// Straight into the editor.
+		if (created)
+			await router.push({ path: `/files/${created.id}`, query: { from: route.path, edit: "1" } });
+		return;
 	} else if (props.createFolder) {
 		await props.createFolder(name, folderId.value);
 	}
@@ -242,6 +271,62 @@ async function submitFolderModal() {
 	saving.value = false;
 	folderModalOpen.value = false;
 	await refresh();
+}
+
+/** The "Neu" menu: folder, Markdown document. */
+const newItems = computed<DropdownMenuItem[]>(() => [
+	...(props.createFolder
+		? [{ label: "Ordner", icon: "i-lucide-folder-plus", onSelect: openNewFolder }]
+		: []),
+	...(props.createMarkdown && !uploadOnly.value
+		? [{ label: "Dokument (Markdown)", icon: "i-lucide-file-pen-line", onSelect: openNewDocument }]
+		: []),
+]);
+
+// --- new contents, versions -----------------------------------------------------------------
+
+const replaceInput = ref<HTMLInputElement | null>(null);
+const replaceTarget = ref<FileItem | null>(null);
+
+function pickReplacement(item: FileItem) {
+	replaceTarget.value = item;
+	replaceInput.value?.click();
+}
+
+async function onReplace(event: Event) {
+	const input = event.target as HTMLInputElement;
+	const upload = input.files?.[0];
+	input.value = "";
+	const target = replaceTarget.value;
+	if (!upload || !target) return;
+	const result = await useAPI((api) =>
+		api.putFilesByFileIdContent({ path: { fileId: target.id }, body: { file: upload } }),
+	);
+	if (!result.success) {
+		toast.add({
+			title: "Neue Fassung nicht hochgeladen",
+			description:
+				(result as { code?: number }).code === 409
+					? "Die Datei wird gerade bearbeitet."
+					: result.message,
+			color: "error",
+		});
+		return;
+	}
+	toast.add({
+		title: `Neue Fassung von „${target.name}“ hochgeladen`,
+		color: "success",
+		icon: "i-lucide-check",
+	});
+	await refresh();
+}
+
+const versionsTarget = ref<FileItem | null>(null);
+const versionsOpen = ref(false);
+
+function openVersions(item: FileItem) {
+	versionsTarget.value = item;
+	versionsOpen.value = true;
 }
 
 // --- move (drag & drop) -------------------------------------------------------------------
@@ -363,6 +448,7 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 				to: fileURL(item.content_url, true),
 				target: "_blank",
 			},
+			{ label: "Versionen", icon: "i-lucide-history", onSelect: () => openVersions(item) },
 		]);
 	}
 
@@ -376,6 +462,14 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 	if (sharing.length) groups.push(sharing);
 
 	const editing: DropdownMenuItem[] = [];
+	if (item.kind === "file" && can(item, "edit")) {
+		editing.push({
+			label: "Neue Fassung hochladen",
+			icon: "i-lucide-file-up",
+			disabled: Boolean(item.editing),
+			onSelect: () => pickReplacement(item),
+		});
+	}
 	if (can(item, "rename")) {
 		editing.push({ label: "Umbenennen", icon: "i-lucide-pencil", onSelect: () => openRename(item) });
 	}
@@ -465,14 +559,9 @@ defineExpose({ refresh });
 					class="w-full sm:w-56"
 				/>
 				<template v-if="canAdd">
-					<UButton
-						v-if="createFolder"
-						label="Ordner"
-						icon="i-lucide-folder-plus"
-						color="neutral"
-						variant="subtle"
-						@click="openNewFolder"
-					/>
+					<UDropdownMenu v-if="newItems.length" :items="newItems" :ui="{ viewport: 'main-bg-color' }">
+						<UButton label="Neu" icon="i-lucide-plus" color="neutral" variant="subtle" trailing-icon="i-lucide-chevron-down" />
+					</UDropdownMenu>
 					<UButton
 						v-if="upload"
 						label="Hochladen"
@@ -599,6 +688,19 @@ defineExpose({ refresh });
 								size="xs"
 								class="ml-1"
 							/>
+							<UBadge
+								v-if="item.editing"
+								:label="
+									item.editing.kind === 'office'
+										? 'Wird in Office bearbeitet'
+										: `${item.editing.user?.display_name ?? 'Jemand'} bearbeitet`
+								"
+								icon="i-lucide-pencil"
+								color="warning"
+								variant="subtle"
+								size="xs"
+								class="ml-1"
+							/>
 						</p>
 						<!-- Own access list (managers): who may see this. -->
 						<div v-if="showAccess && item.access" class="mt-1 flex flex-wrap items-center gap-1">
@@ -666,30 +768,33 @@ defineExpose({ refresh });
 			</p>
 		</div>
 
-		<DashboardModal
-			v-model:open="folderModalOpen"
-			:title="renameTarget ? 'Umbenennen' : 'Neuer Ordner'"
-			:icon="renameTarget ? 'i-lucide-pencil' : 'i-lucide-folder-plus'"
-		>
+		<DashboardModal v-model:open="folderModalOpen" :title="nameModal.title" :icon="nameModal.icon">
 			<form class="space-y-4" @submit.prevent="submitFolderModal">
 				<UFormField
 					label="Name"
 					required
 					:description="
 						!renameTarget && showAccess
-							? 'Der neue Ordner übernimmt den Zugriff dieses Ordners – ändern kannst du ihn danach über „Zugriff“.'
+							? 'Übernimmt den Zugriff dieses Ordners – ändern kannst du ihn danach über „Zugriff“.'
 							: undefined
 					"
 				>
-					<UInput v-model="folderName" autofocus class="w-full" />
+					<UInput
+						v-model="folderName"
+						autofocus
+						class="w-full"
+						:placeholder="!renameTarget && createKind === 'document' ? 'z. B. Protokoll Leitungstreffen' : undefined"
+					/>
 				</UFormField>
 				<div class="flex justify-end gap-2">
 					<UButton label="Abbrechen" color="neutral" variant="ghost" @click="folderModalOpen = false" />
-					<UButton type="submit" :label="renameTarget ? 'Speichern' : 'Anlegen'" :loading="saving" />
+					<UButton type="submit" :label="nameModal.submit" :loading="saving" />
 				</div>
 			</form>
 		</DashboardModal>
 
+		<input ref="replaceInput" type="file" class="hidden" @change="onReplace" />
+		<FilesVersionsModal v-model:open="versionsOpen" :item="versionsTarget" @restored="refresh" />
 		<FilesShareModal v-model:open="shareOpen" :item="shareTarget" @changed="refresh" />
 		<FilesAccessModal v-model:open="accessOpen" :item="accessTarget" :scope="scope" @changed="refresh" />
 

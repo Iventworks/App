@@ -663,6 +663,8 @@ export const files = sqliteTable(
 		size: integer().notNull().default(0),
 		storage_key: text(),
 		uploaded_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// Who wrote the current contents (upload, new version, editor); null: through a share link.
+		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
 		// Own access list (`file_access`) for this item and everything below it, instead of the
 		// parent folder's. Only org and event documents.
 		custom_access: integer({ mode: "boolean" }).notNull().default(false),
@@ -714,6 +716,60 @@ export const fileShares = sqliteTable(
 		index("file_shares_org_id_idx").on(table.org_id),
 		index("file_shares_file_id_idx").on(table.file_id),
 	],
+);
+
+/**
+ * Earlier contents of a file ("Versionen"): when contents are replaced (new upload, editor,
+ * share link, office), the old blob is kept here — at most one per author every few minutes
+ * while someone keeps saving (`FileVersions`). Housekeeping thins them out; the blobs count as
+ * referenced. Never copied with an event.
+ * @deprecated Use DB.Tables.fileVersions to access this table.
+ */
+export const fileVersions = sqliteTable(
+	"file_versions",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		storage_key: text().notNull(),
+		size: integer().notNull().default(0),
+		mime_type: text(),
+		// Who wrote these contents, and when (the file's `modified_by` / `updated_at` back then).
+		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
+		modified_at: integer().notNull(),
+		// When they were replaced.
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("file_versions_org_id_idx").on(table.org_id),
+		index("file_versions_file_id_idx").on(table.file_id),
+	],
+);
+
+export const FILE_LOCK_KINDS = ["editor", "office"] as const;
+
+/**
+ * Who is editing a file right now (`FileLocks`): the Markdown editor or the office server. Others
+ * can't replace, edit or delete it meanwhile. Locks expire unless renewed.
+ * @deprecated Use DB.Tables.fileLocks to access this table.
+ */
+export const fileLocks = sqliteTable(
+	"file_locks",
+	{
+		org_id: orgIdColumn(),
+		file_id: integer()
+			.primaryKey()
+			.references(() => files.id, { onDelete: "cascade" }),
+		kind: text({ enum: FILE_LOCK_KINDS }).notNull(),
+		// Random id the holder sends with its writes (or the office server's lock string).
+		lock_id: text().notNull(),
+		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
+		expires_at: integer().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("file_locks_org_id_idx").on(table.org_id)],
 );
 
 /**
