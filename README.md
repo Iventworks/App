@@ -111,9 +111,13 @@ controls.
 One layout (`app/layouts/dashboard.vue`) with route-switched sidebars:
 
 - **Main** (`/`, `/tasks`, `/messages`, `/calendar`, `/notes`, `/events/**`, `/news`,
-  `/documents`): personal space, the event switcher with the selected event's pages, organisation.
-- **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins) and **Kernteam**
-  (`/core-team/**`, core team): each with a "Zurück zum Portal" link.
+  `/documents`, `/files/<id>`): personal space, the event switcher with the selected event's pages,
+  organisation. `/documents` is the org library as members see it; `/files/<id>` opens a file
+  (preview, live Markdown editing, the Office editor, versions).
+- **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins — incl. *Gruppen* at
+  `/admin/groups`) and **Kernteam** (`/core-team/**`, core team — incl. *Dokumente verwalten* at
+  `/core-team/documents`: the whole library with access and share links): each with a "Zurück zum
+  Portal" link.
 - **System** (multi-org base domain only): organisations, system admins, their invitations and
   audit log under `/admin/**`.
 
