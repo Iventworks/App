@@ -25,6 +25,7 @@ import type {
 	GetFilesByFileIdAccessResponses,
 	GetFilesByFileIdSharesResponses,
 	GetNotificationsResponses,
+	GetOrgDocumentsTrashResponses,
 	GetSharesByTokenItemsResponses,
 	GetSharesByTokenResponses,
 	GetSystemDomainsResponses,
@@ -90,6 +91,17 @@ export type FileAccessRights = FileAccessEntry["permissions"];
 export type FileAccessCandidate = GetFilesByFileIdAccessCandidatesResponses["200"]["data"][number];
 
 export type OrgGroup = GetAdminGroupsResponses["200"]["data"][number];
+
+/** An item in the Papierkorb of a document library. */
+export type TrashItem = GetOrgDocumentsTrashResponses["200"]["data"][number];
+
+/** The Papierkorb calls of one library (org documents or one event's), for `FilesBrowser`. */
+export interface TrashAdapter {
+	list: () => Promise<TrashItem[] | null>;
+	restore: (fileId: number) => Promise<boolean>;
+	purge: (fileId: number) => Promise<boolean>;
+	empty: () => Promise<boolean>;
+}
 
 /** A full account as admins see it (`/admin/users`). */
 export type AdminUser = GetAdminUsersResponses["200"]["data"][number];

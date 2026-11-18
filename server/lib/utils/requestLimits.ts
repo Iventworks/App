@@ -25,8 +25,12 @@ export namespace RequestLimits {
 		);
 	}
 
-	export function limitFor(headers: Headers, uploadLimit: number): number {
+	/** The office server saving a document (WOPI PutFile): raw bytes, as large as an upload. */
+	const WOPI_PUT_FILE = /\/api\/v1\/wopi\/files\/\d+\/contents$/;
+
+	export function limitFor(headers: Headers, uploadLimit: number, path = ""): number {
 		const type = headers.get("content-type")?.toLowerCase() ?? "";
+		if (WOPI_PUT_FILE.test(path)) return uploadLimit;
 		return type.startsWith("multipart/form-data") ? uploadLimit : DEFAULT_BYTES;
 	}
 

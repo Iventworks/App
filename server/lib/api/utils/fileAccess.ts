@@ -305,11 +305,15 @@ export class FileAccess {
 		return { permissions: folderPermissions, inside, items, entries };
 	}
 
-	/** Load the folder chain of `file` and evaluate it. */
+	/**
+	 * Load the folder chain of `file` and evaluate it. Nothing is allowed on items in the
+	 * Papierkorb (or below a folder in it) — that goes through `FileTrash`.
+	 */
 	static async evaluateFile(viewer: FileAccess.Viewer, file: DB.Models.File) {
 		if (!viewer.inLibrary) return NONE;
-		if (viewer.manager) return FULL;
 		const path = await FileService.getPath(file.id);
+		if (FileService.isTrashed(path)) return NONE;
+		if (viewer.manager) return FULL;
 		return FileAccess.evaluate(viewer, path, await FileAccess.loadEntries(path));
 	}
 

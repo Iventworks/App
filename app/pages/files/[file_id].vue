@@ -104,6 +104,17 @@ const kind = computed(() =>
 /** Types the browser shows itself (PDF, images, text) can also open in a new tab. */
 const opensInBrowser = computed(() => ["pdf", "image", "text"].includes(kind.value));
 const isMarkdown = computed(() => kind.value === "markdown" && file.value?.kind === "file");
+/** Office documents open in the office server's editor (when one is configured). */
+const officeAvailable = computed(
+	() =>
+		useInstance().value?.office === true && kind.value === "office" && file.value?.kind === "file",
+);
+const officeOpen = ref(false);
+
+async function closeOffice() {
+	officeOpen.value = false;
+	await refresh();
+}
 
 /** A session is running (shared editing: join it) or the office server has the file (blocked). */
 const editingNow = computed(() => (editing.value ? null : (file.value?.editing ?? null)));
@@ -220,7 +231,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 	<UDashboardPanel id="file">
 		<template #header>
 			<DashboardPageHeader :title="file?.name ?? 'Datei'" :icon="icon" :breadcrumb-items="breadcrumb">
-				<template v-if="file && canRead && !editing" #right>
+				<template v-if="file && canRead && !editing && !officeOpen" #right>
 					<UButton
 						v-if="file.parent_id !== null || libraryPage"
 						icon="i-lucide-arrow-left"
@@ -238,8 +249,14 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 						@click="startEditing"
 					/>
 					<UButton
+						v-if="officeAvailable"
+						icon="i-lucide-file-pen-line"
+						:label="canEdit ? 'In Office öffnen' : 'In Office ansehen'"
+						@click="officeOpen = true"
+					/>
+					<UButton
 						icon="i-lucide-download"
-						:label="isMarkdown && canEdit ? undefined : 'Herunterladen'"
+						:label="(isMarkdown && canEdit) || officeAvailable ? undefined : 'Herunterladen'"
 						aria-label="Herunterladen"
 						color="neutral"
 						variant="subtle"
@@ -275,7 +292,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 
 				<template v-else-if="file.kind === 'file'">
 					<UAlert
-						v-if="editingNow"
+						v-if="editingNow && !officeOpen"
 						icon="i-lucide-pencil"
 						:color="blockedByOffice ? 'warning' : 'info'"
 						variant="subtle"
@@ -285,17 +302,20 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 								: `${editingNames || 'Jemand'} ${editingNow.users.length > 1 ? 'bearbeiten' : 'bearbeitet'} dieses Dokument gerade`
 						"
 						:description="
-							blockedByOffice || !(isMarkdown && canEdit)
-								? 'Du siehst die zuletzt gespeicherte Fassung. Neue Fassungen sind erst wieder möglich, wenn das Dokument frei ist.'
-								: 'Du siehst die zuletzt gespeicherte Fassung – mit „Mitbearbeiten“ schreibst du live mit.'
+							blockedByOffice && officeAvailable
+								? 'Öffne die Datei in Office, um mitzuarbeiten. Neue Fassungen hochladen geht erst wieder, wenn sie frei ist.'
+								: blockedByOffice || !(isMarkdown && canEdit)
+									? 'Du siehst die zuletzt gespeicherte Fassung. Neue Fassungen sind erst wieder möglich, wenn das Dokument frei ist.'
+									: 'Du siehst die zuletzt gespeicherte Fassung – mit „Mitbearbeiten“ schreibst du live mit.'
 						"
 						:actions="[
 							{ label: 'Neu laden', icon: 'i-lucide-refresh-cw', color: 'neutral', variant: 'subtle', onClick: () => refresh() },
 						]"
 					/>
 
+					<FilesOfficeFrame v-if="officeOpen" :file-id="file.id" @close="closeOffice" />
 					<FilesCollabEditor
-						v-if="editing && file.content_url"
+						v-else-if="editing && file.content_url"
 						ref="editorRef"
 						:file-id="file.id"
 						:content-url="fileURL(file.content_url) as string"
@@ -310,6 +330,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 						:name="file.name"
 						:mime-type="file.mime_type"
 						:size="file.size"
+						:fallback-hint="officeAvailable ? 'Öffne die Datei oben mit „In Office öffnen“.' : undefined"
 					/>
 				</template>
 			</DashboardPageBody>

@@ -66,6 +66,9 @@ function setTestEnv(rootDir: string) {
 		IVENTWORKS_BACKUP_S3_ACCESS_KEY_ID: undefined,
 		IVENTWORKS_BACKUP_S3_SECRET_ACCESS_KEY: undefined,
 		IVENTWORKS_BACKUP_S3_PREFIX: undefined,
+		// Office editing is switched on per test (`OfficeDiscovery.setForTests`).
+		IVENTWORKS_OFFICE_URL: undefined,
+		IVENTWORKS_OFFICE_INTERNAL_URL: undefined,
 	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {

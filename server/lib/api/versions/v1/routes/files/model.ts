@@ -103,3 +103,16 @@ export namespace FilesModel.Versions {
 	});
 	export type ContentParams = z.infer<typeof ContentParams>;
 }
+
+export namespace FilesModel.Office {
+	/** How the browser opens the office editor: post `access_token` + `access_token_ttl` to `url`. */
+	export const Response = z.object({
+		url: z.string(),
+		access_token: z.string(),
+		/** When the token expires (unix ms). */
+		access_token_ttl: z.number(),
+		/** `view` when the person may only read, or a Markdown session holds the file. */
+		mode: z.enum(["edit", "view"]),
+	});
+	export type Response = z.infer<typeof Response>;
+}

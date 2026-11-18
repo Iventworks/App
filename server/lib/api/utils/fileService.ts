@@ -130,6 +130,8 @@ export class FileService {
 					parentId === null
 						? isNull(DB.Tables.files.parent_id)
 						: eq(DB.Tables.files.parent_id, parentId),
+					// The Papierkorb is listed on its own (`FileTrash`).
+					isNull(DB.Tables.files.deleted_at),
 				),
 			)
 			// Folders first ("folder" > "file"), then by name.
@@ -149,6 +151,18 @@ export class FileService {
 			currentId = folder.parent_id;
 		}
 		return path;
+	}
+
+	/** Whether something on the path (root → item) is in the Papierkorb. */
+	static isTrashed(path: readonly Pick<DB.Models.File, "deleted_at">[]) {
+		return path.some((entry) => entry.deleted_at !== null);
+	}
+
+	/** Whether the file or a folder above it is in the Papierkorb. */
+	static async isInTrash(file: DB.Models.File, tx: DrizzleDB = DB.instance()) {
+		if (file.deleted_at !== null) return true;
+		if (file.parent_id === null) return false;
+		return FileService.isTrashed(await FileService.getPath(file.parent_id, tx));
 	}
 
 	/** The library a file belongs to. */
@@ -313,8 +327,12 @@ export class FileService {
 		file: DB.Models.File,
 		upload: Blob,
 		userId: number | null,
-		/** `keepCollab`: written by the shared editing session itself. */
-		options: { keepCollab?: boolean } = {},
+		/**
+		 * `keepCollab`: written by the shared Markdown editing session itself. `session`: several
+		 * people save in turns (shared editing, the office server) — versions per interval, not
+		 * per author (default: `keepCollab`).
+		 */
+		options: { keepCollab?: boolean; session?: boolean } = {},
 	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
@@ -324,7 +342,7 @@ export class FileService {
 				file,
 				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
 				userId,
-				{ session: options.keepCollab },
+				{ session: options.session ?? options.keepCollab },
 			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);

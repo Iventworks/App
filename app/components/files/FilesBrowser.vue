@@ -16,7 +16,7 @@
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
 import { accessEntryIcon, ownRightsSentence, rightsLabel } from "~/utils/filePermissions";
-import type { FileAccessEntry, FileItem, FolderListing } from "~/utils/types";
+import type { FileAccessEntry, FileItem, FolderListing, TrashAdapter } from "~/utils/types";
 
 const props = withDefaults(
 	defineProps<{
@@ -29,6 +29,8 @@ const props = withDefaults(
 		createFolder?: (name: string, parentId: number | null) => Promise<boolean>;
 		/** Create a Markdown document; it then opens in the editor. */
 		createMarkdown?: (name: string, parentId: number | null) => Promise<FileItem | null>;
+		/** The library's Papierkorb (deleting moves items there). */
+		trash?: TrashAdapter;
 		/** Show who has access and let managers change it. */
 		manageAccess?: boolean;
 		/** Share links are possible (the org allows them); only managers create them. */
@@ -40,6 +42,7 @@ const props = withDefaults(
 		upload: undefined,
 		createFolder: undefined,
 		createMarkdown: undefined,
+		trash: undefined,
 		manageAccess: false,
 		sharingEnabled: false,
 		emptyDescription: "Hier wurden noch keine Dateien abgelegt.",
@@ -408,9 +411,29 @@ async function confirmDelete() {
 		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
 		throw new Error(result.message);
 	}
-	toast.add({ title: `„${target.name}“ gelöscht`, color: "success" });
+	const trash = props.trash;
+	toast.add({
+		title: `„${target.name}“ in den Papierkorb verschoben`,
+		color: "success",
+		icon: "i-lucide-trash-2",
+		actions: trash
+			? [
+					{
+						label: "Rückgängig",
+						icon: "i-lucide-undo-2",
+						color: "neutral",
+						variant: "subtle",
+						onClick: async () => {
+							if (await trash.restore(target.id)) await refresh();
+						},
+					},
+				]
+			: undefined,
+	});
 	await refresh();
 }
+
+const trashOpen = ref(false);
 
 // --- share links / access -------------------------------------------------------------------
 
@@ -558,6 +581,15 @@ defineExpose({ refresh });
 					placeholder="In diesem Ordner suchen"
 					class="w-full sm:w-56"
 				/>
+				<UTooltip v-if="trash" text="Papierkorb">
+					<UButton
+						icon="i-lucide-trash-2"
+						color="neutral"
+						variant="ghost"
+						aria-label="Papierkorb"
+						@click="trashOpen = true"
+					/>
+				</UTooltip>
 				<template v-if="canAdd">
 					<UDropdownMenu v-if="newItems.length" :items="newItems" :ui="{ viewport: 'main-bg-color' }">
 						<UButton label="Neu" icon="i-lucide-plus" color="neutral" variant="subtle" trailing-icon="i-lucide-chevron-down" />
@@ -805,11 +837,13 @@ defineExpose({ refresh });
 			:title="deleteTarget?.kind === 'folder' ? 'Ordner löschen' : 'Datei löschen'"
 			:warning-text="
 				deleteTarget?.kind === 'folder'
-					? `Der Ordner „${deleteTarget?.name}“ und alles darin wird gelöscht.`
-					: `„${deleteTarget?.name}“ wird gelöscht.`
+					? `Der Ordner „${deleteTarget?.name}“ kommt mit allem darin in den Papierkorb. Dort lässt er sich 30 Tage lang wiederherstellen.`
+					: `„${deleteTarget?.name}“ kommt in den Papierkorb. Dort lässt sich die Datei 30 Tage lang wiederherstellen.`
 			"
-			:require-confirm-text="deleteTarget?.kind === 'folder'"
+			:require-confirm-text="false"
 			:on-delete="confirmDelete"
 		/>
+
+		<FilesTrashModal v-if="trash" v-model:open="trashOpen" :trash="trash" :scope="scope" @restored="refresh" />
 	</div>
 </template>

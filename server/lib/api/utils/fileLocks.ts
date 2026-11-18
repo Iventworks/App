@@ -102,6 +102,99 @@ export namespace FileLocks {
 			.run();
 	}
 
+	// --- the office server's locks (WOPI) ---------------------------------------------------------
+
+	/** WOPI locks last 30 minutes unless refreshed. */
+	export const OFFICE_TTL_MS = 30 * 60 * 1000;
+
+	/** The office server's current lock string, "" when the file is free, null when an editor session holds it. */
+	export async function officeLockOf(fileId: number, now = Date.now()) {
+		const lock = await current(fileId, now);
+		if (!lock) return "";
+		return lock.kind === "office" ? lock.lock_id : null;
+	}
+
+	/**
+	 * LOCK (and UnlockAndRelock with `oldLockId`): take or refresh the office lock. On a conflict,
+	 * `current` is the lock string to report (`X-WOPI-Lock`; "" for a Markdown editing session).
+	 */
+	export function officeLock(
+		fileId: number,
+		lockId: string,
+		options: { oldLockId?: string; now?: number } = {},
+	): { ok: true } | { ok: false; current: string } {
+		const now = options.now ?? Date.now();
+		return DB.instance().transaction((tx) => {
+			const existing = tx
+				.select()
+				.from(DB.Tables.fileLocks)
+				.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
+				.get();
+			const valid = existing && existing.expires_at > now ? existing : null;
+			if (valid && valid.kind !== "office") return { ok: false as const, current: "" };
+			const expected = options.oldLockId ?? lockId;
+			if (valid && valid.lock_id !== expected) return { ok: false as const, current: valid.lock_id };
+			if (options.oldLockId !== undefined && !valid) return { ok: false as const, current: "" };
+			if (existing) {
+				tx
+					.update(DB.Tables.fileLocks)
+					.set({ kind: "office", lock_id: lockId, user_id: null, expires_at: now + OFFICE_TTL_MS })
+					.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
+					.run();
+			} else {
+				tx
+					.insert(DB.Tables.fileLocks)
+					.values({
+						org_id: OrgContext.id(),
+						file_id: fileId,
+						kind: "office",
+						lock_id: lockId,
+						user_id: null,
+						expires_at: now + OFFICE_TTL_MS,
+					})
+					.run();
+			}
+			return { ok: true as const };
+		});
+	}
+
+	/** REFRESH_LOCK. */
+	export async function officeRefresh(
+		fileId: number,
+		lockId: string,
+		now = Date.now(),
+	): Promise<{ ok: true } | { ok: false; current: string }> {
+		const currentLock = await officeLockOf(fileId, now);
+		if (currentLock !== lockId) return { ok: false, current: currentLock ?? "" };
+		await DB.instance()
+			.update(DB.Tables.fileLocks)
+			.set({ expires_at: now + OFFICE_TTL_MS })
+			.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
+			.run();
+		return { ok: true };
+	}
+
+	/** UNLOCK. */
+	export async function officeUnlock(
+		fileId: number,
+		lockId: string,
+		now = Date.now(),
+	): Promise<{ ok: true } | { ok: false; current: string }> {
+		const currentLock = await officeLockOf(fileId, now);
+		if (currentLock !== lockId) return { ok: false, current: currentLock ?? "" };
+		await DB.instance()
+			.delete(DB.Tables.fileLocks)
+			.where(
+				and(
+					inOrg(DB.Tables.fileLocks),
+					eq(DB.Tables.fileLocks.file_id, fileId),
+					eq(DB.Tables.fileLocks.kind, "office"),
+				),
+			)
+			.run();
+		return { ok: true };
+	}
+
 	/** The lock that keeps anyone from changing the file's contents from outside its session. */
 	export async function blocking(fileId: number, now = Date.now()) {
 		return await current(fileId, now);

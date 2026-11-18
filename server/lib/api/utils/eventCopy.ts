@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, ne, sum } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, ne, sum } from "drizzle-orm";
 import type { AnySQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { DB } from "../../db";
@@ -31,7 +31,14 @@ export class EventCopier {
 		const documents = db
 			.select({ value: count(), size: sum(T.files.size) })
 			.from(T.files)
-			.where(and(inOrg(T.files), eq(T.files.scope, "event"), eq(T.files.event_id, event.id)))
+			.where(
+				and(
+					inOrg(T.files),
+					eq(T.files.scope, "event"),
+					eq(T.files.event_id, event.id),
+					isNull(T.files.deleted_at),
+				),
+			)
 			.get();
 
 		return {
@@ -94,7 +101,15 @@ export class EventCopier {
 			? DB.instance()
 					.select()
 					.from(T.files)
-					.where(and(inOrg(T.files), eq(T.files.scope, "event"), eq(T.files.event_id, source.id)))
+					// Not what is in the Papierkorb (what was inside a deleted folder is skipped below).
+					.where(
+						and(
+							inOrg(T.files),
+							eq(T.files.scope, "event"),
+							eq(T.files.event_id, source.id),
+							isNull(T.files.deleted_at),
+						),
+					)
 					.all()
 			: [];
 		const blobs = new Map<number, { storageKey: string; size: number }>();

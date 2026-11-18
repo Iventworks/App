@@ -8,65 +8,9 @@ definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({ title: "Dokumente verwalten | Kernteam" });
 
-const toast = useToast();
 const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
 
-async function load(parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.getOrgDocuments({ query: { parent_id: parentId ?? undefined } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Dokumente konnten nicht geladen werden",
-			description: result.message,
-			color: "error",
-		});
-		return null;
-	}
-	return result.data;
-}
-
-async function upload(file: File, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocuments({ body: { file, parent_id: parentId ?? undefined } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: `„${file.name}“ konnte nicht hochgeladen werden`,
-			description: result.message,
-			color: "error",
-		});
-	}
-	return result.success;
-}
-
-async function createFolder(name: string, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocumentsFolders({ body: { name, parent_id: parentId } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Ordner konnte nicht angelegt werden",
-			description: result.message,
-			color: "error",
-		});
-	}
-	return result.success;
-}
-async function createMarkdown(name: string, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocumentsMarkdown({ body: { name, parent_id: parentId } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Dokument konnte nicht angelegt werden",
-			description: result.message,
-			color: "error",
-		});
-		return null;
-	}
-	return result.data;
-}
+const library = useDocumentLibrary({ scope: "org" });
 </script>
 
 <template>
@@ -94,10 +38,7 @@ async function createMarkdown(name: string, parentId: number | null) {
 				<FilesBrowser
 					scope="org"
 					root-label="Ablage"
-					:load="load"
-					:upload="upload"
-					:create-folder="createFolder"
-					:create-markdown="createMarkdown"
+					v-bind="library"
 					manage-access
 					:sharing-enabled="sharingEnabled"
 					empty-description="Neue Ordner und Dateien sieht zuerst nur das Kernteam. Über „Zugriff“ gibst du sie für alle Mitglieder, Gruppen oder einzelne Personen frei."

@@ -21,6 +21,8 @@ const props = defineProps<{
 	name: string;
 	mimeType: string | null;
 	size: number;
+	/** Replaces the text of the fallback card (e.g. "open it in Office"). */
+	fallbackHint?: string;
 }>();
 
 const kind = computed<FilePreviewKind>(() => filePreviewKind(props.name, props.mimeType));
@@ -58,6 +60,7 @@ const icon = computed(() => Utils.getFileIcon(props.name, props.mimeType));
 const fallbackText = computed(() => {
 	if (textState.value === "too_large") return "Die Datei ist zu groß für die Vorschau.";
 	if (textState.value === "error") return "Die Vorschau konnte nicht geladen werden.";
+	if (props.fallbackHint) return props.fallbackHint;
 	if (kind.value === "office") return "Für Office-Dateien gibt es hier noch keine Vorschau.";
 	return "Für diesen Dateityp gibt es keine Vorschau.";
 });

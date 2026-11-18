@@ -250,8 +250,9 @@ export class FileShares {
 		if (!share || FileShares.isExpired(share)) return null;
 
 		const root = await FileService.get(share.file_id, tx);
-		// Only documents are ever shared: no receipts, no chat attachments.
+		// Only documents are ever shared: no receipts, no chat attachments. Nothing in the Papierkorb.
 		if (!root || (root.scope !== "org" && root.scope !== "event")) return null;
+		if (await FileService.isInTrash(root, tx)) return null;
 		return { share, root };
 	}
 
@@ -268,9 +269,11 @@ export class FileShares {
 		if (root.kind !== "folder") return null;
 
 		const file = await FileService.get(fileId, tx);
-		if (!file) return null;
+		if (!file || file.deleted_at !== null) return null;
 		const path = await FileService.getPath(file.parent_id, tx);
-		return path.some((ancestor) => ancestor.id === root.id) ? file : null;
+		const start = path.findIndex((ancestor) => ancestor.id === root.id);
+		// Below the shared folder, and nothing in between in the Papierkorb.
+		return start !== -1 && !FileService.isTrashed(path.slice(start)) ? file : null;
 	}
 
 	/** Breadcrumb inside the share: from the shared folder down to `folder`. */

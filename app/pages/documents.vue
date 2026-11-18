@@ -15,66 +15,10 @@ useSeoMeta({
 });
 
 const user = await useUserInfoStore().use();
-const toast = useToast();
 
 const canManage = computed(() => hasOrgRole(user.value?.role, "core_team"));
 
-async function load(parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.getOrgDocuments({ query: { parent_id: parentId ?? undefined, view: "member" } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Dokumente konnten nicht geladen werden",
-			description: result.message,
-			color: "error",
-		});
-		return null;
-	}
-	return result.data;
-}
-
-async function upload(file: File, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocuments({ body: { file, parent_id: parentId ?? undefined } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: `„${file.name}“ konnte nicht hochgeladen werden`,
-			description: result.message,
-			color: "error",
-		});
-	}
-	return result.success;
-}
-
-async function createFolder(name: string, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocumentsFolders({ body: { name, parent_id: parentId } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Ordner konnte nicht angelegt werden",
-			description: result.message,
-			color: "error",
-		});
-	}
-	return result.success;
-}
-async function createMarkdown(name: string, parentId: number | null) {
-	const result = await useAPI((api) =>
-		api.postOrgDocumentsMarkdown({ body: { name, parent_id: parentId } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Dokument konnte nicht angelegt werden",
-			description: result.message,
-			color: "error",
-		});
-		return null;
-	}
-	return result.data;
-}
+const library = useDocumentLibrary({ scope: "org", memberView: true });
 </script>
 
 <template>
@@ -103,10 +47,7 @@ async function createMarkdown(name: string, parentId: number | null) {
 				<FilesBrowser
 					scope="org"
 					root-label="Bibliothek"
-					:load="load"
-					:upload="upload"
-					:create-folder="createFolder"
-					:create-markdown="createMarkdown"
+					v-bind="library"
 					empty-description="Hier legt das Kernteam Leitfäden, Vorlagen und Werkzeuge ab. Fehlt etwas oder ist veraltet? Sag dem Kernteam Bescheid."
 				/>
 			</DashboardPageBody>

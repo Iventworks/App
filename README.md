@@ -169,6 +169,25 @@ upload-only drop box), an optional password and an expiry. Only the shared item 
 below it are reachable through a link. Org admins see every link under *Administration →
 Freigabelinks*, can switch sharing off for the org and set a default expiry.
 
+Files open on their own page with a preview (PDF via pdf.js, images, Markdown, CSV, text).
+**Markdown documents** (`.md`, *Neu → Dokument*) are edited in the browser together, live.
+Every change keeps the old contents as a **version** (restorable for 30 days), and deleted
+documents go to the **Papierkorb** for 30 days.
+
+**Office documents** (docx, xlsx, pptx, odt, …) open in the browser with
+[Euro-Office](https://euro-office.github.io/) — optional, it needs its own container (at least
+4 GB RAM) and its own public host name:
+
+1. Start it: `docker compose --profile office up -d` (service `eurooffice` in
+   `docker/docker-compose.yml`, `WOPI_ENABLED=true`).
+2. Let the reverse proxy serve e.g. `https://office.example.org` from it (port 31317).
+3. Set `IVENTWORKS_OFFICE_URL=https://office.example.org` and
+   `IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice`, restart Iventworks.
+
+The office server calls back on each org's public address; it must be able to reach it (hairpin
+through the proxy). Use its own host name, never a path or port of the app's: its scripts would
+otherwise share the app's origin.
+
 ## Configuration
 
 All settings are `IVENTWORKS_*` env vars — see `example.env`. The names before the rename,

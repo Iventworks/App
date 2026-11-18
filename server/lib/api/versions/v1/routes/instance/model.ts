@@ -46,6 +46,8 @@ export namespace InstanceModel {
 			org: OrgModel.Org.nullable(),
 			/** Set when this host isn't the org's primary domain: the app should reload there. */
 			redirect_to: z.string().nullable(),
+			/** Office documents open in the browser (an office server is configured). */
+			office: z.boolean(),
 		});
 		export type Response = z.infer<typeof Response>;
 	}

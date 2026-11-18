@@ -2,6 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
+import { OfficeDiscovery } from "../../../../../office/discovery";
+import { OfficeTokens } from "../../../../../office/tokens";
 import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
@@ -15,6 +17,7 @@ import { FileAccessLists } from "../../../../utils/fileAccessLists";
 import { FileLibrary } from "../../../../utils/fileLibrary";
 import { FileLocks } from "../../../../utils/fileLocks";
 import { FileService } from "../../../../utils/fileService";
+import { FileTrash } from "../../../../utils/fileTrash";
 import { FileVersions } from "../../../../utils/fileVersions";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
@@ -54,6 +57,10 @@ router.use(
 
 		const file = await FileService.get(fileId.data);
 		if (!file) return APIResponse.notFound(c, "File not found");
+		// Documents in the Papierkorb only exist there (`/…/trash`).
+		if ((file.scope === "org" || file.scope === "event") && (await FileService.isInTrash(file))) {
+			return APIResponse.notFound(c, "File not found");
+		}
 
 		const permissions = await FileAccess.permissionsFor(AuthHandler.AuthContext.get(c), file);
 		// Visible: readable, or a folder the caller may only upload into ("Nur hochladen").
@@ -237,7 +244,8 @@ router.delete(
 
 	APIRouteSpec.authenticated({
 		summary: "Delete file",
-		description: "Delete a file, or a folder with everything inside it (`permissions.delete`).",
+		description:
+			"Delete a file, or a folder with everything inside it (`permissions.delete`). Org and event documents go to the Papierkorb (restorable for 30 days, see `…/trash`); receipts and attachments are deleted right away. Refused while someone is editing the file.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
@@ -256,8 +264,10 @@ router.delete(
 			return APIResponse.conflict(c, "The file is being edited right now");
 		}
 
+		const toTrash = file.scope === "org" || file.scope === "event";
 		try {
-			await FileService.deleteRecursive(file);
+			if (toTrash) await FileTrash.trash(file, getAuthUserId(c));
+			else await FileService.deleteRecursive(file);
 		} catch (error: any) {
 			Logger.error("Failed to delete file", error.stack || error.message || error);
 			return APIResponse.serverError(c, "Failed to delete file");
@@ -269,7 +279,9 @@ router.delete(
 			action: "delete",
 			entityType: "file",
 			entityId: file.id,
-			summary: `${describeItem(file)} gelöscht`,
+			summary: toTrash
+				? `${describeItem(file)} in den Papierkorb verschoben`
+				: `${describeItem(file)} gelöscht`,
 		});
 
 		return APIResponse.successNoData(c, "File deleted successfully");
@@ -430,6 +442,64 @@ router.put(
 				: APIResponse.badRequest(c, result.message);
 		}
 		return APIResponse.success(c, "Document saved successfully", result.data);
+	},
+);
+
+// --- office (Euro-Office over WOPI) ----------------------------------------------------------
+
+router.post(
+	"/:fileId/office",
+
+	APIRouteSpec.authenticated({
+		summary: "Open in the office editor",
+		description:
+			"An access token and the editor URL of the office server (WOPI) for this document: the browser posts `access_token` and `access_token_ttl` to `url` in a frame. Editing when the caller may edit (`permissions.edit`) and the file type allows it, otherwise viewing. Only for browser logins, and only when office editing is configured (`office` in `GET /instance`).",
+		tags: [DOCS_TAGS.FILES],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Editor ready", FilesModel.Office.Response),
+			APIResponseSpec.badRequest("This file can't be opened in the office editor"),
+			APIResponseSpec.notFound("File not found / Office editing is not available"),
+			APIResponseSpec.forbidden("Only available in the browser"),
+		),
+	}),
+
+	async (c) => {
+		const file = c.get("file");
+		const permissions = c.get("permissions");
+		if (!OfficeDiscovery.enabled()) return APIResponse.notFound(c, "Office editing is not available");
+		if (
+			file.kind !== "file" ||
+			(file.scope !== "org" && file.scope !== "event") ||
+			!permissions.read
+		) {
+			return APIResponse.badRequest(c, "This file can't be opened in the office editor");
+		}
+		const authContext = AuthHandler.AuthContext.get(c);
+		if (authContext.type !== "session")
+			return APIResponse.forbidden(c, "Only available in the browser");
+
+		const discovery = await OfficeDiscovery.get();
+		if (!discovery) return APIResponse.serverError(c, "The office server can't be reached");
+
+		// A Markdown editing session has the file: view only.
+		const lock = await FileLocks.current(file.id);
+		const extension = file.name.includes(".") ? (file.name.split(".").pop() ?? "") : "";
+		const choice = OfficeDiscovery.actionFor(
+			discovery,
+			extension,
+			permissions.edit && lock?.kind !== "editor",
+		);
+		if (!choice) return APIResponse.badRequest(c, "This file can't be opened in the office editor");
+
+		const { token, expiresAt } = await OfficeTokens.create(file, authContext, choice.mode === "edit");
+		const wopiSrc = `${OrgContext.current().url}/api/v1/wopi/files/${file.id}`;
+		return APIResponse.success(c, "Editor ready", {
+			url: OfficeDiscovery.editorUrl(choice.action, wopiSrc),
+			access_token: token,
+			access_token_ttl: expiresAt,
+			mode: choice.mode,
+		} satisfies FilesModel.Office.Response);
 	},
 );
 

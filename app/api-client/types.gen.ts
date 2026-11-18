@@ -38,6 +38,7 @@ export type GetInstanceResponses = {
                 icon_url: string | null;
             } | null;
             redirect_to: string | null;
+            office: boolean;
         };
     };
 };
@@ -7526,6 +7527,63 @@ export type PutFilesByFileIdCollabContentResponses = {
 
 export type PutFilesByFileIdCollabContentResponse = PutFilesByFileIdCollabContentResponses[keyof PutFilesByFileIdCollabContentResponses];
 
+export type PostFilesByFileIdOfficeData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/office';
+};
+
+export type PostFilesByFileIdOfficeErrors = {
+    /**
+     * This file can't be opened in the office editor
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'This file can\'t be opened in the office editor';
+    };
+    /**
+     * Only available in the browser
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only available in the browser';
+    };
+    /**
+     * File not found / Office editing is not available
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found / Office editing is not available';
+    };
+};
+
+export type PostFilesByFileIdOfficeError = PostFilesByFileIdOfficeErrors[keyof PostFilesByFileIdOfficeErrors];
+
+export type PostFilesByFileIdOfficeResponses = {
+    /**
+     * Editor ready
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Editor ready';
+        data: {
+            url: string;
+            access_token: string;
+            access_token_ttl: number;
+            mode: 'edit' | 'view';
+        };
+    };
+};
+
+export type PostFilesByFileIdOfficeResponse = PostFilesByFileIdOfficeResponses[keyof PostFilesByFileIdOfficeResponses];
+
 export type GetFilesByFileIdVersionsData = {
     body?: never;
     path: {
@@ -13929,6 +13987,287 @@ export type PostEventsByEventIdFilesMarkdownResponses = {
 
 export type PostEventsByEventIdFilesMarkdownResponse = PostEventsByEventIdFilesMarkdownResponses[keyof PostEventsByEventIdFilesMarkdownResponses];
 
+export type DeleteEventsByEventIdFilesTrashData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/trash';
+};
+
+export type DeleteEventsByEventIdFilesTrashErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only managers can delete for good
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only managers can delete for good';
+    };
+};
+
+export type DeleteEventsByEventIdFilesTrashError = DeleteEventsByEventIdFilesTrashErrors[keyof DeleteEventsByEventIdFilesTrashErrors];
+
+export type DeleteEventsByEventIdFilesTrashResponses = {
+    /**
+     * Papierkorb emptied successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Papierkorb emptied successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdFilesTrashResponse = DeleteEventsByEventIdFilesTrashResponses[keyof DeleteEventsByEventIdFilesTrashResponses];
+
+export type GetEventsByEventIdFilesTrashData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/trash';
+};
+
+export type GetEventsByEventIdFilesTrashErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to view documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view documents';
+    };
+};
+
+export type GetEventsByEventIdFilesTrashError = GetEventsByEventIdFilesTrashErrors[keyof GetEventsByEventIdFilesTrashErrors];
+
+export type GetEventsByEventIdFilesTrashResponses = {
+    /**
+     * Papierkorb retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Papierkorb retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+            deleted_at: number;
+            deleted_by: {
+                id: number;
+                display_name: string;
+            } | null;
+            location: Array<string>;
+            purge_at: number;
+            can_restore: boolean;
+            can_purge: boolean;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdFilesTrashResponse = GetEventsByEventIdFilesTrashResponses[keyof GetEventsByEventIdFilesTrashResponses];
+
+export type PostEventsByEventIdFilesTrashByFileIdRestoreData = {
+    body?: never;
+    path: {
+        eventId: number;
+        fileId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/trash/{fileId}/restore';
+};
+
+export type PostEventsByEventIdFilesTrashByFileIdRestoreErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Not in the Papierkorb
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Not in the Papierkorb';
+    };
+};
+
+export type PostEventsByEventIdFilesTrashByFileIdRestoreError = PostEventsByEventIdFilesTrashByFileIdRestoreErrors[keyof PostEventsByEventIdFilesTrashByFileIdRestoreErrors];
+
+export type PostEventsByEventIdFilesTrashByFileIdRestoreResponses = {
+    /**
+     * Restored successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Restored successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFilesTrashByFileIdRestoreResponse = PostEventsByEventIdFilesTrashByFileIdRestoreResponses[keyof PostEventsByEventIdFilesTrashByFileIdRestoreResponses];
+
+export type DeleteEventsByEventIdFilesTrashByFileIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        fileId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/trash/{fileId}';
+};
+
+export type DeleteEventsByEventIdFilesTrashByFileIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only managers can delete for good
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only managers can delete for good';
+    };
+    /**
+     * Not in the Papierkorb
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Not in the Papierkorb';
+    };
+};
+
+export type DeleteEventsByEventIdFilesTrashByFileIdError = DeleteEventsByEventIdFilesTrashByFileIdErrors[keyof DeleteEventsByEventIdFilesTrashByFileIdErrors];
+
+export type DeleteEventsByEventIdFilesTrashByFileIdResponses = {
+    /**
+     * Deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdFilesTrashByFileIdResponse = DeleteEventsByEventIdFilesTrashByFileIdResponses[keyof DeleteEventsByEventIdFilesTrashByFileIdResponses];
+
 export type GetEventsByEventIdExpensesData = {
     body?: never;
     path: {
@@ -16655,6 +16994,265 @@ export type PostOrgDocumentsMarkdownResponses = {
 };
 
 export type PostOrgDocumentsMarkdownResponse = PostOrgDocumentsMarkdownResponses[keyof PostOrgDocumentsMarkdownResponses];
+
+export type DeleteOrgDocumentsTrashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/documents/trash';
+};
+
+export type DeleteOrgDocumentsTrashErrors = {
+    /**
+     * Only managers can delete for good
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only managers can delete for good';
+    };
+};
+
+export type DeleteOrgDocumentsTrashError = DeleteOrgDocumentsTrashErrors[keyof DeleteOrgDocumentsTrashErrors];
+
+export type DeleteOrgDocumentsTrashResponses = {
+    /**
+     * Papierkorb emptied successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Papierkorb emptied successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgDocumentsTrashResponse = DeleteOrgDocumentsTrashResponses[keyof DeleteOrgDocumentsTrashResponses];
+
+export type GetOrgDocumentsTrashData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/documents/trash';
+};
+
+export type GetOrgDocumentsTrashErrors = {
+    /**
+     * You are not allowed to view documents
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to view documents';
+    };
+};
+
+export type GetOrgDocumentsTrashError = GetOrgDocumentsTrashErrors[keyof GetOrgDocumentsTrashErrors];
+
+export type GetOrgDocumentsTrashResponses = {
+    /**
+     * Papierkorb retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Papierkorb retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+            deleted_at: number;
+            deleted_by: {
+                id: number;
+                display_name: string;
+            } | null;
+            location: Array<string>;
+            purge_at: number;
+            can_restore: boolean;
+            can_purge: boolean;
+        }>;
+    };
+};
+
+export type GetOrgDocumentsTrashResponse = GetOrgDocumentsTrashResponses[keyof GetOrgDocumentsTrashResponses];
+
+export type PostOrgDocumentsTrashByFileIdRestoreData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/org/documents/trash/{fileId}/restore';
+};
+
+export type PostOrgDocumentsTrashByFileIdRestoreErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Not in the Papierkorb
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Not in the Papierkorb';
+    };
+};
+
+export type PostOrgDocumentsTrashByFileIdRestoreError = PostOrgDocumentsTrashByFileIdRestoreErrors[keyof PostOrgDocumentsTrashByFileIdRestoreErrors];
+
+export type PostOrgDocumentsTrashByFileIdRestoreResponses = {
+    /**
+     * Restored successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Restored successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostOrgDocumentsTrashByFileIdRestoreResponse = PostOrgDocumentsTrashByFileIdRestoreResponses[keyof PostOrgDocumentsTrashByFileIdRestoreResponses];
+
+export type DeleteOrgDocumentsTrashByFileIdData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/org/documents/trash/{fileId}';
+};
+
+export type DeleteOrgDocumentsTrashByFileIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only managers can delete for good
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only managers can delete for good';
+    };
+    /**
+     * Not in the Papierkorb
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Not in the Papierkorb';
+    };
+};
+
+export type DeleteOrgDocumentsTrashByFileIdError = DeleteOrgDocumentsTrashByFileIdErrors[keyof DeleteOrgDocumentsTrashByFileIdErrors];
+
+export type DeleteOrgDocumentsTrashByFileIdResponses = {
+    /**
+     * Deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgDocumentsTrashByFileIdResponse = DeleteOrgDocumentsTrashByFileIdResponses[keyof DeleteOrgDocumentsTrashByFileIdResponses];
 
 export type GetOrgResourcesData = {
     body?: never;

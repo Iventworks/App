@@ -400,7 +400,7 @@ describe("Event documents and /files", () => {
 		);
 	});
 
-	test("deleting a folder removes its contents and blobs", async () => {
+	test("deleting a folder moves it to the Papierkorb; deleting it for good removes contents and blobs", async () => {
 		expect(await FileStorage.open(storageKey).exists()).toBe(true);
 
 		await makeAPIRequest(`/v1/files/${folderId}`, {
@@ -408,8 +408,15 @@ describe("Event documents and /files", () => {
 			authToken: leaderSession.token,
 		});
 
-		expect(await FileStorage.open(storageKey).exists()).toBe(false);
+		// In the Papierkorb: gone from everywhere, but still restorable.
 		await makeAPIRequest(`/v1/files/${fileId}`, { authToken: cookSession.token }, 404);
+		expect(await FileStorage.open(storageKey).exists()).toBe(true);
+
+		await makeAPIRequest(`/v1/events/${eventId}/files/trash/${folderId}`, {
+			method: "DELETE",
+			authToken: leaderSession.token,
+		});
+		expect(await FileStorage.open(storageKey).exists()).toBe(false);
 	});
 });
 

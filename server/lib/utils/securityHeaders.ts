@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { OfficeDiscovery } from "../office/discovery";
 
 /**
  * Security headers for every response (`server/middleware/00.security-headers.ts`) and the
@@ -29,6 +30,8 @@ export namespace SecurityHeaders {
 	 */
 	export function pageCsp(html: string, https: boolean): string {
 		const hashes = inlineScriptHashes(html).map((hash) => `'sha256-${hash}'`);
+		// The office editor: a frame from the office server, opened by posting a form to it.
+		const office = OfficeDiscovery.publicOrigin();
 		return [
 			"default-src 'self'",
 			`script-src 'self' ${hashes.join(" ")}`.trim(),
@@ -39,10 +42,10 @@ export namespace SecurityHeaders {
 			"media-src 'self' blob:",
 			"worker-src 'self' blob:",
 			"manifest-src 'self'",
-			"frame-src 'self' blob:",
+			`frame-src 'self' blob:${office ? ` ${office}` : ""}`,
 			"object-src 'none'",
 			"base-uri 'self'",
-			"form-action 'self'",
+			`form-action 'self'${office ? ` ${office}` : ""}`,
 			"frame-ancestors 'none'",
 			...(https ? ["upgrade-insecure-requests"] : []),
 		].join("; ");

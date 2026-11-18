@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
+import { OfficeDiscovery } from "../../../../../office/discovery";
 import { OrgBranding } from "../../../../../orgs/branding";
 import { OrgRegistry } from "../../../../../orgs/registry";
 import { AppConstants } from "../../../../../utils/constants";
@@ -69,6 +70,7 @@ router.get(
 			base_url: OrgRegistry.appUrl(),
 			org: resolution.kind === "org" ? OrgModel.from(resolution.org) : null,
 			redirect_to: redirect,
+			office: resolution.kind === "org" && OfficeDiscovery.enabled(),
 		} satisfies InstanceModel.Get.Response);
 	},
 );

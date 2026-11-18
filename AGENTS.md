@@ -151,7 +151,7 @@ CMP (Crossover Management Portal) before; the repository still is.
   evaluates no strings. Pages render near the screen and are released after (canvases ≤ 16 MP for
   iOS). Text previews fetch the content and show it as text — Markdown through the notes editor,
   CSV as a table — never as HTML; images only for the inline-safe types (no SVG). Office files
-  have no preview yet. "Neu → Dokument (Markdown)" creates a `.md` file (its title as heading) and
+  open in the office editor when one is configured (see "Office documents"), else download. "Neu → Dokument (Markdown)" creates a `.md` file (its title as heading) and
   opens it in the editor (`?edit=1`).
 - **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
   a new version, shared editing, a share link, restoring) goes through
@@ -160,6 +160,17 @@ CMP (Crossover Management Portal) before; the repository still is.
   is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
   never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
   removes its version blobs. Versions are never copied with an event.
+- **Papierkorb** (`files.deleted_at` / `deleted_by`, `FileTrash`): deleting an org or event
+  document (also through a share link, `deleted_by` null) moves it to the Papierkorb — a folder
+  with everything inside; receipts and attachments are deleted right away. Items in the
+  Papierkorb, or below a folder in it, are gone everywhere else: listings skip them
+  (`FileService.listFolder`), the `/files/{id}` loader answers 404 (`FileService.isInTrash`),
+  `FileAccess.evaluateFile` gives nothing, share links stop, program attachments and event copies
+  leave them out. Managers (Kernteam / Leitung) see and restore everything and delete for good,
+  everyone else sees and restores what they deleted (`…/trash` on both libraries). Restoring goes
+  back into the folder — the top level when it is gone or in the Papierkorb too. Housekeeping
+  deletes after 30 days (rows below go by `ON DELETE CASCADE`, blobs with the orphan sweep). A new
+  query on `files` for documents must skip `deleted_at` (and what is below it).
 - **Shared editing of Markdown documents** (like Nextcloud Text; `Collab` in
   `server/lib/api/utils/collab.ts`, `CollabProvider` + `FilesCollabEditor` in the frontend): the
   document is a Yjs document synced over REST — `POST /files/{id}/collab` joins (`after: null` →
@@ -176,6 +187,24 @@ CMP (Crossover Management Portal) before; the repository still is.
   outside drop it too (`CollabState.discard`). The server rewrites awareness: only the sender's
   own entry, with the account's name and a colour. Listings and the file page show who is editing
   (`editing.users`). Needs edit rights; only `.md` files.
+- **Office documents** (Euro-Office over WOPI, optional — `IVENTWORKS_OFFICE_URL`,
+  `server/lib/office`, `routes/wopi`, `FilesOfficeFrame`): `POST /files/{id}/office` (browser
+  sessions only) creates an access token (`wopi_tokens`, hashed, tied to the login session, 10 h)
+  and the editor URL from the office server's discovery; the browser posts the token to the editor
+  in a frame — the office server's code never runs on our origin (that is why not its document
+  API, whose `api.js` would). The office server calls `<org url>/api/v1/wopi/files/{id}` (the
+  org's public address, so the org comes from the host as always, and the office server keeps
+  blocking private addresses against SSRF). Deviations, all deliberate:
+  - WOPI routes answer in WOPI's own format (raw JSON, bytes, status codes, `X-WOPI-*` headers),
+    not the API envelope, and are not in the OpenAPI spec.
+  - Every call checks the proof signature (`WopiProof`, keys from the discovery; invalid → 500 as
+    MS-WOPI says) and the token again: session, person, file (not in the Papierkorb), current
+    rights (`OfficeTokens.resolve`).
+  - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
+    large as uploads (`RequestLimits.limitFor`, path-based).
+  - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
+    server never hold a file at once. Saves keep versions per interval (`session: true`).
+  - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`).
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace

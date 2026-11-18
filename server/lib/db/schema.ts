@@ -668,6 +668,10 @@ export const files = sqliteTable(
 		// Own access list (`file_access`) for this item and everything below it, instead of the
 		// parent folder's. Only org and event documents.
 		custom_access: integer({ mode: "boolean" }).notNull().default(false),
+		// In the Papierkorb since then (org and event documents; a folder goes in with what is
+		// inside it). Housekeeping deletes it for good after `FileTrash.RETENTION_DAYS`.
+		deleted_at: integer(),
+		deleted_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
@@ -677,6 +681,7 @@ export const files = sqliteTable(
 		index("files_parent_id_idx").on(table.parent_id),
 		index("files_message_id_idx").on(table.message_id),
 		index("files_conversation_id_idx").on(table.conversation_id),
+		index("files_deleted_at_idx").on(table.deleted_at),
 	],
 );
 
@@ -796,6 +801,38 @@ export const fileCollabUpdates = sqliteTable(
 	(table) => [
 		index("file_collab_updates_org_id_idx").on(table.org_id),
 		uniqueIndex("file_collab_updates_file_seq_unique").on(table.file_id, table.seq),
+	],
+);
+
+/**
+ * Access tokens of the office server (WOPI, `server/lib/office`): one per person, file and editor
+ * opening, stored hashed. Tied to the login session that opened the editor — logging out ends it —
+ * and checked again on every call (the person's current rights).
+ * @deprecated Use DB.Tables.wopiTokens to access this table.
+ */
+export const wopiTokens = sqliteTable(
+	"wopi_tokens",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		token_hash: text().notNull().unique(),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		session_id: text()
+			.notNull()
+			.references(() => sessions.id, { onDelete: "cascade" }),
+		// Opened for editing (otherwise view only), when the token was made.
+		can_write: integer({ mode: "boolean" }).notNull().default(false),
+		expires_at: integer().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("wopi_tokens_org_id_idx").on(table.org_id),
+		index("wopi_tokens_file_id_idx").on(table.file_id),
 	],
 );
 

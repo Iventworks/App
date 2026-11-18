@@ -23,6 +23,7 @@ import { router as sharesRouter } from "./routes/shares";
 import { router as systemRouter } from "./routes/system";
 import { router as tasksRouter } from "./routes/tasks";
 import { router as usersRouter } from "./routes/users";
+import { router as wopiRouter } from "./routes/wopi";
 
 // [tag, description, parent tag (for nested display in Scalar)]
 const TAG_DEFINITIONS: [string, string, string?][] = [
@@ -268,6 +269,8 @@ router.route("/", pushRouter);
 router.route("/", usersRouter);
 router.route("/", filesRouter);
 router.route("/", sharesRouter);
+// The office server's WOPI calls (own protocol, not in the OpenAPI spec).
+router.route("/", wopiRouter);
 
 router.route("/", eventsRouter);
 router.route("/", orgRouter);

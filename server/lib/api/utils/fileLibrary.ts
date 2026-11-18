@@ -31,6 +31,7 @@ export namespace FileLibrary {
 		}
 
 		const path = folder ? await FileService.getPath(folder.id) : [];
+		if (FileService.isTrashed(path)) return { ok: false, status: 404, message: "Folder not found" };
 		const children = await FileService.listFolder(location, folder?.id ?? null);
 		const { permissions, items, entries } = await FileAccess.forFolder(viewer, path, children);
 		// Folders the caller can't see don't exist for them.

@@ -8,6 +8,7 @@ import { AuthHandler } from "../../../../../utils/authHandler";
 import { FileAccess } from "../../../../../utils/fileAccess";
 import { FileLibrary } from "../../../../../utils/fileLibrary";
 import { FileService } from "../../../../../utils/fileService";
+import { FileTrash } from "../../../../../utils/fileTrash";
 import { getAuthUserId } from "../../../../../utils/guards";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -234,5 +235,147 @@ router.post(
 			"Document created successfully",
 			await FileLibrary.created(viewer, file),
 		);
+	},
+);
+
+// --- Papierkorb -----------------------------------------------------------------------------
+
+router.get(
+	"/trash",
+
+	APIRouteSpec.authenticated({
+		summary: "List Papierkorb",
+		description:
+			"Deleted documents and folders of this library, newest first: everything for managers, otherwise what the caller deleted. Deleted for good after 30 days (`purge_at`).",
+		tags: [DOCS_TAGS.ORG.DOCUMENTS],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Papierkorb retrieved successfully", OrgDocumentsModel.Trash.Response),
+			APIResponseSpec.forbidden("You are not allowed to view documents"),
+		),
+	}),
+
+	async (c) => {
+		const viewer = await viewerOf(c);
+		if (!viewer?.inLibrary) return APIResponse.forbidden(c, "You are not allowed to view documents");
+		return APIResponse.success(
+			c,
+			"Papierkorb retrieved successfully",
+			(await FileTrash.list(viewer)) satisfies OrgDocumentsModel.Trash.Response,
+		);
+	},
+);
+
+router.post(
+	"/trash/:fileId/restore",
+
+	APIRouteSpec.authenticated({
+		summary: "Restore from Papierkorb",
+		description:
+			"Put a deleted document or folder back into its folder — or the top level when that folder is gone. Managers restore everything, others what they deleted.",
+		tags: [DOCS_TAGS.ORG.DOCUMENTS],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.success("Restored successfully", OrgDocumentsModel.Trash.Item),
+			APIResponseSpec.notFound("Not in the Papierkorb"),
+		),
+	}),
+
+	zValidator("param", OrgDocumentsModel.Trash.Params),
+
+	async (c) => {
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.notFound(c, "Not in the Papierkorb");
+		const { fileId } = c.req.valid("param") as OrgDocumentsModel.Trash.Params;
+		const result = await FileTrash.restore(viewer, fileId);
+		if (!result.ok) return APIResponse.notFound(c, result.message);
+
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "update",
+			entityType: "file",
+			entityId: result.file.id,
+			summary: `${result.file.kind === "folder" ? "Ordner" : "Dokument"} „${result.file.name}“ aus dem Papierkorb wiederhergestellt`,
+		});
+
+		return APIResponse.success(
+			c,
+			"Restored successfully",
+			await FileLibrary.created(viewer, result.file),
+		);
+	},
+);
+
+router.delete(
+	"/trash/:fileId",
+
+	APIRouteSpec.authenticated({
+		summary: "Delete for good",
+		description:
+			"Delete an item in the Papierkorb for good, with everything inside it (managers only).",
+		tags: [DOCS_TAGS.ORG.DOCUMENTS],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.successNoData("Deleted successfully"),
+			APIResponseSpec.notFound("Not in the Papierkorb"),
+			APIResponseSpec.forbidden("Only managers can delete for good"),
+		),
+	}),
+
+	zValidator("param", OrgDocumentsModel.Trash.Params),
+
+	async (c) => {
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.notFound(c, "Not in the Papierkorb");
+		const { fileId } = c.req.valid("param") as OrgDocumentsModel.Trash.Params;
+		const result = await FileTrash.purge(viewer, fileId);
+		if (!result.ok) {
+			return result.status === 403
+				? APIResponse.forbidden(c, result.message)
+				: APIResponse.notFound(c, result.message);
+		}
+
+		await AuditLog.record({
+			userId: getAuthUserId(c),
+			action: "delete",
+			entityType: "file",
+			entityId: result.file.id,
+			summary: `${result.file.kind === "folder" ? "Ordner" : "Dokument"} „${result.file.name}“ endgültig gelöscht`,
+		});
+
+		return APIResponse.successNoData(c, "Deleted successfully");
+	},
+);
+
+router.delete(
+	"/trash",
+
+	APIRouteSpec.authenticated({
+		summary: "Empty Papierkorb",
+		description: "Delete everything in this library's Papierkorb for good (managers only).",
+		tags: [DOCS_TAGS.ORG.DOCUMENTS],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.successNoData("Papierkorb emptied successfully"),
+			APIResponseSpec.forbidden("Only managers can delete for good"),
+		),
+	}),
+
+	async (c) => {
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "Only managers can delete for good");
+		const result = await FileTrash.empty(viewer);
+		if (!result.ok) return APIResponse.forbidden(c, result.message);
+
+		if (result.count > 0) {
+			await AuditLog.record({
+				userId: getAuthUserId(c),
+				action: "delete",
+				entityType: "file",
+				summary: `Papierkorb geleert (${result.count} Einträge endgültig gelöscht)`,
+			});
+		}
+
+		return APIResponse.successNoData(c, "Papierkorb emptied successfully");
 	},
 );
