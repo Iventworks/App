@@ -1,4 +1,5 @@
 import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
+import { CollabState } from "../api/utils/collabState";
 import { FileVersions } from "../api/utils/fileVersions";
 import { DB } from "../db";
 import { OrgContext } from "../orgs/context";
@@ -78,6 +79,7 @@ export class Housekeeping {
 
 		// Versions beyond the retention (their blobs go with the sweep below), and stale locks.
 		const versions = await FileVersions.prune(now);
+		await CollabState.pruneIdle(now);
 		await db.delete(DB.Tables.fileLocks).where(lt(DB.Tables.fileLocks.expires_at, now)).run();
 
 		const referenced = await db

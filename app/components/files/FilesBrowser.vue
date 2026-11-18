@@ -693,7 +693,9 @@ defineExpose({ refresh });
 								:label="
 									item.editing.kind === 'office'
 										? 'Wird in Office bearbeitet'
-										: `${item.editing.user?.display_name ?? 'Jemand'} bearbeitet`
+										: item.editing.users.length
+											? `${item.editing.users.map((person) => person.display_name.split(' ')[0]).join(', ')} ${item.editing.users.length > 1 ? 'bearbeiten' : 'bearbeitet'}`
+											: 'Wird bearbeitet'
 								"
 								icon="i-lucide-pencil"
 								color="warning"

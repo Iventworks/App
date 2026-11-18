@@ -153,18 +153,29 @@ CMP (Crossover Management Portal) before; the repository still is.
   CSV as a table — never as HTML; images only for the inline-safe types (no SVG). Office files
   have no preview yet. "Neu → Dokument (Markdown)" creates a `.md` file (its title as heading) and
   opens it in the editor (`?edit=1`).
-- **Versions and editing** (`file_versions` / `FileVersions`, `file_locks` / `FileLocks`):
-  every change of a file's contents (upload of a new version, the Markdown editor, a share link,
-  restoring) goes through `FileService.replaceContent`, which keeps the old blob as a version —
-  while the same person keeps saving, at most one every ten minutes. `files.modified_by` is who
-  wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer, never more
-  than 50; version blobs count as referenced in the orphan sweep, deleting a file removes its
-  version blobs. Markdown documents (`.md`) are edited one person at a time: `POST/PUT/DELETE
-  /files/{id}/lock` (two minutes, renewed every minute and with every save), saves with
-  `PUT /files/{id}/text` and the `lock_id`. A valid lock blocks other people's replacing,
-  restoring and deleting (409); managers can end it (`force=1`). Listings and the file page show
-  who is editing (`editing`). The file page's editor (`FilesMarkdownEditor`) autosaves; the route
-  guard saves before leaving. Versions are never copied with an event.
+- **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
+  a new version, shared editing, a share link, restoring) goes through
+  `FileService.replaceContent`, which keeps the old blob as a version — while the same person keeps
+  saving (or anyone in a shared editing session), at most one every ten minutes. `files.modified_by`
+  is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
+  never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
+  removes its version blobs. Versions are never copied with an event.
+- **Shared editing of Markdown documents** (like Nextcloud Text; `Collab` in
+  `server/lib/api/utils/collab.ts`, `CollabProvider` + `FilesCollabEditor` in the frontend): the
+  document is a Yjs document synced over REST — `POST /files/{id}/collab` joins (`after: null` →
+  whole state), sends updates and awareness, pulls, leaves; the realtime channel only signals
+  `{ type: "document" }` (the rule above holds: no data over the socket). Stored as a merged base
+  plus updates (`file_collab`, `file_collab_updates`, compacted after 200); who is in a session and
+  their cursors live in memory (`CollabSessions`, one server, like the realtime hub). The first tab
+  of a fresh session fills the document from the file (`initialize`, a 15 s claim); the others
+  wait. The browsers write the Markdown back (`PUT …/collab/content` with the `seq` it reflects;
+  only newer texts, one save at a time per file) — the author soon after typing, anyone after a
+  while for changes nobody saved. While anyone is in a session, the file is locked
+  (`file_locks`, kind `editor`, renewed with every request, two minutes): no uploads, restores or
+  deletes (409). The last person leaving fully saved drops the state; contents changed from
+  outside drop it too (`CollabState.discard`). The server rewrites awareness: only the sender's
+  own entry, with the account's name and a colour. Listings and the file page show who is editing
+  (`editing.users`). Needs edit rights; only `.md` files.
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace

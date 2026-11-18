@@ -7055,10 +7055,10 @@ export type PutFilesByFileIdContentResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -7252,10 +7252,10 @@ export type GetFilesByFileIdResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
             path: Array<{
@@ -7358,10 +7358,10 @@ export type PutFilesByFileIdResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -7370,26 +7370,30 @@ export type PutFilesByFileIdResponses = {
 
 export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
 
-export type PutFilesByFileIdTextData = {
+export type PostFilesByFileIdCollabData = {
     body: {
-        content: string;
-        lock_id: string;
+        client_id: number;
+        after: number | null;
+        updates?: Array<string>;
+        init?: boolean;
+        awareness?: string | null;
+        leave?: boolean;
     };
     path: {
         fileId: number;
     };
     query?: never;
-    url: '/files/{fileId}/text';
+    url: '/files/{fileId}/collab';
 };
 
-export type PutFilesByFileIdTextErrors = {
+export type PostFilesByFileIdCollabErrors = {
     /**
-     * Only Markdown documents can be edited here / Syntax or validation error in request
+     * Only Markdown documents can be edited here / Invalid document update / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Only Markdown documents can be edited here / Syntax or validation error in request';
+        message: 'Only Markdown documents can be edited here / Invalid document update / Syntax or validation error in request';
     };
     /**
      * You are not allowed to edit this file
@@ -7408,18 +7412,104 @@ export type PutFilesByFileIdTextErrors = {
         message: 'File not found';
     };
     /**
-     * You are not editing this document (any more)
+     * The file is being edited elsewhere / The document is not ready yet
      */
     409: {
         success: false;
         code: 409;
-        message: 'You are not editing this document (any more)';
+        message: 'The file is being edited elsewhere / The document is not ready yet';
     };
 };
 
-export type PutFilesByFileIdTextError = PutFilesByFileIdTextErrors[keyof PutFilesByFileIdTextErrors];
+export type PostFilesByFileIdCollabError = PostFilesByFileIdCollabErrors[keyof PostFilesByFileIdCollabErrors];
 
-export type PutFilesByFileIdTextResponses = {
+export type PostFilesByFileIdCollabResponses = {
+    /**
+     * Document synced successfully (no data after `leave`)
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Document synced successfully (no data after `leave`)';
+        data: {
+            seq: number;
+            saved_seq: number;
+            state: string | null;
+            updates: Array<{
+                seq: number;
+                data: string;
+            }>;
+            initialize: boolean;
+            ready: boolean;
+            participants: Array<{
+                client_id: number;
+                user: {
+                    id: number;
+                    display_name: string;
+                };
+                color: string;
+            }>;
+            awareness: Array<{
+                client_id: number;
+                data: string;
+            }>;
+        };
+    };
+};
+
+export type PostFilesByFileIdCollabResponse = PostFilesByFileIdCollabResponses[keyof PostFilesByFileIdCollabResponses];
+
+export type PutFilesByFileIdCollabContentData = {
+    body: {
+        client_id: number;
+        seq: number;
+        content: string;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/collab/content';
+};
+
+export type PutFilesByFileIdCollabContentErrors = {
+    /**
+     * Only Markdown documents can be edited here / File is too large
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Only Markdown documents can be edited here / File is too large';
+    };
+    /**
+     * You are not allowed to edit this file
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to edit this file';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+    /**
+     * Unknown document state
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Unknown document state';
+    };
+};
+
+export type PutFilesByFileIdCollabContentError = PutFilesByFileIdCollabContentErrors[keyof PutFilesByFileIdCollabContentErrors];
+
+export type PutFilesByFileIdCollabContentResponses = {
     /**
      * Document saved successfully
      */
@@ -7428,238 +7518,13 @@ export type PutFilesByFileIdTextResponses = {
         code: 200;
         message: 'Document saved successfully';
         data: {
-            id: number;
-            scope: 'org' | 'event' | 'receipt' | 'message';
-            event_id: number | null;
-            parent_id: number | null;
-            kind: 'folder' | 'file';
-            name: string;
-            mime_type: string | null;
-            size: number;
-            uploaded_by: number | null;
-            created_at: number;
-            updated_at: number;
-            content_url: string | null;
-            shared: boolean;
-            custom_access: boolean;
-            permissions: {
-                read: boolean;
-                upload: boolean;
-                edit: boolean;
-                delete: boolean;
-                rename: boolean;
-                manage: boolean;
-            } | null;
-            access: Array<{
-                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
-                id: number | null;
-                label: string;
-                color: string | null;
-                permissions: {
-                    read: boolean;
-                    upload: boolean;
-                    edit: boolean;
-                    delete: boolean;
-                };
-            }> | null;
-            editing: {
-                kind: 'editor' | 'office';
-                user: {
-                    id: number;
-                    display_name: string;
-                } | null;
-                expires_at: number;
-            } | null;
+            saved_seq: number;
+            saved: boolean;
         };
     };
 };
 
-export type PutFilesByFileIdTextResponse = PutFilesByFileIdTextResponses[keyof PutFilesByFileIdTextResponses];
-
-export type DeleteFilesByFileIdLockData = {
-    body?: never;
-    path: {
-        fileId: number;
-    };
-    query?: {
-        lock_id?: string;
-        force?: '0' | '1';
-    };
-    url: '/files/{fileId}/lock';
-};
-
-export type DeleteFilesByFileIdLockErrors = {
-    /**
-     * Validation Error
-     */
-    400: {
-        success: false;
-        error: Array<unknown>;
-        data: unknown;
-    };
-    /**
-     * Only managers can end someone else's editing
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'Only managers can end someone else\'s editing';
-    };
-    /**
-     * File not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'File not found';
-    };
-};
-
-export type DeleteFilesByFileIdLockError = DeleteFilesByFileIdLockErrors[keyof DeleteFilesByFileIdLockErrors];
-
-export type DeleteFilesByFileIdLockResponses = {
-    /**
-     * Lock released successfully
-     */
-    200: {
-        success: true;
-        code: 200;
-        message: 'Lock released successfully';
-        data: null;
-    };
-};
-
-export type DeleteFilesByFileIdLockResponse = DeleteFilesByFileIdLockResponses[keyof DeleteFilesByFileIdLockResponses];
-
-export type PostFilesByFileIdLockData = {
-    body?: never;
-    path: {
-        fileId: number;
-    };
-    query?: never;
-    url: '/files/{fileId}/lock';
-};
-
-export type PostFilesByFileIdLockErrors = {
-    /**
-     * Only Markdown documents can be edited here
-     */
-    400: {
-        success: false;
-        code: 400;
-        message: 'Only Markdown documents can be edited here';
-    };
-    /**
-     * You are not allowed to edit this file
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'You are not allowed to edit this file';
-    };
-    /**
-     * File not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'File not found';
-    };
-};
-
-export type PostFilesByFileIdLockError = PostFilesByFileIdLockErrors[keyof PostFilesByFileIdLockErrors];
-
-export type PostFilesByFileIdLockResponses = {
-    /**
-     * Lock checked successfully
-     */
-    200: {
-        success: true;
-        code: 200;
-        message: 'Lock checked successfully';
-        data: {
-            acquired: boolean;
-            lock_id: string | null;
-            expires_at: number | null;
-            editing: {
-                kind: 'editor' | 'office';
-                user: {
-                    id: number;
-                    display_name: string;
-                } | null;
-                expires_at: number;
-            } | null;
-        };
-    };
-};
-
-export type PostFilesByFileIdLockResponse = PostFilesByFileIdLockResponses[keyof PostFilesByFileIdLockResponses];
-
-export type PutFilesByFileIdLockData = {
-    body: {
-        lock_id: string;
-    };
-    path: {
-        fileId: number;
-    };
-    query?: never;
-    url: '/files/{fileId}/lock';
-};
-
-export type PutFilesByFileIdLockErrors = {
-    /**
-     * Validation Error
-     */
-    400: {
-        success: false;
-        error: Array<unknown>;
-        data: unknown;
-    };
-    /**
-     * File not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'File not found';
-    };
-    /**
-     * You are not editing this document (any more)
-     */
-    409: {
-        success: false;
-        code: 409;
-        message: 'You are not editing this document (any more)';
-    };
-};
-
-export type PutFilesByFileIdLockError = PutFilesByFileIdLockErrors[keyof PutFilesByFileIdLockErrors];
-
-export type PutFilesByFileIdLockResponses = {
-    /**
-     * Lock renewed successfully
-     */
-    200: {
-        success: true;
-        code: 200;
-        message: 'Lock renewed successfully';
-        data: {
-            acquired: boolean;
-            lock_id: string | null;
-            expires_at: number | null;
-            editing: {
-                kind: 'editor' | 'office';
-                user: {
-                    id: number;
-                    display_name: string;
-                } | null;
-                expires_at: number;
-            } | null;
-        };
-    };
-};
-
-export type PutFilesByFileIdLockResponse = PutFilesByFileIdLockResponses[keyof PutFilesByFileIdLockResponses];
+export type PutFilesByFileIdCollabContentResponse = PutFilesByFileIdCollabContentResponses[keyof PutFilesByFileIdCollabContentResponses];
 
 export type GetFilesByFileIdVersionsData = {
     body?: never;
@@ -7921,10 +7786,10 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -11896,10 +11761,10 @@ export type GetEventsByEventIdProgramResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -12026,10 +11891,10 @@ export type PostEventsByEventIdProgramResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -12210,10 +12075,10 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -12332,10 +12197,10 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -13639,10 +13504,10 @@ export type GetEventsByEventIdFilesResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -13683,10 +13548,10 @@ export type GetEventsByEventIdFilesResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -13727,10 +13592,10 @@ export type GetEventsByEventIdFilesResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -13856,10 +13721,10 @@ export type PostEventsByEventIdFilesResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -13954,10 +13819,10 @@ export type PostEventsByEventIdFilesFoldersResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -14052,10 +13917,10 @@ export type PostEventsByEventIdFilesMarkdownResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -14181,10 +14046,10 @@ export type GetEventsByEventIdExpensesResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -14317,10 +14182,10 @@ export type PostEventsByEventIdExpensesResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -14583,10 +14448,10 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -14719,10 +14584,10 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -14853,10 +14718,10 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -16396,10 +16261,10 @@ export type GetOrgDocumentsResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             } | null;
@@ -16440,10 +16305,10 @@ export type GetOrgDocumentsResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -16484,10 +16349,10 @@ export type GetOrgDocumentsResponses = {
                 }> | null;
                 editing: {
                     kind: 'editor' | 'office';
-                    user: {
+                    users: Array<{
                         id: number;
                         display_name: string;
-                    } | null;
+                    }>;
                     expires_at: number;
                 } | null;
             }>;
@@ -16603,10 +16468,10 @@ export type PostOrgDocumentsResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -16691,10 +16556,10 @@ export type PostOrgDocumentsFoldersResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };
@@ -16779,10 +16644,10 @@ export type PostOrgDocumentsMarkdownResponses = {
             }> | null;
             editing: {
                 kind: 'editor' | 'office';
-                user: {
+                users: Array<{
                     id: number;
                     display_name: string;
-                } | null;
+                }>;
                 expires_at: number;
             } | null;
         };

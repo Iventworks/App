@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Collab as CollabModule } from "../../../../utils/collab";
 import { FileService } from "../../../../utils/fileService";
 import { FileVersions } from "../../../../utils/fileVersions";
 import { FileAccessModel } from "../../../../utils/shared-models/fileAccess";
@@ -75,35 +76,15 @@ export namespace FilesModel.Upload {
 	export type Form = z.infer<typeof Form>;
 }
 
-export namespace FilesModel.Text {
-	/** The Markdown editor's save: the whole text, with the editor lock. */
-	export const Body = z.object({
-		content: z.string().max(1_000_000),
-		lock_id: z.string().min(1).max(200),
-	});
-	export type Body = z.infer<typeof Body>;
-}
-
-export namespace FilesModel.Lock {
-	export const Response = z.object({
-		/** false: someone else is editing (`editing`). */
-		acquired: z.boolean(),
-		/** Send it with every save and renewal. */
-		lock_id: z.string().nullable(),
-		expires_at: z.number().nullable(),
-		editing: FileService.ItemSchema.shape.editing,
-	});
-	export type Response = z.infer<typeof Response>;
-
-	export const RenewBody = z.object({ lock_id: z.string().min(1).max(200) });
-	export type RenewBody = z.infer<typeof RenewBody>;
-
-	export const ReleaseQuery = z.object({
-		lock_id: z.string().min(1).max(200).optional(),
-		/** `1`: end someone else's editing (managers only). */
-		force: z.enum(["0", "1"]).optional(),
-	});
-	export type ReleaseQuery = z.infer<typeof ReleaseQuery>;
+export namespace FilesModel.Collab {
+	export const SyncBody = CollabModule.SyncBody;
+	export type SyncBody = z.infer<typeof SyncBody>;
+	export const SyncResponse = CollabModule.SyncResponse;
+	export type SyncResponse = z.infer<typeof SyncResponse>;
+	export const SaveBody = CollabModule.SaveBody;
+	export type SaveBody = z.infer<typeof SaveBody>;
+	export const SaveResponse = CollabModule.SaveResponse;
+	export type SaveResponse = z.infer<typeof SaveResponse>;
 }
 
 export namespace FilesModel.Versions {

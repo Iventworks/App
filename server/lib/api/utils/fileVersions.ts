@@ -18,16 +18,21 @@ export namespace FileVersions {
 	export const KEEP_MIN = 10;
 	export const MAX_PER_FILE = 50;
 
-	/** Whether the current contents of `file` become a version when `userId` replaces them. */
+	/**
+	 * Whether the current contents of `file` become a version when `userId` replaces them.
+	 * `session`: saved by a shared editing session, where several people save in turns — at most
+	 * one version per interval, whoever saves.
+	 */
 	export function shouldKeep(
 		tx: DrizzleDB.Sync,
 		file: DB.Models.File,
 		userId: number | null,
 		now: number,
+		session = false,
 	) {
 		if (!file.storage_key) return false;
-		// Someone else's (or a share link's) contents are always kept.
-		if (file.modified_by === null || file.modified_by !== userId) return true;
+		// Someone else's (or a share link's) contents are always kept — outside sessions.
+		if (!session && (file.modified_by === null || file.modified_by !== userId)) return true;
 		const latest = tx
 			.select({ created_at: DB.Tables.fileVersions.created_at })
 			.from(DB.Tables.fileVersions)
@@ -64,10 +69,11 @@ export namespace FileVersions {
 		file: DB.Models.File,
 		blob: { storageKey: string; size: number; mimeType: string },
 		userId: number | null,
+		options: { session?: boolean } = {},
 	) {
 		const now = Date.now();
 		const { row, dropOld } = DB.instance().transaction((tx) => {
-			const keep = shouldKeep(tx, file, userId, now);
+			const keep = shouldKeep(tx, file, userId, now, options.session);
 			if (keep) archive(tx, file, now);
 			const updated = tx
 				.update(DB.Tables.files)

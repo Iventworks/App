@@ -200,6 +200,23 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			})
 			.run();
 
+		// A shared editing state (on the org folder; the rows only need to exist).
+		db
+			.insert(DB.Tables.fileCollab)
+			.values({ org_id, file_id: folder.id, state: Buffer.from([0, 0]), seq: 1, updated_at: now })
+			.run();
+		db
+			.insert(DB.Tables.fileCollabUpdates)
+			.values({
+				org_id,
+				file_id: folder.id,
+				seq: 1,
+				data: Buffer.from([0, 0]),
+				client_id: 1,
+				user_id: admin.id,
+			})
+			.run();
+
 		// Org group and access lists on both libraries.
 		const orgGroup = db
 			.insert(DB.Tables.orgGroups)

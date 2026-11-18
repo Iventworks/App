@@ -6,6 +6,7 @@ import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
+import { CollabState } from "./collabState";
 import { FileVersions } from "./fileVersions";
 import { FileAccessModel } from "./shared-models/fileAccess";
 
@@ -308,27 +309,48 @@ export class FileService {
 	 * (`FileVersions`). `userId` null: through a share link. Returns null when the upload is too
 	 * large.
 	 */
-	static async replaceContent(file: DB.Models.File, upload: Blob, userId: number | null) {
+	static async replaceContent(
+		file: DB.Models.File,
+		upload: Blob,
+		userId: number | null,
+		/** `keepCollab`: written by the shared editing session itself. */
+		options: { keepCollab?: boolean } = {},
+	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
+		let updated: DB.Models.File;
 		try {
-			return await FileVersions.replace(
+			updated = await FileVersions.replace(
 				file,
 				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
 				userId,
+				{ session: options.keepCollab },
 			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+		// Contents from outside: a shared editing state of the old text is worthless now.
+		if (!options.keepCollab) await CollabState.discard(file.id);
+		return updated;
 	}
 
-	/** Save text as the new contents (the Markdown editor). */
-	static async replaceText(file: DB.Models.File, text: string, userId: number) {
+	/** Save text as the new contents (the shared Markdown editor). */
+	static async replaceText(
+		file: DB.Models.File,
+		text: string,
+		userId: number,
+		options: { keepCollab?: boolean } = {},
+	) {
 		const mimeType = FileService.isMarkdownName(file.name)
 			? FileService.MARKDOWN_MIME_TYPE
 			: (file.mime_type ?? "text/plain");
-		return await FileService.replaceContent(file, new Blob([text], { type: mimeType }), userId);
+		return await FileService.replaceContent(
+			file,
+			new Blob([text], { type: mimeType }),
+			userId,
+			options,
+		);
 	}
 
 	static isMarkdownName(name: string) {
@@ -461,8 +483,10 @@ export namespace FileService {
 		/** Someone is editing it right now (listings and the file page). */
 		editing: z
 			.object({
+				/** `editor`: a shared Markdown editing session; `office`: the office server. */
 				kind: z.enum(["editor", "office"]),
-				user: z.object({ id: z.number(), display_name: z.string() }).nullable(),
+				/** Who is in it (editor sessions). */
+				users: z.array(z.object({ id: z.number(), display_name: z.string() })),
 				expires_at: z.number(),
 			})
 			.nullable(),

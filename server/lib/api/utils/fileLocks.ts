@@ -1,17 +1,18 @@
-import { randomBytes } from "node:crypto";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { DB } from "../../db";
 import { inOrg, OrgContext } from "../../orgs/context";
-import { UserSummary } from "./shared-models/userSummary";
+import { CollabSessions } from "./collabSessions";
 
 /**
- * Who is editing a file right now (`file_locks`): the Markdown editor (one person) or, later, the
- * office server. A lock expires unless its holder renews it; while it holds, nobody else may
- * replace the contents, edit them or delete the file.
+ * Who is editing a file right now (`file_locks`): a shared Markdown editing session (`editor`,
+ * held for everyone in it, see `Collab`) or, later, the office server. A lock expires unless it
+ * is renewed; while it holds, nobody may replace the contents, restore a version or delete the
+ * file.
  */
 export namespace FileLocks {
-	/** The editor renews every minute; a closed tab frees the file after this. */
-	export const EDITOR_TTL_MS = 2 * 60 * 1000;
+	/** Renewed with every request of the session; a session that went quiet frees the file after this. */
+	export const SESSION_TTL_MS = 2 * 60 * 1000;
+	const SESSION_LOCK_ID = "collab";
 
 	/** The valid lock of a file, if any. */
 	export async function current(fileId: number, now = Date.now()) {
@@ -48,119 +49,90 @@ export namespace FileLocks {
 	}
 
 	/**
-	 * Take the editor lock for `userId`. Every call hands out a new lock id, so a second tab of
-	 * the same person takes over and the first one's saves are refused.
+	 * Take or renew the lock of a shared editing session. False while something else (the office
+	 * server) holds the file.
 	 */
-	export function acquire(
-		fileId: number,
-		userId: number,
-		now = Date.now(),
-	): { ok: true; lock: DB.Models.FileLock } | { ok: false; lock: DB.Models.FileLock } {
+	export function holdSession(fileId: number, now = Date.now()) {
 		return DB.instance().transaction((tx) => {
 			const existing = tx
 				.select()
 				.from(DB.Tables.fileLocks)
 				.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
 				.get();
-			if (
-				existing &&
-				existing.expires_at > now &&
-				(existing.kind !== "editor" || existing.user_id !== userId)
-			) {
-				return { ok: false as const, lock: existing };
-			}
+			if (existing && existing.expires_at > now && existing.kind !== "editor") return false;
 			if (existing) {
 				tx
-					.delete(DB.Tables.fileLocks)
+					.update(DB.Tables.fileLocks)
+					.set({
+						kind: "editor",
+						lock_id: SESSION_LOCK_ID,
+						user_id: null,
+						expires_at: now + SESSION_TTL_MS,
+					})
 					.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
 					.run();
+			} else {
+				tx
+					.insert(DB.Tables.fileLocks)
+					.values({
+						org_id: OrgContext.id(),
+						file_id: fileId,
+						kind: "editor",
+						lock_id: SESSION_LOCK_ID,
+						user_id: null,
+						expires_at: now + SESSION_TTL_MS,
+					})
+					.run();
 			}
-			const lock = tx
-				.insert(DB.Tables.fileLocks)
-				.values({
-					org_id: OrgContext.id(),
-					file_id: fileId,
-					kind: "editor",
-					lock_id: randomBytes(16).toString("hex"),
-					user_id: userId,
-					expires_at: now + EDITOR_TTL_MS,
-				})
-				.returning()
-				.get();
-			return { ok: true as const, lock };
+			return true;
 		});
 	}
 
-	/** Whether `lockId` is the valid editor lock of `userId` on the file. */
-	export async function holds(fileId: number, userId: number, lockId: string, now = Date.now()) {
-		const lock = await current(fileId, now);
-		return Boolean(
-			lock && lock.kind === "editor" && lock.user_id === userId && lock.lock_id === lockId,
-		);
-	}
-
-	/** Renew a held lock; false when it is gone or someone else's. */
-	export async function renew(fileId: number, userId: number, lockId: string, now = Date.now()) {
-		if (!(await holds(fileId, userId, lockId, now))) return null;
-		return (
-			(await DB.instance()
-				.update(DB.Tables.fileLocks)
-				.set({ expires_at: now + EDITOR_TTL_MS })
-				.where(
-					and(
-						inOrg(DB.Tables.fileLocks),
-						eq(DB.Tables.fileLocks.file_id, fileId),
-						eq(DB.Tables.fileLocks.lock_id, lockId),
-					),
-				)
-				.returning()
-				.get()) ?? null
-		);
-	}
-
-	/** Remove the lock (`lockId`: only that one; null: whichever, for managers). */
-	export async function release(fileId: number, lockId: string | null) {
-		const result = await DB.instance()
+	/** End a shared editing session's lock (the last person left). */
+	export async function releaseSession(fileId: number) {
+		await DB.instance()
 			.delete(DB.Tables.fileLocks)
 			.where(
 				and(
 					inOrg(DB.Tables.fileLocks),
 					eq(DB.Tables.fileLocks.file_id, fileId),
-					lockId === null ? undefined : eq(DB.Tables.fileLocks.lock_id, lockId),
+					eq(DB.Tables.fileLocks.kind, "editor"),
 				),
 			)
-			.returning({ file_id: DB.Tables.fileLocks.file_id })
-			.all();
-		return result.length > 0;
+			.run();
+	}
+
+	/** The lock that keeps anyone from changing the file's contents from outside its session. */
+	export async function blocking(fileId: number, now = Date.now()) {
+		return await current(fileId, now);
+	}
+
+	export interface Editing {
+		kind: DB.Models.FileLock["kind"];
+		users: { id: number; display_name: string }[];
+		expires_at: number;
 	}
 
 	/** "Wird bearbeitet von …" for the API (`FileService.Item.editing`), per file id. */
-	export async function describe(locks: Iterable<DB.Models.FileLock>) {
-		const list = [...locks];
-		const users = await UserSummary.fetchMap(list.map((lock) => lock.user_id));
-		return new Map(
-			list.map((lock) => {
-				const user = lock.user_id !== null ? users.get(lock.user_id) : undefined;
-				return [
-					lock.file_id,
-					{
-						kind: lock.kind,
-						user: user ? { id: user.id, display_name: user.display_name } : null,
-						expires_at: lock.expires_at,
-					},
-				] as const;
-			}),
-		);
-	}
-
-	/**
-	 * The lock that keeps `userId` from changing the file's contents: someone else's (or another
-	 * kind's) valid lock. A person's own editor lock doesn't block their other writes.
-	 */
-	export async function blocking(fileId: number, userId: number | null, now = Date.now()) {
-		const lock = await current(fileId, now);
-		if (!lock) return null;
-		if (lock.kind === "editor" && userId !== null && lock.user_id === userId) return null;
-		return lock;
+	export function describe(locks: Iterable<DB.Models.FileLock>, now = Date.now()) {
+		const orgId = OrgContext.id();
+		const result = new Map<number, Editing>();
+		for (const lock of locks) {
+			const users = new Map<number, { id: number; display_name: string }>();
+			if (lock.kind === "editor") {
+				for (const participant of CollabSessions.participants(orgId, lock.file_id, now)) {
+					users.set(participant.userId, {
+						id: participant.userId,
+						display_name: participant.displayName,
+					});
+				}
+			}
+			result.set(lock.file_id, {
+				kind: lock.kind,
+				users: [...users.values()],
+				expires_at: lock.expires_at,
+			});
+		}
+		return result;
 	}
 }

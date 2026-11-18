@@ -2,8 +2,8 @@
 /**
  * One file in the app: a preview by type (`FilesPreview`: PDF, images, Markdown, CSV, text),
  * where it lives (breadcrumb back into the folder), download, versions and "Neue Fassung".
- * Markdown documents can be edited here (`FilesMarkdownEditor`, one person at a time; `?edit=1`
- * opens the editor right away). Opened from the file browsers (`?from=` names the library page it
+ * Markdown documents are edited here together, live (`FilesCollabEditor`; `?edit=1` opens the
+ * editor right away). Opened from the file browsers (`?from=` names the library page it
  * came from, so the breadcrumb leads back there); works for every file the caller may open — the
  * API checks access.
  */
@@ -105,60 +105,22 @@ const kind = computed(() =>
 const opensInBrowser = computed(() => ["pdf", "image", "text"].includes(kind.value));
 const isMarkdown = computed(() => kind.value === "markdown" && file.value?.kind === "file");
 
-/** Someone else is editing it right now. */
-const editedByOther = computed(() => {
-	const editing = file.value?.editing;
-	if (!editing || editor.lockId) return null;
-	if (editing.kind === "editor" && editing.user?.id === user.value?.id) return null;
-	return editing;
-});
+/** A session is running (shared editing: join it) or the office server has the file (blocked). */
+const editingNow = computed(() => (editing.value ? null : (file.value?.editing ?? null)));
+const blockedByOffice = computed(() => editingNow.value?.kind === "office");
 
-// --- editing (Markdown) -------------------------------------------------------------------------
+// --- editing (Markdown, together) ------------------------------------------------------------
 
-const editor = reactive({ lockId: null as string | null, content: "", starting: false });
-const editorRef = ref<{ flush: () => Promise<boolean>; dirty: boolean } | null>(null);
+const editing = ref(false);
+const editorRef = ref<{ flush: () => Promise<boolean> } | null>(null);
 
-async function startEditing() {
-	const current = file.value;
-	if (!current || !isMarkdown.value || !canEdit.value) return;
-	editor.starting = true;
-	const lock = await useAPI((api) => api.postFilesByFileIdLock({ path: { fileId: current.id } }));
-	if (!lock.success) {
-		editor.starting = false;
-		toast.add({ title: "Bearbeiten nicht möglich", description: lock.message, color: "error" });
-		return;
-	}
-	if (!lock.data.acquired || !lock.data.lock_id) {
-		editor.starting = false;
-		await refresh();
-		toast.add({
-			title: "Wird gerade bearbeitet",
-			description: `${lock.data.editing?.user?.display_name ?? "Jemand"} bearbeitet dieses Dokument gerade.`,
-			color: "warning",
-		});
-		return;
-	}
-	// Start from what is stored right now.
-	const response = await fetch(fileURL(current.content_url) as string, {
-		credentials: "same-origin",
-	});
-	editor.starting = false;
-	if (!response.ok) {
-		toast.add({ title: "Dokument konnte nicht geladen werden", color: "error" });
-		await useAPI((api) =>
-			api.deleteFilesByFileIdLock({
-				path: { fileId: current.id },
-				query: { lock_id: lock.data.lock_id ?? undefined },
-			}),
-		);
-		return;
-	}
-	editor.content = await response.text();
-	editor.lockId = lock.data.lock_id;
+function startEditing() {
+	if (!isMarkdown.value || !canEdit.value || blockedByOffice.value) return;
+	editing.value = true;
 }
 
 async function stopEditing() {
-	editor.lockId = null;
+	editing.value = false;
 	await refresh();
 	if (route.query.edit) {
 		const { edit: _edit, ...query } = route.query;
@@ -170,41 +132,24 @@ async function stopEditing() {
 watch(
 	file,
 	(current) => {
-		if (
-			current &&
-			route.query.edit === "1" &&
-			!editor.lockId &&
-			!editor.starting &&
-			isMarkdown.value
-		) {
-			void startEditing();
-		}
+		if (current && route.query.edit === "1" && !editing.value) startEditing();
 	},
 	{ immediate: true },
 );
 
-async function forceStop() {
-	const current = file.value;
-	if (!current) return;
-	const result = await useAPI((api) =>
-		api.deleteFilesByFileIdLock({ path: { fileId: current.id }, query: { force: "1" } }),
-	);
-	if (!result.success) {
-		toast.add({ title: "Bearbeitung nicht beendet", description: result.message, color: "error" });
-		return;
-	}
-	await refresh();
-}
-
 const askUnsaved = useUnsavedChangesDialog();
 onBeforeRouteLeave(async () => {
-	if (!editor.lockId || !editorRef.value?.dirty) return true;
+	if (!editing.value || !editorRef.value) return true;
 	if (await editorRef.value.flush()) return true;
 	const choice = await askUnsaved("Deine letzten Änderungen konnten nicht gespeichert werden.", {
 		canSave: false,
 	});
 	return choice === "discard";
 });
+
+const editingNames = computed(() =>
+	(editingNow.value?.users ?? []).map((person) => person.display_name.split(" ")[0]).join(", "),
+);
 
 // --- new contents, versions ---------------------------------------------------------------------
 
@@ -261,7 +206,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 						{
 							label: "Neue Fassung hochladen",
 							icon: "i-lucide-file-up",
-							disabled: Boolean(editedByOther.value) || Boolean(editor.lockId),
+							disabled: Boolean(editingNow.value) || editing.value,
 							onSelect: () => uploadInput.value?.click(),
 						},
 					],
@@ -275,7 +220,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 	<UDashboardPanel id="file">
 		<template #header>
 			<DashboardPageHeader :title="file?.name ?? 'Datei'" :icon="icon" :breadcrumb-items="breadcrumb">
-				<template v-if="file && canRead && !editor.lockId" #right>
+				<template v-if="file && canRead && !editing" #right>
 					<UButton
 						v-if="file.parent_id !== null || libraryPage"
 						icon="i-lucide-arrow-left"
@@ -288,9 +233,8 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 					<UButton
 						v-if="isMarkdown && canEdit"
 						icon="i-lucide-pencil"
-						label="Bearbeiten"
-						:loading="editor.starting"
-						:disabled="Boolean(editedByOther)"
+						:label="editingNow?.kind === 'editor' ? 'Mitbearbeiten' : 'Bearbeiten'"
+						:disabled="blockedByOffice"
 						@click="startEditing"
 					/>
 					<UButton
@@ -331,30 +275,31 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 
 				<template v-else-if="file.kind === 'file'">
 					<UAlert
-						v-if="editedByOther"
+						v-if="editingNow"
 						icon="i-lucide-pencil"
-						color="warning"
+						:color="blockedByOffice ? 'warning' : 'info'"
 						variant="subtle"
 						:title="
-							editedByOther.kind === 'office'
+							blockedByOffice
 								? 'Wird gerade in Office bearbeitet'
-								: `${editedByOther.user?.display_name ?? 'Jemand'} bearbeitet dieses Dokument gerade`
+								: `${editingNames || 'Jemand'} ${editingNow.users.length > 1 ? 'bearbeiten' : 'bearbeitet'} dieses Dokument gerade`
 						"
-						description="Du siehst die zuletzt gespeicherte Fassung. Bearbeiten und neue Fassungen sind erst wieder möglich, wenn das Dokument frei ist."
+						:description="
+							blockedByOffice || !(isMarkdown && canEdit)
+								? 'Du siehst die zuletzt gespeicherte Fassung. Neue Fassungen sind erst wieder möglich, wenn das Dokument frei ist.'
+								: 'Du siehst die zuletzt gespeicherte Fassung – mit „Mitbearbeiten“ schreibst du live mit.'
+						"
 						:actions="[
 							{ label: 'Neu laden', icon: 'i-lucide-refresh-cw', color: 'neutral', variant: 'subtle', onClick: () => refresh() },
-							...(file.permissions?.manage
-								? [{ label: 'Bearbeitung beenden', icon: 'i-lucide-unlock', color: 'neutral' as const, variant: 'ghost' as const, onClick: forceStop }]
-								: []),
 						]"
 					/>
 
-					<FilesMarkdownEditor
-						v-if="editor.lockId"
+					<FilesCollabEditor
+						v-if="editing && file.content_url"
 						ref="editorRef"
 						:file-id="file.id"
-						:lock-id="editor.lockId"
-						:initial-content="editor.content"
+						:content-url="fileURL(file.content_url) as string"
+						:user-name="user?.display_name ?? 'Ich'"
 						@close="stopEditing"
 					/>
 					<FilesPreview
