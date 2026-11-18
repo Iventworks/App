@@ -1545,7 +1545,7 @@ export const deleteFilesByFileId = <TComposable extends Composable = '$fetch', D
 /**
  * Get file
  *
- * Retrieve a file's or folder's metadata, including the path of its contents and what the caller may do with it (`permissions`).
+ * Retrieve a file's or folder's metadata, including the path of its contents, what the caller may do with it (`permissions`) and where it lives (`path`, `event`).
  */
 export const getFilesByFileId = <TComposable extends Composable = '$fetch', DefaultT extends GetFilesByFileIdResponse = GetFilesByFileIdResponse>(options: Options<TComposable, GetFilesByFileIdData, GetFilesByFileIdResponse, DefaultT>): RequestResult<TComposable, GetFilesByFileIdResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetFilesByFileIdResponse | DefaultT, GetFilesByFileIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

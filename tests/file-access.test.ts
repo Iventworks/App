@@ -216,6 +216,18 @@ describe("Org documents", () => {
 		expect(listing.items.find((item: any) => item.id === sub.id).access).toBeNull();
 	});
 
+	test("a file's details name the folders above it", async () => {
+		const sub = await folder(ORG, core.token, "Vorlagen", guidesId);
+		const file = await upload(ORG, core.token, "vorlage.txt", sub.id);
+		const details = await makeAPIRequest(`/v1/files/${file.id}`, { authToken: bob.token });
+		expect(details.path).toEqual([
+			{ id: guidesId, name: "Leitfäden" },
+			{ id: sub.id, name: "Vorlagen" },
+		]);
+		expect(details.event).toBeNull();
+		expect(details.permissions).toMatchObject({ read: true, edit: false, manage: false });
+	});
+
 	test("the Kernteam's member view shows the library like a member sees it", async () => {
 		const view = await list(`${ORG}?view=member`, core.token);
 		expect(names(view)).toEqual(["Abgabe", "Leitfäden"]);
@@ -366,6 +378,10 @@ describe("Event documents", () => {
 		);
 		// The Kernteam acts as Leitung in every event, also without being on its team.
 		expect(names(await list(path, core.token, leadId))).toEqual(["geheim.txt"]);
+
+		const details = await makeAPIRequest(`/v1/files/${secretFileId}`, { authToken: core.token });
+		expect(details.event).toEqual({ id: eventId, name: "Sommerlager" });
+		expect(details.path).toEqual([{ id: leadId, name: "Leitung" }]);
 	});
 
 	test("event groups and team members; people from outside the team are refused", async () => {

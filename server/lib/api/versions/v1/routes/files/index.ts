@@ -1,6 +1,8 @@
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
-import type { DB } from "../../../../../db";
+import { DB } from "../../../../../db";
+import { inOrg } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
@@ -101,22 +103,36 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "Get file",
 		description:
-			"Retrieve a file's or folder's metadata, including the path of its contents and what the caller may do with it (`permissions`).",
+			"Retrieve a file's or folder's metadata, including the path of its contents, what the caller may do with it (`permissions`) and where it lives (`path`, `event`).",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success("File retrieved successfully", FilesModel.Item),
+			APIResponseSpec.success("File retrieved successfully", FilesModel.Details.Response),
 			APIResponseSpec.notFound("File not found"),
 			APIResponseSpec.forbidden("You are not allowed to access this file"),
 		),
 	}),
 
 	async (c) => {
-		return APIResponse.success(
-			c,
-			"File retrieved successfully",
-			FileService.toResponse(c.get("file"), { permissions: c.get("permissions") }),
-		);
+		const file = c.get("file");
+		const isDocument = file.scope === "org" || file.scope === "event";
+		// Whoever can see a document can open every folder above it (`FileAccess`).
+		const path =
+			isDocument && file.parent_id !== null ? await FileService.getPath(file.parent_id) : [];
+		const event =
+			file.scope === "event" && file.event_id !== null
+				? ((await DB.instance()
+						.select({ id: DB.Tables.events.id, name: DB.Tables.events.name })
+						.from(DB.Tables.events)
+						.where(and(inOrg(DB.Tables.events), eq(DB.Tables.events.id, file.event_id)))
+						.get()) ?? null)
+				: null;
+
+		return APIResponse.success(c, "File retrieved successfully", {
+			...FileService.toResponse(file, { permissions: c.get("permissions") }),
+			path: path.map((folder) => ({ id: folder.id, name: folder.name })),
+			event,
+		} satisfies FilesModel.Details.Response);
 	},
 );
 

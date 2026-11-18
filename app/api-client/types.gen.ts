@@ -7142,6 +7142,14 @@ export type GetFilesByFileIdResponses = {
                     delete: boolean;
                 };
             }> | null;
+            path: Array<{
+                id: number;
+                name: string;
+            }>;
+            event: {
+                id: number;
+                name: string;
+            } | null;
         };
     };
 };

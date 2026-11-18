@@ -12,6 +12,17 @@ export namespace FilesModel {
 	export type Params = z.infer<typeof Params>;
 }
 
+export namespace FilesModel.Details {
+	/** A file or folder with where it lives (for the file page). */
+	export const Response = FilesModel.Item.extend({
+		/** Folders above it, from the top (only org and event documents). */
+		path: z.array(z.object({ id: z.number(), name: z.string() })),
+		/** The event of event documents. */
+		event: z.object({ id: z.number(), name: z.string() }).nullable(),
+	});
+	export type Response = z.infer<typeof Response>;
+}
+
 export namespace FilesModel.Content {
 	export const Params = z.object({
 		fileId: z.coerce.number().int().positive(),

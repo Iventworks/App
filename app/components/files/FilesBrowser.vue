@@ -8,7 +8,8 @@
  * (Kernteam / Leitung pages) the browser shows who has access to each item and the folder, and
  * offers "Zugriff" to change it.
  *
- * The open folder lives in `?folder=` so the browser's back button works. Items can be moved by
+ * Files open on the in-app file page (`/files/{id}`, previews). The open folder lives in
+ * `?folder=` so the browser's back button works. Items can be moved by
  * dragging them onto a folder or a breadcrumb entry; files can be dropped from the desktop to
  * upload.
  */
@@ -355,12 +356,7 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 		]);
 	} else if (can(item, "read")) {
 		groups.push([
-			{
-				label: "Öffnen",
-				icon: "i-lucide-external-link",
-				to: fileURL(item.content_url),
-				target: "_blank",
-			},
+			{ label: "Öffnen", icon: "i-lucide-eye", to: fileLink(item) },
 			{
 				label: "Herunterladen",
 				icon: "i-lucide-download",
@@ -411,11 +407,16 @@ async function onMoveUp(item: FileItem) {
 	await onDropOnFolder(listing.value?.folder?.parent_id ?? null);
 }
 
+/** The in-app file page; `from` leads its breadcrumb back to this library page. */
+function fileLink(item: FileItem) {
+	return { path: `/files/${item.id}`, query: { from: route.path } };
+}
+
 function onRowClick(item: FileItem) {
 	if (item.kind === "folder") {
 		void openFolder(item.id);
 	} else if (item.content_url && can(item, "read")) {
-		window.open(fileURL(item.content_url), "_blank", "noopener");
+		void router.push(fileLink(item));
 	}
 }
 

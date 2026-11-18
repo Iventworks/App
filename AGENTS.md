@@ -142,6 +142,16 @@ CMP (Crossover Management Portal) before; the repository still is.
   text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as
   an `application/octet-stream` attachment so it can never run script on the app origin.
   Housekeeping deletes stored files no `files` row references (after a day's grace).
+- **File page and previews** (`/files/[file_id]`, `FilesPreview`, `FilesPdfViewer`,
+  `app/utils/filePreview.ts`): files from the browsers open in the app (`?from=` leads the
+  breadcrumb back to the library page); the share page uses the same preview. PDFs render with
+  pdf.js (`pdfjs-dist` legacy build — the browser's own viewer is missing in the iOS app and on
+  Android), loaded with dynamic `import()` only when a PDF opens; the worker comes from our bundle
+  (`?url`), WebAssembly is off (`useWasm: false`, the CSP has no `wasm-unsafe-eval`), pdf.js 6
+  evaluates no strings. Pages render near the screen and are released after (canvases ≤ 16 MP for
+  iOS). Text previews fetch the content and show it as text — Markdown through the notes editor,
+  CSV as a table — never as HTML; images only for the inline-safe types (no SVG). Office files
+  have no preview yet.
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace

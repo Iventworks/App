@@ -4429,7 +4429,15 @@ export const zGetFilesByFileIdResponse = z.object({
                 edit: z.boolean(),
                 delete: z.boolean()
             })
-        })).nullable()
+        })).nullable(),
+        path: z.array(z.object({
+            id: z.number(),
+            name: z.string()
+        })),
+        event: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable()
     })
 });
 
