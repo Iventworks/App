@@ -32,6 +32,7 @@ const TYPE_ICONS: Record<string, string> = {
 	announcement: "i-lucide-megaphone",
 	expense_reviewed: "i-lucide-receipt",
 	expense_submitted: "i-lucide-receipt",
+	document_shared: "i-lucide-folder-lock",
 	system: "i-lucide-info",
 };
 

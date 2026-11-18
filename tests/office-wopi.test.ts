@@ -44,6 +44,18 @@ function discovery(): OfficeDiscovery.Discovery {
 				ext: "docx",
 				urlsrc: "https://office.test/hosting/wopi/word/view?",
 			},
+			{
+				app: "Excel",
+				name: "edit",
+				ext: "xlsx",
+				urlsrc: "https://office.test/hosting/wopi/cell/edit?",
+			},
+			{
+				app: "PowerPoint",
+				name: "edit",
+				ext: "pptx",
+				urlsrc: "https://office.test/hosting/wopi/slide/edit?",
+			},
 		],
 		proofKey: { modulus: b64(jwk.n), exponent: b64(jwk.e) },
 		oldProofKey: null,
@@ -189,6 +201,61 @@ describe("Opening documents in the office editor", () => {
 			201,
 		);
 		await open(leader.token, md.id, 400);
+	});
+});
+
+describe("New office documents", () => {
+	test("empty Word, Excel and PowerPoint files, ready for the editor", async () => {
+		for (const [type, part] of [
+			["docx", "word/document.xml"],
+			["xlsx", "xl/workbook.xml"],
+			["pptx", "ppt/presentation.xml"],
+		] as const) {
+			const created = await makeAPIRequest(
+				`${base}/office`,
+				{ method: "POST", authToken: staff.token, body: { name: "Neu", type } },
+				201,
+			);
+			expect(created.name).toBe(`Neu.${type}`);
+			expect(created.permissions.edit).toBe(true);
+			const res = await API.getApp().request(`/v1/files/${created.id}/content/x`, {
+				headers: { "X-Iventworks-Host": TEST_HOST, Authorization: `Bearer ${staff.token}` },
+			});
+			const bytes = Buffer.from(await res.arrayBuffer());
+			expect(bytes.subarray(0, 4).toString("binary")).toBe("PK");
+			expect(bytes.includes(Buffer.from(part))).toBe(true);
+			expect((await open(staff.token, created.id)).mode).toBe("edit");
+		}
+		// The extension isn't doubled.
+		const named = await makeAPIRequest(
+			`${base}/office`,
+			{ method: "POST", authToken: staff.token, body: { name: "Plan.xlsx", type: "xlsx" } },
+			201,
+		);
+		expect(named.name).toBe("Plan.xlsx");
+	});
+
+	test("not without an office server, not where one may not upload", async () => {
+		await makeAPIRequest(
+			`${base}/office`,
+			{
+				method: "POST",
+				authToken: viewer.token,
+				body: {
+					name: "X",
+					type: "docx",
+					parent_id: (await makeAPIRequest(`/v1/files/${docId}`, { authToken: viewer.token })).parent_id,
+				},
+			},
+			403,
+		);
+		OfficeDiscovery.setForTests(null);
+		await makeAPIRequest(
+			`${base}/office`,
+			{ method: "POST", authToken: staff.token, body: { name: "X", type: "docx" } },
+			404,
+		);
+		OfficeDiscovery.setForTests(discovery());
 	});
 });
 

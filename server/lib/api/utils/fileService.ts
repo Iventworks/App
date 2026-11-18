@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DB } from "../../db";
 import { FILE_SCOPES } from "../../db/schema";
 import type { DrizzleDB } from "../../db/utils";
+import { OfficeTemplates } from "../../office/templates";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
@@ -250,6 +251,22 @@ export class FileService {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
+	}
+
+	/** A new, empty office document (Word, Excel, PowerPoint; the extension is added when missing). */
+	static async createOffice(
+		location: FileService.Location,
+		parentId: number | null,
+		name: string,
+		type: OfficeTemplates.Type,
+		userId: number,
+	) {
+		const cleaned = FileService.sanitizeName(name);
+		const fileName = cleaned.toLowerCase().endsWith(`.${type}`) ? cleaned : `${cleaned}.${type}`;
+		const file = new File([OfficeTemplates.blank(type)], fileName, {
+			type: OfficeTemplates.MIME_TYPES[type],
+		});
+		return await FileService.upload(location, parentId, file, userId);
 	}
 
 	/** A new Markdown document (`.md` is added to the name when missing). */
@@ -548,6 +565,14 @@ export namespace FileService {
 		parent_id: z.number().int().positive().nullable().optional(),
 	});
 	export type CreateMarkdownBody = z.infer<typeof CreateMarkdownBody>;
+
+	export const CreateOfficeBody = z.object({
+		/** The extension is added when missing. */
+		name: z.string().trim().min(1).max(200),
+		type: z.enum(["docx", "xlsx", "pptx"]),
+		parent_id: z.number().int().positive().nullable().optional(),
+	});
+	export type CreateOfficeBody = z.infer<typeof CreateOfficeBody>;
 
 	export const ListQuery = z.object({
 		parent_id: z.coerce.number().int().positive().optional(),

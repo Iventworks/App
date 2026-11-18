@@ -92,6 +92,9 @@ export type FileAccessCandidate = GetFilesByFileIdAccessCandidatesResponses["200
 
 export type OrgGroup = GetAdminGroupsResponses["200"]["data"][number];
 
+/** Office documents that can be created empty (with an office server). */
+export type OfficeType = "docx" | "xlsx" | "pptx";
+
 /** An item in the Papierkorb of a document library. */
 export type TrashItem = GetOrgDocumentsTrashResponses["200"]["data"][number];
 

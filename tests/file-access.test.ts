@@ -194,6 +194,20 @@ describe("Org documents", () => {
 		await setAccess(bobOnly.id, core.token, [
 			{ principal: "user", id: bobUser.id, permissions: UPLOAD },
 		]);
+		// Bob hears about it — once, not again when the list is saved unchanged.
+		const shared = () =>
+			DB.instance()
+				.select()
+				.from(DB.Tables.notifications)
+				.all()
+				.filter((row) => row.user_id === bobUser.id && row.type === "document_shared");
+		expect(shared()).toHaveLength(1);
+		expect(shared()[0]?.title).toContain("„Nur Bob“");
+		expect(shared()[0]?.link).toBe(`/documents?folder=${bobOnly.id}`);
+		await setAccess(bobOnly.id, core.token, [
+			{ principal: "user", id: bobUser.id, permissions: UPLOAD },
+		]);
+		expect(shared()).toHaveLength(1);
 
 		expect(names(await list(ORG, alice.token, guidesId))).toEqual(["Unterordner", "leitfaden.txt"]);
 		expect(names(await list(ORG, bob.token, guidesId))).toEqual([

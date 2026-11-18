@@ -3,7 +3,7 @@
  * `memberView`: as members see it) or one event's documents — with error toasts. Spread the result
  * onto the browser: `<FilesBrowser v-bind="library" … />`.
  */
-import type { FileItem, FolderListing, TrashAdapter, TrashItem } from "~/utils/types";
+import type { FileItem, FolderListing, OfficeType, TrashAdapter, TrashItem } from "~/utils/types";
 
 type Source = { scope: "org"; memberView?: boolean } | { scope: "event"; eventId: () => number };
 
@@ -72,6 +72,25 @@ export function useDocumentLibrary(source: Source) {
 		return result.data;
 	}
 
+	async function createOffice(
+		name: string,
+		type: OfficeType,
+		parentId: number | null,
+	): Promise<FileItem | null> {
+		const body = { name, type, parent_id: parentId };
+		const result =
+			source.scope === "org"
+				? await useAPI((api) => api.postOrgDocumentsOffice({ body }))
+				: await useAPI((api) =>
+						api.postEventsByEventIdFilesOffice({ path: { eventId: source.eventId() }, body }),
+					);
+		if (!result.success) {
+			failed("Dokument konnte nicht angelegt werden", result.message);
+			return null;
+		}
+		return result.data;
+	}
+
 	const trash: TrashAdapter = {
 		async list(): Promise<TrashItem[] | null> {
 			const result =
@@ -122,5 +141,5 @@ export function useDocumentLibrary(source: Source) {
 		},
 	};
 
-	return { load, upload, createFolder, createMarkdown, trash };
+	return { load, upload, createFolder, createMarkdown, createOffice, trash };
 }

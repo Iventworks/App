@@ -14268,6 +14268,105 @@ export type DeleteEventsByEventIdFilesTrashByFileIdResponses = {
 
 export type DeleteEventsByEventIdFilesTrashByFileIdResponse = DeleteEventsByEventIdFilesTrashByFileIdResponses[keyof DeleteEventsByEventIdFilesTrashByFileIdResponses];
 
+export type PostEventsByEventIdFilesOfficeData = {
+    body: {
+        name: string;
+        type: 'docx' | 'xlsx' | 'pptx';
+        parent_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/files/office';
+};
+
+export type PostEventsByEventIdFilesOfficeErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add documents here
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add documents here';
+    };
+    /**
+     * Office editing is not available
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Office editing is not available';
+    };
+};
+
+export type PostEventsByEventIdFilesOfficeError = PostEventsByEventIdFilesOfficeErrors[keyof PostEventsByEventIdFilesOfficeErrors];
+
+export type PostEventsByEventIdFilesOfficeResponses = {
+    /**
+     * Document created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFilesOfficeResponse = PostEventsByEventIdFilesOfficeResponses[keyof PostEventsByEventIdFilesOfficeResponses];
+
 export type GetEventsByEventIdExpensesData = {
     body?: never;
     path: {
@@ -17253,6 +17352,103 @@ export type DeleteOrgDocumentsTrashByFileIdResponses = {
 };
 
 export type DeleteOrgDocumentsTrashByFileIdResponse = DeleteOrgDocumentsTrashByFileIdResponses[keyof DeleteOrgDocumentsTrashByFileIdResponses];
+
+export type PostOrgDocumentsOfficeData = {
+    body: {
+        name: string;
+        type: 'docx' | 'xlsx' | 'pptx';
+        parent_id?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/documents/office';
+};
+
+export type PostOrgDocumentsOfficeErrors = {
+    /**
+     * Parent folder not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Parent folder not found / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add documents here
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add documents here';
+    };
+    /**
+     * Office editing is not available
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Office editing is not available';
+    };
+};
+
+export type PostOrgDocumentsOfficeError = PostOrgDocumentsOfficeErrors[keyof PostOrgDocumentsOfficeErrors];
+
+export type PostOrgDocumentsOfficeResponses = {
+    /**
+     * Document created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Document created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'receipt' | 'message';
+            event_id: number | null;
+            parent_id: number | null;
+            kind: 'folder' | 'file';
+            name: string;
+            mime_type: string | null;
+            size: number;
+            uploaded_by: number | null;
+            created_at: number;
+            updated_at: number;
+            content_url: string | null;
+            shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
+            editing: {
+                kind: 'editor' | 'office';
+                users: Array<{
+                    id: number;
+                    display_name: string;
+                }>;
+                expires_at: number;
+            } | null;
+        };
+    };
+};
+
+export type PostOrgDocumentsOfficeResponse = PostOrgDocumentsOfficeResponses[keyof PostOrgDocumentsOfficeResponses];
 
 export type GetOrgResourcesData = {
     body?: never;

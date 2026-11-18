@@ -16,7 +16,13 @@
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
 import { accessEntryIcon, ownRightsSentence, rightsLabel } from "~/utils/filePermissions";
-import type { FileAccessEntry, FileItem, FolderListing, TrashAdapter } from "~/utils/types";
+import type {
+	FileAccessEntry,
+	FileItem,
+	FolderListing,
+	OfficeType,
+	TrashAdapter,
+} from "~/utils/types";
 
 const props = withDefaults(
 	defineProps<{
@@ -29,6 +35,12 @@ const props = withDefaults(
 		createFolder?: (name: string, parentId: number | null) => Promise<boolean>;
 		/** Create a Markdown document; it then opens in the editor. */
 		createMarkdown?: (name: string, parentId: number | null) => Promise<FileItem | null>;
+		/** Create an empty office document; it then opens in the office editor. */
+		createOffice?: (
+			name: string,
+			type: OfficeType,
+			parentId: number | null,
+		) => Promise<FileItem | null>;
 		/** The library's Papierkorb (deleting moves items there). */
 		trash?: TrashAdapter;
 		/** Show who has access and let managers change it. */
@@ -42,6 +54,7 @@ const props = withDefaults(
 		upload: undefined,
 		createFolder: undefined,
 		createMarkdown: undefined,
+		createOffice: undefined,
 		trash: undefined,
 		manageAccess: false,
 		sharingEnabled: false,
@@ -215,7 +228,7 @@ const folderModalOpen = ref(false);
 const folderName = ref("");
 const renameTarget = ref<FileItem | null>(null);
 /** What the name dialog creates when it doesn't rename. */
-const createKind = ref<"folder" | "document">("folder");
+const createKind = ref<"folder" | "document" | OfficeType>("folder");
 const saving = ref(false);
 
 function openNewFolder() {
@@ -225,12 +238,18 @@ function openNewFolder() {
 	folderModalOpen.value = true;
 }
 
-function openNewDocument() {
+function openNewDocument(kind: "document" | OfficeType = "document") {
 	renameTarget.value = null;
-	createKind.value = "document";
+	createKind.value = kind;
 	folderName.value = "";
 	folderModalOpen.value = true;
 }
+
+const OFFICE_KINDS: Record<OfficeType, { label: string; title: string; icon: string }> = {
+	docx: { label: "Textdokument", title: "Neues Textdokument", icon: "i-lucide-file-text" },
+	xlsx: { label: "Tabelle", title: "Neue Tabelle", icon: "i-lucide-file-spreadsheet" },
+	pptx: { label: "Präsentation", title: "Neue Präsentation", icon: "i-lucide-presentation" },
+};
 
 function openRename(item: FileItem) {
 	renameTarget.value = item;
@@ -241,9 +260,18 @@ function openRename(item: FileItem) {
 const nameModal = computed(() => {
 	if (renameTarget.value)
 		return { title: "Umbenennen", icon: "i-lucide-pencil", submit: "Speichern" };
-	return createKind.value === "document"
-		? { title: "Neues Dokument", icon: "i-lucide-file-pen-line", submit: "Anlegen & bearbeiten" }
-		: { title: "Neuer Ordner", icon: "i-lucide-folder-plus", submit: "Anlegen" };
+	if (createKind.value === "document") {
+		return {
+			title: "Neues Dokument",
+			icon: "i-lucide-file-pen-line",
+			submit: "Anlegen & bearbeiten",
+		};
+	}
+	if (createKind.value !== "folder") {
+		const office = OFFICE_KINDS[createKind.value];
+		return { title: office.title, icon: office.icon, submit: "Anlegen & öffnen" };
+	}
+	return { title: "Neuer Ordner", icon: "i-lucide-folder-plus", submit: "Anlegen" };
 });
 
 async function submitFolderModal() {
@@ -267,6 +295,18 @@ async function submitFolderModal() {
 		if (created)
 			await router.push({ path: `/files/${created.id}`, query: { from: route.path, edit: "1" } });
 		return;
+	} else if (
+		createKind.value !== "folder" &&
+		createKind.value !== "document" &&
+		props.createOffice
+	) {
+		const created = await props.createOffice(name, createKind.value, folderId.value);
+		saving.value = false;
+		folderModalOpen.value = false;
+		// Straight into the office editor.
+		if (created)
+			await router.push({ path: `/files/${created.id}`, query: { from: route.path, office: "1" } });
+		return;
 	} else if (props.createFolder) {
 		await props.createFolder(name, folderId.value);
 	}
@@ -276,13 +316,31 @@ async function submitFolderModal() {
 	await refresh();
 }
 
-/** The "Neu" menu: folder, Markdown document. */
-const newItems = computed<DropdownMenuItem[]>(() => [
-	...(props.createFolder
-		? [{ label: "Ordner", icon: "i-lucide-folder-plus", onSelect: openNewFolder }]
-		: []),
-	...(props.createMarkdown && !uploadOnly.value
-		? [{ label: "Dokument (Markdown)", icon: "i-lucide-file-pen-line", onSelect: openNewDocument }]
+/** The "Neu" menu: folder, Markdown document, office documents (with an office server). */
+const officeAvailable = computed(() => useInstance().value?.office === true);
+const newItems = computed<DropdownMenuItem[][]>(() => [
+	[
+		...(props.createFolder
+			? [{ label: "Ordner", icon: "i-lucide-folder-plus", onSelect: openNewFolder }]
+			: []),
+		...(props.createMarkdown && !uploadOnly.value
+			? [
+					{
+						label: "Dokument (Markdown)",
+						icon: "i-lucide-file-pen-line",
+						onSelect: () => openNewDocument(),
+					},
+				]
+			: []),
+	],
+	...(props.createOffice && officeAvailable.value && !uploadOnly.value
+		? [
+				(Object.keys(OFFICE_KINDS) as OfficeType[]).map((type) => ({
+					label: OFFICE_KINDS[type].label,
+					icon: OFFICE_KINDS[type].icon,
+					onSelect: () => openNewDocument(type),
+				})),
+			]
 		: []),
 ]);
 
@@ -591,7 +649,7 @@ defineExpose({ refresh });
 					/>
 				</UTooltip>
 				<template v-if="canAdd">
-					<UDropdownMenu v-if="newItems.length" :items="newItems" :ui="{ viewport: 'main-bg-color' }">
+					<UDropdownMenu v-if="newItems.flat().length" :items="newItems" :ui="{ viewport: 'main-bg-color' }">
 						<UButton label="Neu" icon="i-lucide-plus" color="neutral" variant="subtle" trailing-icon="i-lucide-chevron-down" />
 					</UDropdownMenu>
 					<UButton

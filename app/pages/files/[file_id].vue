@@ -114,6 +114,10 @@ const officeOpen = ref(false);
 async function closeOffice() {
 	officeOpen.value = false;
 	await refresh();
+	if (route.query.office) {
+		const { office: _office, ...query } = route.query;
+		await router.replace({ query });
+	}
 }
 
 /** A session is running (shared editing: join it) or the office server has the file (blocked). */
@@ -139,11 +143,14 @@ async function stopEditing() {
 	}
 }
 
-// `?edit=1`: straight into the editor (new documents).
+// `?edit=1` / `?office=1`: straight into the editor (new documents).
 watch(
 	file,
 	(current) => {
-		if (current && route.query.edit === "1" && !editing.value) startEditing();
+		if (!current) return;
+		if (route.query.edit === "1" && !editing.value) startEditing();
+		if (route.query.office === "1" && officeAvailable.value && !officeOpen.value)
+			officeOpen.value = true;
 	},
 	{ immediate: true },
 );

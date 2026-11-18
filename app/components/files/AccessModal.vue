@@ -36,6 +36,29 @@ const loading = ref(false);
 const saving = ref(false);
 const mode = ref<"inherit" | "custom">("inherit");
 const rows = ref<Row[]>([]);
+/** Who can open the folder this item is in (null: it is at the top level, which everyone sees). */
+const parentEntries = ref<FileAccessEntry[] | null>(null);
+
+/**
+ * Whether this entry's people can't open the folder above — then they never get to this item.
+ * Only certain cases (a person in a group of the folder above can't be checked here, so no warning).
+ */
+function cutOff(row: Row) {
+	const parent = parentEntries.value;
+	if (!parent || (!row.permissions.read && !row.permissions.upload)) return false;
+	const readers = parent.filter((entry) => entry.permissions.read);
+	if (readers.some((entry) => entry.principal === "members" || entry.principal === "team"))
+		return false;
+	if (readers.some((entry) => entry.principal === row.principal && entry.id === row.id))
+		return false;
+	if (
+		row.principal === "user" &&
+		readers.some((entry) => entry.principal === "org_group" || entry.principal === "event_group")
+	) {
+		return false;
+	}
+	return true;
+}
 
 const isFolder = computed(() => props.item?.kind === "folder");
 const presets = computed(() => rightsPresetsFor(props.item?.kind));
@@ -60,10 +83,15 @@ async function load() {
 	const item = props.item;
 	if (!item) return;
 	loading.value = true;
-	const [access, list] = await Promise.all([
+	const parentId = item.parent_id;
+	const [access, list, parent] = await Promise.all([
 		useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: item.id } })),
 		useAPI((api) => api.getFilesByFileIdAccessCandidates({ path: { fileId: item.id } })),
+		parentId !== null
+			? useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: parentId } }))
+			: Promise.resolve(null),
 	]);
+	parentEntries.value = parent?.success ? parent.data.entries : null;
 	loading.value = false;
 	if (!access.success) {
 		toast.add({
@@ -250,7 +278,16 @@ async function save() {
 								:style="row.color ? { color: row.color } : undefined"
 							/>
 						</span>
-						<span class="min-w-0 flex-1 truncate text-sm text-white">{{ row.label }}</span>
+						<span class="min-w-0 flex-1 text-sm text-white">
+							<span class="block truncate">{{ row.label }}</span>
+							<span
+								v-if="mode === 'custom' && cutOff(row)"
+								class="flex items-center gap-1 text-xs text-amber-400"
+							>
+								<UIcon name="i-lucide-triangle-alert" class="size-3.5 shrink-0" />
+								Kann den Ordner darüber nicht öffnen – findet das hier also nicht.
+							</span>
+						</span>
 						<template v-if="mode === 'custom'">
 							<USelect
 								:model-value="presetKey(row)"

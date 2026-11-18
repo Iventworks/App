@@ -20,6 +20,7 @@ import { FileService } from "../../../../utils/fileService";
 import { FileTrash } from "../../../../utils/fileTrash";
 import { FileVersions } from "../../../../utils/fileVersions";
 import { getAuthUserId, requireOrgRole } from "../../../../utils/guards";
+import { Notifier } from "../../../../utils/notifications";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
@@ -694,7 +695,33 @@ router.put(
 		const checked = await FileAccessLists.validate(file, body.custom ? body.entries : []);
 		if (!checked.ok) return APIResponse.badRequest(c, checked.message);
 
+		const before = new Set(
+			[...(await FileAccess.loadEntries([file])).values()]
+				.flat()
+				.filter((entry) => entry.principal === "user")
+				.map((entry) => entry.user_id),
+		);
 		FileAccessLists.replace(file, body.custom, checked.entries);
+
+		// People added by name hear about it (not "everyone" or whole groups: that would be noise).
+		const added = checked.entries
+			.filter((entry) => entry.principal === "user" && !before.has(entry.user_id ?? null))
+			.map((entry) => entry.user_id as number);
+		if (added.length > 0) {
+			const actorId = getAuthUserId(c);
+			const actor = (await UserSummary.fetchMap([actorId])).get(actorId);
+			const base = file.scope === "event" ? `/events/${file.event_id}/documents` : "/documents";
+			await Notifier.notify(
+				added,
+				{
+					type: "document_shared",
+					title: `${actor?.display_name ?? "Jemand"} hat dir Zugriff auf „${file.name}“ gegeben`,
+					body: file.kind === "folder" ? "Ordner mit allem darin" : undefined,
+					link: file.kind === "folder" ? `${base}?folder=${file.id}` : `/files/${file.id}`,
+				},
+				{ excludeUserId: actorId },
+			);
+		}
 
 		const updated = (await FileService.get(file.id)) as DB.Models.File;
 		const path = await FileService.getPath(updated.id);

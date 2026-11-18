@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
+import { OfficeDiscovery } from "../../../../../../office/discovery";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -377,5 +378,68 @@ router.delete(
 		}
 
 		return APIResponse.successNoData(c, "Papierkorb emptied successfully");
+	},
+);
+
+const OFFICE_LABELS = { docx: "Textdokument", xlsx: "Tabelle", pptx: "Präsentation" } as const;
+
+router.post(
+	"/office",
+
+	APIRouteSpec.authenticated({
+		summary: "Create office document",
+		description:
+			"Create an empty Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It then opens in the office editor (`POST /files/{fileId}/office`).",
+		tags: [DOCS_TAGS.ORG.DOCUMENTS],
+
+		responses: APIResponseSpec.describeBasic(
+			APIResponseSpec.created(
+				"Document created successfully",
+				OrgDocumentsModel.CreateOffice.Response,
+			),
+			APIResponseSpec.badRequest("Parent folder not found / Syntax or validation error in request"),
+			APIResponseSpec.notFound("Office editing is not available"),
+			APIResponseSpec.forbidden("You are not allowed to add documents here"),
+		),
+	}),
+
+	zValidator("json", OrgDocumentsModel.CreateOffice.Body),
+
+	async (c) => {
+		if (!OfficeDiscovery.enabled()) return APIResponse.notFound(c, "Office editing is not available");
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
+
+		const body = c.req.valid("json") as OrgDocumentsModel.CreateOffice.Body;
+		const target = await FileLibrary.resolveTarget(viewer, body.parent_id);
+		if (!target.ok) {
+			return target.status === 400
+				? APIResponse.badRequest(c, target.message)
+				: APIResponse.forbidden(c, target.message);
+		}
+
+		const userId = getAuthUserId(c);
+		const file = await FileService.createOffice(
+			LOCATION,
+			target.parentId,
+			body.name,
+			body.type,
+			userId,
+		);
+		if (!file) return APIResponse.badRequest(c, "File is too large");
+
+		await AuditLog.record({
+			userId,
+			action: "create",
+			entityType: "file",
+			entityId: file.id,
+			summary: `${OFFICE_LABELS[body.type]} „${file.name}“ in der Organisationsablage angelegt`,
+		});
+
+		return APIResponse.created(
+			c,
+			"Document created successfully",
+			await FileLibrary.created(viewer, file),
+		);
 	},
 );

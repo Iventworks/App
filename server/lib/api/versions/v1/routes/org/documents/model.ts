@@ -46,3 +46,11 @@ export namespace OrgDocumentsModel.Trash {
 	export const Item = FileService.ItemSchema;
 	export type Item = z.infer<typeof Item>;
 }
+
+export namespace OrgDocumentsModel.CreateOffice {
+	export const Body = FileService.CreateOfficeBody;
+	export type Body = z.infer<typeof Body>;
+
+	export const Response = FileService.ItemSchema;
+	export type Response = z.infer<typeof Response>;
+}

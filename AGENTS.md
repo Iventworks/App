@@ -205,6 +205,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
     server never hold a file at once. Saves keep versions per interval (`session: true`).
   - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`).
+  - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
+    libraries) creates an empty docx/xlsx/pptx built in code (`OfficeTemplates`: the smallest valid
+    OOXML packages, zipped without compression) and opens it in the editor (`?office=1`).
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace
@@ -245,6 +248,9 @@ CMP (Crossover Management Portal) before; the repository still is.
     documents are one page; the Leitung sees the access controls there.
   - Migration `0007` kept existing org documents visible: their top level got "Alle Mitglieder:
     ansehen".
+  - People added to a list by name get a notification (`document_shared`); everyone/team/groups
+    don't (noise). The access dialog warns when an entry can't open the folder above (it would
+    never find the item).
 - **Org groups** (`org_groups`, `org_group_members`, `/admin/groups`, page *Administration →
   Gruppen*): groups across the org, managed by admins only, used in access lists of org documents.
   Deleting a group removes its access entries (`ON DELETE CASCADE`).
