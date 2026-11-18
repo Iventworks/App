@@ -56,6 +56,8 @@ function idFor(ids: SeededIds, path: string, param: string): string {
 			return pick(path.startsWith("/tasks") ? "personalTaskId" : "taskId");
 		case "announcementId":
 			return pick(path.startsWith("/org/") ? "orgAnnouncementId" : "announcementId");
+		case "groupId":
+			return pick(path.startsWith("/admin/groups") ? "orgGroupId" : "groupId");
 		case "kind":
 			return "logo";
 		case "token":

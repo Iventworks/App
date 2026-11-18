@@ -226,7 +226,7 @@ export class FileShares {
 
 	/** Where the item lives, for links back into the app (`?folder=`). */
 	private static libraryPath(file: DB.Models.File) {
-		const base = file.scope === "org" ? "/documents" : `/events/${file.event_id}/documents`;
+		const base = file.scope === "org" ? "/core-team/documents" : `/events/${file.event_id}/documents`;
 		const folder = file.kind === "folder" ? file.id : file.parent_id;
 		return folder ? `${base}?folder=${folder}` : base;
 	}

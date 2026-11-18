@@ -275,6 +275,49 @@ export const invitations = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------
+// Organisation groups
+// ---------------------------------------------------------------------------
+
+/**
+ * Groups of people across the organisation ("Technikteam", "Leitungskreis"), managed by admins.
+ * Used to grant access to organisation documents (`file_access.org_group_id`).
+ * @deprecated Use DB.Tables.orgGroups to access this table.
+ */
+export const orgGroups = sqliteTable(
+	"org_groups",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		name: text().notNull(),
+		description: text().notNull().default(""),
+		color: text(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("org_groups_org_id_idx").on(table.org_id)],
+);
+
+/**
+ * @deprecated Use DB.Tables.orgGroupMembers to access this table.
+ */
+export const orgGroupMembers = sqliteTable(
+	"org_group_members",
+	{
+		org_id: orgIdColumn(),
+		group_id: integer()
+			.notNull()
+			.references(() => orgGroups.id, { onDelete: "cascade" }),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.group_id, table.user_id] }),
+		index("org_group_members_user_id_idx").on(table.user_id),
+	],
+);
+
+// ---------------------------------------------------------------------------
 // Events (camps & events) and their staff
 // ---------------------------------------------------------------------------
 
@@ -593,10 +636,11 @@ export const FILE_SCOPES = ["org", "event", "receipt", "message"] as const;
 export const FILE_KINDS = ["folder", "file"] as const;
 
 /**
- * Documents and folders. `scope = org` is the organisation-wide library (read: everyone,
- * write: core team), `scope = event` an event's documents, `scope = receipt` expense proofs,
- * `scope = message` chat attachments (readable by everyone in the chat `conversation_id`; while
- * `message_id` is null the upload is not sent yet and only its uploader sees it).
+ * Documents and folders. `scope = org` is the organisation-wide library, `scope = event` an
+ * event's documents (who may do what in both: `file_access`, `custom_access` and `FileAccess`),
+ * `scope = receipt` expense proofs, `scope = message` chat attachments (readable by everyone in
+ * the chat `conversation_id`; while `message_id` is null the upload is not sent yet and only its
+ * uploader sees it).
  * Blobs live on disk under `<DATA_DIR>/uploads/<storage_key>`.
  * @deprecated Use DB.Tables.files to access this table.
  */
@@ -619,6 +663,9 @@ export const files = sqliteTable(
 		size: integer().notNull().default(0),
 		storage_key: text(),
 		uploaded_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// Own access list (`file_access`) for this item and everything below it, instead of the
+		// parent folder's. Only org and event documents.
+		custom_access: integer({ mode: "boolean" }).notNull().default(false),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
@@ -666,6 +713,49 @@ export const fileShares = sqliteTable(
 	(table) => [
 		index("file_shares_org_id_idx").on(table.org_id),
 		index("file_shares_file_id_idx").on(table.file_id),
+	],
+);
+
+/**
+ * Who gets in: everyone in the org (`members`, org documents), everyone on the event's team
+ * (`team`, event documents), an org group, an event group or one person.
+ */
+export const FILE_ACCESS_PRINCIPALS = [
+	"members",
+	"team",
+	"org_group",
+	"event_group",
+	"user",
+] as const;
+
+/**
+ * Access list of a file or folder with `custom_access` — for it and everything below it, until an
+ * item with its own list. The rights are those of share links (`file_shares`): read, upload, edit,
+ * delete. Kernteam (org documents) and Leitung (event documents) always have full access and are
+ * never listed. One row per principal; the list is always replaced as a whole.
+ * @deprecated Use DB.Tables.fileAccess to access this table.
+ */
+export const fileAccess = sqliteTable(
+	"file_access",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		file_id: integer()
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		principal: text({ enum: FILE_ACCESS_PRINCIPALS }).notNull(),
+		org_group_id: integer().references(() => orgGroups.id, { onDelete: "cascade" }),
+		event_group_id: integer().references(() => eventGroups.id, { onDelete: "cascade" }),
+		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
+		can_read: integer({ mode: "boolean" }).notNull().default(true),
+		can_upload: integer({ mode: "boolean" }).notNull().default(false),
+		can_edit: integer({ mode: "boolean" }).notNull().default(false),
+		can_delete: integer({ mode: "boolean" }).notNull().default(false),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("file_access_org_id_idx").on(table.org_id),
+		index("file_access_file_id_idx").on(table.file_id),
 	],
 );
 

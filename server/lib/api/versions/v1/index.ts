@@ -117,6 +117,11 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 		"Your organisation's name, colour, logo, icon and custom domains",
 		DOCS_TAGS.ADMIN_API.BASE,
 	],
+	[
+		DOCS_TAGS.ADMIN_API.GROUPS,
+		"Groups of people across the organisation, used for access to documents",
+		DOCS_TAGS.ADMIN_API.BASE,
+	],
 
 	[
 		DOCS_TAGS.INSTANCE,
@@ -216,6 +221,7 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 					DOCS_TAGS.ADMIN_API.INVITATIONS,
 					DOCS_TAGS.ADMIN_API.AUDIT_LOG,
 					DOCS_TAGS.ADMIN_API.ORGANIZATION,
+					DOCS_TAGS.ADMIN_API.GROUPS,
 				],
 			},
 			{

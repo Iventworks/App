@@ -50,6 +50,13 @@
       "when": 1794839340782,
       "tag": "0006_small_groups_and_username_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795025752896,
+      "tag": "0007_file_access_and_org_groups",
+      "breakpoints": true
     }
   ]
 }

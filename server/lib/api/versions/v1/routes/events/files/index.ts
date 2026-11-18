@@ -1,17 +1,30 @@
+import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
-import { EventAccess, type EventRouterEnv } from "../../../../../utils/eventAccess";
+import { AuthHandler } from "../../../../../utils/authHandler";
+import type { EventRouterEnv } from "../../../../../utils/eventAccess";
+import { FileAccess } from "../../../../../utils/fileAccess";
+import { FileLibrary } from "../../../../../utils/fileLibrary";
 import { FileService } from "../../../../../utils/fileService";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
 import { EventFilesModel } from "./model";
 
+/**
+ * An event's documents. The whole team may view and upload unless an access list restricts a
+ * folder or file (`FileAccess`); the Leitung (and the Kernteam) may do everything. Rename, move,
+ * delete, access lists and share links go through the shared `/files/{fileId}` routes.
+ */
 export const router = new Hono<EventRouterEnv>().basePath("/:eventId/files");
 
-function eventLocation(eventId: number): FileService.Location {
-	return { scope: "event", eventId };
+async function viewerOf(c: Context<EventRouterEnv>) {
+	return await FileAccess.viewer(
+		AuthHandler.AuthContext.get(c),
+		{ scope: "event", eventId: c.get("event").id },
+		{ eventAccess: c.get("eventAccess") },
+	);
 }
 
 router.get(
@@ -20,7 +33,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "List event documents",
 		description:
-			"List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path. Each file carries its `content_url`; `shared` marks items with a share link.",
+			"List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path — only what the caller may see, each item with the caller's `permissions`. Each file carries its `content_url`; `shared` marks items with a share link. The Leitung also gets the access lists (`access`).",
 		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -33,29 +46,21 @@ router.get(
 	zValidator("query", EventFilesModel.GetAll.Query),
 
 	async (c) => {
-		if (!EventAccess.can(c, "files:view")) {
-			return APIResponse.forbidden(c, "You are not allowed to view documents");
-		}
-
-		const location = eventLocation(c.get("event").id);
 		const { parent_id } = c.req.valid("query") as EventFilesModel.GetAll.Query;
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to view documents");
 
-		let folder: Awaited<ReturnType<typeof FileService.get>> = null;
-		if (parent_id !== undefined) {
-			folder = await FileService.get(parent_id);
-			if (!folder || folder.kind !== "folder" || !FileService.isInLocation(folder, location)) {
-				return APIResponse.notFound(c, "Folder not found");
-			}
+		const result = await FileLibrary.list(viewer, parent_id);
+		if (!result.ok) {
+			return result.status === 404
+				? APIResponse.notFound(c, result.message)
+				: APIResponse.forbidden(c, result.message);
 		}
-
-		const path = folder ? await FileService.getPath(folder.id) : [];
-		const items = await FileService.listFolder(location, folder?.id ?? null);
-
-		return APIResponse.success(c, "Documents retrieved successfully", {
-			folder: folder ? FileService.toResponse(folder) : null,
-			path: path.map((entry) => FileService.toResponse(entry)),
-			items: await FileService.toResponses(items),
-		} satisfies EventFilesModel.GetAll.Response);
+		return APIResponse.success(
+			c,
+			"Documents retrieved successfully",
+			result.data satisfies EventFilesModel.GetAll.Response,
+		);
 	},
 );
 
@@ -65,7 +70,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Upload event document",
 		description:
-			"Upload a file (multipart/form-data, field `file`) into the event's documents, optionally into the folder `parent_id`.",
+			"Upload a file (multipart/form-data, field `file`) into the event's documents, optionally into the folder `parent_id` — where the caller may upload.",
 		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -74,26 +79,28 @@ router.post(
 				"File is too large / Parent folder not found / Syntax or validation error in request",
 			),
 			APIResponseSpec.notFound("Event not found"),
-			APIResponseSpec.forbidden("You are not allowed to upload documents"),
+			APIResponseSpec.forbidden("You are not allowed to add documents here"),
 		),
 	}),
 
 	zValidator("form", EventFilesModel.Upload.Form, undefined, { media: "multipart/form-data" }),
 
 	async (c) => {
-		if (!EventAccess.can(c, "files:upload")) {
-			return APIResponse.forbidden(c, "You are not allowed to upload documents");
-		}
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
 
 		const event = c.get("event");
 		const { userId } = c.get("eventAccess");
 		const form = c.req.valid("form") as EventFilesModel.Upload.Form;
-		const location = eventLocation(event.id);
 
-		const parent = await FileService.resolveParent(location, form.parent_id);
-		if (!parent.ok) return APIResponse.badRequest(c, parent.message);
+		const target = await FileLibrary.resolveTarget(viewer, form.parent_id);
+		if (!target.ok) {
+			return target.status === 400
+				? APIResponse.badRequest(c, target.message)
+				: APIResponse.forbidden(c, target.message);
+		}
 
-		const file = await FileService.upload(location, parent.parentId, form.file, userId);
+		const file = await FileService.upload(viewer.location, target.parentId, form.file, userId);
 		if (!file) return APIResponse.badRequest(c, "File is too large");
 
 		await AuditLog.record({
@@ -105,7 +112,11 @@ router.post(
 			summary: `Dokument „${file.name}“ hochgeladen`,
 		});
 
-		return APIResponse.created(c, "Document uploaded successfully", FileService.toResponse(file));
+		return APIResponse.created(
+			c,
+			"Document uploaded successfully",
+			await FileLibrary.created(viewer, file),
+		);
 	},
 );
 
@@ -114,35 +125,37 @@ router.post(
 
 	APIRouteSpec.authenticated({
 		summary: "Create event folder",
-		description: "Create a folder in the event's documents.",
+		description: "Create a folder in the event's documents — where the caller may upload.",
 		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.created("Folder created successfully", EventFilesModel.CreateFolder.Response),
 			APIResponseSpec.badRequest("Parent folder not found / Syntax or validation error in request"),
 			APIResponseSpec.notFound("Event not found"),
-			APIResponseSpec.forbidden("You are not allowed to upload documents"),
+			APIResponseSpec.forbidden("You are not allowed to add documents here"),
 		),
 	}),
 
 	zValidator("json", EventFilesModel.CreateFolder.Body),
 
 	async (c) => {
-		if (!EventAccess.can(c, "files:upload")) {
-			return APIResponse.forbidden(c, "You are not allowed to upload documents");
-		}
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
 
 		const event = c.get("event");
 		const { userId } = c.get("eventAccess");
 		const body = c.req.valid("json") as EventFilesModel.CreateFolder.Body;
-		const location = eventLocation(event.id);
 
-		const parent = await FileService.resolveParent(location, body.parent_id);
-		if (!parent.ok) return APIResponse.badRequest(c, parent.message);
+		const target = await FileLibrary.resolveTarget(viewer, body.parent_id);
+		if (!target.ok) {
+			return target.status === 400
+				? APIResponse.badRequest(c, target.message)
+				: APIResponse.forbidden(c, target.message);
+		}
 
 		const folder = await FileService.createFolder(
-			location,
-			parent.parentId,
+			viewer.location,
+			target.parentId,
 			FileService.sanitizeName(body.name),
 			userId,
 		);
@@ -156,6 +169,10 @@ router.post(
 			summary: `Ordner „${folder.name}“ angelegt`,
 		});
 
-		return APIResponse.created(c, "Folder created successfully", FileService.toResponse(folder));
+		return APIResponse.created(
+			c,
+			"Folder created successfully",
+			await FileLibrary.created(viewer, folder),
+		);
 	},
 );

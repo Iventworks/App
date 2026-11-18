@@ -6,6 +6,7 @@ import type { DrizzleDB } from "../../db/utils";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
+import { FileAccessModel } from "./shared-models/fileAccess";
 
 /** Locks down inline responses: no script, no plugins, no requests to anywhere. */
 const INLINE_CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
@@ -146,6 +147,11 @@ export class FileService {
 		return path;
 	}
 
+	/** The library a file belongs to. */
+	static locationOf(file: Pick<DB.Models.File, "scope" | "event_id">): FileService.Location {
+		return { scope: file.scope, eventId: file.event_id ?? null };
+	}
+
 	static isInLocation(file: DB.Models.File, location: FileService.Location) {
 		return file.scope === location.scope && (file.event_id ?? null) === location.eventId;
 	}
@@ -261,13 +267,22 @@ export class FileService {
 		return new Set(rows.map((row) => row.file_id));
 	}
 
-	/** Items for a listing, with the "shared" flag looked up in one query. */
-	static async toResponses(files: DB.Models.File[], tx: DrizzleDB = DB.instance()) {
+	/**
+	 * Items for a listing, with the "shared" flag looked up in one query. `extra` adds the caller's
+	 * permissions and (for managers) the item's own access list.
+	 */
+	static async toResponses(
+		files: DB.Models.File[],
+		extra: (file: DB.Models.File) => Omit<FileService.ResponseOptions, "shared"> = () => ({}),
+		tx: DrizzleDB = DB.instance(),
+	) {
 		const shared = await FileService.sharedIds(
 			files.map((file) => file.id),
 			tx,
 		);
-		return files.map((file) => FileService.toResponse(file, { shared: shared.has(file.id) }));
+		return files.map((file) =>
+			FileService.toResponse(file, { ...extra(file), shared: shared.has(file.id) }),
+		);
 	}
 
 	/** Replace a file's contents (same row, new blob); the old blob is removed afterwards. */
@@ -353,7 +368,10 @@ export class FileService {
 		return cleaned || "Unbenannt";
 	}
 
-	static toResponse(file: DB.Models.File, options: { shared?: boolean } = {}): FileService.Item {
+	static toResponse(
+		file: DB.Models.File,
+		options: FileService.ResponseOptions = {},
+	): FileService.Item {
 		return {
 			id: file.id,
 			scope: file.scope,
@@ -368,6 +386,9 @@ export class FileService {
 			updated_at: file.updated_at,
 			content_url: file.kind === "file" ? FileService.contentPath(file) : null,
 			shared: options.shared ?? false,
+			custom_access: file.custom_access,
+			permissions: options.permissions ?? null,
+			access: options.access ?? null,
 		};
 	}
 }
@@ -398,14 +419,30 @@ export namespace FileService {
 		content_url: z.string().nullable(),
 		/** Has a share link for people without an account (listings only; false elsewhere). */
 		shared: z.boolean(),
+		/** Has its own access list instead of its folder's (org and event documents). */
+		custom_access: z.boolean(),
+		/** What the caller may do with it (listings and uploads of org and event documents). */
+		permissions: FileAccessModel.Permissions.nullable(),
+		/** Its own access list — only for managers and only on items with `custom_access`. */
+		access: z.array(FileAccessModel.Entry).nullable(),
 	});
 	export type Item = z.infer<typeof ItemSchema>;
+
+	export interface ResponseOptions {
+		shared?: boolean;
+		permissions?: FileAccessModel.Permissions | null;
+		access?: FileAccessModel.Entry[] | null;
+	}
 
 	/** Folder listing with breadcrumb path. */
 	export const FolderListingSchema = z.object({
 		folder: ItemSchema.nullable(),
 		path: z.array(ItemSchema),
 		items: z.array(ItemSchema),
+		/** What the caller may do in this folder (the root when `folder` is null). */
+		permissions: FileAccessModel.Permissions,
+		/** Who has access to this folder and where that comes from — managers only. */
+		access: FileAccessModel.View.nullable(),
 	});
 	export type FolderListing = z.infer<typeof FolderListingSchema>;
 
@@ -423,6 +460,11 @@ export namespace FileService {
 
 	export const ListQuery = z.object({
 		parent_id: z.coerce.number().int().positive().optional(),
+		/**
+		 * `member`: list as a member sees it — managers get no extra rights (the org library's
+		 * member view at `/documents`).
+		 */
+		view: z.enum(["member"]).optional(),
 	});
 	export type ListQuery = z.infer<typeof ListQuery>;
 }

@@ -199,6 +199,7 @@ const adminItems: NavigationMenuItem[] = [
 	{ label: "Benutzer", icon: "i-lucide-users", to: "/admin/users" },
 	{ label: "Einladungen", icon: "i-lucide-mail-plus", to: "/admin/invitations" },
 	{ label: "Organisation", icon: "i-lucide-palette", to: "/admin/organization" },
+	{ label: "Gruppen", icon: "i-lucide-users-round", to: "/admin/groups" },
 	{ label: "Freigabelinks", icon: "i-lucide-share-2", to: "/admin/shares" },
 	{ label: "Audit-Log", icon: "i-lucide-scroll-text", to: "/admin/audit-log" },
 ];
@@ -221,7 +222,7 @@ const coreTeamItems: NavigationMenuItem[] = [
 	{ label: "Statistiken", icon: "i-lucide-chart-pie", to: "/core-team/stats" },
 	{ label: "Material & Ressourcen", icon: "i-lucide-package", to: "/core-team/resources" },
 	{ label: "Neuigkeiten verwalten", icon: "i-lucide-megaphone", to: "/core-team/announcements" },
-	{ label: "Dokumente verwalten", icon: "i-lucide-library", to: "/documents" },
+	{ label: "Dokumente verwalten", icon: "i-lucide-library", to: "/core-team/documents" },
 	{ label: "Interne Notizen", icon: "i-lucide-notebook-tabs", to: "/core-team/notes" },
 	{ label: "Kernteam-Chat", icon: "i-lucide-messages-square", to: "/messages?channel=core_team" },
 ];

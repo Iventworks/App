@@ -2,37 +2,42 @@
 /**
  * Folder/file browser for the organisation library and event documents.
  *
- * The page passes the location-specific calls (list, upload, create folder); rename, move and
- * delete go through the shared `/files/{fileId}` API. The open folder lives in `?folder=` so the
- * browser's back button works. Items can be moved by dragging them onto a folder or a
- * breadcrumb entry; files can be dropped from the desktop to upload.
+ * The page passes the location-specific calls (list, upload, create folder); rename, move,
+ * delete, access and share links go through the shared `/files/{fileId}` API. What the caller may
+ * do comes with the listing (`permissions` of the folder and of every item). With `manageAccess`
+ * (Kernteam / Leitung pages) the browser shows who has access to each item and the folder, and
+ * offers "Zugriff" to change it.
+ *
+ * The open folder lives in `?folder=` so the browser's back button works. Items can be moved by
+ * dragging them onto a folder or a breadcrumb entry; files can be dropped from the desktop to
+ * upload.
  */
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
-import type { FileItem, FolderListing } from "~/utils/types";
+import { accessEntryIcon, ownRightsSentence, rightsLabel } from "~/utils/filePermissions";
+import type { FileAccessEntry, FileItem, FolderListing } from "~/utils/types";
 
 const props = withDefaults(
 	defineProps<{
 		/** Root label in the breadcrumb, e.g. "Dokumente". */
 		rootLabel?: string;
+		/** Whose library it is: labels like "Nur Kernteam" / "Nur Leitung". */
+		scope: "org" | "event";
 		load: (parentId: number | null) => Promise<FolderListing | null>;
 		upload?: (file: File, parentId: number | null) => Promise<boolean>;
 		createFolder?: (name: string, parentId: number | null) => Promise<boolean>;
-		/** Show upload / new folder controls. */
-		canWrite?: boolean;
-		/** Whether the caller may rename/move/delete this item. */
-		canManage?: (item: FileItem) => boolean;
-		/** Whether the caller may create share links for this item. */
-		canShare?: (item: FileItem) => boolean;
+		/** Show who has access and let managers change it. */
+		manageAccess?: boolean;
+		/** Share links are possible (the org allows them); only managers create them. */
+		sharingEnabled?: boolean;
 		emptyDescription?: string;
 	}>(),
 	{
 		rootLabel: "Dokumente",
 		upload: undefined,
 		createFolder: undefined,
-		canWrite: false,
-		canManage: () => false,
-		canShare: () => false,
+		manageAccess: false,
+		sharingEnabled: false,
 		emptyDescription: "Hier wurden noch keine Dateien abgelegt.",
 	},
 );
@@ -67,6 +72,17 @@ function openFolder(id: number | null) {
 	return router.push({ query });
 }
 
+const folderPermissions = computed(() => listing.value?.permissions ?? null);
+/** May add files and folders here. */
+const canAdd = computed(() => Boolean(folderPermissions.value?.upload));
+/** An upload-only folder ("Nur hochladen"): the caller doesn't see what is inside. */
+const uploadOnly = computed(() =>
+	Boolean(folderPermissions.value?.upload && !folderPermissions.value.read),
+);
+/** Show access lists (management pages, for managers). */
+const showAccess = computed(() => props.manageAccess && Boolean(folderPermissions.value?.manage));
+const onlyManagersLabel = computed(() => (props.scope === "org" ? "Nur Kernteam" : "Nur Leitung"));
+
 const breadcrumb = computed<BreadcrumbItem[]>(() => [
 	{
 		label: props.rootLabel,
@@ -85,13 +101,42 @@ const items = computed(() => {
 	return term ? all.filter((item) => item.name.toLowerCase().includes(term)) : all;
 });
 
+const can = (item: FileItem, permission: keyof NonNullable<FileItem["permissions"]>) =>
+	Boolean(item.permissions?.[permission]);
+
+// --- access indicators --------------------------------------------------------------------------
+
+function itemIcon(item: FileItem) {
+	if (item.kind === "file") return Utils.getFileIcon(item.name, item.mime_type);
+	if (item.permissions && !item.permissions.read) return "i-lucide-folder-input";
+	return item.custom_access ? "i-lucide-folder-lock" : "i-lucide-folder";
+}
+
+function entryText(entry: FileAccessEntry, kind: FileItem["kind"]) {
+	return `${entry.label}: ${rightsLabel(kind, entry.permissions)}`;
+}
+
+/** Who has access to the open folder, and where that comes from. */
+const folderAccess = computed(() => {
+	const access = listing.value?.access;
+	if (!access) return null;
+	const source = access.custom
+		? "eigener Zugriff"
+		: access.inherited_from
+			? `übernommen von „${access.inherited_from.name}“`
+			: listing.value?.folder
+				? "wie die oberste Ebene"
+				: "oberste Ebene";
+	return { entries: access.entries, source };
+});
+
 // --- upload -----------------------------------------------------------------------------------
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(0);
 
 async function uploadFiles(files: File[] | FileList | null) {
-	if (!files || !props.upload || !props.canWrite) return;
+	if (!files || !props.upload || !canAdd.value) return;
 	const list = Array.from(files);
 	uploading.value += list.length;
 	let failed = 0;
@@ -125,7 +170,7 @@ let dropZoneDepth = 0;
 function isDesktopFileDrag(event: DragEvent) {
 	return (
 		!draggedItem.value &&
-		Boolean(props.canWrite && props.upload) &&
+		Boolean(canAdd.value && props.upload) &&
 		Boolean(event.dataTransfer?.types.includes("Files"))
 	);
 }
@@ -204,7 +249,7 @@ const draggedItem = ref<FileItem | null>(null);
 const dropTargetId = ref<number | "root" | null>(null);
 
 function onItemDragStart(event: DragEvent, item: FileItem) {
-	if (!props.canManage(item)) return;
+	if (!can(item, "delete")) return;
 	draggedItem.value = item;
 	event.dataTransfer?.setData("application/x-iventworks-file", String(item.id));
 	if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
@@ -215,14 +260,16 @@ function onDragEnd() {
 	dropTargetId.value = null;
 }
 
-function canDropOn(targetId: number | null) {
+/** Folders in the list must allow uploads; breadcrumb targets are checked by the server. */
+function canDropOn(targetId: number | null, target?: FileItem) {
 	const item = draggedItem.value;
-	return Boolean(item && item.id !== targetId && item.parent_id !== targetId);
+	if (!item || item.id === targetId || item.parent_id === targetId) return false;
+	return target ? can(target, "upload") : true;
 }
 
 /** `dragenter` and `dragover` on a folder row or breadcrumb: both must be cancelled to allow a drop. */
-function onDragOver(event: DragEvent, targetId: number | null) {
-	if (!canDropOn(targetId)) return;
+function onDragOver(event: DragEvent, targetId: number | null, target?: FileItem) {
+	if (!canDropOn(targetId, target)) return;
 	event.preventDefault();
 	dropTargetId.value = targetId ?? "root";
 }
@@ -231,7 +278,7 @@ function onItemDrop(event: DragEvent, item: FileItem) {
 	// Desktop files dropped on a row bubble up to the upload handler on the container.
 	if (!draggedItem.value) return;
 	event.preventDefault();
-	if (item.kind === "folder") void onDropOnFolder(item.id);
+	if (item.kind === "folder" && canDropOn(item.id, item)) void onDropOnFolder(item.id);
 	else onDragEnd();
 }
 
@@ -279,7 +326,7 @@ async function confirmDelete() {
 	await refresh();
 }
 
-// --- share links ----------------------------------------------------------------------------
+// --- share links / access -------------------------------------------------------------------
 
 const shareTarget = ref<FileItem | null>(null);
 const shareOpen = ref(false);
@@ -289,57 +336,74 @@ function openShare(item: FileItem) {
 	shareOpen.value = true;
 }
 
+const accessTarget = ref<FileItem | null>(null);
+const accessOpen = ref(false);
+
+function openAccess(item: FileItem) {
+	accessTarget.value = item;
+	accessOpen.value = true;
+}
+
 // --- row actions ----------------------------------------------------------------------------
 
 function itemActions(item: FileItem): DropdownMenuItem[][] {
-	const open: DropdownMenuItem[] =
-		item.kind === "folder"
-			? [{ label: "Öffnen", icon: "i-lucide-folder-open", onSelect: () => openFolder(item.id) }]
-			: [
-					{
-						label: "Öffnen",
-						icon: "i-lucide-external-link",
-						to: fileURL(item.content_url),
-						target: "_blank",
-					},
-					{
-						label: "Herunterladen",
-						icon: "i-lucide-download",
-						to: fileURL(item.content_url, true),
-						target: "_blank",
-					},
-				];
+	const groups: DropdownMenuItem[][] = [];
 
-	const share: DropdownMenuItem[] = props.canShare(item)
-		? [{ label: "Teilen", icon: "i-lucide-share-2", onSelect: () => openShare(item) }]
-		: [];
+	if (item.kind === "folder") {
+		groups.push([
+			{ label: "Öffnen", icon: "i-lucide-folder-open", onSelect: () => openFolder(item.id) },
+		]);
+	} else if (can(item, "read")) {
+		groups.push([
+			{
+				label: "Öffnen",
+				icon: "i-lucide-external-link",
+				to: fileURL(item.content_url),
+				target: "_blank",
+			},
+			{
+				label: "Herunterladen",
+				icon: "i-lucide-download",
+				to: fileURL(item.content_url, true),
+				target: "_blank",
+			},
+		]);
+	}
 
-	if (!props.canManage(item)) return share.length ? [open, share] : [open];
+	const sharing: DropdownMenuItem[] = [];
+	if (props.manageAccess && can(item, "manage")) {
+		sharing.push({ label: "Zugriff", icon: "i-lucide-lock", onSelect: () => openAccess(item) });
+	}
+	if (props.sharingEnabled && can(item, "manage")) {
+		sharing.push({ label: "Teilen", icon: "i-lucide-share-2", onSelect: () => openShare(item) });
+	}
+	if (sharing.length) groups.push(sharing);
 
-	return [
-		open,
-		...(share.length ? [share] : []),
-		[
-			{ label: "Umbenennen", icon: "i-lucide-pencil", onSelect: () => openRename(item) },
-			...(listing.value?.folder
-				? [
-						{
-							label: "Eine Ebene nach oben",
-							icon: "i-lucide-arrow-up-left",
-							onSelect: () => onMoveUp(item),
-						},
-					]
-				: []),
-		],
-		[
+	const editing: DropdownMenuItem[] = [];
+	if (can(item, "rename")) {
+		editing.push({ label: "Umbenennen", icon: "i-lucide-pencil", onSelect: () => openRename(item) });
+	}
+	if (can(item, "delete") && listing.value?.folder) {
+		editing.push({
+			label: "Eine Ebene nach oben",
+			icon: "i-lucide-arrow-up-left",
+			onSelect: () => onMoveUp(item),
+		});
+	}
+	if (editing.length) groups.push(editing);
+
+	if (can(item, "delete")) {
+		groups.push([
 			{
 				label: "Löschen",
 				icon: "i-lucide-trash-2",
 				color: "error" as const,
 				onSelect: () => openDelete(item),
 			},
-		],
-	];
+		]);
+	}
+
+	return groups;
 }
 
 async function onMoveUp(item: FileItem) {
@@ -350,7 +414,7 @@ async function onMoveUp(item: FileItem) {
 function onRowClick(item: FileItem) {
 	if (item.kind === "folder") {
 		void openFolder(item.id);
-	} else if (item.content_url) {
+	} else if (item.content_url && can(item, "read")) {
 		window.open(fileURL(item.content_url), "_blank", "noopener");
 	}
 }
@@ -392,8 +456,14 @@ defineExpose({ refresh });
 			</div>
 
 			<div class="flex flex-wrap items-center gap-2">
-				<UInput v-model="search" icon="i-lucide-search" placeholder="In diesem Ordner suchen" class="w-full sm:w-56" />
-				<template v-if="canWrite">
+				<UInput
+					v-if="!uploadOnly"
+					v-model="search"
+					icon="i-lucide-search"
+					placeholder="In diesem Ordner suchen"
+					class="w-full sm:w-56"
+				/>
+				<template v-if="canAdd">
 					<UButton
 						v-if="createFolder"
 						label="Ordner"
@@ -414,10 +484,63 @@ defineExpose({ refresh });
 			</div>
 		</div>
 
+		<!-- Who has access here (managers) / what you may do here (everyone else). -->
+		<div
+			v-if="listing && showAccess && folderAccess"
+			class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm"
+		>
+			<UIcon name="i-lucide-shield-check" class="size-4 shrink-0 text-slate-400" />
+			<span class="text-slate-400">Zugriff:</span>
+			<UBadge
+				v-if="!folderAccess.entries.length"
+				:label="onlyManagersLabel"
+				icon="i-lucide-lock"
+				color="warning"
+				variant="subtle"
+				size="sm"
+			/>
+			<UBadge
+				v-for="entry in folderAccess.entries"
+				:key="`${entry.principal}:${entry.id}`"
+				:label="entryText(entry, 'folder')"
+				:icon="accessEntryIcon(entry)"
+				color="neutral"
+				variant="subtle"
+				size="sm"
+			/>
+			<span class="text-xs text-slate-500">· {{ folderAccess.source }}</span>
+			<UButton
+				v-if="listing.folder"
+				label="Zugriff ändern"
+				icon="i-lucide-lock"
+				size="xs"
+				color="neutral"
+				variant="ghost"
+				class="ml-auto"
+				@click="openAccess(listing.folder)"
+			/>
+		</div>
+		<p
+			v-else-if="listing && folderPermissions && !folderPermissions.manage && listing.folder"
+			class="flex items-center gap-2 text-xs text-slate-500"
+		>
+			<UIcon :name="uploadOnly ? 'i-lucide-inbox' : 'i-lucide-info'" class="size-3.5" />
+			{{ ownRightsSentence(folderPermissions) }}
+		</p>
+
 		<UCard class="border-slate-800 bg-slate-900/60" :ui="{ body: 'p-0 sm:p-0' }">
 			<div v-if="loading && !listing" class="flex justify-center py-12">
 				<UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-slate-400" />
 			</div>
+
+			<UEmpty
+				v-else-if="uploadOnly"
+				icon="i-lucide-inbox"
+				title="Nur hochladen"
+				:description="`Lade hier Dateien hoch. Was in diesem Ordner liegt, sehen nur die Personen mit Zugriff und ${scope === 'org' ? 'das Kernteam' : 'die Leitung'}.`"
+				variant="naked"
+				class="py-10"
+			/>
 
 			<UEmpty
 				v-else-if="!items.length"
@@ -432,7 +555,7 @@ defineExpose({ refresh });
 				<li
 					v-for="item in items"
 					:key="item.id"
-					:draggable="canManage(item)"
+					:draggable="can(item, 'delete')"
 					:class="[
 						'group flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-slate-800/40',
 						dropTargetId === item.id ? 'bg-primary/10 ring-1 ring-inset ring-primary' : '',
@@ -441,28 +564,80 @@ defineExpose({ refresh });
 					@click="onRowClick(item)"
 					@dragstart="onItemDragStart($event, item)"
 					@dragend="onDragEnd"
-					@dragenter="item.kind === 'folder' && onDragOver($event, item.id)"
-					@dragover="item.kind === 'folder' && onDragOver($event, item.id)"
+					@dragenter="item.kind === 'folder' && onDragOver($event, item.id, item)"
+					@dragover="item.kind === 'folder' && onDragOver($event, item.id, item)"
 					@dragleave="dropTargetId = null"
 					@drop="onItemDrop($event, item)"
 				>
 					<UIcon
-						:name="item.kind === 'folder' ? 'i-lucide-folder' : Utils.getFileIcon(item.name, item.mime_type)"
+						:name="itemIcon(item)"
 						:class="['size-5 shrink-0', item.kind === 'folder' ? 'text-amber-400' : 'text-slate-400']"
 					/>
 					<div class="min-w-0 flex-1">
 						<p class="flex items-center gap-1.5 truncate text-sm font-medium text-white">
 							<span class="truncate">{{ item.name }}</span>
+							<UTooltip
+								v-if="item.custom_access && item.kind === 'file' && !showAccess"
+								text="Nur für ausgewählte Personen sichtbar"
+							>
+								<UIcon name="i-lucide-lock" class="size-3.5 shrink-0 text-slate-500" aria-label="eingeschränkt" />
+							</UTooltip>
 							<UTooltip v-if="item.shared" text="Per Link geteilt">
 								<UIcon name="i-lucide-share-2" class="size-3.5 shrink-0 text-primary-400" aria-label="geteilt" />
 							</UTooltip>
 						</p>
-						<p class="text-xs text-slate-500">
+						<p class="flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
 							<template v-if="item.kind === 'file'">{{ formatFileSize(item.size) }} · </template>
 							{{ formatDate(item.updated_at) }}
+							<UBadge
+								v-if="item.permissions && !item.permissions.read"
+								label="Nur hochladen"
+								icon="i-lucide-inbox"
+								color="neutral"
+								variant="subtle"
+								size="xs"
+								class="ml-1"
+							/>
 						</p>
+						<!-- Own access list (managers): who may see this. -->
+						<div v-if="showAccess && item.access" class="mt-1 flex flex-wrap items-center gap-1">
+							<UBadge
+								v-if="!item.access.length"
+								:label="onlyManagersLabel"
+								icon="i-lucide-lock"
+								color="warning"
+								variant="subtle"
+								size="xs"
+							/>
+							<UTooltip
+								v-for="entry in item.access.slice(0, 3)"
+								:key="`${entry.principal}:${entry.id}`"
+								:text="entryText(entry, item.kind)"
+							>
+								<UBadge :label="entry.label" color="neutral" variant="subtle" size="xs">
+									<template #leading>
+										<span
+											v-if="entry.color"
+											class="size-2 rounded-full"
+											:style="{ backgroundColor: entry.color }"
+										/>
+										<UIcon v-else :name="accessEntryIcon(entry)" class="size-3" />
+									</template>
+								</UBadge>
+							</UTooltip>
+							<UTooltip
+								v-if="item.access.length > 3"
+								:text="item.access.slice(3).map((entry) => entryText(entry, item.kind)).join(', ')"
+							>
+								<UBadge :label="`+${item.access.length - 3}`" color="neutral" variant="subtle" size="xs" />
+							</UTooltip>
+						</div>
 					</div>
-					<UDropdownMenu :items="itemActions(item)" :ui="{ viewport: 'main-bg-color' }">
+					<UDropdownMenu
+						v-if="itemActions(item).length"
+						:items="itemActions(item)"
+						:ui="{ viewport: 'main-bg-color' }"
+					>
 						<UButton
 							icon="i-lucide-ellipsis-vertical"
 							color="neutral"
@@ -476,13 +651,13 @@ defineExpose({ refresh });
 			</ul>
 		</UCard>
 
-		<p v-if="canWrite" class="text-xs text-slate-500">
+		<p v-if="canAdd && !uploadOnly" class="text-xs text-slate-500">
 			Tipp: Dateien vom Computer hierher ziehen, um sie hochzuladen. Einträge auf einen Ordner oder
 			den Pfad oben ziehen, um sie zu verschieben.
 		</p>
 
 		<div
-			v-if="canWrite && upload && isOverDropZone"
+			v-if="canAdd && upload && isOverDropZone"
 			class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10"
 		>
 			<p class="flex items-center gap-2 font-medium text-primary-300">
@@ -496,7 +671,15 @@ defineExpose({ refresh });
 			:icon="renameTarget ? 'i-lucide-pencil' : 'i-lucide-folder-plus'"
 		>
 			<form class="space-y-4" @submit.prevent="submitFolderModal">
-				<UFormField label="Name" required>
+				<UFormField
+					label="Name"
+					required
+					:description="
+						!renameTarget && showAccess
+							? 'Der neue Ordner übernimmt den Zugriff dieses Ordners – ändern kannst du ihn danach über „Zugriff“.'
+							: undefined
+					"
+				>
 					<UInput v-model="folderName" autofocus class="w-full" />
 				</UFormField>
 				<div class="flex justify-end gap-2">
@@ -507,6 +690,7 @@ defineExpose({ refresh });
 		</DashboardModal>
 
 		<FilesShareModal v-model:open="shareOpen" :item="shareTarget" @changed="refresh" />
+		<FilesAccessModal v-model:open="accessOpen" :item="accessTarget" :scope="scope" @changed="refresh" />
 
 		<DashboardDeleteModal
 			v-model:open="deleteOpen"

@@ -372,11 +372,60 @@ export class EventCopier {
 									size: blob?.size ?? 0,
 									storage_key: blob?.storageKey ?? null,
 									uploaded_by: options.userId,
+									custom_access: file.custom_access,
 								})
 								.returning()
 								.get();
 							fileIds.set(file.id, copy.id);
 						}
+					}
+
+					// Access lists: "Alle im Team" always, groups when they came along, people when
+					// they are on the new team. Entries that can't come along are dropped, so a
+					// restricted folder stays at least as restricted.
+					const restricted = sourceFiles.filter((file) => file.custom_access && fileIds.has(file.id));
+					const entries = restricted.length
+						? tx
+								.select()
+								.from(T.fileAccess)
+								.where(
+									and(
+										inOrg(T.fileAccess),
+										inArray(
+											T.fileAccess.file_id,
+											restricted.map((file) => file.id),
+										),
+									),
+								)
+								.all()
+						: [];
+					for (const entry of entries) {
+						if (entry.principal === "event_group" && !groupIds.has(entry.event_group_id ?? -1)) continue;
+						if (entry.principal === "user" && !team.has(entry.user_id ?? -1)) continue;
+						if (
+							entry.principal !== "team" &&
+							entry.principal !== "event_group" &&
+							entry.principal !== "user"
+						) {
+							continue;
+						}
+						tx
+							.insert(T.fileAccess)
+							.values({
+								org_id,
+								file_id: fileIds.get(entry.file_id) as number,
+								principal: entry.principal,
+								event_group_id:
+									entry.principal === "event_group"
+										? (groupIds.get(entry.event_group_id ?? -1) as number)
+										: null,
+								user_id: entry.principal === "user" ? entry.user_id : null,
+								can_read: entry.can_read,
+								can_upload: entry.can_upload,
+								can_edit: entry.can_edit,
+								can_delete: entry.can_delete,
+							})
+							.run();
 					}
 				}
 

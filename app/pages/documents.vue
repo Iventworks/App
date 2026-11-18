@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
- * The organisation library ("Dokumente & Leitfäden"): guides, templates and tools for everyone in
- * the organisation. Read-only for volunteers; maintained by the Kernteam.
+ * The organisation library ("Dokumente & Leitfäden") as members see it: what the Kernteam opened
+ * to everyone, to their groups or to them — with what they may do there. The Kernteam manages
+ * the library (access, share links, Kernteam-only items) under /core-team/documents; here it sees
+ * the member view too (`view=member`).
  */
 import { useUserInfoStore } from "~/composables/stores/useUserStore";
 
@@ -15,15 +17,11 @@ useSeoMeta({
 const user = await useUserInfoStore().use();
 const toast = useToast();
 
-const canWrite = computed(() => hasOrgRole(user.value?.role, "core_team"));
-// Share links for externals: library managers, while the org allows them.
-const canShare = computed(
-	() => canWrite.value && useInstance().value?.org?.file_sharing_enabled === true,
-);
+const canManage = computed(() => hasOrgRole(user.value?.role, "core_team"));
 
 async function load(parentId: number | null) {
 	const result = await useAPI((api) =>
-		api.getOrgDocuments({ query: { parent_id: parentId ?? undefined } }),
+		api.getOrgDocuments({ query: { parent_id: parentId ?? undefined, view: "member" } }),
 	);
 	if (!result.success) {
 		toast.add({
@@ -71,30 +69,30 @@ async function createFolder(name: string, parentId: number | null) {
 			<DashboardPageHeader
 				title="Dokumente & Leitfäden"
 				icon="i-lucide-library"
-				description="Für alle in der Organisation"
-			/>
+				description="Aus der Organisation"
+			>
+				<template #right>
+					<UButton
+						v-if="canManage"
+						label="Verwalten"
+						icon="i-lucide-settings-2"
+						color="neutral"
+						variant="subtle"
+						to="/core-team/documents"
+					/>
+				</template>
+			</DashboardPageHeader>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
-				<UAlert
-					v-if="!canWrite"
-					icon="i-lucide-info"
-					color="neutral"
-					variant="subtle"
-					title="Nur lesen"
-					description="Diese Bibliothek wird vom Kernteam gepflegt. Fehlt etwas oder ist veraltet? Sag dem Kernteam Bescheid."
-				/>
-
 				<FilesBrowser
+					scope="org"
 					root-label="Bibliothek"
 					:load="load"
-					:upload="canWrite ? upload : undefined"
-					:create-folder="canWrite ? createFolder : undefined"
-					:can-write="canWrite"
-					:can-manage="() => canWrite"
-					:can-share="() => canShare"
-					empty-description="Hier legt das Kernteam Leitfäden, Vorlagen und Werkzeuge für alle ab."
+					:upload="upload"
+					:create-folder="createFolder"
+					empty-description="Hier legt das Kernteam Leitfäden, Vorlagen und Werkzeuge ab. Fehlt etwas oder ist veraltet? Sag dem Kernteam Bescheid."
 				/>
 			</DashboardPageBody>
 		</template>

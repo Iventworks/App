@@ -150,15 +150,41 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Every request through a link resolves its file ids with `FileShares.resolveInShare` — the
     shared item or something below the shared folder, nothing else. The shared item itself is
     never renamed or deleted through its link. Receipts are never shared.
-  - Only people who manage the whole library create links (`FileAccess.canShare`: org documents →
-    `org_documents:write`, event documents → `files:manage_all`), so a link never grants more than
-    its creator has.
+  - Only managers of the library create links (`permissions.manage`: org documents → Kernteam,
+    event documents → Leitung), so a link never grants more than its creator has. Receipts and
+    chat attachments are never shared.
   - Unknown, expired and disabled links all answer 404; org admins can switch sharing off
     (`orgs.file_sharing_enabled`, also stops existing links) and set a default expiry.
   - Changes through a link are audited without a user ("über Freigabelink …"); creating, changing
     and revoking links are audited as `file_share`. Admins see all links under
     *Administration → Freigabelinks*. Public API: `/shares/{token}/…`; page: `pages/s/[token].vue`
     (layout `public`).
+- **Document access lists** (like Nextcloud Team folders; `file_access`, `files.custom_access`,
+  `FileAccess` in `server/lib/api/utils/fileAccess.ts`, lists in `fileAccessLists.ts`):
+  - Managers always may do everything, including access and share links: the Kernteam for org
+    documents (`org_documents:write`), the Leitung for event documents (`files:manage_all`, which
+    includes the Kernteam — it acts as Leitung in every event, also for restricted folders).
+  - Everyone else gets the rights of the nearest item above with its own list (`custom_access`);
+    without one, the library default: org documents are Kernteam-only, event documents are open to
+    the whole team (view + upload). Rights are those of share links (read, upload, edit, delete,
+    same presets in the UI — `app/utils/filePermissions.ts`); files only take view or edit.
+    Entries name `members` / `org_group` / `user` (org) or `team` / `event_group` / a team
+    member (event); managers are never listed. No deny rules.
+  - An item is only visible when every folder above it can be read; an upload-only folder shows,
+    its contents don't. Items with their own list are renamed, moved or deleted by managers only.
+    Own uploads may be renamed, moved, replaced and deleted while you may still upload there.
+  - Every file route checks the caller's `permissions` (loaded in the `/files/{fileId}` loader;
+    listings carry them per item, managers also get `access`). Moving needs `delete` on the item
+    and upload rights on the target. Program items only show attachments the caller can open and
+    only link what the caller can open (`FileAccess.readableIds`).
+  - Pages: `/documents` is the member view (`view=member`: the Kernteam sees it like a member),
+    `/core-team/documents` manages the library (access, links, Kernteam-only items). Event
+    documents are one page; the Leitung sees the access controls there.
+  - Migration `0007` kept existing org documents visible: their top level got "Alle Mitglieder:
+    ansehen".
+- **Org groups** (`org_groups`, `org_group_members`, `/admin/groups`, page *Administration →
+  Gruppen*): groups across the org, managed by admins only, used in access lists of org documents.
+  Deleting a group removes its access entries (`ON DELETE CASCADE`).
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`). Wall-clock times (`HH:MM`) become instants
   with `TimeUtils.instantOf`; moving an instant by whole days keeps its time of day across DST
@@ -183,7 +209,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   `server/lib/api/utils/eventCopy.ts`): master data always, the rest per part (`include`). People
   only come along with `team` (and only accounts that can still sign in); program items and due
   dates move with the new start (`TimeUtils.shiftDays`), tasks are open again, participants are
-  registered again and unpaid, documents are real copies (`FileStorage.copy`), resource bookings
+  registered again and unpaid, documents are real copies (`FileStorage.copy`) with their access
+  lists (group entries with the groups, people with the team; what can't come along is dropped, so
+  a restricted folder stays restricted), resource bookings
   only where the resource is free on the new days. Never copied: expenses, chats, audit log, the
   leaders' notes about staff, notes about participants, the dates of a series (they come from the
   rule). A new event table or column that belongs to an event must be added to `EventCopier` (or

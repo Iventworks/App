@@ -2053,6 +2053,128 @@ export const zDeleteAdminSharesByShareIdResponse = z.object({
 });
 
 /**
+ * Groups retrieved successfully
+ */
+export const zGetAdminGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Groups retrieved successfully'),
+    data: z.array(z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    }))
+});
+
+export const zPostAdminGroupsBody = z.object({
+    name: z.string().min(1).max(80),
+    description: z.string().max(2000).optional().default(''),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish().default(null),
+    member_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(2000).optional().default([])
+});
+
+/**
+ * Group created successfully
+ */
+export const zPostAdminGroupsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Group created successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    })
+});
+
+export const zDeleteAdminGroupsByGroupIdPath = z.object({
+    groupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Group deleted successfully
+ */
+export const zDeleteAdminGroupsByGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Group deleted successfully'),
+    data: z.null()
+});
+
+export const zPutAdminGroupsByGroupIdBody = z.object({
+    name: z.string().min(1).max(80).optional(),
+    description: z.string().max(2000).optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+    member_ids: z.array(z.int().gt(0).lte(9007199254740991)).max(2000).optional()
+});
+
+export const zPutAdminGroupsByGroupIdPath = z.object({
+    groupId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Group updated successfully
+ */
+export const zPutAdminGroupsByGroupIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Group updated successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        description: z.string(),
+        color: z.string().nullable(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        members: z.array(z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        })),
+        member_count: z.number()
+    })
+});
+
+/**
  * Dashboard retrieved successfully
  */
 export const zGetDashboardResponse = z.object({
@@ -4280,7 +4402,34 @@ export const zGetFilesByFileIdResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
 });
 
@@ -4318,8 +4467,157 @@ export const zPutFilesByFileIdResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
+});
+
+export const zGetFilesByFileIdAccessPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Access list retrieved successfully
+ */
+export const zGetFilesByFileIdAccessResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Access list retrieved successfully'),
+    data: z.object({
+        custom: z.boolean(),
+        inherited_from: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable(),
+        entries: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        }))
+    })
+});
+
+export const zPutFilesByFileIdAccessBody = z.object({
+    custom: z.boolean(),
+    entries: z.array(z.object({
+        principal: z.enum([
+            'members',
+            'team',
+            'org_group',
+            'event_group',
+            'user'
+        ]),
+        id: z.int().gt(0).lte(9007199254740991).nullish(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean()
+        })
+    })).max(200).optional().default([])
+});
+
+export const zPutFilesByFileIdAccessPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Access list updated successfully
+ */
+export const zPutFilesByFileIdAccessResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Access list updated successfully'),
+    data: z.object({
+        custom: z.boolean(),
+        inherited_from: z.object({
+            id: z.number(),
+            name: z.string()
+        }).nullable(),
+        entries: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        }))
+    })
+});
+
+export const zGetFilesByFileIdAccessCandidatesPath = z.object({
+    fileId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Candidates retrieved successfully
+ */
+export const zGetFilesByFileIdAccessCandidatesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Candidates retrieved successfully'),
+    data: z.array(z.object({
+        principal: z.enum([
+            'members',
+            'team',
+            'org_group',
+            'event_group',
+            'user'
+        ]),
+        id: z.number().nullable(),
+        label: z.string(),
+        description: z.string().nullable(),
+        color: z.string().nullable()
+    }))
 });
 
 export const zGetFilesByFileIdSharesPath = z.object({
@@ -6938,7 +7236,34 @@ export const zGetEventsByEventIdProgramResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         is_mine: z.boolean()
     }))
@@ -7013,7 +7338,34 @@ export const zPostEventsByEventIdProgramResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7104,7 +7456,34 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7171,7 +7550,34 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         is_mine: z.boolean()
     })
@@ -7984,7 +8390,34 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -8004,7 +8437,34 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -8024,8 +8484,68 @@ export const zGetEventsByEventIdFilesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
-        }))
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
+        })),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }),
+        access: z.object({
+            custom: z.boolean(),
+            inherited_from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        }).nullable()
     })
 });
 
@@ -8063,7 +8583,34 @@ export const zPostEventsByEventIdFilesResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
 });
 
@@ -8101,7 +8648,34 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
 });
 
@@ -8190,7 +8764,34 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8281,7 +8882,34 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8431,7 +9059,34 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8519,7 +9174,34 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -8612,7 +9294,34 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         can_edit: z.boolean(),
         can_delete: z.boolean()
@@ -9533,7 +10242,8 @@ export const zPutOrgAnnouncementsByAnnouncementIdResponse = z.object({
 });
 
 export const zGetOrgDocumentsQuery = z.object({
-    parent_id: z.int().gt(0).lte(9007199254740991).optional()
+    parent_id: z.int().gt(0).lte(9007199254740991).optional(),
+    view: z.enum(['member']).optional()
 });
 
 /**
@@ -9562,7 +10272,34 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         }).nullable(),
         path: z.array(z.object({
             id: z.number(),
@@ -9582,7 +10319,34 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
         })),
         items: z.array(z.object({
             id: z.number(),
@@ -9602,8 +10366,68 @@ export const zGetOrgDocumentsResponse = z.object({
             created_at: z.number(),
             updated_at: z.number(),
             content_url: z.string().nullable(),
-            shared: z.boolean()
-        }))
+            shared: z.boolean(),
+            custom_access: z.boolean(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean(),
+                rename: z.boolean(),
+                manage: z.boolean()
+            }).nullable(),
+            access: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            })).nullable()
+        })),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }),
+        access: z.object({
+            custom: z.boolean(),
+            inherited_from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        }).nullable()
     })
 });
 
@@ -9637,7 +10461,34 @@ export const zPostOrgDocumentsResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
 });
 
@@ -9671,7 +10522,34 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
         created_at: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable(),
-        shared: z.boolean()
+        shared: z.boolean(),
+        custom_access: z.boolean(),
+        permissions: z.object({
+            read: z.boolean(),
+            upload: z.boolean(),
+            edit: z.boolean(),
+            delete: z.boolean(),
+            rename: z.boolean(),
+            manage: z.boolean()
+        }).nullable(),
+        access: z.array(z.object({
+            principal: z.enum([
+                'members',
+                'team',
+                'org_group',
+                'event_group',
+                'user'
+            ]),
+            id: z.number().nullable(),
+            label: z.string(),
+            color: z.string().nullable(),
+            permissions: z.object({
+                read: z.boolean(),
+                upload: z.boolean(),
+                edit: z.boolean(),
+                delete: z.boolean()
+            })
+        })).nullable()
     })
 });
 

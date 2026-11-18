@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FileService } from "../../../../utils/fileService";
+import { FileAccessModel } from "../../../../utils/shared-models/fileAccess";
 
 export namespace FilesModel {
 	export const Item = FileService.ItemSchema;
@@ -41,4 +42,15 @@ export namespace FilesModel.Update {
 
 	export const Response = FilesModel.Item;
 	export type Response = z.infer<typeof Response>;
+}
+
+export namespace FilesModel.Access {
+	export const Response = FileAccessModel.View;
+	export type Response = z.infer<typeof Response>;
+
+	export const Body = FileAccessModel.UpdateBody;
+	export type Body = z.infer<typeof Body>;
+
+	export const Candidates = z.array(FileAccessModel.Candidate);
+	export type Candidates = z.infer<typeof Candidates>;
 }

@@ -1,15 +1,13 @@
 <script setup lang="ts">
 /**
- * Event documents: folders and files shared with the event's staff. Everyone on the team may
- * upload; uploaders and leaders may rename, move and delete.
+ * Event documents: folders and files of the event's team. Everyone on the team may view and
+ * upload unless a folder or file has its own access list ("Zugriff": only the Leitung, groups or
+ * single people); uploaders may rename, move and delete their own files. The Leitung (and the
+ * Kernteam) may do everything, change access and create share links.
  */
-import { useUserInfoStore } from "~/composables/stores/useUserStore";
-import type { FileItem } from "~/utils/types";
-
 definePageMeta({ layout: "dashboard" });
 
 const { event, eventId, can } = await useCurrentEvent();
-const user = await useUserInfoStore().use();
 const toast = useToast();
 
 useSeoMeta({ title: `Dokumente | ${event.value.name}` });
@@ -66,14 +64,8 @@ async function createFolder(name: string, parentId: number | null) {
 	return result.success;
 }
 
-// Share links for externals: leaders (they manage the whole library), while the org allows them.
-const canShare = computed(
-	() => can("files:manage_all") && useInstance().value?.org?.file_sharing_enabled === true,
-);
-
-function canManage(item: FileItem) {
-	return can("files:manage_all") || (can("files:upload") && item.uploaded_by === user.value?.id);
-}
+// Share links for externals: only the Leitung creates them, while the org allows them.
+const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
 </script>
 
 <template>
@@ -85,13 +77,13 @@ function canManage(item: FileItem) {
 		<template #body>
 			<DashboardPageBody>
 				<FilesBrowser
+					scope="event"
 					:root-label="`Dokumente – ${event.name}`"
 					:load="load"
 					:upload="upload"
 					:create-folder="createFolder"
-					:can-write="can('files:upload')"
-					:can-manage="canManage"
-					:can-share="() => canShare"
+					:manage-access="can('files:manage_all')"
+					:sharing-enabled="sharingEnabled"
 					empty-description="Lade Ablaufpläne, Präsentationen, Listen oder Fotos für das Team hoch."
 				/>
 			</DashboardPageBody>

@@ -94,6 +94,9 @@ export namespace DB.Tables {
 
 	export const userPreferences = TableSchema.userPreferences;
 
+	export const orgGroups = TableSchema.orgGroups;
+	export const orgGroupMembers = TableSchema.orgGroupMembers;
+
 	export const events = TableSchema.events;
 	export const eventMembers = TableSchema.eventMembers;
 	export const eventGroups = TableSchema.eventGroups;
@@ -111,6 +114,7 @@ export namespace DB.Tables {
 
 	export const files = TableSchema.files;
 	export const fileShares = TableSchema.fileShares;
+	export const fileAccess = TableSchema.fileAccess;
 
 	export const programItems = TableSchema.programItems;
 	export const programItemResponsibles = TableSchema.programItemResponsibles;
@@ -158,6 +162,9 @@ export namespace DB.Models {
 
 	export type UserPreference = typeof DB.Tables.userPreferences.$inferSelect;
 
+	export type OrgGroup = typeof DB.Tables.orgGroups.$inferSelect;
+	export type OrgGroupMember = typeof DB.Tables.orgGroupMembers.$inferSelect;
+
 	export type Event = typeof DB.Tables.events.$inferSelect;
 	export type EventMember = typeof DB.Tables.eventMembers.$inferSelect;
 	export type EventGroup = typeof DB.Tables.eventGroups.$inferSelect;
@@ -176,6 +183,7 @@ export namespace DB.Models {
 
 	export type File = typeof DB.Tables.files.$inferSelect;
 	export type FileShare = typeof DB.Tables.fileShares.$inferSelect;
+	export type FileAccessEntry = typeof DB.Tables.fileAccess.$inferSelect;
 
 	export type ProgramItem = typeof DB.Tables.programItems.$inferSelect;
 	export type Responsibility = typeof DB.Tables.responsibilities.$inferSelect;

@@ -5,23 +5,25 @@ import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
 import { AuthHandler } from "../../../../../utils/authHandler";
+import { FileAccess } from "../../../../../utils/fileAccess";
+import { FileLibrary } from "../../../../../utils/fileLibrary";
 import { FileService } from "../../../../../utils/fileService";
 import { getAuthUserId } from "../../../../../utils/guards";
-import { PermissionHelper } from "../../../../../utils/permissions";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
 import { OrgDocumentsModel } from "./model";
 
 /**
- * The organisation-wide document library: guides, templates and tools everyone may read; only
- * the core team uploads. Rename/move/delete go through the shared `/files/{fileId}` routes.
+ * The organisation-wide document library. The Kernteam manages it; everything is Kernteam-only
+ * unless an access list opens it to members, org groups or single people (`FileAccess`). Rename,
+ * move, delete, access lists and share links go through the shared `/files/{fileId}` routes.
  */
 export const router = new Hono().basePath("/documents");
 
 const LOCATION: FileService.Location = { scope: "org", eventId: null };
 
-function can(c: Context, permission: "org_documents:read" | "org_documents:write") {
-	return PermissionHelper.can({ authContext: AuthHandler.AuthContext.get(c), permission });
+async function viewerOf(c: Context, options: { asMember?: boolean } = {}) {
+	return await FileAccess.viewer(AuthHandler.AuthContext.get(c), LOCATION, options);
 }
 
 router.get(
@@ -30,12 +32,12 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "List organisation documents",
 		description:
-			"List a folder of the organisation's document library (the root without `parent_id`), with the breadcrumb path.",
+			"List a folder of the organisation's document library (the root without `parent_id`) with the breadcrumb path — only what the caller may see, each item with the caller's `permissions`. The Kernteam sees everything plus the access lists (`access`); with `view=member` it sees the library like a member.",
 		tags: [DOCS_TAGS.ORG.DOCUMENTS],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Documents retrieved successfully", OrgDocumentsModel.GetAll.Response),
-			APIResponseSpec.forbidden("You do not have permission to access this resource"),
+			APIResponseSpec.forbidden("You are not allowed to view documents"),
 			APIResponseSpec.notFound("Folder not found"),
 		),
 	}),
@@ -43,30 +45,21 @@ router.get(
 	zValidator("query", OrgDocumentsModel.GetAll.Query),
 
 	async (c) => {
-		if (!can(c, "org_documents:read")) {
-			return APIResponse.forbidden(c, "You do not have permission to access this resource");
+		const { parent_id, view } = c.req.valid("query") as OrgDocumentsModel.GetAll.Query;
+		const viewer = await viewerOf(c, { asMember: view === "member" });
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to view documents");
+
+		const result = await FileLibrary.list(viewer, parent_id);
+		if (!result.ok) {
+			return result.status === 404
+				? APIResponse.notFound(c, result.message)
+				: APIResponse.forbidden(c, result.message);
 		}
-
-		const { parent_id } = c.req.valid("query") as OrgDocumentsModel.GetAll.Query;
-
-		let folder = null;
-		if (parent_id) {
-			folder = await FileService.get(parent_id);
-			if (!folder || !FileService.isInLocation(folder, LOCATION) || folder.kind !== "folder") {
-				return APIResponse.notFound(c, "Folder not found");
-			}
-		}
-
-		const [path, items] = await Promise.all([
-			folder ? FileService.getPath(folder.id) : Promise.resolve([]),
-			FileService.listFolder(LOCATION, folder?.id ?? null),
-		]);
-
-		return APIResponse.success(c, "Documents retrieved successfully", {
-			folder: folder ? FileService.toResponse(folder) : null,
-			path: path.map((entry) => FileService.toResponse(entry)),
-			items: await FileService.toResponses(items),
-		} satisfies OrgDocumentsModel.GetAll.Response);
+		return APIResponse.success(
+			c,
+			"Documents retrieved successfully",
+			result.data satisfies OrgDocumentsModel.GetAll.Response,
+		);
 	},
 );
 
@@ -75,7 +68,8 @@ router.post(
 
 	APIRouteSpec.authenticated({
 		summary: "Upload organisation document",
-		description: "Upload a file into the organisation's document library (core team).",
+		description:
+			"Upload a file into the organisation's document library — the Kernteam anywhere, others where an access list lets them upload.",
 		tags: [DOCS_TAGS.ORG.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -83,7 +77,7 @@ router.post(
 			APIResponseSpec.badRequest(
 				"Parent folder not found / File is too large / Syntax or validation error in request",
 			),
-			APIResponseSpec.forbidden("Only the core team can manage organisation documents"),
+			APIResponseSpec.forbidden("You are not allowed to add documents here"),
 		),
 	}),
 
@@ -91,18 +85,21 @@ router.post(
 	zValidator("form", OrgDocumentsModel.Upload.Form, undefined, { media: "multipart/form-data" }),
 
 	async (c) => {
-		if (!can(c, "org_documents:write")) {
-			return APIResponse.forbidden(c, "Only the core team can manage organisation documents");
-		}
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
 
 		const userId = getAuthUserId(c);
 		const form = c.req.valid("form") as OrgDocumentsModel.Upload.Form;
 
-		const parent = await FileService.resolveParent(LOCATION, form.parent_id);
-		if (!parent.ok) return APIResponse.badRequest(c, parent.message);
+		const target = await FileLibrary.resolveTarget(viewer, form.parent_id);
+		if (!target.ok) {
+			return target.status === 400
+				? APIResponse.badRequest(c, target.message)
+				: APIResponse.forbidden(c, target.message);
+		}
 
 		try {
-			const file = await FileService.upload(LOCATION, parent.parentId, form.file, userId);
+			const file = await FileService.upload(LOCATION, target.parentId, form.file, userId);
 			if (!file) return APIResponse.badRequest(c, "File is too large");
 
 			await AuditLog.record({
@@ -113,7 +110,11 @@ router.post(
 				summary: `Dokument „${file.name}“ in die Organisationsablage hochgeladen`,
 			});
 
-			return APIResponse.created(c, "Document uploaded successfully", FileService.toResponse(file));
+			return APIResponse.created(
+				c,
+				"Document uploaded successfully",
+				await FileLibrary.created(viewer, file),
+			);
 		} catch (error: any) {
 			Logger.error("Failed to upload organisation document", error.stack || error.message || error);
 			return APIResponse.serverError(c, "Failed to upload document");
@@ -126,32 +127,36 @@ router.post(
 
 	APIRouteSpec.authenticated({
 		summary: "Create organisation folder",
-		description: "Create a folder in the organisation's document library (core team).",
+		description:
+			"Create a folder in the organisation's document library — the Kernteam anywhere, others where an access list lets them upload.",
 		tags: [DOCS_TAGS.ORG.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.created("Folder created successfully", OrgDocumentsModel.CreateFolder.Response),
 			APIResponseSpec.badRequest("Parent folder not found / Syntax or validation error in request"),
-			APIResponseSpec.forbidden("Only the core team can manage organisation documents"),
+			APIResponseSpec.forbidden("You are not allowed to add documents here"),
 		),
 	}),
 
 	zValidator("json", OrgDocumentsModel.CreateFolder.Body),
 
 	async (c) => {
-		if (!can(c, "org_documents:write")) {
-			return APIResponse.forbidden(c, "Only the core team can manage organisation documents");
-		}
+		const viewer = await viewerOf(c);
+		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
 
 		const userId = getAuthUserId(c);
 		const body = c.req.valid("json") as OrgDocumentsModel.CreateFolder.Body;
 
-		const parent = await FileService.resolveParent(LOCATION, body.parent_id);
-		if (!parent.ok) return APIResponse.badRequest(c, parent.message);
+		const target = await FileLibrary.resolveTarget(viewer, body.parent_id);
+		if (!target.ok) {
+			return target.status === 400
+				? APIResponse.badRequest(c, target.message)
+				: APIResponse.forbidden(c, target.message);
+		}
 
 		const folder = await FileService.createFolder(
 			LOCATION,
-			parent.parentId,
+			target.parentId,
 			FileService.sanitizeName(body.name),
 			userId,
 		);
@@ -164,6 +169,10 @@ router.post(
 			summary: `Ordner „${folder.name}“ in der Organisationsablage angelegt`,
 		});
 
-		return APIResponse.created(c, "Folder created successfully", FileService.toResponse(folder));
+		return APIResponse.created(
+			c,
+			"Folder created successfully",
+			await FileLibrary.created(viewer, folder),
+		);
 	},
 );

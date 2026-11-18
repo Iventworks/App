@@ -60,6 +60,7 @@ export const DOCS_TAGS = {
 		INVITATIONS: "Admin / Invitations",
 		AUDIT_LOG: "Admin / Audit Log",
 		ORGANIZATION: "Admin / Organisation",
+		GROUPS: "Admin / Groups",
 	},
 
 	INSTANCE: "Instance",

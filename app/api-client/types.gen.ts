@@ -3432,6 +3432,204 @@ export type DeleteAdminSharesByShareIdResponses = {
 
 export type DeleteAdminSharesByShareIdResponse = DeleteAdminSharesByShareIdResponses[keyof DeleteAdminSharesByShareIdResponses];
 
+export type GetAdminGroupsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/groups';
+};
+
+export type GetAdminGroupsResponses = {
+    /**
+     * Groups retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Groups retrieved successfully';
+        data: Array<{
+            id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        }>;
+    };
+};
+
+export type GetAdminGroupsResponse = GetAdminGroupsResponses[keyof GetAdminGroupsResponses];
+
+export type PostAdminGroupsData = {
+    body: {
+        name: string;
+        description?: string;
+        color?: string | null;
+        member_ids?: Array<number>;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/groups';
+};
+
+export type PostAdminGroupsErrors = {
+    /**
+     * User not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'User not found / Syntax or validation error in request';
+    };
+};
+
+export type PostAdminGroupsError = PostAdminGroupsErrors[keyof PostAdminGroupsErrors];
+
+export type PostAdminGroupsResponses = {
+    /**
+     * Group created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Group created successfully';
+        data: {
+            id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        };
+    };
+};
+
+export type PostAdminGroupsResponse = PostAdminGroupsResponses[keyof PostAdminGroupsResponses];
+
+export type DeleteAdminGroupsByGroupIdData = {
+    body?: never;
+    path: {
+        groupId: number;
+    };
+    query?: never;
+    url: '/admin/groups/{groupId}';
+};
+
+export type DeleteAdminGroupsByGroupIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Group not found';
+    };
+};
+
+export type DeleteAdminGroupsByGroupIdError = DeleteAdminGroupsByGroupIdErrors[keyof DeleteAdminGroupsByGroupIdErrors];
+
+export type DeleteAdminGroupsByGroupIdResponses = {
+    /**
+     * Group deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Group deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteAdminGroupsByGroupIdResponse = DeleteAdminGroupsByGroupIdResponses[keyof DeleteAdminGroupsByGroupIdResponses];
+
+export type PutAdminGroupsByGroupIdData = {
+    body?: {
+        name?: string;
+        description?: string;
+        color?: string | null;
+        member_ids?: Array<number>;
+    };
+    path: {
+        groupId: number;
+    };
+    query?: never;
+    url: '/admin/groups/{groupId}';
+};
+
+export type PutAdminGroupsByGroupIdErrors = {
+    /**
+     * User not found / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'User not found / Syntax or validation error in request';
+    };
+    /**
+     * Group not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Group not found';
+    };
+};
+
+export type PutAdminGroupsByGroupIdError = PutAdminGroupsByGroupIdErrors[keyof PutAdminGroupsByGroupIdErrors];
+
+export type PutAdminGroupsByGroupIdResponses = {
+    /**
+     * Group updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Group updated successfully';
+        data: {
+            id: number;
+            name: string;
+            description: string;
+            color: string | null;
+            created_at: number;
+            members: Array<{
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            }>;
+            member_count: number;
+        };
+    };
+};
+
+export type PutAdminGroupsByGroupIdResponse = PutAdminGroupsByGroupIdResponses[keyof PutAdminGroupsByGroupIdResponses];
+
 export type GetDashboardData = {
     body?: never;
     path?: never;
@@ -6923,6 +7121,27 @@ export type GetFilesByFileIdResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };
@@ -6992,11 +7211,242 @@ export type PutFilesByFileIdResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };
 
 export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
+
+export type GetFilesByFileIdAccessData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/access';
+};
+
+export type GetFilesByFileIdAccessErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage access to this item
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage access to this item';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetFilesByFileIdAccessError = GetFilesByFileIdAccessErrors[keyof GetFilesByFileIdAccessErrors];
+
+export type GetFilesByFileIdAccessResponses = {
+    /**
+     * Access list retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Access list retrieved successfully';
+        data: {
+            custom: boolean;
+            inherited_from: {
+                id: number;
+                name: string;
+            } | null;
+            entries: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }>;
+        };
+    };
+};
+
+export type GetFilesByFileIdAccessResponse = GetFilesByFileIdAccessResponses[keyof GetFilesByFileIdAccessResponses];
+
+export type PutFilesByFileIdAccessData = {
+    body: {
+        custom: boolean;
+        entries?: Array<{
+            principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+            id?: number | null;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+            };
+        }>;
+    };
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/access';
+};
+
+export type PutFilesByFileIdAccessErrors = {
+    /**
+     * Group not found / User not found / Only people on the event's team can be added / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Group not found / User not found / Only people on the event\'s team can be added / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage access to this item
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage access to this item';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type PutFilesByFileIdAccessError = PutFilesByFileIdAccessErrors[keyof PutFilesByFileIdAccessErrors];
+
+export type PutFilesByFileIdAccessResponses = {
+    /**
+     * Access list updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Access list updated successfully';
+        data: {
+            custom: boolean;
+            inherited_from: {
+                id: number;
+                name: string;
+            } | null;
+            entries: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }>;
+        };
+    };
+};
+
+export type PutFilesByFileIdAccessResponse = PutFilesByFileIdAccessResponses[keyof PutFilesByFileIdAccessResponses];
+
+export type GetFilesByFileIdAccessCandidatesData = {
+    body?: never;
+    path: {
+        fileId: number;
+    };
+    query?: never;
+    url: '/files/{fileId}/access/candidates';
+};
+
+export type GetFilesByFileIdAccessCandidatesErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to manage access to this item
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage access to this item';
+    };
+    /**
+     * File not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'File not found';
+    };
+};
+
+export type GetFilesByFileIdAccessCandidatesError = GetFilesByFileIdAccessCandidatesErrors[keyof GetFilesByFileIdAccessCandidatesErrors];
+
+export type GetFilesByFileIdAccessCandidatesResponses = {
+    /**
+     * Candidates retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Candidates retrieved successfully';
+        data: Array<{
+            principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+            id: number | null;
+            label: string;
+            description: string | null;
+            color: string | null;
+        }>;
+    };
+};
+
+export type GetFilesByFileIdAccessCandidatesResponse = GetFilesByFileIdAccessCandidatesResponses[keyof GetFilesByFileIdAccessCandidatesResponses];
 
 export type GetFilesByFileIdSharesData = {
     body?: never;
@@ -10728,6 +11178,27 @@ export type GetEventsByEventIdProgramResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             is_mine: boolean;
         }>;
@@ -10829,6 +11300,27 @@ export type PostEventsByEventIdProgramResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             is_mine: boolean;
         };
@@ -10984,6 +11476,27 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             is_mine: boolean;
         };
@@ -11077,6 +11590,27 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             is_mine: boolean;
         };
@@ -12355,6 +12889,27 @@ export type GetEventsByEventIdFilesResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             path: Array<{
                 id: number;
@@ -12370,6 +12925,27 @@ export type GetEventsByEventIdFilesResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             items: Array<{
                 id: number;
@@ -12385,7 +12961,55 @@ export type GetEventsByEventIdFilesResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            };
+            access: {
+                custom: boolean;
+                inherited_from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            } | null;
         };
     };
 };
@@ -12417,12 +13041,12 @@ export type PostEventsByEventIdFilesErrors = {
         message: 'File is too large / Parent folder not found / Syntax or validation error in request';
     };
     /**
-     * You are not allowed to upload documents
+     * You are not allowed to add documents here
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to upload documents';
+        message: 'You are not allowed to add documents here';
     };
     /**
      * Event not found
@@ -12458,6 +13082,27 @@ export type PostEventsByEventIdFilesResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };
@@ -12486,12 +13131,12 @@ export type PostEventsByEventIdFilesFoldersErrors = {
         message: 'Parent folder not found / Syntax or validation error in request';
     };
     /**
-     * You are not allowed to upload documents
+     * You are not allowed to add documents here
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to upload documents';
+        message: 'You are not allowed to add documents here';
     };
     /**
      * Event not found
@@ -12527,6 +13172,27 @@ export type PostEventsByEventIdFilesFoldersResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };
@@ -12627,6 +13293,27 @@ export type GetEventsByEventIdExpensesResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -12734,6 +13421,27 @@ export type PostEventsByEventIdExpensesResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -12971,6 +13679,27 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13078,6 +13807,27 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -13183,6 +13933,27 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             can_edit: boolean;
             can_delete: boolean;
@@ -14640,6 +15411,7 @@ export type GetOrgDocumentsData = {
     path?: never;
     query?: {
         parent_id?: number;
+        view?: 'member';
     };
     url: '/org/documents';
 };
@@ -14654,12 +15426,12 @@ export type GetOrgDocumentsErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * You do not have permission to access this resource
+     * You are not allowed to view documents
      */
     403: {
         success: false;
         code: 403;
-        message: 'You do not have permission to access this resource';
+        message: 'You are not allowed to view documents';
     };
     /**
      * Folder not found
@@ -14696,6 +15468,27 @@ export type GetOrgDocumentsResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             } | null;
             path: Array<{
                 id: number;
@@ -14711,6 +15504,27 @@ export type GetOrgDocumentsResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
             items: Array<{
                 id: number;
@@ -14726,7 +15540,55 @@ export type GetOrgDocumentsResponses = {
                 updated_at: number;
                 content_url: string | null;
                 shared: boolean;
+                custom_access: boolean;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                    rename: boolean;
+                    manage: boolean;
+                } | null;
+                access: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }> | null;
             }>;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            };
+            access: {
+                custom: boolean;
+                inherited_from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            } | null;
         };
     };
 };
@@ -14756,12 +15618,12 @@ export type PostOrgDocumentsErrors = {
         message: 'Parent folder not found / File is too large / Syntax or validation error in request';
     };
     /**
-     * Only the core team can manage organisation documents
+     * You are not allowed to add documents here
      */
     403: {
         success: false;
         code: 403;
-        message: 'Only the core team can manage organisation documents';
+        message: 'You are not allowed to add documents here';
     };
 };
 
@@ -14789,6 +15651,27 @@ export type PostOrgDocumentsResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };
@@ -14815,12 +15698,12 @@ export type PostOrgDocumentsFoldersErrors = {
         message: 'Parent folder not found / Syntax or validation error in request';
     };
     /**
-     * Only the core team can manage organisation documents
+     * You are not allowed to add documents here
      */
     403: {
         success: false;
         code: 403;
-        message: 'Only the core team can manage organisation documents';
+        message: 'You are not allowed to add documents here';
     };
 };
 
@@ -14848,6 +15731,27 @@ export type PostOrgDocumentsFoldersResponses = {
             updated_at: number;
             content_url: string | null;
             shared: boolean;
+            custom_access: boolean;
+            permissions: {
+                read: boolean;
+                upload: boolean;
+                edit: boolean;
+                delete: boolean;
+                rename: boolean;
+                manage: boolean;
+            } | null;
+            access: Array<{
+                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                id: number | null;
+                label: string;
+                color: string | null;
+                permissions: {
+                    read: boolean;
+                    upload: boolean;
+                    edit: boolean;
+                    delete: boolean;
+                };
+            }> | null;
         };
     };
 };

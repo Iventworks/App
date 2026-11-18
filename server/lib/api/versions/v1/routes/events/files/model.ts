@@ -7,7 +7,7 @@ export namespace EventFilesModel {
 }
 
 export namespace EventFilesModel.GetAll {
-	export const Query = FileService.ListQuery;
+	export const Query = FileService.ListQuery.omit({ view: true });
 	export type Query = z.infer<typeof Query>;
 
 	export const Response = FileService.FolderListingSchema;

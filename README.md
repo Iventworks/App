@@ -87,7 +87,7 @@ Organisation roles (`users.role`, per org), highest first:
 
 | Role | Can |
 | --- | --- |
-| `admin` | Users, invitations, full audit log, the org's branding and domains — plus everything below |
+| `admin` | Users, invitations, org groups, full audit log, the org's branding and domains — plus everything below |
 | `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat. Acts as **leader in every event** — but sees participants' health data and the team's notes about them only in events they are on the team of. |
 | `volunteer` | The portal: own dashboard, tasks, chats, calendar, notes; the events they are staff of |
 | `unverified` | Only their own account settings (`/pending` page) |
@@ -96,6 +96,11 @@ Event roles (`event_members.role`): `leader` ("Leitung") and `staff` ("Mitarbeit
 manage the event (participants, program, rooms, staff, groups, budget, expense review, stats,
 audit log); staff see everything operational (incl. participants' medical info), add participant
 notes, create tasks/notes, upload documents and submit expenses.
+
+Documents (org library and event documents) also have access lists per folder or file, like
+Nextcloud Team folders: org documents are Kernteam-only until opened to all members, org groups or
+single people; event documents are open to the whole team until the Leitung restricts a folder to
+itself, event groups or single people. Kernteam (org) and Leitung (event) always have full access.
 
 The server is the authority: `server/lib/api/utils/permissions.ts` (`PermissionHelper`) holds both
 permission matrices; `GET /events/{eventId}` returns the caller's `permissions` so the UI can hide
