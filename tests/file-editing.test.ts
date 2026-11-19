@@ -8,6 +8,7 @@ import { Awareness, encodeAwarenessUpdate } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { Collab } from "../server/lib/api/utils/collab";
 import { CollabSessions } from "../server/lib/api/utils/collabSessions";
+import { FileService } from "../server/lib/api/utils/fileService";
 import { FileVersions } from "../server/lib/api/utils/fileVersions";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
@@ -160,6 +161,15 @@ describe("Markdown documents", () => {
 			{ method: "POST", authToken: reader.token, body: { name: "Nope", parent_id: folderId } },
 			403,
 		);
+
+		// A long name is shortened, not its extension.
+		const long = await makeAPIRequest(
+			"/v1/org/documents/markdown",
+			{ method: "POST", authToken: anna.token, body: { name: "x".repeat(200), parent_id: folderId } },
+			201,
+		);
+		expect(long.name).toEndWith(".md");
+		expect(long.name).toHaveLength(FileService.MAX_NAME_LENGTH);
 	});
 });
 
@@ -334,6 +344,109 @@ describe("Shared editing", () => {
 		await writer.leave();
 		await lagging.leave();
 	}, 60_000);
+
+	test("only a tab's own person makes it leave; leaving hands on filling the document", async () => {
+		const doc = await makeAPIRequest(
+			"/v1/org/documents/markdown",
+			{ method: "POST", authToken: anna.token, body: { name: "Übergabe", parent_id: folderId } },
+			201,
+		);
+		const first = new Tab(anna.token, doc.id);
+		const second = new Tab(ben.token, doc.id);
+		expect((await first.sync()).initialize).toBe(true);
+		expect((await second.sync()).initialize).toBe(false);
+
+		// Ben can't make Anna's tab leave.
+		await makeAPIRequest(`/v1/files/${doc.id}/collab`, {
+			method: "POST",
+			authToken: ben.token,
+			body: { client_id: first.doc.clientID, after: null, leave: true },
+		});
+		const stillThere = await second.sync();
+		expect(stillThere.participants.map((entry: any) => entry.client_id)).toContain(
+			first.doc.clientID,
+		);
+
+		// Anna leaves before filling it: Ben's tab is told to.
+		await first.leave();
+		const handedOn = await second.sync();
+		expect(handedOn.initialize).toBe(true);
+		await second.type("# Übergabe\n\n", { init: true });
+		await second.save();
+		await second.leave();
+	}, 30_000);
+
+	test("a tab that was away while its session ended starts over", async () => {
+		const doc = await makeAPIRequest(
+			"/v1/org/documents/markdown",
+			{ method: "POST", authToken: anna.token, body: { name: "Unterwegs", parent_id: folderId } },
+			201,
+		);
+		const away = new Tab(anna.token, doc.id);
+		const joined = await away.sync();
+		await away.type("Text", { init: true });
+		await away.save();
+		const epoch = joined.epoch;
+
+		// The server dropped the quiet tab; someone else came and left fully saved, which ended the
+		// session; then a new one started.
+		CollabSessions.clear();
+		const other = new Tab(ben.token, doc.id);
+		await other.sync();
+		await other.leave();
+		expect(collabRow(doc.id)).toBeUndefined();
+		const fresh = new Tab(ben.token, doc.id);
+		const started = await fresh.sync();
+		expect(started.epoch).not.toBe(epoch);
+		await fresh.type(" und mehr", { init: true });
+
+		// Same `seq` as before, but another document: nothing of it is taken.
+		expect(away.seq).toBe(collabRow(doc.id)?.seq ?? -1);
+		const before = Y.encodeStateVector(away.doc);
+		away.doc.getText("body").insert(0, "weg ");
+		const reset = await away.sync({
+			epoch,
+			updates: [b64(Y.encodeStateAsUpdate(away.doc, before))],
+		});
+		expect(reset).toMatchObject({ reset: true, state: null, updates: [] });
+		expect(collabRow(doc.id)?.seq).toBe(1);
+		await makeAPIRequest(
+			`/v1/files/${doc.id}/collab/content`,
+			{
+				method: "PUT",
+				authToken: anna.token,
+				body: { client_id: away.doc.clientID, seq: 1, epoch, content: "weg" },
+			},
+			409,
+		);
+		// Without an epoch: a `seq` beyond the document's tells too.
+		expect((await new Tab(anna.token, doc.id).sync({ after: 50 })).reset).toBe(true);
+
+		await fresh.save();
+		await fresh.leave();
+	}, 30_000);
+
+	test("a folder can't be deleted while a document in it is being edited", async () => {
+		const running = await makeAPIRequest(
+			"/v1/org/documents/folders",
+			{ method: "POST", authToken: core.token, body: { name: "Laufend", parent_id: folderId } },
+			201,
+		);
+		const doc = await makeAPIRequest(
+			"/v1/org/documents/markdown",
+			{ method: "POST", authToken: anna.token, body: { name: "Offen", parent_id: running.id } },
+			201,
+		);
+		const tab = new Tab(anna.token, doc.id);
+		await tab.sync();
+		await tab.type("x", { init: true });
+		await makeAPIRequest(`/v1/files/${running.id}`, { method: "DELETE", authToken: core.token }, 409);
+		await makeAPIRequest(`/v1/files/${folderId}`, { method: "DELETE", authToken: core.token }, 409);
+
+		await tab.save();
+		await tab.leave();
+		await makeAPIRequest(`/v1/files/${running.id}`, { method: "DELETE", authToken: core.token });
+	}, 30_000);
 });
 
 describe("Versions", () => {
@@ -385,7 +498,7 @@ describe("Versions", () => {
 		expect(await text(docId, reader.token)).toBe(two.value);
 		await one.leave();
 		await two.leave();
-	});
+	}, 30_000);
 
 	test("restoring makes an old version current and keeps the current one", async () => {
 		const versions = await makeAPIRequest(`/v1/files/${docId}/versions`, { authToken: reader.token });

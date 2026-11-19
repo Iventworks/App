@@ -19,8 +19,10 @@ type WopiEnv = {
  * The WOPI host for the office server (Euro-Office; MS-WOPI): CheckFileInfo, GetFile, PutFile and
  * the lock operations. The office server calls these on the org's public address
  * (`<org url>/api/v1/wopi/files/{id}?access_token=…`), so the org comes from the host as for
- * every request. Every call needs a valid access token (`OfficeTokens`, checked again each time)
- * and — when the discovery has proof keys — a valid proof (`WopiProof`).
+ * every request. Every call needs a valid proof (`WopiProof`, the office server's signature; no
+ * proof keys in the discovery → every call is refused) and a valid access token (`OfficeTokens`,
+ * checked again each time). A proof that doesn't match reloads the discovery once a minute at
+ * most, so new keys after an office update are picked up.
  *
  * WOPI defines its own responses (raw JSON, bytes, status codes, `X-WOPI-*` headers), so these
  * routes don't use the API envelope and aren't in the OpenAPI spec.
@@ -42,20 +44,30 @@ router.use("/files/:fileId/*", async (c, next) => {
 	if (!Number.isInteger(fileId) || fileId <= 0) return c.body(null, 404);
 
 	const accessToken = c.req.query("access_token") ?? "";
+	// Every call must be signed by the office server. Without its keys (no discovery, or one
+	// without a proof key) nothing gets through: a token alone isn't enough.
+	const check = (discovery: OfficeDiscovery.Discovery | null) =>
+		Boolean(
+			discovery?.proofKey &&
+				WopiProof.check({
+					accessToken,
+					url: calledUrl(c),
+					timestamp: c.req.header("X-WOPI-TimeStamp"),
+					proof: c.req.header("X-WOPI-Proof"),
+					proofOld: c.req.header("X-WOPI-ProofOld"),
+					current: discovery.proofKey,
+					old: discovery.oldProofKey,
+				}),
+		);
 	const discovery = await OfficeDiscovery.get();
-	if (discovery?.proofKey) {
-		const genuine = WopiProof.check({
-			accessToken,
-			url: calledUrl(c),
-			timestamp: c.req.header("X-WOPI-TimeStamp"),
-			proof: c.req.header("X-WOPI-Proof"),
-			proofOld: c.req.header("X-WOPI-ProofOld"),
-			current: discovery.proofKey,
-			old: discovery.oldProofKey,
-		});
-		// MS-WOPI: an invalid proof is answered with 500.
-		if (!genuine) return c.body(null, 500);
+	let genuine = check(discovery);
+	if (!genuine) {
+		// The office server may have new keys (after an update): fetch them (rate limited).
+		const fresh = await OfficeDiscovery.reload();
+		if (fresh !== discovery) genuine = check(fresh);
 	}
+	// MS-WOPI: an invalid proof is answered with 500.
+	if (!genuine) return c.body(null, 500);
 
 	const resolved = await OfficeTokens.resolve(accessToken, fileId);
 	if (!resolved) return c.body(null, 401);

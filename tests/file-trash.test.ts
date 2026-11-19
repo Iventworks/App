@@ -144,11 +144,25 @@ describe("Papierkorb", () => {
 		const deep = await upload(anna.token, "tief.txt", sub.id);
 		await remove(anna.token, deep.id);
 		await remove(anna.token, sub.id);
+
+		// Its folder is in the Papierkorb too: only the Leitung restores it, and only for itself
+		// (at the top level it would get the whole team's access, not the folder's).
+		const annasTrash = await makeAPIRequest(`${base}/trash`, { authToken: anna.token });
+		const entry = annasTrash.find((item: any) => item.id === deep.id);
+		expect(entry).toMatchObject({ folder_in_trash: true, can_restore: false });
+		await makeAPIRequest(
+			`${base}/trash/${deep.id}/restore`,
+			{ method: "POST", authToken: anna.token },
+			409,
+		);
 		const back = await makeAPIRequest(`${base}/trash/${deep.id}/restore`, {
 			method: "POST",
 			authToken: leader.token,
 		});
 		expect(back.parent_id).toBeNull();
+		expect(back.custom_access).toBe(true);
+		await makeAPIRequest(`/v1/files/${deep.id}`, { authToken: anna.token }, 403);
+		await makeAPIRequest(`/v1/files/${deep.id}`, { authToken: leader.token });
 	});
 
 	test("only the Leitung deletes for good or empties it", async () => {
@@ -219,6 +233,16 @@ describe("Papierkorb", () => {
 		expect(program[0].files).toEqual([]);
 
 		const core = await seedSession((await seedUser("core_team")).id);
+		// What is inside a deleted folder is neither counted nor copied.
+		const before = await makeAPIRequest(`/v1/events/${eventId}/copy`, { authToken: core.token });
+		const old = await folder(leader.token, "Altes Lager");
+		await upload(leader.token, "drin.txt", old.id);
+		await remove(leader.token, old.id);
+		const summary = await makeAPIRequest(`/v1/events/${eventId}/copy`, { authToken: core.token });
+		expect(before.documents).toBeGreaterThan(0);
+		expect(summary.documents).toBe(before.documents);
+		expect(summary.documents_size).toBe(before.documents_size);
+
 		const copy = await makeAPIRequest(
 			`/v1/events/${eventId}/copy`,
 			{

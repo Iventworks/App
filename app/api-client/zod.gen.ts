@@ -4598,6 +4598,7 @@ export const zPutFilesByFileIdResponse = z.object({
 export const zPostFilesByFileIdCollabBody = z.object({
     client_id: z.int().gte(0).lte(4294967296),
     after: z.int().gte(0).lte(9007199254740991).nullable(),
+    epoch: z.int().gte(0).lte(9007199254740991).nullish(),
     updates: z.array(z.string().max(1500000)).max(50).optional().default([]),
     init: z.boolean().optional().default(false),
     awareness: z.string().max(12000).nullish(),
@@ -4616,6 +4617,8 @@ export const zPostFilesByFileIdCollabResponse = z.object({
     code: z.literal(200),
     message: z.literal('Document synced successfully (no data after `leave`)'),
     data: z.object({
+        epoch: z.number(),
+        reset: z.boolean(),
         seq: z.number(),
         saved_seq: z.number(),
         state: z.string().nullable(),
@@ -4643,6 +4646,7 @@ export const zPostFilesByFileIdCollabResponse = z.object({
 export const zPutFilesByFileIdCollabContentBody = z.object({
     client_id: z.int().gte(0).lte(4294967296),
     seq: z.int().gt(0).lte(9007199254740991),
+    epoch: z.int().gte(0).lte(9007199254740991).nullish(),
     content: z.string().max(500000)
 });
 
@@ -9226,6 +9230,7 @@ export const zGetEventsByEventIdFilesTrashResponse = z.object({
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),
+        folder_in_trash: z.boolean(),
         can_restore: z.boolean(),
         can_purge: z.boolean()
     }))
@@ -11494,6 +11499,7 @@ export const zGetOrgDocumentsTrashResponse = z.object({
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),
+        folder_in_trash: z.boolean(),
         can_restore: z.boolean(),
         can_purge: z.boolean()
     }))

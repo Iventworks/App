@@ -72,9 +72,11 @@ export namespace FileVersions {
 		options: { session?: boolean } = {},
 	) {
 		const now = Date.now();
-		const { row, dropOld } = DB.instance().transaction((tx) => {
-			const keep = shouldKeep(tx, file, userId, now, options.session);
-			if (keep) archive(tx, file, now);
+		const { row, dropKey } = DB.instance().transaction((tx) => {
+			// The row as it is now: another replace may have finished since the caller loaded it.
+			const current = currentRow(tx, file.id);
+			const keep = shouldKeep(tx, current, userId, now, options.session);
+			if (keep) archive(tx, current, now);
 			const updated = tx
 				.update(DB.Tables.files)
 				.set({
@@ -87,10 +89,20 @@ export namespace FileVersions {
 				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
 				.returning()
 				.get();
-			return { row: updated, dropOld: !keep };
+			return { row: updated, dropKey: keep ? null : current.storage_key };
 		});
-		if (dropOld) await FileStorage.remove([file.storage_key]);
+		if (dropKey) await FileStorage.remove([dropKey]);
 		return row as DB.Models.File;
+	}
+
+	function currentRow(tx: DrizzleDB.Sync, fileId: number) {
+		const row = tx
+			.select()
+			.from(DB.Tables.files)
+			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, fileId)))
+			.get();
+		if (!row) throw new Error(`File ${fileId} no longer exists`);
+		return row;
 	}
 
 	export async function list(fileId: number) {
@@ -120,12 +132,18 @@ export namespace FileVersions {
 
 	/**
 	 * Make `version` the current contents again; the current contents become a version (always
-	 * kept, so a restore can be undone).
+	 * kept, so a restore can be undone). Null when the version is gone meanwhile.
 	 */
 	export function restore(file: DB.Models.File, version: DB.Models.FileVersion, userId: number) {
 		const now = Date.now();
 		return DB.instance().transaction((tx) => {
-			archive(tx, file, now);
+			const stillThere = tx
+				.select({ id: DB.Tables.fileVersions.id })
+				.from(DB.Tables.fileVersions)
+				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
+				.get();
+			if (!stillThere) return null;
+			archive(tx, currentRow(tx, file.id), now);
 			const updated = tx
 				.update(DB.Tables.files)
 				.set({

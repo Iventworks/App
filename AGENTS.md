@@ -168,7 +168,11 @@ CMP (Crossover Management Portal) before; the repository still is.
   `FileAccess.evaluateFile` gives nothing, share links stop, program attachments and event copies
   leave them out. Managers (Kernteam / Leitung) see and restore everything and delete for good,
   everyone else sees and restores what they deleted (`…/trash` on both libraries). Restoring goes
-  back into the folder — the top level when it is gone or in the Papierkorb too. Housekeeping
+  back into the folder. When that folder is in the Papierkorb too, only managers restore the item:
+  to the top level, with an access list of its own that lets only them in (the top level's access
+  would differ from what it had); everyone else gets 409 (`folder_in_trash` in the listing).
+  Deleting a folder is refused while a file inside is being edited (`FileLocks.blockingWithin`),
+  also through share links. Event copies leave out what is below a folder in it. Housekeeping
   deletes after 30 days (rows below go by `ON DELETE CASCADE`, blobs with the orphan sweep). A new
   query on `files` for documents must skip `deleted_at` (and what is below it).
 - **Shared editing of Markdown documents** (like Nextcloud Text; `Collab` in
@@ -178,8 +182,11 @@ CMP (Crossover Management Portal) before; the repository still is.
   `{ type: "document" }` (the rule above holds: no data over the socket). Stored as a merged base
   plus updates (`file_collab`, `file_collab_updates`, compacted after 200); who is in a session and
   their cursors live in memory (`CollabSessions`, one server, like the realtime hub). The first tab
-  of a fresh session fills the document from the file (`initialize`, a 15 s claim); the others
-  wait. The browsers write the Markdown back (`PUT …/collab/content` with the `seq` it reflects;
+  of a fresh session fills the document from the file (`initialize`, a 15 s claim — it may come
+  with any response, e.g. when the tab that had it left; leaving hands it on); the others wait.
+  Each document has a random `epoch`: a tab that was away while its session ended (and maybe a
+  new one started) is told to `reset` — its document can't be merged into the new one — and the
+  editor offers to open it again. Only a tab's own person can make it leave. The browsers write the Markdown back (`PUT …/collab/content` with the `seq` it reflects;
   only newer texts, one save at a time per file) — the author soon after typing, anyone after a
   while for changes nobody saved. While anyone is in a session, the file is locked
   (`file_locks`, kind `editor`, renewed with every request, two minutes): no uploads, restores or
@@ -197,9 +204,11 @@ CMP (Crossover Management Portal) before; the repository still is.
   blocking private addresses against SSRF). Deviations, all deliberate:
   - WOPI routes answer in WOPI's own format (raw JSON, bytes, status codes, `X-WOPI-*` headers),
     not the API envelope, and are not in the OpenAPI spec.
-  - Every call checks the proof signature (`WopiProof`, keys from the discovery; invalid → 500 as
-    MS-WOPI says) and the token again: session, person, file (not in the Papierkorb), current
-    rights (`OfficeTokens.resolve`).
+  - Every call needs the proof signature (`WopiProof`, keys from the discovery; invalid → 500 as
+    MS-WOPI says; no proof keys or no discovery → every call is refused, never token-only; a
+    mismatch reloads the discovery at most once a minute, so new keys are picked up) and the
+    token again: session, person, file (not in the Papierkorb), current rights
+    (`OfficeTokens.resolve`).
   - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
     large as uploads (`RequestLimits.limitFor`, path-based).
   - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
@@ -240,12 +249,20 @@ CMP (Crossover Management Portal) before; the repository still is.
     Entries name `members` / `org_group` / `user` (org) or `team` / `event_group` / a team
     member (event); managers are never listed. No deny rules.
   - An item is only visible when every folder above it can be read; an upload-only folder shows,
-    its contents don't. Items with their own list are renamed, moved or deleted by managers only.
+    its contents don't. Items with their own list are renamed, moved or deleted by managers only,
+    and so are folders that hold one (`FileAccess.hasCustomAccessBelow`, outside the Papierkorb).
     Own uploads may be renamed, moved, replaced and deleted while you may still upload there.
+  - Folders nest at most `FileService.MAX_DEPTH` (30) deep — creating and moving check it.
+    `FileService.getPath` throws on a longer chain rather than return part of it: the access walk
+    must see every list above an item.
   - Every file route checks the caller's `permissions` (loaded in the `/files/{fileId}` loader;
     listings carry them per item, managers also get `access`). Moving needs `delete` on the item
     and upload rights on the target. Program items only show attachments the caller can open and
-    only link what the caller can open (`FileAccess.readableIds`).
+    only link what the caller can open (`FileAccess.readableIds`); an edit keeps the links the
+    caller can't see.
+  - Receipts follow their expense, not access lists: the submitter and `expenses:review` read them;
+    reviewers rename or delete them any time, the submitter while the expense is `submitted`; their
+    contents are only replaced through `…/expenses/{id}/receipt` (never `PUT /files/{id}/content`).
   - Pages: `/documents` is the member view (`view=member`: the Kernteam sees it like a member),
     `/core-team/documents` manages the library (access, links, Kernteam-only items). Event
     documents are one page; the Leitung sees the access controls there.

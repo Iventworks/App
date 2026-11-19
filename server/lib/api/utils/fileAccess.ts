@@ -31,13 +31,16 @@ const FULL: FileAccess.Permissions = {
  *   whole team (read + upload, `files:view` / `files:upload`).
  * - An item is only visible when every folder above it can be opened (read). A folder you may
  *   only upload into ("Nur hochladen") shows up, its contents don't.
- * - An item with its own access list is only renamed, moved or deleted by managers.
+ * - An item with its own access list is only renamed, moved or deleted by managers — and so is a
+ *   folder that holds one (`hasCustomAccessBelow`).
  * - Own uploads may be renamed, moved, replaced and deleted while you may still add things where
  *   they are.
  *
- * `receipt` files: the expense's submitter or `expenses:review` in that event. `message` files
- * (chat attachments): everyone in the chat may read them; before they are sent only the uploader.
- * They are never written through the file routes.
+ * `receipt` files: read by the expense's submitter and `expenses:review` in that event; renamed or
+ * deleted like the expense is changed (reviewers, the submitter while it is `submitted`); their
+ * contents are only replaced through the expense. `message` files (chat attachments): everyone in
+ * the chat may read them; before they are sent only the uploader. They are never written through
+ * the file routes.
  */
 export class FileAccess {
 	// --- the caller in a library --------------------------------------------------------------
@@ -307,23 +310,30 @@ export class FileAccess {
 
 	/**
 	 * Load the folder chain of `file` and evaluate it. Nothing is allowed on items in the
-	 * Papierkorb (or below a folder in it) — that goes through `FileTrash`.
+	 * Papierkorb (or below a folder in it) — that goes through `FileTrash`. `path`: the chain
+	 * (root → file), when the caller loaded it already.
 	 */
-	static async evaluateFile(viewer: FileAccess.Viewer, file: DB.Models.File) {
+	static async evaluateFile(
+		viewer: FileAccess.Viewer,
+		file: DB.Models.File,
+		path?: readonly DB.Models.File[],
+	) {
 		if (!viewer.inLibrary) return NONE;
-		const path = await FileService.getPath(file.id);
-		if (FileService.isTrashed(path)) return NONE;
+		const chain = path ?? (await FileService.getPath(file.id));
+		if (FileService.isTrashed(chain)) return NONE;
 		if (viewer.manager) return FULL;
-		return FileAccess.evaluate(viewer, path, await FileAccess.loadEntries(path));
+		return FileAccess.evaluate(viewer, chain, await FileAccess.loadEntries(chain));
 	}
 
 	/**
-	 * What the caller may do with `file`. Org and event documents follow their access lists;
-	 * receipts and chat attachments have fixed rules.
+	 * What the caller may do with `file`. Org and event documents follow their access lists
+	 * (`path`: their chain root → file, when loaded already); receipts and chat attachments have
+	 * fixed rules.
 	 */
 	static async permissionsFor(
 		authContext: AuthHandler.AuthContext,
 		file: DB.Models.File,
+		path?: readonly DB.Models.File[],
 	): Promise<FileAccess.Permissions> {
 		if (authContext.type === "unauthenticated") return NONE;
 
@@ -332,12 +342,18 @@ export class FileAccess {
 			case "event": {
 				if (file.scope === "event" && file.event_id === null) return NONE;
 				const viewer = await FileAccess.viewer(authContext, FileService.locationOf(file));
-				return viewer ? await FileAccess.evaluateFile(viewer, file) : NONE;
+				return viewer ? await FileAccess.evaluateFile(viewer, file, path) : NONE;
 			}
 			case "receipt":
-				return (await FileAccess.canAccessReceipt(authContext, file))
-					? { read: true, upload: false, edit: true, delete: true, rename: true, manage: false }
-					: NONE;
+				// Its contents are only replaced through the expense (`…/expenses/{id}/receipt`).
+				switch (await FileAccess.receiptAccess(authContext, file)) {
+					case "modify":
+						return { ...NONE, read: true, delete: true, rename: true };
+					case "read":
+						return { ...NONE, read: true };
+					default:
+						return NONE;
+				}
 			case "message":
 				return (await FileAccess.canReadAttachment(authContext, file)) ? { ...NONE, read: true } : NONE;
 			default:
@@ -355,10 +371,18 @@ export class FileAccess {
 		files: readonly DB.Models.File[],
 		options: { eventAccess?: PermissionHelper.EventAccess & { eventId: number } } = {},
 	): Promise<Set<number>> {
+		const documents = files.filter((file) => file.scope === "org" || file.scope === "event");
+		// Shared folders are loaded once, their access lists in one query.
+		const rows = new Map<number, DB.Models.File>();
+		const paths = new Map<number, DB.Models.File[]>();
+		for (const file of documents) {
+			if (!paths.has(file.id)) paths.set(file.id, await FileService.getPath(file.id, undefined, rows));
+		}
+		const entries = await FileAccess.loadEntries([...rows.values()]);
+
 		const readable = new Set<number>();
 		const viewers = new Map<string, FileAccess.Viewer | null>();
-		for (const file of files) {
-			if (file.scope !== "org" && file.scope !== "event") continue;
+		for (const file of documents) {
 			const location = FileService.locationOf(file);
 			const key = `${location.scope}:${location.eventId ?? ""}`;
 			if (!viewers.has(key)) {
@@ -369,9 +393,21 @@ export class FileAccess {
 				viewers.set(key, await FileAccess.viewer(authContext, location, { eventAccess }));
 			}
 			const viewer = viewers.get(key);
-			if (viewer && (await FileAccess.evaluateFile(viewer, file)).read) readable.add(file.id);
+			const path = paths.get(file.id) ?? [];
+			if (!viewer?.inLibrary || FileService.isTrashed(path)) continue;
+			if (viewer.manager || FileAccess.evaluate(viewer, path, entries).read) readable.add(file.id);
 		}
 		return readable;
+	}
+
+	/**
+	 * Whether a folder holds items with their own access list (not counting the Papierkorb). Only
+	 * managers delete or move those, so only they delete or move such a folder.
+	 */
+	static async hasCustomAccessBelow(file: DB.Models.File) {
+		if (file.kind !== "folder") return false;
+		const levels = await FileService.descendantLevels(file.id, { skipTrashed: true });
+		return levels.some((level) => level.some((entry) => entry.custom_access));
 	}
 
 	// --- fixed rules ----------------------------------------------------------------------------
@@ -394,11 +430,15 @@ export class FileAccess {
 		);
 	}
 
-	protected static async canAccessReceipt(
+	/**
+	 * A receipt, like its expense: reviewers may change it any time, the submitter only while the
+	 * expense is still `submitted` (afterwards they can still open it).
+	 */
+	protected static async receiptAccess(
 		authContext: AuthHandler.AuthenticatedAuthContext,
 		file: DB.Models.File,
-	) {
-		if (!PermissionHelper.hasOrgRole(authContext.user_role, "volunteer")) return false;
+	): Promise<"none" | "read" | "modify"> {
+		if (!PermissionHelper.hasOrgRole(authContext.user_role, "volunteer")) return "none";
 
 		const expense = await DB.instance()
 			.select()
@@ -407,11 +447,15 @@ export class FileAccess {
 			.get();
 
 		const eventId = expense?.event_id ?? file.event_id;
-		if (expense && expense.submitted_by === authContext.user_id) return true;
-		if (eventId === null) return false;
+		const access = eventId !== null ? await EventAccess.resolve(authContext, eventId) : null;
+		const can = (permission: PermissionHelper.EventPermission) =>
+			access !== null && PermissionHelper.canInEvent({ access, permission });
 
-		const access = await EventAccess.resolve(authContext, eventId);
-		return PermissionHelper.canInEvent({ access, permission: "expenses:review" });
+		if (can("expenses:review")) return "modify";
+		if (expense && expense.submitted_by === authContext.user_id) {
+			return expense.status === "submitted" && can("expenses:submit") ? "modify" : "read";
+		}
+		return "none";
 	}
 }
 

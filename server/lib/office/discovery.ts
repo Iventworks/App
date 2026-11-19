@@ -29,7 +29,7 @@ export namespace OfficeDiscovery {
 		oldProofKey: ProofKey | null;
 	}
 
-	let cache: { discovery: Discovery | null; until: number } | null = null;
+	let cache: { discovery: Discovery | null; fetchedAt: number; until: number } | null = null;
 	let loading: Promise<Discovery | null> | null = null;
 	let override: Discovery | null = null;
 
@@ -110,8 +110,11 @@ export namespace OfficeDiscovery {
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
 			const discovery = parse(await response.text());
 			if (discovery.actions.length === 0) throw new Error("no actions (is WOPI_ENABLED=true set?)");
-			if (!discovery.proofKey)
-				Logger.warn("Office discovery has no proof key: WOPI calls are only checked by token");
+			if (!discovery.proofKey) {
+				Logger.error(
+					"Office discovery has no proof key: WOPI calls are refused. Run the office server with WOPI_ENABLED=true.",
+				);
+			}
 			return discovery;
 		} catch (error: any) {
 			Logger.error(`Office discovery from ${base} failed:`, error?.message ?? error);
@@ -124,11 +127,26 @@ export namespace OfficeDiscovery {
 		if (override) return override;
 		if (!enabled()) return null;
 		if (cache && cache.until > now) return cache.discovery;
+		return await load(now);
+	}
+
+	/**
+	 * Fetch the discovery again, e.g. when a proof didn't match: the office server may have new
+	 * keys (after an update). At most once per `RETRY_MS`; otherwise the cached one.
+	 */
+	export async function reload(now = Date.now()): Promise<Discovery | null> {
+		if (override) return override;
+		if (!enabled()) return null;
+		if (cache && now - cache.fetchedAt < RETRY_MS) return cache.discovery;
+		return await load(now);
+	}
+
+	async function load(now: number) {
 		loading ??= fetchDiscovery().finally(() => {
 			loading = null;
 		});
 		const discovery = await loading;
-		cache = { discovery, until: now + (discovery ? TTL_MS : RETRY_MS) };
+		cache = { discovery, fetchedAt: now, until: now + (discovery ? TTL_MS : RETRY_MS) };
 		return discovery;
 	}
 

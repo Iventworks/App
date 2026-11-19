@@ -759,6 +759,8 @@ export const fileVersions = sqliteTable(
  * update, `saved_seq` the newest one written back into the file. While nothing was sent yet
  * (`seq = 0`), one client (`init_client`, until `init_until`) fills the document from the file.
  * Discarded when the contents change any other way, and once a session ends fully saved.
+ * `epoch` (random) tells this document apart from a later one of the same file: a tab that still
+ * holds the discarded one has to start over.
  * @deprecated Use DB.Tables.fileCollab to access this table.
  */
 export const fileCollab = sqliteTable(
@@ -774,6 +776,7 @@ export const fileCollab = sqliteTable(
 		saved_seq: integer().notNull().default(0),
 		init_client: integer(),
 		init_until: integer().notNull().default(0),
+		epoch: integer().notNull().default(0),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
 	},
 	(table) => [index("file_collab_org_id_idx").on(table.org_id)],

@@ -2,12 +2,14 @@ import { and, eq, gt, inArray } from "drizzle-orm";
 import { DB } from "../../db";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { CollabSessions } from "./collabSessions";
+import { FileService } from "./fileService";
 
 /**
  * Who is editing a file right now (`file_locks`): a shared Markdown editing session (`editor`,
- * held for everyone in it, see `Collab`) or, later, the office server. A lock expires unless it
+ * held for everyone in it, see `Collab`) or the office server while someone edits there
+ * (`office`, WOPI locks). A lock expires unless it
  * is renewed; while it holds, nobody may replace the contents, restore a version or delete the
- * file.
+ * file or a folder above it.
  */
 export namespace FileLocks {
 	/** Renewed with every request of the session; a session that went quiet frees the file after this. */
@@ -198,6 +200,20 @@ export namespace FileLocks {
 	/** The lock that keeps anyone from changing the file's contents from outside its session. */
 	export async function blocking(fileId: number, now = Date.now()) {
 		return await current(fileId, now);
+	}
+
+	/**
+	 * Someone is editing `file` or, for a folder, a file inside it (outside the Papierkorb):
+	 * deleting it would end their editing.
+	 */
+	export async function blockingWithin(file: DB.Models.File, now = Date.now()) {
+		if (file.kind !== "folder") return Boolean(await blocking(file.id, now));
+		const levels = await FileService.descendantLevels(file.id, { skipTrashed: true });
+		const fileIds = levels
+			.flat()
+			.filter((entry) => entry.kind === "file")
+			.map((entry) => entry.id);
+		return (await forFiles(fileIds, now)).size > 0;
 	}
 
 	export interface Editing {

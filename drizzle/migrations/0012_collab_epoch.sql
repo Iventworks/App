@@ -1,0 +1,1 @@
+ALTER TABLE `file_collab` ADD `epoch` integer DEFAULT 0 NOT NULL;

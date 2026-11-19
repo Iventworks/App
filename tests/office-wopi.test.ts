@@ -290,6 +290,18 @@ describe("WOPI calls", () => {
 		expect((await wopi(other.id, token)).status).toBe(401);
 	});
 
+	test("without the office server's proof keys every call is refused", async () => {
+		const token = tokenOf(await open(staff.token));
+		OfficeDiscovery.setForTests({ ...discovery(), proofKey: null });
+		try {
+			expect((await wopi(docId, token)).status).toBe(500);
+			expect((await wopi(docId, token, { suffix: "/contents" })).status).toBe(500);
+		} finally {
+			OfficeDiscovery.setForTests(discovery());
+		}
+		expect((await wopi(docId, token)).status).toBe(200);
+	});
+
 	test("GetFile returns the bytes", async () => {
 		const res = await wopi(docId, tokenOf(await open(staff.token)), { suffix: "/contents" });
 		expect(res.status).toBe(200);

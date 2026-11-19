@@ -135,7 +135,9 @@ router.post(
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.created("Folder created successfully", OrgDocumentsModel.CreateFolder.Response),
-			APIResponseSpec.badRequest("Parent folder not found / Syntax or validation error in request"),
+			APIResponseSpec.badRequest(
+				`Parent folder not found / ${FileService.TOO_DEEP} / Syntax or validation error in request`,
+			),
 			APIResponseSpec.forbidden("You are not allowed to add documents here"),
 		),
 	}),
@@ -154,6 +156,10 @@ router.post(
 			return target.status === 400
 				? APIResponse.badRequest(c, target.message)
 				: APIResponse.forbidden(c, target.message);
+		}
+
+		if (!(await FileService.fitsDepth(target.parentId))) {
+			return APIResponse.badRequest(c, FileService.TOO_DEEP);
 		}
 
 		const folder = await FileService.createFolder(
@@ -273,12 +279,15 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Restore from Papierkorb",
 		description:
-			"Put a deleted document or folder back into its folder — or the top level when that folder is gone. Managers restore everything, others what they deleted.",
+			"Put a deleted document or folder back into its folder. When that folder is in the Papierkorb too, managers restore it to the top level with an access list of its own that lets only them in; others restore the folder first. Managers restore everything, others what they deleted.",
 		tags: [DOCS_TAGS.ORG.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("Restored successfully", OrgDocumentsModel.Trash.Item),
 			APIResponseSpec.notFound("Not in the Papierkorb"),
+			APIResponseSpec.conflict(
+				"The folder it was in is in the Papierkorb too: restore the folder first",
+			),
 		),
 	}),
 
@@ -289,7 +298,11 @@ router.post(
 		if (!viewer) return APIResponse.notFound(c, "Not in the Papierkorb");
 		const { fileId } = c.req.valid("param") as OrgDocumentsModel.Trash.Params;
 		const result = await FileTrash.restore(viewer, fileId);
-		if (!result.ok) return APIResponse.notFound(c, result.message);
+		if (!result.ok) {
+			return result.status === 409
+				? APIResponse.conflict(c, result.message)
+				: APIResponse.notFound(c, result.message);
+		}
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),

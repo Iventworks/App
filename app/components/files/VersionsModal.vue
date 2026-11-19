@@ -144,7 +144,9 @@ async function restore(version: Version) {
 				Noch keine früheren Versionen. Sobald jemand die Datei ändert, findest du die alte Fassung hier.
 			</p>
 
-			<p class="text-xs text-slate-500">Versionen bleiben 30 Tage erhalten, die zehn neuesten länger.</p>
+			<p class="text-xs text-slate-500">
+				Versionen bleiben 30 Tage erhalten, die zehn neuesten länger – höchstens 50 pro Datei.
+			</p>
 		</div>
 	</DashboardModal>
 </template>

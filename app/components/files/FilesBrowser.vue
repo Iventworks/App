@@ -447,7 +447,11 @@ async function onDropOnFolder(targetId: number | null) {
 		});
 		await refresh();
 	} else {
-		toast.add({ title: "Verschieben fehlgeschlagen", description: result.message, color: "error" });
+		toast.add({
+			title: "Verschieben fehlgeschlagen",
+			description: fileErrorText(result.message, props.scope),
+			color: "error",
+		});
 	}
 }
 
@@ -466,7 +470,11 @@ async function confirmDelete() {
 	if (!target) return;
 	const result = await useAPI((api) => api.deleteFilesByFileId({ path: { fileId: target.id } }));
 	if (!result.success) {
-		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
+		toast.add({
+			title: "Löschen fehlgeschlagen",
+			description: fileErrorText(result.message, props.scope),
+			color: "error",
+		});
 		throw new Error(result.message);
 	}
 	const trash = props.trash;

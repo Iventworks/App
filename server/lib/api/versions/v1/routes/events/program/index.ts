@@ -99,6 +99,32 @@ async function replaceResponsibles(programItemId: number, userIds: number[], tx:
 	}
 }
 
+/**
+ * Linked documents the caller can't see (restricted, Kernteam-only, in the Papierkorb): an edit
+ * sends only what it saw, so these are kept rather than dropped.
+ */
+async function hiddenFileIds(c: Context<ProgramEnv>, programItemId: number) {
+	const linked = await DB.instance()
+		.select({ file: DB.Tables.files })
+		.from(DB.Tables.programItemFiles)
+		.innerJoin(
+			DB.Tables.files,
+			and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, DB.Tables.programItemFiles.file_id)),
+		)
+		.where(
+			and(
+				inOrg(DB.Tables.programItemFiles),
+				eq(DB.Tables.programItemFiles.program_item_id, programItemId),
+			),
+		)
+		.all();
+	const files = linked.map((row) => row.file);
+	const readable = await FileAccess.readableIds(AuthHandler.AuthContext.get(c), files, {
+		eventAccess: { ...c.get("eventAccess"), eventId: c.get("event").id },
+	});
+	return files.filter((file) => !readable.has(file.id)).map((file) => file.id);
+}
+
 async function replaceFiles(programItemId: number, fileIds: number[], tx: DrizzleDB) {
 	await tx
 		.delete(DB.Tables.programItemFiles)
@@ -369,7 +395,7 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Update program item",
 		description:
-			"Update a Programmpunkt. Drag & drop in the week view sends only `start_at`/`end_at`. `responsible_user_ids` and `file_ids`, when given, replace the current sets.",
+			"Update a Programmpunkt. Drag & drop in the week view sends only `start_at`/`end_at`. `responsible_user_ids` and `file_ids`, when given, replace the current sets — linked documents the caller can't see stay linked.",
 		tags: [DOCS_TAGS.EVENTS.PROGRAM],
 
 		responses: APIResponseSpec.describeBasic(
@@ -404,6 +430,7 @@ router.put(
 		if (refError) return APIResponse.badRequest(c, refError);
 
 		const previousResponsibles = await getResponsibleIds(item.id);
+		const keptFiles = file_ids !== undefined ? await hiddenFileIds(c, item.id) : [];
 
 		let updated: DB.Models.ProgramItem;
 		try {
@@ -418,7 +445,7 @@ router.put(
 					await replaceResponsibles(item.id, responsible_user_ids, tx);
 				}
 				if (file_ids !== undefined) {
-					await replaceFiles(item.id, file_ids, tx);
+					await replaceFiles(item.id, [...file_ids, ...keptFiles], tx);
 				}
 				return row;
 			});

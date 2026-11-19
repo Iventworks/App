@@ -35,6 +35,8 @@ export interface CollabParticipant {
 }
 
 type SyncResult = {
+	epoch: number;
+	reset: boolean;
 	seq: number;
 	saved_seq: number;
 	state: string | null;
@@ -64,15 +66,24 @@ export class CollabProvider {
 	readonly doc = new Y.Doc();
 	readonly awareness = new Awareness(this.doc);
 
-	/** `waiting`: the document is being filled by someone else. `ended`: left, or broken. */
-	readonly status = ref<"connecting" | "waiting" | "ready" | "error" | "ended">("connecting");
+	/**
+	 * `waiting`: the document is being filled by someone else. `ended`: left, or broken. `reset`:
+	 * the session ended while this tab was away; its document is gone — open the editor again.
+	 */
+	readonly status = ref<"connecting" | "waiting" | "ready" | "error" | "ended" | "reset">(
+		"connecting",
+	);
 	readonly participants = shallowRef<CollabParticipant[]>([]);
 	readonly saveState = ref<"saved" | "pending" | "saving" | "error">("saved");
 	readonly savedAt = ref<number | null>(null);
+	/** This tab is to fill the fresh document from the file (`initializeWith`). */
+	readonly initializeRequested = ref(false);
 
 	/** The editor's Markdown, set once it exists. */
 	serialize: (() => string) | null = null;
 
+	private epoch: number | null = null;
+	private initState: "none" | "running" | "done" = "none";
 	private seq: number | null = null;
 	private savedSeq = 0;
 	private pending: Uint8Array[] = [];
@@ -101,12 +112,15 @@ export class CollabProvider {
 
 	// --- lifecycle --------------------------------------------------------------------------------
 
-	/** Join the session. `initialize`: fill the fresh document (`fill`) — see `initializeWith`. */
-	async start(): Promise<{ initialize: boolean }> {
+	/**
+	 * Join the session. When this tab is to fill the fresh document — now or later, if the tab
+	 * that should have left — `initializeRequested` turns true: see `initializeWith`.
+	 */
+	async start() {
 		const result = await this.request({ after: null });
 		if (!result) {
 			this.status.value = "error";
-			return { initialize: false };
+			return;
 		}
 		this.apply(result);
 		this.doc.on("update", this.onDocUpdate);
@@ -123,14 +137,25 @@ export class CollabProvider {
 			const quiet = realtime.connected.value && this.status.value === "ready";
 			if (!quiet || Date.now() - this.lastRequest >= HEARTBEAT_MS) void this.sync();
 		}, POLL_MS);
-		return { initialize: result.initialize };
 	}
 
-	/** Fill the fresh document (`fill` sets the editor's content) and send it as the start. */
-	async initializeWith(fill: () => void) {
+	/**
+	 * Fill the fresh document (`fill` sets the editor's content, from `load`) and send it as the
+	 * start. Once per tab.
+	 */
+	async initializeWith(load: () => Promise<string | null>, fill: (text: string) => void) {
+		if (this.initState !== "none" || this.stopped) return true;
+		this.initState = "running";
+		this.initializeRequested.value = false;
+		const text = await load();
+		if (text === null) {
+			// Try again with the next claim.
+			this.initState = "none";
+			return false;
+		}
 		this.initializing = true;
 		try {
-			fill();
+			fill(text);
 			// The editor may write into the Yjs document a moment later.
 			await new Promise((resolve) => setTimeout(resolve, 0));
 		} finally {
@@ -141,6 +166,7 @@ export class CollabProvider {
 			updates: [toBase64(Y.encodeStateAsUpdate(this.doc))],
 			init: true,
 		});
+		this.initState = "done";
 		if (!result) {
 			// Someone else filled it meanwhile: two copies of the text would be merged.
 			this.fatal = true;
@@ -248,6 +274,19 @@ export class CollabProvider {
 	}
 
 	private apply(result: SyncResult) {
+		if (result.reset) {
+			// The session ended while this tab was away: its document can't be merged into the new
+			// one (the text would be there twice). Stop; the editor offers to open it again.
+			this.stopped = true;
+			this.cleanup();
+			// Nothing of it can be saved any more (`dirty` is false: leaving isn't held up).
+			this.pending = [];
+			this.ownChanges = false;
+			this.seq = null;
+			this.status.value = "reset";
+			return;
+		}
+		this.epoch = result.epoch;
 		if (result.state) Y.applyUpdate(this.doc, fromBase64(result.state), REMOTE);
 		for (const update of result.updates) Y.applyUpdate(this.doc, fromBase64(update.data), REMOTE);
 		this.seq = result.seq;
@@ -256,6 +295,8 @@ export class CollabProvider {
 		if (!this.fatal && this.status.value !== "ended") {
 			this.status.value = result.ready ? "ready" : "waiting";
 		}
+		if (result.ready && this.initState === "none") this.initState = "done";
+		else if (result.initialize && this.initState === "none") this.initializeRequested.value = true;
 
 		for (const entry of result.awareness) {
 			applyAwarenessUpdate(this.awareness, fromBase64(entry.data), REMOTE);
@@ -281,7 +322,14 @@ export class CollabProvider {
 		const result = await useAPI((api) =>
 			api.postFilesByFileIdCollab({
 				path: { fileId: this.fileId },
-				body: { client_id: this.doc.clientID, updates: [], init: false, leave: false, ...body },
+				body: {
+					client_id: this.doc.clientID,
+					epoch: this.epoch,
+					updates: [],
+					init: false,
+					leave: false,
+					...body,
+				},
 			}),
 		);
 		if (!result.success) {
@@ -323,7 +371,7 @@ export class CollabProvider {
 		const result = await useAPI((api) =>
 			api.putFilesByFileIdCollabContent({
 				path: { fileId: this.fileId },
-				body: { client_id: this.doc.clientID, seq, content },
+				body: { client_id: this.doc.clientID, seq, epoch: this.epoch, content },
 			}),
 		);
 		if (!result.success) {

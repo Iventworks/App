@@ -6,14 +6,16 @@ import type { FileAccess } from "./fileAccess";
 import { FileService } from "./fileService";
 import { UserSummary } from "./shared-models/userSummary";
 
-type Failure = { ok: false; status: 403 | 404; message: string };
+type Failure = { ok: false; status: 403 | 404 | 409; message: string };
 
 /**
  * The Papierkorb of org and event documents: deleting moves an item there (a folder with what is
  * inside it), `deleted_at` marks it. Managers (Kernteam / Leitung) see and restore everything and
  * delete for good; everyone else sees and restores what they deleted themselves. Restored items go
- * back to their folder — or to the top level when that folder is gone or in the Papierkorb too.
- * Housekeeping deletes items for good after `RETENTION_DAYS`.
+ * back to their folder. When that folder is in the Papierkorb too, only managers restore the item:
+ * to the top level, with an access list of its own that lets only them in (it would get the top
+ * level's access otherwise, not the one it had). Housekeeping deletes items for good after
+ * `RETENTION_DAYS`.
  */
 export namespace FileTrash {
 	export const RETENTION_DAYS = 30;
@@ -25,6 +27,11 @@ export namespace FileTrash {
 		location: z.array(z.string()),
 		/** When it will be deleted for good. */
 		purge_at: z.number(),
+		/**
+		 * The folder it was in is in the Papierkorb too: managers restore it to the top level (only
+		 * for them at first), everyone else once the folder is back.
+		 */
+		folder_in_trash: z.boolean(),
 		can_restore: z.boolean(),
 		can_purge: z.boolean(),
 	});
@@ -66,9 +73,13 @@ export namespace FileTrash {
 			.all();
 		const users = await UserSummary.fetchMap(rows.map((row) => row.deleted_by));
 
+		// Shared folders are loaded once.
+		const folders = new Map<number, DB.Models.File>();
 		const items: Item[] = [];
 		for (const row of rows) {
-			const path = row.parent_id === null ? [] : await FileService.getPath(row.parent_id);
+			const path =
+				row.parent_id === null ? [] : await FileService.getPath(row.parent_id, undefined, folders);
+			const folderInTrash = FileService.isTrashed(path);
 			const deletedBy = row.deleted_by !== null ? users.get(row.deleted_by) : undefined;
 			items.push({
 				...FileService.toResponse(row),
@@ -76,7 +87,8 @@ export namespace FileTrash {
 				deleted_by: deletedBy ? { id: deletedBy.id, display_name: deletedBy.display_name } : null,
 				location: path.map((folder) => folder.name),
 				purge_at: (row.deleted_at as number) + RETENTION_DAYS * 24 * 60 * 60 * 1000,
-				can_restore: viewer.manager || row.deleted_by === viewer.userId,
+				folder_in_trash: folderInTrash,
+				can_restore: viewer.manager || (row.deleted_by === viewer.userId && !folderInTrash),
 				can_purge: viewer.manager,
 			});
 		}
@@ -99,19 +111,43 @@ export namespace FileTrash {
 		const file = await find(viewer, fileId);
 		if (!file) return { ok: false, status: 404, message: "Not in the Papierkorb" };
 
-		// Its folder is gone or in the Papierkorb itself: back to the top level.
+		// Its folder is in the Papierkorb itself (or gone): to the top level — managers only, and
+		// only for them, since the access it had came from the folders it was in.
 		let parentId = file.parent_id;
 		if (parentId !== null) {
 			const path = await FileService.getPath(parentId);
-			if (path.at(-1)?.id !== parentId || FileService.isTrashed(path)) parentId = null;
+			if (path.at(-1)?.id !== parentId || FileService.isTrashed(path)) {
+				if (!viewer.manager) {
+					return {
+						ok: false,
+						status: 409,
+						message: "The folder it was in is in the Papierkorb too: restore the folder first",
+					};
+				}
+				parentId = null;
+			}
 		}
-		const updated = await DB.instance()
-			.update(DB.Tables.files)
-			.set({ deleted_at: null, deleted_by: null, parent_id: parentId })
-			.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
-			.returning()
-			.get();
-		return { ok: true, file: updated as DB.Models.File, toRoot: parentId !== file.parent_id };
+		const toRoot = parentId !== file.parent_id;
+		const updated = DB.instance().transaction((tx) => {
+			if (toRoot) {
+				tx
+					.delete(DB.Tables.fileAccess)
+					.where(and(inOrg(DB.Tables.fileAccess), eq(DB.Tables.fileAccess.file_id, file.id)))
+					.run();
+			}
+			return tx
+				.update(DB.Tables.files)
+				.set({
+					deleted_at: null,
+					deleted_by: null,
+					parent_id: parentId,
+					...(toRoot ? { custom_access: true } : {}),
+				})
+				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
+				.returning()
+				.get();
+		});
+		return { ok: true, file: updated as DB.Models.File, toRoot };
 	}
 
 	/** Delete an item for good (managers). */
