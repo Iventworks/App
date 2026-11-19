@@ -1,5 +1,4 @@
 import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
-import { CollabState } from "../api/utils/collabState";
 import { FileTrash } from "../api/utils/fileTrash";
 import { FileVersions } from "../api/utils/fileVersions";
 import { DB } from "../db";
@@ -79,12 +78,11 @@ export class Housekeeping {
 			.returning({ id: DB.Tables.files.id })
 			.all();
 
-		// Versions beyond the retention (their blobs go with the sweep below), and stale locks.
-		// The Papierkorb's old items, then versions beyond the retention (blobs go with the sweep).
+		// The Papierkorb's old items, expired office tokens, versions beyond the retention (blobs go
+		// with the sweep below) and stale locks.
 		const trash = await FileTrash.purgeExpired(now);
 		await OfficeTokens.pruneExpired(now);
 		const versions = await FileVersions.prune(now);
-		await CollabState.pruneIdle(now);
 		await db.delete(DB.Tables.fileLocks).where(lt(DB.Tables.fileLocks.expires_at, now)).run();
 
 		const referenced = await db

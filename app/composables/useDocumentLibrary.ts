@@ -59,21 +59,6 @@ export function useDocumentLibrary(source: Source) {
 		return result.success;
 	}
 
-	async function createMarkdown(name: string, parentId: number | null): Promise<FileItem | null> {
-		const body = { name, parent_id: parentId };
-		const result =
-			source.scope === "org"
-				? await useAPI((api) => api.postOrgDocumentsMarkdown({ body }))
-				: await useAPI((api) =>
-						api.postEventsByEventIdFilesMarkdown({ path: { eventId: source.eventId() }, body }),
-					);
-		if (!result.success) {
-			failed("Dokument konnte nicht angelegt werden", result.message);
-			return null;
-		}
-		return result.data;
-	}
-
 	async function createOffice(
 		name: string,
 		type: OfficeType,
@@ -146,5 +131,5 @@ export function useDocumentLibrary(source: Source) {
 		},
 	};
 
-	return { load, upload, createFolder, createMarkdown, createOffice, trash };
+	return { load, upload, createFolder, createOffice, trash };
 }

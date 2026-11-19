@@ -7,7 +7,6 @@ import { OfficeTemplates } from "../../office/templates";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
-import { CollabState } from "./collabState";
 import { FileVersions } from "./fileVersions";
 import { FileAccessModel } from "./shared-models/fileAccess";
 
@@ -57,8 +56,6 @@ export class FileService {
 		"application/pdf",
 	]);
 
-	static readonly MARKDOWN_MIME_TYPE = "text/markdown";
-
 	static isInlineSafe(mimeType: string | null | undefined) {
 		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
 	}
@@ -71,9 +68,68 @@ export class FileService {
 	}
 
 	/**
-	 * The file's bytes as a response. Only allow-listed types are rendered by the browser; anything
-	 * else (SVG, HTML, …) goes out as opaque bytes so it can never run script on the app origin.
-	 * Never cached by shared caches: access is checked on every request.
+	 * Text formats shown in the browser as plain text (never as HTML, XML or script): by type or,
+	 * since uploads often come without a precise type, by extension.
+	 */
+	static readonly TEXT_MIME_TYPES: ReadonlySet<string> = new Set([
+		"text/plain",
+		"text/markdown",
+		"text/x-markdown",
+		"text/csv",
+		"text/calendar",
+		"text/vcard",
+		"text/x-vcard",
+		"text/yaml",
+		"application/yaml",
+		"application/x-yaml",
+		"application/json",
+		"application/xml",
+		"text/xml",
+	]);
+	static readonly TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
+		"txt",
+		"md",
+		"markdown",
+		"csv",
+		"log",
+		"json",
+		"xml",
+		"yaml",
+		"yml",
+		"ini",
+		"ics",
+		"vcf",
+	]);
+
+	/**
+	 * How the browser may show a file from our origin, or null: only as a download. Images by their
+	 * stored type, PDFs (by type or extension) when they start like one, text formats always as
+	 * `text/plain`. SVG, HTML and anything else never render here: uploaded types are
+	 * client-controlled, so this is what keeps uploads from becoming stored XSS.
+	 */
+	static async displayAs(
+		file: Pick<DB.Models.File, "name" | "mime_type">,
+		blob: Blob,
+	): Promise<"image" | "pdf" | "text" | null> {
+		const mime = (file.mime_type ?? "").toLowerCase().split(";")[0]?.trim() ?? "";
+		const dot = file.name.lastIndexOf(".");
+		const ext = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : "";
+		if (FileService.INLINE_MIME_TYPES.has(mime) && mime.startsWith("image/")) return "image";
+		if (mime === "application/pdf" || ext === "pdf") {
+			// A PDF starts with "%PDF-" (within its first kilobyte).
+			const head = new TextDecoder("latin1").decode(await blob.slice(0, 1024).arrayBuffer());
+			return head.includes("%PDF-") ? "pdf" : null;
+		}
+		if (FileService.TEXT_MIME_TYPES.has(mime) || FileService.TEXT_EXTENSIONS.has(ext)) return "text";
+		return null;
+	}
+
+	/**
+	 * The file's bytes as a response (`displayAs`: what the browser may show; everything else goes
+	 * out as opaque bytes for download). Text and images get a sandbox policy. PDFs get none but
+	 * `frame-ancestors 'self'`: the browsers' own PDF viewers don't run under a restrictive policy,
+	 * run the PDF in their own sandbox, and our pages embed them. Never cached by shared caches:
+	 * access is checked on every request.
 	 */
 	static async contentResponse(file: DB.Models.File, options: { download?: boolean } = {}) {
 		if (file.kind !== "file" || !file.storage_key) return null;
@@ -84,17 +140,28 @@ export class FileService {
 			return null;
 		}
 
-		const safe = FileService.isInlineSafe(file.mime_type);
-		const inline = !options.download && safe;
+		const display = await FileService.displayAs(file, blob);
+		const inline = !options.download && display !== null;
+		const contentType =
+			display === "text"
+				? "text/plain; charset=utf-8"
+				: display === "pdf"
+					? "application/pdf"
+					: display === "image"
+						? (file.mime_type as string)
+						: "application/octet-stream";
 		const headers: Record<string, string> = {
-			"Content-Type": safe ? (file.mime_type as string) : "application/octet-stream",
+			"Content-Type": contentType,
 			"Content-Length": String(blob.size),
 			"Content-Disposition": contentDisposition(inline ? "inline" : "attachment", file.name),
 			"X-Content-Type-Options": "nosniff",
 			"Cache-Control": "private, no-store",
 		};
-		// Chrome refuses to render PDFs in sandboxed documents; PDFs cannot run page script anyway.
-		if (inline && file.mime_type !== "application/pdf") {
+		if (inline && display === "pdf") {
+			// Replaces the API's "nothing may frame this" (the security-headers middleware).
+			headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+			headers["X-Frame-Options"] = "SAMEORIGIN";
+		} else if (inline) {
 			headers["Content-Security-Policy"] = INLINE_CSP;
 		}
 		return new Response(blob, { status: 200, headers });
@@ -325,22 +392,6 @@ export class FileService {
 		return await FileService.upload(location, parentId, file, userId);
 	}
 
-	/** A new Markdown document (`.md` is added to the name when missing). */
-	static async createMarkdown(
-		location: FileService.Location,
-		parentId: number | null,
-		name: string,
-		content: string,
-		userId: number,
-	) {
-		const cleaned = FileService.sanitizeName(name);
-		const fileName = FileService.isMarkdownName(cleaned)
-			? cleaned
-			: FileService.withExtension(name, "md");
-		const file = new File([content], fileName, { type: FileService.MARKDOWN_MIME_TYPE });
-		return await FileService.upload(location, parentId, file, userId);
-	}
-
 	/**
 	 * A clean file name that ends in `.ext` (added when missing), within the name length — a long
 	 * name is shortened, not its extension.
@@ -414,11 +465,10 @@ export class FileService {
 		upload: Blob,
 		userId: number | null,
 		/**
-		 * `keepCollab`: written by the shared Markdown editing session itself. `session`: several
-		 * people save in turns (shared editing, the office server) — versions per interval, not
-		 * per author (default: `keepCollab`).
+		 * `session`: several people save in turns (the office server) — versions per interval, not
+		 * per author.
 		 */
-		options: { keepCollab?: boolean; session?: boolean } = {},
+		options: { session?: boolean } = {},
 	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
@@ -428,37 +478,13 @@ export class FileService {
 				file,
 				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
 				userId,
-				{ session: options.session ?? options.keepCollab },
+				{ session: options.session },
 			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
-		// Contents from outside: a shared editing state of the old text is worthless now.
-		if (!options.keepCollab) await CollabState.discard(file.id);
 		return updated;
-	}
-
-	/** Save text as the new contents (the shared Markdown editor). */
-	static async replaceText(
-		file: DB.Models.File,
-		text: string,
-		userId: number,
-		options: { keepCollab?: boolean } = {},
-	) {
-		const mimeType = FileService.isMarkdownName(file.name)
-			? FileService.MARKDOWN_MIME_TYPE
-			: (file.mime_type ?? "text/plain");
-		return await FileService.replaceContent(
-			file,
-			new Blob([text], { type: mimeType }),
-			userId,
-			options,
-		);
-	}
-
-	static isMarkdownName(name: string) {
-		return /\.(md|markdown)$/i.test(name);
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */
@@ -586,13 +612,10 @@ export namespace FileService {
 		permissions: FileAccessModel.Permissions.nullable(),
 		/** Its own access list — only for managers and only on items with `custom_access`. */
 		access: z.array(FileAccessModel.Entry).nullable(),
-		/** Someone is editing it right now (listings and the file page). */
+		/** Someone has it open in the office editor, for editing (listings and the file page). */
 		editing: z
 			.object({
-				/** `editor`: a shared Markdown editing session; `office`: the office server. */
-				kind: z.enum(["editor", "office"]),
-				/** Who is in it (editor sessions). */
-				users: z.array(z.object({ id: z.number(), display_name: z.string() })),
+				kind: z.enum(["office"]),
 				expires_at: z.number(),
 			})
 			.nullable(),
@@ -629,13 +652,6 @@ export namespace FileService {
 		parent_id: z.number().int().positive().nullable().optional(),
 	});
 	export type CreateFolderBody = z.infer<typeof CreateFolderBody>;
-
-	export const CreateMarkdownBody = z.object({
-		/** `.md` is added when missing. */
-		name: z.string().trim().min(1).max(200),
-		parent_id: z.number().int().positive().nullable().optional(),
-	});
-	export type CreateMarkdownBody = z.infer<typeof CreateMarkdownBody>;
 
 	export const CreateOfficeBody = z.object({
 		/** The extension is added when missing. */

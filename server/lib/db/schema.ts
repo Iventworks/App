@@ -754,60 +754,6 @@ export const fileVersions = sqliteTable(
 );
 
 /**
- * Shared editing of a Markdown document (`Collab`): the Yjs document as a merged base (`state`
- * up to `base_seq`) plus the updates after it (`file_collab_updates`). `seq` is the newest
- * update, `saved_seq` the newest one written back into the file. While nothing was sent yet
- * (`seq = 0`), one client (`init_client`, until `init_until`) fills the document from the file.
- * Discarded when the contents change any other way, and once a session ends fully saved.
- * `epoch` (random) tells this document apart from a later one of the same file: a tab that still
- * holds the discarded one has to start over.
- * @deprecated Use DB.Tables.fileCollab to access this table.
- */
-export const fileCollab = sqliteTable(
-	"file_collab",
-	{
-		org_id: orgIdColumn(),
-		file_id: integer()
-			.primaryKey()
-			.references(() => files.id, { onDelete: "cascade" }),
-		state: blob({ mode: "buffer" }),
-		base_seq: integer().notNull().default(0),
-		seq: integer().notNull().default(0),
-		saved_seq: integer().notNull().default(0),
-		init_client: integer(),
-		init_until: integer().notNull().default(0),
-		epoch: integer().notNull().default(0),
-		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
-	},
-	(table) => [index("file_collab_org_id_idx").on(table.org_id)],
-);
-
-/**
- * Yjs updates of a shared editing session, in order (`seq` per file).
- * @deprecated Use DB.Tables.fileCollabUpdates to access this table.
- */
-export const fileCollabUpdates = sqliteTable(
-	"file_collab_updates",
-	{
-		org_id: orgIdColumn(),
-		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
-		file_id: integer()
-			.notNull()
-			.references(() => files.id, { onDelete: "cascade" }),
-		seq: integer().notNull(),
-		data: blob({ mode: "buffer" }).notNull(),
-		// The Yjs client that sent it (not echoed back to it).
-		client_id: integer().notNull(),
-		user_id: integer().references(() => users.id, { onDelete: "set null" }),
-		created_at: SQLUtils.getCreatedAtColumn(),
-	},
-	(table) => [
-		index("file_collab_updates_org_id_idx").on(table.org_id),
-		uniqueIndex("file_collab_updates_file_seq_unique").on(table.file_id, table.seq),
-	],
-);
-
-/**
  * Access tokens of the office server (WOPI, `server/lib/office`): one per person, file and editor
  * opening, stored hashed. Tied to the login session that opened the editor — logging out ends it —
  * and checked again on every call (the person's current rights).
@@ -839,12 +785,11 @@ export const wopiTokens = sqliteTable(
 	],
 );
 
-export const FILE_LOCK_KINDS = ["editor", "office"] as const;
+export const FILE_LOCK_KINDS = ["office"] as const;
 
 /**
- * Who is editing a file right now (`FileLocks`): a shared Markdown editing session (`editor`,
- * `user_id` null — the people are in `Collab`) or the office server. Nobody can replace, restore
- * or delete it meanwhile. Locks expire unless renewed.
+ * Who is editing a file right now (`FileLocks`): the office server (WOPI locks). Nobody can
+ * replace, restore or delete it meanwhile. Locks expire unless renewed.
  * @deprecated Use DB.Tables.fileLocks to access this table.
  */
 export const fileLocks = sqliteTable(

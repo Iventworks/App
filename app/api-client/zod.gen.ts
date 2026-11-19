@@ -4408,11 +4408,7 @@ export const zPutFilesByFileIdContentResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4504,11 +4500,7 @@ export const zGetFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         path: z.array(z.object({
@@ -4585,85 +4577,9 @@ export const zPutFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
-    })
-});
-
-export const zPostFilesByFileIdCollabBody = z.object({
-    client_id: z.int().gte(0).lte(4294967296),
-    after: z.int().gte(0).lte(9007199254740991).nullable(),
-    epoch: z.int().gte(0).lte(9007199254740991).nullish(),
-    updates: z.array(z.string().max(1500000)).max(50).optional().default([]),
-    init: z.boolean().optional().default(false),
-    awareness: z.string().max(12000).nullish(),
-    leave: z.boolean().optional().default(false)
-});
-
-export const zPostFilesByFileIdCollabPath = z.object({
-    fileId: z.int().gt(0).lte(9007199254740991)
-});
-
-/**
- * Document synced successfully (no data after `leave`)
- */
-export const zPostFilesByFileIdCollabResponse = z.object({
-    success: z.literal(true),
-    code: z.literal(200),
-    message: z.literal('Document synced successfully (no data after `leave`)'),
-    data: z.object({
-        epoch: z.number(),
-        reset: z.boolean(),
-        seq: z.number(),
-        saved_seq: z.number(),
-        state: z.string().nullable(),
-        updates: z.array(z.object({
-            seq: z.number(),
-            data: z.string()
-        })),
-        initialize: z.boolean(),
-        ready: z.boolean(),
-        participants: z.array(z.object({
-            client_id: z.number(),
-            user: z.object({
-                id: z.number(),
-                display_name: z.string()
-            }),
-            color: z.string()
-        })),
-        awareness: z.array(z.object({
-            client_id: z.number(),
-            data: z.string()
-        }))
-    })
-});
-
-export const zPutFilesByFileIdCollabContentBody = z.object({
-    client_id: z.int().gte(0).lte(4294967296),
-    seq: z.int().gt(0).lte(9007199254740991),
-    epoch: z.int().gte(0).lte(9007199254740991).nullish(),
-    content: z.string().max(500000)
-});
-
-export const zPutFilesByFileIdCollabContentPath = z.object({
-    fileId: z.int().gt(0).lte(9007199254740991)
-});
-
-/**
- * Document saved successfully
- */
-export const zPutFilesByFileIdCollabContentResponse = z.object({
-    success: z.literal(true),
-    code: z.literal(200),
-    message: z.literal('Document saved successfully'),
-    data: z.object({
-        saved_seq: z.number(),
-        saved: z.boolean()
     })
 });
 
@@ -4808,11 +4724,7 @@ export const zPostFilesByFileIdVersionsByVersionIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -7585,11 +7497,7 @@ export const zGetEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7695,11 +7603,7 @@ export const zPostEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7821,11 +7725,7 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7923,11 +7823,7 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8771,11 +8667,7 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -8826,11 +8718,7 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8881,11 +8769,7 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8988,11 +8872,7 @@ export const zPostEventsByEventIdFilesResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9061,84 +8941,7 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
-            expires_at: z.number()
-        }).nullable()
-    })
-});
-
-export const zPostEventsByEventIdFilesMarkdownBody = z.object({
-    name: z.string().min(1).max(200),
-    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
-});
-
-export const zPostEventsByEventIdFilesMarkdownPath = z.object({
-    eventId: z.int().gt(0).lte(9007199254740991)
-});
-
-/**
- * Document created successfully
- */
-export const zPostEventsByEventIdFilesMarkdownResponse = z.object({
-    success: z.literal(true),
-    code: z.literal(201),
-    message: z.literal('Document created successfully'),
-    data: z.object({
-        id: z.number(),
-        scope: z.enum([
-            'org',
-            'event',
-            'receipt',
-            'message'
-        ]),
-        event_id: z.number().nullable(),
-        parent_id: z.number().nullable(),
-        kind: z.enum(['folder', 'file']),
-        name: z.string(),
-        mime_type: z.string().nullable(),
-        size: z.number(),
-        uploaded_by: z.number().nullable(),
-        created_at: z.number(),
-        updated_at: z.number(),
-        content_url: z.string().nullable(),
-        shared: z.boolean(),
-        custom_access: z.boolean(),
-        permissions: z.object({
-            read: z.boolean(),
-            upload: z.boolean(),
-            edit: z.boolean(),
-            delete: z.boolean(),
-            rename: z.boolean(),
-            manage: z.boolean()
-        }).nullable(),
-        access: z.array(z.object({
-            principal: z.enum([
-                'members',
-                'team',
-                'org_group',
-                'event_group',
-                'user'
-            ]),
-            id: z.number().nullable(),
-            label: z.string(),
-            color: z.string().nullable(),
-            permissions: z.object({
-                read: z.boolean(),
-                upload: z.boolean(),
-                edit: z.boolean(),
-                delete: z.boolean()
-            })
-        })).nullable(),
-        editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9216,11 +9019,7 @@ export const zGetEventsByEventIdFilesTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
@@ -9295,11 +9094,7 @@ export const zPostEventsByEventIdFilesTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9388,11 +9183,7 @@ export const zPostEventsByEventIdFilesOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9512,11 +9303,7 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9638,11 +9425,7 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9823,11 +9606,7 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9946,11 +9725,7 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -10074,11 +9849,7 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -11060,11 +10831,7 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -11115,11 +10882,7 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -11170,11 +10933,7 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['editor', 'office']),
-                users: z.array(z.object({
-                    id: z.number(),
-                    display_name: z.string()
-                })),
+                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -11273,11 +11032,7 @@ export const zPostOrgDocumentsResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11342,80 +11097,7 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
-            expires_at: z.number()
-        }).nullable()
-    })
-});
-
-export const zPostOrgDocumentsMarkdownBody = z.object({
-    name: z.string().min(1).max(200),
-    parent_id: z.int().gt(0).lte(9007199254740991).nullish()
-});
-
-/**
- * Document created successfully
- */
-export const zPostOrgDocumentsMarkdownResponse = z.object({
-    success: z.literal(true),
-    code: z.literal(201),
-    message: z.literal('Document created successfully'),
-    data: z.object({
-        id: z.number(),
-        scope: z.enum([
-            'org',
-            'event',
-            'receipt',
-            'message'
-        ]),
-        event_id: z.number().nullable(),
-        parent_id: z.number().nullable(),
-        kind: z.enum(['folder', 'file']),
-        name: z.string(),
-        mime_type: z.string().nullable(),
-        size: z.number(),
-        uploaded_by: z.number().nullable(),
-        created_at: z.number(),
-        updated_at: z.number(),
-        content_url: z.string().nullable(),
-        shared: z.boolean(),
-        custom_access: z.boolean(),
-        permissions: z.object({
-            read: z.boolean(),
-            upload: z.boolean(),
-            edit: z.boolean(),
-            delete: z.boolean(),
-            rename: z.boolean(),
-            manage: z.boolean()
-        }).nullable(),
-        access: z.array(z.object({
-            principal: z.enum([
-                'members',
-                'team',
-                'org_group',
-                'event_group',
-                'user'
-            ]),
-            id: z.number().nullable(),
-            label: z.string(),
-            color: z.string().nullable(),
-            permissions: z.object({
-                read: z.boolean(),
-                upload: z.boolean(),
-                edit: z.boolean(),
-                delete: z.boolean()
-            })
-        })).nullable(),
-        editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11485,11 +11167,7 @@ export const zGetOrgDocumentsTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
@@ -11563,11 +11241,7 @@ export const zPostOrgDocumentsTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11651,11 +11325,7 @@ export const zPostOrgDocumentsOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['editor', 'office']),
-            users: z.array(z.object({
-                id: z.number(),
-                display_name: z.string()
-            })),
+            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })

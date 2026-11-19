@@ -193,27 +193,10 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.values({
 				org_id,
 				file_id: eventFile.id,
-				kind: "editor",
+				kind: "office",
 				lock_id: text("Sperre"),
 				user_id: admin.id,
 				expires_at: now + 86_400_000,
-			})
-			.run();
-
-		// A shared editing state (on the org folder; the rows only need to exist).
-		db
-			.insert(DB.Tables.fileCollab)
-			.values({ org_id, file_id: folder.id, state: Buffer.from([0, 0]), seq: 1, updated_at: now })
-			.run();
-		db
-			.insert(DB.Tables.fileCollabUpdates)
-			.values({
-				org_id,
-				file_id: folder.id,
-				seq: 1,
-				data: Buffer.from([0, 0]),
-				client_id: 1,
-				user_id: admin.id,
 			})
 			.run();
 

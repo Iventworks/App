@@ -31,14 +31,6 @@ export namespace EventFilesModel.CreateFolder {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace EventFilesModel.CreateMarkdown {
-	export const Body = FileService.CreateMarkdownBody;
-	export type Body = z.infer<typeof Body>;
-
-	export const Response = FileService.ItemSchema;
-	export type Response = z.infer<typeof Response>;
-}
-
 export namespace EventFilesModel.Trash {
 	export const Response = FileTrash.ListResponse;
 	export type Response = z.infer<typeof Response>;

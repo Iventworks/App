@@ -108,12 +108,13 @@ controls.
 
 ## Frontend
 
-One layout (`app/layouts/dashboard.vue`) with route-switched sidebars:
+One layout (`app/layouts/dashboard.vue`) with route-switched sidebars — files open full-window
+(`app/layouts/viewer.vue`):
 
 - **Main** (`/`, `/tasks`, `/messages`, `/calendar`, `/notes`, `/events/**`, `/news`,
   `/documents`, `/files/<id>`): personal space, the event switcher with the selected event's pages,
   organisation. `/documents` is the org library as members see it; `/files/<id>` opens a file
-  (preview, live Markdown editing, the Office editor, versions).
+  full-window (the Office editor, the browser's PDF viewer or a preview, versions).
 - **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins — incl. *Gruppen* at
   `/admin/groups`) and **Kernteam** (`/core-team/**`, core team — incl. *Dokumente verwalten* at
   `/core-team/documents`: the whole library with access and share links): each with a "Zurück zum
@@ -173,17 +174,19 @@ upload-only drop box), an optional password and an expiry. Only the shared item 
 below it are reachable through a link. Org admins see every link under *Administration →
 Freigabelinks*, can switch sharing off for the org and set a default expiry.
 
-Files open on their own page with a preview (PDF via pdf.js, images, Markdown, CSV, text).
-**Markdown documents** (`.md`, *Neu → Dokument*) are edited in the browser together, live.
-Every change keeps the old contents as a **version** (restorable for 30 days), and deleted
-documents go to the **Papierkorb** for 30 days.
+Files open full-window: PDFs in the browser's own viewer (pdf.js only where a browser has
+none), images, Markdown (read-only), CSV and text as previews. Every change keeps the old contents
+as a **version** (restorable for 30 days), and deleted documents go to the **Papierkorb** for 30
+days.
 
-**Office documents** (docx, xlsx, pptx, odt, …) open in the browser with
-[Euro-Office](https://euro-office.github.io/) — optional, it needs its own container (at least
-4 GB RAM) and its own public host name:
+**Office documents** (docx, xlsx, pptx, odt, …) open in the browser, with co-editing, in
+[Nextcloud Office](https://github.com/nextcloud-releases/Office-DocumentServer) — the production
+distribution of [Euro-Office](https://euro-office.github.io/) (it doesn't need Nextcloud).
+Optional; it needs its own container (at least 4 GB RAM) and its own public host name:
 
 1. Start it: `docker compose --profile office up -d` (service `eurooffice` in
-   `docker/docker-compose.yml`, `WOPI_ENABLED=true`).
+   `docker/docker-compose.yml`, image `ghcr.io/nextcloud-releases/office-documentserver` at a
+   pinned version, `WOPI_ENABLED=true`).
 2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317).
 3. Set `IVENTWORKS_OFFICE_URL=https://office.ivb.example.org` and
    `IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice`, restart Iventworks.
@@ -194,6 +197,10 @@ otherwise share the app's origin. We put backend hosts under `ivb.` ("Iventworks
 reserved org slug), e.g. `office.ivb.example.org` / `office.ivb.iventworks.de`, so `office.` stays
 free on the org's domain. A wildcard certificate for `*.example.org` doesn't cover two levels: use
 a certificate per host (Caddy, certbot) or `*.ivb.example.org`.
+
+If the editor says "editor could not be loaded": the Iventworks log names refused WOPI calls
+(`WOPI call refused: …`). No such line means the office server didn't reach Iventworks at all —
+`docker logs iventworks-eurooffice` shows why (DNS, a private address it may not call, TLS).
 
 ## Configuration
 

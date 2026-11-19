@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Collab as CollabModule } from "../../../../utils/collab";
 import { FileService } from "../../../../utils/fileService";
 import { FileVersions } from "../../../../utils/fileVersions";
 import { FileAccessModel } from "../../../../utils/shared-models/fileAccess";
@@ -74,17 +73,6 @@ export namespace FilesModel.Upload {
 		file: z.file().describe("The new contents"),
 	});
 	export type Form = z.infer<typeof Form>;
-}
-
-export namespace FilesModel.Collab {
-	export const SyncBody = CollabModule.SyncBody;
-	export type SyncBody = z.infer<typeof SyncBody>;
-	export const SyncResponse = CollabModule.SyncResponse;
-	export type SyncResponse = z.infer<typeof SyncResponse>;
-	export const SaveBody = CollabModule.SaveBody;
-	export type SaveBody = z.infer<typeof SaveBody>;
-	export const SaveResponse = CollabModule.SaveResponse;
-	export type SaveResponse = z.infer<typeof SaveResponse>;
 }
 
 export namespace FilesModel.Versions {

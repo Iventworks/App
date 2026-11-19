@@ -78,14 +78,17 @@ services:
       - /opt/iventworks/config:/opt/iventworks/config
       - /opt/iventworks/backups:/opt/iventworks/backups
 
-  # Euro-Office (the engine behind "Nextcloud Office") for docx/xlsx/pptx/odt… in the browser,
-  # with co-editing. Optional: start it with `docker compose --profile office up -d`, then set
+  # Office documents (docx/xlsx/pptx/odt…) in the browser, with co-editing: Nextcloud Office, the
+  # production distribution of Euro-Office (same code as the community builds, which are meant
+  # for testing; it doesn't need Nextcloud). Optional: start it with
+  # `docker compose --profile office up -d`, then set
   # IVENTWORKS_OFFICE_URL=https://office.ivb.example.org (served by the reverse proxy to the port
   # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice. Needs at least 4 GB RAM.
   eurooffice:
     profiles: [office]
-    # Pin a release (e.g. :v9.3.1) once it works for you.
-    image: ghcr.io/euro-office/documentserver:latest
+    # A pinned release; update by changing the version (releases:
+    # https://github.com/nextcloud-releases/Office-DocumentServer/releases).
+    image: ghcr.io/nextcloud-releases/office-documentserver:v9.3.8
     container_name: iventworks-eurooffice
     restart: unless-stopped
     ports:
@@ -100,7 +103,7 @@ services:
       ALLOW_PRIVATE_IP_ADDRESS: "false"
       EXAMPLE_ENABLED: "false"
     volumes:
-      - /opt/iventworks/eurooffice/data:/var/lib/euro-office/documentserver
+      - /opt/iventworks/eurooffice/data:/var/lib/nextcloud-office/documentserver
       # Keys and secrets (incl. the WOPI proof keys) — keep it, or open editors break on restart.
-      - /opt/iventworks/eurooffice/private:/var/www/euro-office/Data
-      - /opt/iventworks/eurooffice/logs:/var/log/euro-office/documentserver
+      - /opt/iventworks/eurooffice/private:/var/www/nextcloud-office/Data
+      - /opt/iventworks/eurooffice/logs:/var/log/nextcloud-office/documentserver

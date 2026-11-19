@@ -92,6 +92,13 @@
       "when": 1795084799151,
       "tag": "0012_collab_epoch",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795099728076,
+      "tag": "0013_remove_markdown_editing",
+      "breakpoints": true
     }
   ]
 }

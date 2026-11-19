@@ -195,9 +195,11 @@ describe("Opening documents in the office editor", () => {
 	});
 
 	test("only office types, only documents", async () => {
+		const form = new FormData();
+		form.append("file", new File(["# Notiz"], "notiz.md", { type: "text/markdown" }));
 		const md = await makeAPIRequest(
-			`${base}/markdown`,
-			{ method: "POST", authToken: leader.token, body: { name: "Notiz" } },
+			base,
+			{ authToken: leader.token, additionalOptions: { method: "POST", body: form } },
 			201,
 		);
 		await open(leader.token, md.id, 400);
