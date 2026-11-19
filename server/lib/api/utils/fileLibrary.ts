@@ -110,12 +110,6 @@ export namespace FileLibrary {
 		return permissions.upload ? { ok: true, parentId: folder.id } : denied;
 	}
 
-	/** The starting text of a new Markdown document: its title as heading. */
-	export function markdownTemplate(name: string) {
-		const title = name.replace(/\.(md|markdown)$/i, "").trim();
-		return title ? `# ${title}\n\n` : "";
-	}
-
 	/** A newly created item with the caller's permissions on it. */
 	export async function created(viewer: FileAccess.Viewer, file: DB.Models.File) {
 		return FileService.toResponse(file, { permissions: await FileAccess.evaluateFile(viewer, file) });

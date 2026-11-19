@@ -7055,11 +7055,7 @@ export type PutFilesByFileIdContentResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7260,11 +7256,7 @@ export type GetFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
             path: Array<{
@@ -7366,11 +7358,7 @@ export type PutFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7378,166 +7366,6 @@ export type PutFilesByFileIdResponses = {
 };
 
 export type PutFilesByFileIdResponse = PutFilesByFileIdResponses[keyof PutFilesByFileIdResponses];
-
-export type PostFilesByFileIdCollabData = {
-    body: {
-        client_id: number;
-        after: number | null;
-        epoch?: number | null;
-        updates?: Array<string>;
-        init?: boolean;
-        awareness?: string | null;
-        leave?: boolean;
-    };
-    path: {
-        fileId: number;
-    };
-    query?: never;
-    url: '/files/{fileId}/collab';
-};
-
-export type PostFilesByFileIdCollabErrors = {
-    /**
-     * Only Markdown documents can be edited here / Invalid document update / Syntax or validation error in request
-     */
-    400: {
-        success: false;
-        code: 400;
-        message: 'Only Markdown documents can be edited here / Invalid document update / Syntax or validation error in request';
-    };
-    /**
-     * You are not allowed to edit this file
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'You are not allowed to edit this file';
-    };
-    /**
-     * File not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'File not found';
-    };
-    /**
-     * The file is being edited elsewhere / The document is not ready yet
-     */
-    409: {
-        success: false;
-        code: 409;
-        message: 'The file is being edited elsewhere / The document is not ready yet';
-    };
-};
-
-export type PostFilesByFileIdCollabError = PostFilesByFileIdCollabErrors[keyof PostFilesByFileIdCollabErrors];
-
-export type PostFilesByFileIdCollabResponses = {
-    /**
-     * Document synced successfully (no data after `leave`)
-     */
-    200: {
-        success: true;
-        code: 200;
-        message: 'Document synced successfully (no data after `leave`)';
-        data: {
-            epoch: number;
-            reset: boolean;
-            seq: number;
-            saved_seq: number;
-            state: string | null;
-            updates: Array<{
-                seq: number;
-                data: string;
-            }>;
-            initialize: boolean;
-            ready: boolean;
-            participants: Array<{
-                client_id: number;
-                user: {
-                    id: number;
-                    display_name: string;
-                };
-                color: string;
-            }>;
-            awareness: Array<{
-                client_id: number;
-                data: string;
-            }>;
-        };
-    };
-};
-
-export type PostFilesByFileIdCollabResponse = PostFilesByFileIdCollabResponses[keyof PostFilesByFileIdCollabResponses];
-
-export type PutFilesByFileIdCollabContentData = {
-    body: {
-        client_id: number;
-        seq: number;
-        epoch?: number | null;
-        content: string;
-    };
-    path: {
-        fileId: number;
-    };
-    query?: never;
-    url: '/files/{fileId}/collab/content';
-};
-
-export type PutFilesByFileIdCollabContentErrors = {
-    /**
-     * Only Markdown documents can be edited here / File is too large
-     */
-    400: {
-        success: false;
-        code: 400;
-        message: 'Only Markdown documents can be edited here / File is too large';
-    };
-    /**
-     * You are not allowed to edit this file
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'You are not allowed to edit this file';
-    };
-    /**
-     * File not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'File not found';
-    };
-    /**
-     * Unknown document state
-     */
-    409: {
-        success: false;
-        code: 409;
-        message: 'Unknown document state';
-    };
-};
-
-export type PutFilesByFileIdCollabContentError = PutFilesByFileIdCollabContentErrors[keyof PutFilesByFileIdCollabContentErrors];
-
-export type PutFilesByFileIdCollabContentResponses = {
-    /**
-     * Document saved successfully
-     */
-    200: {
-        success: true;
-        code: 200;
-        message: 'Document saved successfully';
-        data: {
-            saved_seq: number;
-            saved: boolean;
-        };
-    };
-};
-
-export type PutFilesByFileIdCollabContentResponse = PutFilesByFileIdCollabContentResponses[keyof PutFilesByFileIdCollabContentResponses];
 
 export type PostFilesByFileIdOfficeData = {
     body?: never;
@@ -7855,11 +7683,7 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -11830,11 +11654,7 @@ export type GetEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -11960,11 +11780,7 @@ export type PostEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -12144,11 +11960,7 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -12266,11 +12078,7 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13573,11 +13381,7 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -13617,11 +13421,7 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13661,11 +13461,7 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13790,11 +13586,7 @@ export type PostEventsByEventIdFilesResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13888,11 +13680,7 @@ export type PostEventsByEventIdFilesFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13900,104 +13688,6 @@ export type PostEventsByEventIdFilesFoldersResponses = {
 };
 
 export type PostEventsByEventIdFilesFoldersResponse = PostEventsByEventIdFilesFoldersResponses[keyof PostEventsByEventIdFilesFoldersResponses];
-
-export type PostEventsByEventIdFilesMarkdownData = {
-    body: {
-        name: string;
-        parent_id?: number | null;
-    };
-    path: {
-        eventId: number;
-    };
-    query?: never;
-    url: '/events/{eventId}/files/markdown';
-};
-
-export type PostEventsByEventIdFilesMarkdownErrors = {
-    /**
-     * Parent folder not found / Syntax or validation error in request
-     */
-    400: {
-        success: false;
-        code: 400;
-        message: 'Parent folder not found / Syntax or validation error in request';
-    };
-    /**
-     * You are not allowed to add documents here
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'You are not allowed to add documents here';
-    };
-    /**
-     * Event not found
-     */
-    404: {
-        success: false;
-        code: 404;
-        message: 'Event not found';
-    };
-};
-
-export type PostEventsByEventIdFilesMarkdownError = PostEventsByEventIdFilesMarkdownErrors[keyof PostEventsByEventIdFilesMarkdownErrors];
-
-export type PostEventsByEventIdFilesMarkdownResponses = {
-    /**
-     * Document created successfully
-     */
-    201: {
-        success: true;
-        code: 201;
-        message: 'Document created successfully';
-        data: {
-            id: number;
-            scope: 'org' | 'event' | 'receipt' | 'message';
-            event_id: number | null;
-            parent_id: number | null;
-            kind: 'folder' | 'file';
-            name: string;
-            mime_type: string | null;
-            size: number;
-            uploaded_by: number | null;
-            created_at: number;
-            updated_at: number;
-            content_url: string | null;
-            shared: boolean;
-            custom_access: boolean;
-            permissions: {
-                read: boolean;
-                upload: boolean;
-                edit: boolean;
-                delete: boolean;
-                rename: boolean;
-                manage: boolean;
-            } | null;
-            access: Array<{
-                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
-                id: number | null;
-                label: string;
-                color: string | null;
-                permissions: {
-                    read: boolean;
-                    upload: boolean;
-                    edit: boolean;
-                    delete: boolean;
-                };
-            }> | null;
-            editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
-                expires_at: number;
-            } | null;
-        };
-    };
-};
-
-export type PostEventsByEventIdFilesMarkdownResponse = PostEventsByEventIdFilesMarkdownResponses[keyof PostEventsByEventIdFilesMarkdownResponses];
 
 export type DeleteEventsByEventIdFilesTrashData = {
     body?: never;
@@ -14117,11 +13807,7 @@ export type GetEventsByEventIdFilesTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
@@ -14223,11 +13909,7 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -14375,11 +14057,7 @@ export type PostEventsByEventIdFilesOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -14504,11 +14182,7 @@ export type GetEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14640,11 +14314,7 @@ export type PostEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14906,11 +14576,7 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -15042,11 +14708,7 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -15176,11 +14838,7 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16719,11 +16377,7 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16763,11 +16417,7 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16807,11 +16457,7 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'editor' | 'office';
-                    users: Array<{
-                        id: number;
-                        display_name: string;
-                    }>;
+                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16926,11 +16572,7 @@ export type PostOrgDocumentsResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -17014,11 +16656,7 @@ export type PostOrgDocumentsFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -17026,94 +16664,6 @@ export type PostOrgDocumentsFoldersResponses = {
 };
 
 export type PostOrgDocumentsFoldersResponse = PostOrgDocumentsFoldersResponses[keyof PostOrgDocumentsFoldersResponses];
-
-export type PostOrgDocumentsMarkdownData = {
-    body: {
-        name: string;
-        parent_id?: number | null;
-    };
-    path?: never;
-    query?: never;
-    url: '/org/documents/markdown';
-};
-
-export type PostOrgDocumentsMarkdownErrors = {
-    /**
-     * Parent folder not found / Syntax or validation error in request
-     */
-    400: {
-        success: false;
-        code: 400;
-        message: 'Parent folder not found / Syntax or validation error in request';
-    };
-    /**
-     * You are not allowed to add documents here
-     */
-    403: {
-        success: false;
-        code: 403;
-        message: 'You are not allowed to add documents here';
-    };
-};
-
-export type PostOrgDocumentsMarkdownError = PostOrgDocumentsMarkdownErrors[keyof PostOrgDocumentsMarkdownErrors];
-
-export type PostOrgDocumentsMarkdownResponses = {
-    /**
-     * Document created successfully
-     */
-    201: {
-        success: true;
-        code: 201;
-        message: 'Document created successfully';
-        data: {
-            id: number;
-            scope: 'org' | 'event' | 'receipt' | 'message';
-            event_id: number | null;
-            parent_id: number | null;
-            kind: 'folder' | 'file';
-            name: string;
-            mime_type: string | null;
-            size: number;
-            uploaded_by: number | null;
-            created_at: number;
-            updated_at: number;
-            content_url: string | null;
-            shared: boolean;
-            custom_access: boolean;
-            permissions: {
-                read: boolean;
-                upload: boolean;
-                edit: boolean;
-                delete: boolean;
-                rename: boolean;
-                manage: boolean;
-            } | null;
-            access: Array<{
-                principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
-                id: number | null;
-                label: string;
-                color: string | null;
-                permissions: {
-                    read: boolean;
-                    upload: boolean;
-                    edit: boolean;
-                    delete: boolean;
-                };
-            }> | null;
-            editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
-                expires_at: number;
-            } | null;
-        };
-    };
-};
-
-export type PostOrgDocumentsMarkdownResponse = PostOrgDocumentsMarkdownResponses[keyof PostOrgDocumentsMarkdownResponses];
 
 export type DeleteOrgDocumentsTrashData = {
     body?: never;
@@ -17213,11 +16763,7 @@ export type GetOrgDocumentsTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
@@ -17318,11 +16864,7 @@ export type PostOrgDocumentsTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -17467,11 +17009,7 @@ export type PostOrgDocumentsOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'editor' | 'office';
-                users: Array<{
-                    id: number;
-                    display_name: string;
-                }>;
+                kind: 'office';
                 expires_at: number;
             } | null;
         };

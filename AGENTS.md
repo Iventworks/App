@@ -138,25 +138,32 @@ CMP (Crossover Management Portal) before; the repository still is.
   API accepts the session cookie instead of the `Authorization` header, so `<img src>`, links and
   new tabs work — read-only, SameSite=Lax (`COOKIE_AUTH_PATH` in `middleware/auth.ts`); every
   other route needs the header. Responses are `Cache-Control: private, no-store`. Uploaded MIME
-  types are client-controlled: only `FileService.INLINE_MIME_TYPES` (raster images, PDF, plain
-  text) are served inline (with a sandbox CSP); everything else, notably SVG and HTML, goes out as
-  an `application/octet-stream` attachment so it can never run script on the app origin.
+  types are client-controlled, so `FileService.displayAs` decides what the browser may show:
+  raster images by type (sandbox CSP), text formats by type or extension — always as
+  `text/plain; charset=utf-8` (sandbox CSP) — and PDFs only when they start with `%PDF-` (CSP
+  just `frame-ancestors 'self'` + `X-Frame-Options: SAMEORIGIN`: the browsers' own viewers don't
+  work under a restrictive policy, and our pages embed them). Everything else, notably SVG and
+  HTML, goes out as an `application/octet-stream` attachment so it can never run script on the
+  app origin.
   Housekeeping deletes stored files no `files` row references (after a day's grace).
-- **File page and previews** (`/files/[file_id]`, `FilesPreview`, `FilesPdfViewer`,
-  `app/utils/filePreview.ts`): files from the browsers open in the app (`?from=` leads the
-  breadcrumb back to the library page); the share page uses the same preview. PDFs render with
-  pdf.js (`pdfjs-dist` legacy build — the browser's own viewer is missing in the iOS app and on
-  Android), loaded with dynamic `import()` only when a PDF opens; the worker comes from our bundle
-  (`?url`), WebAssembly is off (`useWasm: false`, the CSP has no `wasm-unsafe-eval`), pdf.js 6
-  evaluates no strings. Pages render near the screen and are released after (canvases ≤ 16 MP for
-  iOS). Text previews fetch the content and show it as text — Markdown through the notes editor,
-  CSV as a table — never as HTML; images only for the inline-safe types (no SVG). Office files
-  open in the office editor when one is configured (see "Office documents"), else download. "Neu → Dokument (Markdown)" creates a `.md` file (its title as heading) and
-  opens it in the editor (`?edit=1`).
+- **File page and previews** (`/files/[file_id]`, layout `viewer`, `FilesPreview`,
+  `FilesPdfViewer`, `app/utils/filePreview.ts`): files open on a page of their own that uses the
+  whole window (no sidebar, like Google Docs or Nextcloud): a slim header (back into the folder —
+  `?from=` names the library page —, name, location, download, versions, "Neue Fassung") and the
+  file edge to edge. Office files open straight in the office editor when one is configured
+  (editing or viewing by the caller's rights — no separate "edit mode"), else download. PDFs use
+  the browser's own viewer in a frame (`navigator.pdfViewerEnabled`); only browsers without one
+  (mostly Android) get pdf.js (`FilesPdfViewer`, a lazy component that imports `pdfjs-dist` only
+  then; worker from our bundle, WebAssembly off, no string evaluation, canvases ≤ 16 MP). Text
+  previews fetch the content and show it as text — Markdown rendered read-only, CSV as a table —
+  never as HTML. `?version=…` shows an earlier version (with "Wiederherstellen"). The share page
+  uses the same preview. There is no in-app text editing of files: quick text lives in notes, real
+  co-editing in the office editor (Markdown co-editing was removed: its own sync protocol cost
+  more than it was worth next to notes and Office).
 - **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
-  a new version, shared editing, a share link, restoring) goes through
+  a new version, the office editor, a share link, restoring) goes through
   `FileService.replaceContent`, which keeps the old blob as a version — while the same person keeps
-  saving (or anyone in a shared editing session), at most one every ten minutes. `files.modified_by`
+  saving (or anyone in an office session), at most one every ten minutes. `files.modified_by`
   is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
   never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
   removes its version blobs. Versions are never copied with an event.
@@ -175,26 +182,8 @@ CMP (Crossover Management Portal) before; the repository still is.
   also through share links. Event copies leave out what is below a folder in it. Housekeeping
   deletes after 30 days (rows below go by `ON DELETE CASCADE`, blobs with the orphan sweep). A new
   query on `files` for documents must skip `deleted_at` (and what is below it).
-- **Shared editing of Markdown documents** (like Nextcloud Text; `Collab` in
-  `server/lib/api/utils/collab.ts`, `CollabProvider` + `FilesCollabEditor` in the frontend): the
-  document is a Yjs document synced over REST — `POST /files/{id}/collab` joins (`after: null` →
-  whole state), sends updates and awareness, pulls, leaves; the realtime channel only signals
-  `{ type: "document" }` (the rule above holds: no data over the socket). Stored as a merged base
-  plus updates (`file_collab`, `file_collab_updates`, compacted after 200); who is in a session and
-  their cursors live in memory (`CollabSessions`, one server, like the realtime hub). The first tab
-  of a fresh session fills the document from the file (`initialize`, a 15 s claim — it may come
-  with any response, e.g. when the tab that had it left; leaving hands it on); the others wait.
-  Each document has a random `epoch`: a tab that was away while its session ended (and maybe a
-  new one started) is told to `reset` — its document can't be merged into the new one — and the
-  editor offers to open it again. Only a tab's own person can make it leave. The browsers write the Markdown back (`PUT …/collab/content` with the `seq` it reflects;
-  only newer texts, one save at a time per file) — the author soon after typing, anyone after a
-  while for changes nobody saved. While anyone is in a session, the file is locked
-  (`file_locks`, kind `editor`, renewed with every request, two minutes): no uploads, restores or
-  deletes (409). The last person leaving fully saved drops the state; contents changed from
-  outside drop it too (`CollabState.discard`). The server rewrites awareness: only the sender's
-  own entry, with the account's name and a colour. Listings and the file page show who is editing
-  (`editing.users`). Needs edit rights; only `.md` files.
-- **Office documents** (Euro-Office over WOPI, optional — `IVENTWORKS_OFFICE_URL`,
+- **Office documents** (Nextcloud Office — the production distribution of Euro-Office — over
+  WOPI, optional — `IVENTWORKS_OFFICE_URL`,
   `server/lib/office`, `routes/wopi`, `FilesOfficeFrame`): `POST /files/{id}/office` (browser
   sessions only) creates an access token (`wopi_tokens`, hashed, tied to the login session, 10 h)
   and the editor URL from the office server's discovery; the browser posts the token to the editor
@@ -208,18 +197,20 @@ CMP (Crossover Management Portal) before; the repository still is.
     MS-WOPI says; no proof keys or no discovery → every call is refused, never token-only; a
     mismatch reloads the discovery at most once a minute, so new keys are picked up) and the
     token again: session, person, file (not in the Papierkorb), current rights
-    (`OfficeTokens.resolve`).
+    (`OfficeTokens.resolve`). Refusals are logged with their reason (once a minute per reason).
   - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
     large as uploads (`RequestLimits.limitFor`, path-based).
-  - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
-    server never hold a file at once. Saves keep versions per interval (`session: true`).
-  - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`).
+  - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
+    meanwhile (409). Saves keep versions per interval (`session: true`).
+  - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`), image
+    `ghcr.io/nextcloud-releases/office-documentserver` at a pinned version (the Euro-Office
+    community builds are meant for testing).
   - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
     `office.ivb.<org domain>` or `office.ivb.iventworks.de` — always a host of its own, never a
     path or port of the app's. `ivb` is a reserved org slug.
   - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
     libraries) creates an empty docx/xlsx/pptx built in code (`OfficeTemplates`: the smallest valid
-    OOXML packages, zipped without compression) and opens it in the editor (`?office=1`).
+    OOXML packages, zipped without compression) and opens it (its file page).
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace

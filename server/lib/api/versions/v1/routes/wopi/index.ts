@@ -31,6 +31,15 @@ export const router = new Hono<WopiEnv>().basePath("/wopi");
 
 const LOCK_HEADER = "X-WOPI-Lock";
 
+/** Why WOPI calls fail shows up in the log — once a minute per reason, not per call. */
+const lastLogged = new Map<string, number>();
+function logRefusal(reason: string, message: string) {
+	const now = Date.now();
+	if (now - (lastLogged.get(reason) ?? 0) < 60_000) return;
+	lastLogged.set(reason, now);
+	Logger.warn(message);
+}
+
 /** The URL as the office server called it (what it signed). */
 function calledUrl(c: Context) {
 	const url = new URL(c.req.url);
@@ -67,10 +76,24 @@ router.use("/files/:fileId/*", async (c, next) => {
 		if (fresh !== discovery) genuine = check(fresh);
 	}
 	// MS-WOPI: an invalid proof is answered with 500.
-	if (!genuine) return c.body(null, 500);
+	if (!genuine) {
+		logRefusal(
+			discovery?.proofKey ? "proof" : "keys",
+			discovery?.proofKey
+				? `WOPI call refused: the office server's signature doesn't match (${c.req.method} ${calledUrl(c).split("?")[0]}). Check that IVENTWORKS_OFFICE_URL / IVENTWORKS_OFFICE_INTERNAL_URL point at the office server that calls us.`
+				: "WOPI call refused: no proof keys from the office server (is its discovery reachable, WOPI_ENABLED=true?).",
+		);
+		return c.body(null, 500);
+	}
 
 	const resolved = await OfficeTokens.resolve(accessToken, fileId);
-	if (!resolved) return c.body(null, 401);
+	if (!resolved) {
+		logRefusal(
+			"token",
+			`WOPI call refused: unknown or expired access token for file ${fileId} (logged out, rights or file changed).`,
+		);
+		return c.body(null, 401);
+	}
 	c.set("wopi", resolved);
 	c.set("fileId", fileId);
 	await next();

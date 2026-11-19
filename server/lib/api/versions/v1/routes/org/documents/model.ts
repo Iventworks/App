@@ -26,14 +26,6 @@ export namespace OrgDocumentsModel.CreateFolder {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace OrgDocumentsModel.CreateMarkdown {
-	export const Body = FileService.CreateMarkdownBody;
-	export type Body = z.infer<typeof Body>;
-
-	export const Response = FileService.ItemSchema;
-	export type Response = z.infer<typeof Response>;
-}
-
 export namespace OrgDocumentsModel.Trash {
 	export const Response = FileTrash.ListResponse;
 	export type Response = z.infer<typeof Response>;

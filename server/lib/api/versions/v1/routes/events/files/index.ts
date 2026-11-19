@@ -185,69 +185,6 @@ router.post(
 	},
 );
 
-router.post(
-	"/markdown",
-
-	APIRouteSpec.authenticated({
-		summary: "Create Markdown document",
-		description:
-			"Create an empty Markdown document (`.md`, starting with its title as heading) in the event's documents — where the caller may upload.",
-		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
-
-		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.created(
-				"Document created successfully",
-				EventFilesModel.CreateMarkdown.Response,
-			),
-			APIResponseSpec.badRequest("Parent folder not found / Syntax or validation error in request"),
-			APIResponseSpec.notFound("Event not found"),
-			APIResponseSpec.forbidden("You are not allowed to add documents here"),
-		),
-	}),
-
-	zValidator("json", EventFilesModel.CreateMarkdown.Body),
-
-	async (c) => {
-		const viewer = await viewerOf(c);
-		if (!viewer) return APIResponse.forbidden(c, "You are not allowed to add documents here");
-
-		const event = c.get("event");
-		const { userId } = c.get("eventAccess");
-		const body = c.req.valid("json") as EventFilesModel.CreateMarkdown.Body;
-
-		const target = await FileLibrary.resolveTarget(viewer, body.parent_id);
-		if (!target.ok) {
-			return target.status === 400
-				? APIResponse.badRequest(c, target.message)
-				: APIResponse.forbidden(c, target.message);
-		}
-
-		const file = await FileService.createMarkdown(
-			viewer.location,
-			target.parentId,
-			body.name,
-			FileLibrary.markdownTemplate(body.name),
-			userId,
-		);
-		if (!file) return APIResponse.badRequest(c, "File is too large");
-
-		await AuditLog.record({
-			userId,
-			eventId: event.id,
-			action: "create",
-			entityType: "file",
-			entityId: file.id,
-			summary: `Dokument „${file.name}“ angelegt`,
-		});
-
-		return APIResponse.created(
-			c,
-			"Document created successfully",
-			await FileLibrary.created(viewer, file),
-		);
-	},
-);
-
 // --- Papierkorb -----------------------------------------------------------------------------
 
 router.get(

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * Earlier versions of a file ("Versionen"): who wrote them and when, open/download, and
- * "Wiederherstellen" for people who may edit (the current contents become a version, so a
- * restore can be undone). Versions are kept for 30 days, the newest ten longer.
+ * Earlier versions of a file ("Versionen"): who wrote them and when, view them in the app
+ * (`/files/{id}?version=…`) or download them, and "Wiederherstellen" for people who may edit (the
+ * current contents become a version, so a restore can be undone). Versions are kept for 30 days,
+ * the newest ten longer, at most 50.
  */
 import type { GetFilesByFileIdVersionsResponses } from "~/api-client";
 import type { FileItem } from "~/utils/types";
@@ -16,6 +17,7 @@ const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ restored: [] }>();
 
 const toast = useToast();
+const route = useRoute();
 const fileURL = useFileURL();
 const confirm = useConfirmDialog();
 
@@ -24,6 +26,13 @@ const loading = ref(false);
 const restoring = ref<number | null>(null);
 
 const canEdit = computed(() => Boolean(props.item?.permissions?.edit));
+
+/** A version in the file view — from the file view itself, or from a library page (`from`). */
+function versionLink(version: Version) {
+	const path = `/files/${props.item?.id}`;
+	const query = route.path === path ? { ...route.query } : { from: route.path };
+	return { path, query: { ...query, version: String(version.id) } };
+}
 
 async function load() {
 	const item = props.item;
@@ -110,13 +119,13 @@ async function restore(version: Version) {
 					</div>
 					<div class="flex items-center gap-1">
 						<UButton
-							icon="i-lucide-external-link"
+							icon="i-lucide-eye"
 							color="neutral"
 							variant="ghost"
 							size="sm"
-							aria-label="Öffnen"
-							:to="fileURL(version.content_url)"
-							target="_blank"
+							aria-label="Ansehen"
+							:to="versionLink(version)"
+							@click="open = false"
 						/>
 						<UButton
 							icon="i-lucide-download"

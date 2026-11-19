@@ -9,9 +9,6 @@ import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
 import { AuthHandler } from "../../../../utils/authHandler";
-import { Collab } from "../../../../utils/collab";
-import { CollabSessions } from "../../../../utils/collabSessions";
-import { CollabState } from "../../../../utils/collabState";
 import { FileAccess } from "../../../../utils/fileAccess";
 import { FileAccessLists } from "../../../../utils/fileAccessLists";
 import { FileLibrary } from "../../../../utils/fileLibrary";
@@ -327,7 +324,7 @@ router.delete(
 	},
 );
 
-// --- contents: new versions, shared Markdown editing ------------------------------------------
+// --- contents: new versions ------------------------------------------------------------------
 
 const EDIT_FORBIDDEN = "You are not allowed to edit this file";
 const LOCKED = "The file is being edited right now";
@@ -382,108 +379,6 @@ router.put(
 	},
 );
 
-router.post(
-	"/:fileId/collab",
-
-	APIRouteSpec.authenticated({
-		summary: "Shared editing: sync",
-		description:
-			'Everything a Markdown editor tab does in a shared editing session (`permissions.edit`): join (`after: null` → the whole Yjs state), send its Yjs updates and awareness, pull others\' updates, leave. The first tab of a fresh session is told to `initialize` the document from the file (`init: true` with its updates); the others wait until `ready`. While anyone is in the session the file is locked. The realtime channel announces changes (`{ type: "document" }`).',
-		tags: [DOCS_TAGS.FILES],
-
-		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success(
-				"Document synced successfully (no data after `leave`)",
-				FilesModel.Collab.SyncResponse,
-			),
-			APIResponseSpec.badRequest(
-				"Only Markdown documents can be edited here / Invalid document update / Syntax or validation error in request",
-			),
-			APIResponseSpec.notFound("File not found"),
-			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
-			APIResponseSpec.conflict("The file is being edited elsewhere / The document is not ready yet"),
-		),
-	}),
-
-	zValidator("json", FilesModel.Collab.SyncBody),
-
-	async (c) => {
-		const file = c.get("file");
-		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
-		if (file.kind !== "file" || !FileService.isMarkdownName(file.name)) {
-			return APIResponse.badRequest(c, "Only Markdown documents can be edited here");
-		}
-
-		const body = c.req.valid("json") as FilesModel.Collab.SyncBody;
-		const userId = getAuthUserId(c);
-		const user = (await UserSummary.fetchMap([userId])).get(userId);
-		if (!user) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
-
-		// Audited once per person joining (not per tab or reconnect).
-		const joining =
-			body.after === null &&
-			!body.leave &&
-			!CollabSessions.participants(OrgContext.id(), file.id).some((entry) => entry.userId === userId);
-		const result = await Collab.sync(file, user, body);
-		if (!result.ok) {
-			return result.status === 409
-				? APIResponse.conflict(c, result.message)
-				: APIResponse.badRequest(c, result.message);
-		}
-
-		if (joining) {
-			await AuditLog.record({
-				userId,
-				eventId: auditEventId(file),
-				action: "update",
-				entityType: "file",
-				entityId: file.id,
-				summary: `${describeItem(file)} im Editor geöffnet`,
-			});
-		}
-
-		if (!result.data) return APIResponse.successNoData(c, "Left the document");
-		return APIResponse.success(c, "Document synced successfully", result.data);
-	},
-);
-
-router.put(
-	"/:fileId/collab/content",
-
-	APIRouteSpec.authenticated({
-		summary: "Shared editing: save",
-		description:
-			"Write the Markdown a tab serialised at `seq` back into the file — only when it is newer than what was saved (`saved: false` otherwise). While the same person keeps saving, at most one version is kept every few minutes.",
-		tags: [DOCS_TAGS.FILES],
-
-		responses: APIResponseSpec.describeBasic(
-			APIResponseSpec.success("Document saved successfully", FilesModel.Collab.SaveResponse),
-			APIResponseSpec.badRequest("Only Markdown documents can be edited here / File is too large"),
-			APIResponseSpec.notFound("File not found"),
-			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
-			APIResponseSpec.conflict("Unknown document state"),
-		),
-	}),
-
-	zValidator("json", FilesModel.Collab.SaveBody),
-
-	async (c) => {
-		const file = c.get("file");
-		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
-		if (file.kind !== "file" || !FileService.isMarkdownName(file.name)) {
-			return APIResponse.badRequest(c, "Only Markdown documents can be edited here");
-		}
-		const body = c.req.valid("json") as FilesModel.Collab.SaveBody;
-		const result = await Collab.save(file, getAuthUserId(c), body);
-		if (!result.ok) {
-			return result.status === 409
-				? APIResponse.conflict(c, result.message)
-				: APIResponse.badRequest(c, result.message);
-		}
-		return APIResponse.success(c, "Document saved successfully", result.data);
-	},
-);
-
 // --- office (Euro-Office over WOPI) ----------------------------------------------------------
 
 router.post(
@@ -521,14 +416,8 @@ router.post(
 		const discovery = await OfficeDiscovery.get();
 		if (!discovery) return APIResponse.serverError(c, "The office server can't be reached");
 
-		// A Markdown editing session has the file: view only.
-		const lock = await FileLocks.current(file.id);
 		const extension = file.name.includes(".") ? (file.name.split(".").pop() ?? "") : "";
-		const choice = OfficeDiscovery.actionFor(
-			discovery,
-			extension,
-			permissions.edit && lock?.kind !== "editor",
-		);
+		const choice = OfficeDiscovery.actionFor(discovery, extension, permissions.edit);
 		if (!choice) return APIResponse.badRequest(c, "This file can't be opened in the office editor");
 
 		const { token, expiresAt } = await OfficeTokens.create(file, authContext, choice.mode === "edit");
@@ -647,7 +536,6 @@ router.post(
 
 		const updated = FileVersions.restore(file, version, userId);
 		if (!updated) return APIResponse.notFound(c, "Version not found");
-		await CollabState.discard(file.id);
 
 		await AuditLog.record({
 			userId,

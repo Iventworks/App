@@ -33,8 +33,6 @@ const props = withDefaults(
 		load: (parentId: number | null) => Promise<FolderListing | null>;
 		upload?: (file: File, parentId: number | null) => Promise<boolean>;
 		createFolder?: (name: string, parentId: number | null) => Promise<boolean>;
-		/** Create a Markdown document; it then opens in the editor. */
-		createMarkdown?: (name: string, parentId: number | null) => Promise<FileItem | null>;
 		/** Create an empty office document; it then opens in the office editor. */
 		createOffice?: (
 			name: string,
@@ -53,7 +51,6 @@ const props = withDefaults(
 		rootLabel: "Dokumente",
 		upload: undefined,
 		createFolder: undefined,
-		createMarkdown: undefined,
 		createOffice: undefined,
 		trash: undefined,
 		manageAccess: false,
@@ -228,7 +225,7 @@ const folderModalOpen = ref(false);
 const folderName = ref("");
 const renameTarget = ref<FileItem | null>(null);
 /** What the name dialog creates when it doesn't rename. */
-const createKind = ref<"folder" | "document" | OfficeType>("folder");
+const createKind = ref<"folder" | OfficeType>("folder");
 const saving = ref(false);
 
 function openNewFolder() {
@@ -238,7 +235,7 @@ function openNewFolder() {
 	folderModalOpen.value = true;
 }
 
-function openNewDocument(kind: "document" | OfficeType = "document") {
+function openNewDocument(kind: OfficeType) {
 	renameTarget.value = null;
 	createKind.value = kind;
 	folderName.value = "";
@@ -260,13 +257,6 @@ function openRename(item: FileItem) {
 const nameModal = computed(() => {
 	if (renameTarget.value)
 		return { title: "Umbenennen", icon: "i-lucide-pencil", submit: "Speichern" };
-	if (createKind.value === "document") {
-		return {
-			title: "Neues Dokument",
-			icon: "i-lucide-file-pen-line",
-			submit: "Anlegen & bearbeiten",
-		};
-	}
 	if (createKind.value !== "folder") {
 		const office = OFFICE_KINDS[createKind.value];
 		return { title: office.title, icon: office.icon, submit: "Anlegen & öffnen" };
@@ -287,25 +277,12 @@ async function submitFolderModal() {
 		if (!result.success) {
 			toast.add({ title: "Umbenennen fehlgeschlagen", description: result.message, color: "error" });
 		}
-	} else if (createKind.value === "document" && props.createMarkdown) {
-		const created = await props.createMarkdown(name, folderId.value);
-		saving.value = false;
-		folderModalOpen.value = false;
-		// Straight into the editor.
-		if (created)
-			await router.push({ path: `/files/${created.id}`, query: { from: route.path, edit: "1" } });
-		return;
-	} else if (
-		createKind.value !== "folder" &&
-		createKind.value !== "document" &&
-		props.createOffice
-	) {
+	} else if (createKind.value !== "folder" && props.createOffice) {
 		const created = await props.createOffice(name, createKind.value, folderId.value);
 		saving.value = false;
 		folderModalOpen.value = false;
-		// Straight into the office editor.
-		if (created)
-			await router.push({ path: `/files/${created.id}`, query: { from: route.path, office: "1" } });
+		// Office documents open in the office editor.
+		if (created) await router.push({ path: `/files/${created.id}`, query: { from: route.path } });
 		return;
 	} else if (props.createFolder) {
 		await props.createFolder(name, folderId.value);
@@ -316,21 +293,12 @@ async function submitFolderModal() {
 	await refresh();
 }
 
-/** The "Neu" menu: folder, Markdown document, office documents (with an office server). */
+/** The "Neu" menu: folder, office documents (with an office server). */
 const officeAvailable = computed(() => useInstance().value?.office === true);
 const newItems = computed<DropdownMenuItem[][]>(() => [
 	[
 		...(props.createFolder
 			? [{ label: "Ordner", icon: "i-lucide-folder-plus", onSelect: openNewFolder }]
-			: []),
-		...(props.createMarkdown && !uploadOnly.value
-			? [
-					{
-						label: "Dokument (Markdown)",
-						icon: "i-lucide-file-pen-line",
-						onSelect: () => openNewDocument(),
-					},
-				]
 			: []),
 	],
 	...(props.createOffice && officeAvailable.value && !uploadOnly.value
@@ -788,13 +756,7 @@ defineExpose({ refresh });
 							/>
 							<UBadge
 								v-if="item.editing"
-								:label="
-									item.editing.kind === 'office'
-										? 'Wird in Office bearbeitet'
-										: item.editing.users.length
-											? `${item.editing.users.map((person) => person.display_name.split(' ')[0]).join(', ')} ${item.editing.users.length > 1 ? 'bearbeiten' : 'bearbeitet'}`
-											: 'Wird bearbeitet'
-								"
+								label="Wird in Office bearbeitet"
 								icon="i-lucide-pencil"
 								color="warning"
 								variant="subtle"
@@ -883,7 +845,7 @@ defineExpose({ refresh });
 						v-model="folderName"
 						autofocus
 						class="w-full"
-						:placeholder="!renameTarget && createKind === 'document' ? 'z. B. Protokoll Leitungstreffen' : undefined"
+						:placeholder="!renameTarget && createKind !== 'folder' ? 'z. B. Protokoll Leitungstreffen' : undefined"
 					/>
 				</UFormField>
 				<div class="flex justify-end gap-2">
