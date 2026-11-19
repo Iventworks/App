@@ -205,6 +205,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Locks are WOPI's (`file_locks` kind `office`, 30 min); a Markdown session and the office
     server never hold a file at once. Saves keep versions per interval (`session: true`).
   - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`).
+  - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
+    `office.ivb.<org domain>` or `office.ivb.iventworks.de` — always a host of its own, never a
+    path or port of the app's. `ivb` is a reserved org slug.
   - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
     libraries) creates an empty docx/xlsx/pptx built in code (`OfficeTemplates`: the smallest valid
     OOXML packages, zipped without compression) and opens it in the editor (`?office=1`).

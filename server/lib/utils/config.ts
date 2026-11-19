@@ -194,7 +194,7 @@ export class ConfigHandler {
 
 		// Office documents in the browser (Euro-Office over WOPI, server/lib/office). OFFICE_URL: the
 		// office server's public address, which browsers load the editor from (its own host name,
-		// e.g. https://office.example.org — never a path or port of the app's host). Without it,
+		// e.g. https://office.ivb.example.org — never a path or port of the app's host). Without it,
 		// office files are only downloaded. OFFICE_INTERNAL_URL: where this server fetches the
 		// office server's discovery (e.g. http://eurooffice in the same compose stack); default
 		// OFFICE_URL. The office server calls back on the org's normal public address.

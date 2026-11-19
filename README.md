@@ -184,13 +184,16 @@ documents go to the **Papierkorb** for 30 days.
 
 1. Start it: `docker compose --profile office up -d` (service `eurooffice` in
    `docker/docker-compose.yml`, `WOPI_ENABLED=true`).
-2. Let the reverse proxy serve e.g. `https://office.example.org` from it (port 31317).
-3. Set `IVENTWORKS_OFFICE_URL=https://office.example.org` and
+2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317).
+3. Set `IVENTWORKS_OFFICE_URL=https://office.ivb.example.org` and
    `IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice`, restart Iventworks.
 
 The office server calls back on each org's public address; it must be able to reach it (hairpin
 through the proxy). Use its own host name, never a path or port of the app's: its scripts would
-otherwise share the app's origin.
+otherwise share the app's origin. We put backend hosts under `ivb.` ("Iventworks backends", a
+reserved org slug), e.g. `office.ivb.example.org` / `office.ivb.iventworks.de`, so `office.` stays
+free on the org's domain. A wildcard certificate for `*.example.org` doesn't cover two levels: use
+a certificate per host (Caddy, certbot) or `*.ivb.example.org`.
 
 ## Configuration
 

@@ -28,6 +28,8 @@ export const RESERVED_ORG_SLUGS = new Set([
 	"status",
 	"dashboard",
 	"default",
+	// Iventworks backends (`<service>.ivb.<domain>`, e.g. the office server): keep the label free.
+	"ivb",
 ]);
 
 export class OrgServiceError extends Error {
