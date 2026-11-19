@@ -80,7 +80,7 @@ services:
 
   # Euro-Office (the engine behind "Nextcloud Office") for docx/xlsx/pptx/odt… in the browser,
   # with co-editing. Optional: start it with `docker compose --profile office up -d`, then set
-  # IVENTWORKS_OFFICE_URL=https://office.example.org (served by the reverse proxy to the port
+  # IVENTWORKS_OFFICE_URL=https://office.ivb.example.org (served by the reverse proxy to the port
   # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice. Needs at least 4 GB RAM.
   eurooffice:
     profiles: [office]
