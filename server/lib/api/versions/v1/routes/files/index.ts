@@ -28,7 +28,12 @@ import { FilesModel } from "./model";
 import { router as sharesRouter } from "./shares";
 
 type FilesEnv = {
-	Variables: { file: DB.Models.File; permissions: FileAccess.Permissions };
+	Variables: {
+		file: DB.Models.File;
+		permissions: FileAccess.Permissions;
+		/** Documents: the folder chain from the root down to the file (empty otherwise). */
+		path: DB.Models.File[];
+	};
 };
 
 export const router = new Hono<FilesEnv>().basePath("/files");
@@ -43,6 +48,10 @@ const LOCATION_LABELS: Record<DB.Models.File["scope"], string> = {
 	receipt: "Beleg",
 	message: "Anhang",
 };
+
+const CUSTOM_ACCESS_BELOW =
+	"Only managers can delete or move a folder that holds items with their own access";
+const TOO_DEEP = FileService.TOO_DEEP;
 
 function describeItem(file: DB.Models.File) {
 	return `${file.kind === "folder" ? "Ordner" : LOCATION_LABELS[file.scope]} „${file.name}“`;
@@ -59,11 +68,17 @@ router.use(
 		const file = await FileService.get(fileId.data);
 		if (!file) return APIResponse.notFound(c, "File not found");
 		// Documents in the Papierkorb only exist there (`/…/trash`).
-		if ((file.scope === "org" || file.scope === "event") && (await FileService.isInTrash(file))) {
+		const isDocument = file.scope === "org" || file.scope === "event";
+		const path = isDocument ? await FileService.getPath(file.id) : [];
+		if (isDocument && FileService.isTrashed(path)) {
 			return APIResponse.notFound(c, "File not found");
 		}
 
-		const permissions = await FileAccess.permissionsFor(AuthHandler.AuthContext.get(c), file);
+		const permissions = await FileAccess.permissionsFor(
+			AuthHandler.AuthContext.get(c),
+			file,
+			isDocument ? path : undefined,
+		);
 		// Visible: readable, or a folder the caller may only upload into ("Nur hochladen").
 		if (!permissions.read && !permissions.upload) {
 			return APIResponse.forbidden(c, "You are not allowed to access this file");
@@ -71,6 +86,7 @@ router.use(
 
 		c.set("file", file);
 		c.set("permissions", permissions);
+		c.set("path", path);
 		await next();
 	},
 );
@@ -129,10 +145,8 @@ router.get(
 
 	async (c) => {
 		const file = c.get("file");
-		const isDocument = file.scope === "org" || file.scope === "event";
 		// Whoever can see a document can open every folder above it (`FileAccess`).
-		const path =
-			isDocument && file.parent_id !== null ? await FileService.getPath(file.parent_id) : [];
+		const path = c.get("path").slice(0, -1);
 		const event =
 			file.scope === "event" && file.event_id !== null
 				? ((await DB.instance()
@@ -159,16 +173,16 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Rename or move file",
 		description:
-			"Rename a file or folder (`permissions.rename`) and/or move it to another folder of the same library (`parent_id: null` = root). Moving needs `permissions.delete` on the item and the right to upload into the target folder.",
+			"Rename a file or folder (`permissions.rename`) and/or move it to another folder of the same library (`parent_id: null` = root). Moving needs `permissions.delete` on the item and the right to upload into the target folder; a folder that holds items with their own access list is moved by managers only.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("File updated successfully", FilesModel.Update.Response),
 			APIResponseSpec.badRequest(
-				"Parent folder not found / A folder cannot be moved into itself / Syntax or validation error in request",
+				`Parent folder not found / A folder cannot be moved into itself / ${TOO_DEEP} / Syntax or validation error in request`,
 			),
 			APIResponseSpec.notFound("File not found"),
-			APIResponseSpec.forbidden("You are not allowed to change this file"),
+			APIResponseSpec.forbidden(`You are not allowed to change this file / ${CUSTOM_ACCESS_BELOW}`),
 		),
 	}),
 
@@ -188,6 +202,9 @@ router.put(
 
 		if (moves) {
 			const location = FileService.locationOf(file);
+			if (!permissions.manage && (await FileAccess.hasCustomAccessBelow(file))) {
+				return APIResponse.forbidden(c, CUSTOM_ACCESS_BELOW);
+			}
 			if (body.parent_id !== null && body.parent_id !== undefined) {
 				const parent = await FileService.resolveParent(location, body.parent_id);
 				if (!parent.ok) return APIResponse.badRequest(c, parent.message);
@@ -195,6 +212,15 @@ router.put(
 				if (file.kind === "folder" && (await FileService.isDescendantOrSelf(file.id, body.parent_id))) {
 					return APIResponse.badRequest(c, "A folder cannot be moved into itself");
 				}
+			}
+			if (
+				file.kind === "folder" &&
+				!(await FileService.fitsDepth(
+					body.parent_id ?? null,
+					await FileService.folderLevelsBelow(file),
+				))
+			) {
+				return APIResponse.badRequest(c, TOO_DEEP);
 			}
 
 			// Documents: the target must be a place the caller may add things to.
@@ -246,23 +272,35 @@ router.delete(
 	APIRouteSpec.authenticated({
 		summary: "Delete file",
 		description:
-			"Delete a file, or a folder with everything inside it (`permissions.delete`). Org and event documents go to the Papierkorb (restorable for 30 days, see `…/trash`); receipts and attachments are deleted right away. Refused while someone is editing the file.",
+			"Delete a file, or a folder with everything inside it (`permissions.delete`). Org and event documents go to the Papierkorb (restorable for 30 days, see `…/trash`); receipts and attachments are deleted right away. Refused while someone is editing the file (or a file inside the folder). A folder that holds items with their own access list is deleted by managers only.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("File deleted successfully"),
 			APIResponseSpec.notFound("File not found"),
-			APIResponseSpec.forbidden("You are not allowed to change this file"),
+			APIResponseSpec.forbidden(`You are not allowed to change this file / ${CUSTOM_ACCESS_BELOW}`),
+			APIResponseSpec.conflict(
+				"The file is being edited right now / A document in this folder is being edited right now",
+			),
 		),
 	}),
 
 	async (c) => {
 		const file = c.get("file");
-		if (!c.get("permissions").delete) {
+		const permissions = c.get("permissions");
+		if (!permissions.delete) {
 			return APIResponse.forbidden(c, "You are not allowed to change this file");
 		}
-		if (await FileLocks.blocking(file.id)) {
-			return APIResponse.conflict(c, "The file is being edited right now");
+		if (!permissions.manage && (await FileAccess.hasCustomAccessBelow(file))) {
+			return APIResponse.forbidden(c, CUSTOM_ACCESS_BELOW);
+		}
+		if (await FileLocks.blockingWithin(file)) {
+			return APIResponse.conflict(
+				c,
+				file.kind === "folder"
+					? "A document in this folder is being edited right now"
+					: "The file is being edited right now",
+			);
 		}
 
 		const toTrash = file.scope === "org" || file.scope === "event";
@@ -608,6 +646,7 @@ router.post(
 		if (!version) return APIResponse.notFound(c, "Version not found");
 
 		const updated = FileVersions.restore(file, version, userId);
+		if (!updated) return APIResponse.notFound(c, "Version not found");
 		await CollabState.discard(file.id);
 
 		await AuditLog.record({

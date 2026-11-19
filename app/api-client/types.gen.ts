@@ -7137,12 +7137,12 @@ export type DeleteFilesByFileIdErrors = {
         data: unknown;
     };
     /**
-     * You are not allowed to change this file
+     * You are not allowed to change this file / Only managers can delete or move a folder that holds items with their own access
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to change this file';
+        message: 'You are not allowed to change this file / Only managers can delete or move a folder that holds items with their own access';
     };
     /**
      * File not found
@@ -7151,6 +7151,14 @@ export type DeleteFilesByFileIdErrors = {
         success: false;
         code: 404;
         message: 'File not found';
+    };
+    /**
+     * The file is being edited right now / A document in this folder is being edited right now
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The file is being edited right now / A document in this folder is being edited right now';
     };
 };
 
@@ -7287,20 +7295,20 @@ export type PutFilesByFileIdData = {
 
 export type PutFilesByFileIdErrors = {
     /**
-     * Parent folder not found / A folder cannot be moved into itself / Syntax or validation error in request
+     * Parent folder not found / A folder cannot be moved into itself / Folders can't be nested more than 30 levels deep / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Parent folder not found / A folder cannot be moved into itself / Syntax or validation error in request';
+        message: 'Parent folder not found / A folder cannot be moved into itself / Folders can\'t be nested more than 30 levels deep / Syntax or validation error in request';
     };
     /**
-     * You are not allowed to change this file
+     * You are not allowed to change this file / Only managers can delete or move a folder that holds items with their own access
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to change this file';
+        message: 'You are not allowed to change this file / Only managers can delete or move a folder that holds items with their own access';
     };
     /**
      * File not found
@@ -7375,6 +7383,7 @@ export type PostFilesByFileIdCollabData = {
     body: {
         client_id: number;
         after: number | null;
+        epoch?: number | null;
         updates?: Array<string>;
         init?: boolean;
         awareness?: string | null;
@@ -7433,6 +7442,8 @@ export type PostFilesByFileIdCollabResponses = {
         code: 200;
         message: 'Document synced successfully (no data after `leave`)';
         data: {
+            epoch: number;
+            reset: boolean;
             seq: number;
             saved_seq: number;
             state: string | null;
@@ -7464,6 +7475,7 @@ export type PutFilesByFileIdCollabContentData = {
     body: {
         client_id: number;
         seq: number;
+        epoch?: number | null;
         content: string;
     };
     path: {
@@ -13805,12 +13817,12 @@ export type PostEventsByEventIdFilesFoldersData = {
 
 export type PostEventsByEventIdFilesFoldersErrors = {
     /**
-     * Parent folder not found / Syntax or validation error in request
+     * Parent folder not found / Folders can't be nested more than 30 levels deep / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Parent folder not found / Syntax or validation error in request';
+        message: 'Parent folder not found / Folders can\'t be nested more than 30 levels deep / Syntax or validation error in request';
     };
     /**
      * You are not allowed to add documents here
@@ -14119,6 +14131,7 @@ export type GetEventsByEventIdFilesTrashResponses = {
             } | null;
             location: Array<string>;
             purge_at: number;
+            folder_in_trash: boolean;
             can_restore: boolean;
             can_purge: boolean;
         }>;
@@ -14153,6 +14166,14 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreErrors = {
         success: false;
         code: 404;
         message: 'Not in the Papierkorb';
+    };
+    /**
+     * The folder it was in is in the Papierkorb too: restore the folder first
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The folder it was in is in the Papierkorb too: restore the folder first';
     };
 };
 
@@ -16930,12 +16951,12 @@ export type PostOrgDocumentsFoldersData = {
 
 export type PostOrgDocumentsFoldersErrors = {
     /**
-     * Parent folder not found / Syntax or validation error in request
+     * Parent folder not found / Folders can't be nested more than 30 levels deep / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Parent folder not found / Syntax or validation error in request';
+        message: 'Parent folder not found / Folders can\'t be nested more than 30 levels deep / Syntax or validation error in request';
     };
     /**
      * You are not allowed to add documents here
@@ -17206,6 +17227,7 @@ export type GetOrgDocumentsTrashResponses = {
             } | null;
             location: Array<string>;
             purge_at: number;
+            folder_in_trash: boolean;
             can_restore: boolean;
             can_purge: boolean;
         }>;
@@ -17239,6 +17261,14 @@ export type PostOrgDocumentsTrashByFileIdRestoreErrors = {
         success: false;
         code: 404;
         message: 'Not in the Papierkorb';
+    };
+    /**
+     * The folder it was in is in the Papierkorb too: restore the folder first
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'The folder it was in is in the Papierkorb too: restore the folder first';
     };
 };
 

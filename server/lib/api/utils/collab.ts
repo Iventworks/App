@@ -37,6 +37,11 @@ const CURSOR_COLORS = [
  *   person leaves fully saved, the state is thrown away; contents changed from outside throw it
  *   away too (`CollabState.discard`).
  * - Awareness is rewritten by the server: only the sender's own entry, with its real name.
+ * - Each document has a random `epoch`. A tab that was away while its session ended (and maybe a
+ *   new one started) still holds the old document; it is told to `reset` and join again instead
+ *   of mixing the two.
+ * - Leaving is only for the tab's own person; a tab that leaves while it should fill the fresh
+ *   document hands that on.
  *
  * Who is in a session lives in memory (`CollabSessions`), like the realtime hub: one server.
  */
@@ -56,6 +61,8 @@ export namespace Collab {
 			.max(2 ** 32),
 		/** The newest `seq` the client has; null: joining, send the whole state. */
 		after: z.number().int().nonnegative().nullable(),
+		/** The `epoch` of the document the client holds (from an earlier response). */
+		epoch: z.number().int().nonnegative().nullable().optional(),
 		/** Yjs updates (base64), in order. */
 		updates: z.array(z.string().max(1_500_000)).max(50).default([]),
 		/** The updates fill a fresh document (only the client that was told to `initialize`). */
@@ -68,6 +75,13 @@ export namespace Collab {
 	export type SyncBody = z.infer<typeof SyncBody>;
 
 	export const SyncResponse = z.object({
+		/** Which document this is: a new one starts when a session ended and someone opens it again. */
+		epoch: z.number(),
+		/**
+		 * The document the client holds is gone (the session ended while it was away): throw it
+		 * away and join again (`after: null`). Nothing it sent was taken.
+		 */
+		reset: z.boolean(),
 		/** The newest update. */
 		seq: z.number(),
 		/** The newest update written back into the file. */
@@ -100,6 +114,8 @@ export namespace Collab {
 			.max(2 ** 32),
 		/** The newest update the text includes. */
 		seq: z.number().int().positive(),
+		/** The `epoch` of the document the text comes from. */
+		epoch: z.number().int().nonnegative().nullable().optional(),
 		content: z.string().max(500_000),
 	});
 	export type SaveBody = z.infer<typeof SaveBody>;
@@ -108,6 +124,11 @@ export namespace Collab {
 	export type SaveResponse = z.infer<typeof SaveResponse>;
 
 	export type Failure = { ok: false; status: 400 | 409; message: string };
+
+	/** A random, non-zero `epoch` for a new document (0: rows from before epochs). */
+	function newEpoch() {
+		return 1 + ((crypto.getRandomValues(new Uint32Array(1))[0] as number) % 2_147_483_646);
+	}
 
 	export function colorFor(userId: number) {
 		return CURSOR_COLORS[userId % CURSOR_COLORS.length] as string;
@@ -173,7 +194,22 @@ export namespace Collab {
 		const orgId = OrgContext.id();
 
 		if (input.leave) {
-			CollabSessions.remove(orgId, file.id, input.client_id);
+			if (!CollabSessions.remove(orgId, file.id, input.client_id, user.id)) {
+				return { ok: true, data: null };
+			}
+			// It was to fill the fresh document: someone else may now.
+			await DB.instance()
+				.update(DB.Tables.fileCollab)
+				.set({ init_client: null, init_until: 0 })
+				.where(
+					and(
+						inOrg(DB.Tables.fileCollab),
+						eq(DB.Tables.fileCollab.file_id, file.id),
+						eq(DB.Tables.fileCollab.seq, 0),
+						eq(DB.Tables.fileCollab.init_client, input.client_id),
+					),
+				)
+				.run();
 			afterChange(file, null);
 			if (CollabSessions.participants(orgId, file.id, now).length === 0) await endSession(file);
 			return { ok: true, data: null };
@@ -216,10 +252,17 @@ export namespace Collab {
 			if (!row) {
 				row = tx
 					.insert(DB.Tables.fileCollab)
-					.values({ org_id: orgId, file_id: file.id, updated_at: now })
+					.values({ org_id: orgId, file_id: file.id, epoch: newEpoch(), updated_at: now })
 					.returning()
 					.get();
 			}
+
+			// The client still holds a document that was discarded meanwhile.
+			const stale =
+				input.after !== null &&
+				((input.epoch !== null && input.epoch !== undefined && input.epoch !== row.epoch) ||
+					input.after > row.seq);
+			if (stale) return { notReady: false as const, reset: true as const, row };
 
 			// A fresh document: one client fills it from the file.
 			let initialize = false;
@@ -336,10 +379,31 @@ export namespace Collab {
 					.orderBy(asc(DB.Tables.fileCollabUpdates.seq))
 					.all();
 			}
-			return { notReady: false as const, row, initialize, state, missing };
+			return { notReady: false as const, reset: false as const, row, initialize, state, missing };
 		});
 
 		if (result.notReady) return { ok: false, status: 409, message: "The document is not ready yet" };
+		if (result.reset) {
+			// The tab joins again with a new document (and a new client id). Alone: free the file
+			// meanwhile, as if it had left.
+			CollabSessions.remove(orgId, file.id, input.client_id, user.id);
+			if (CollabSessions.participants(orgId, file.id, now).length === 0) await endSession(file);
+			return {
+				ok: true,
+				data: {
+					epoch: result.row.epoch,
+					reset: true,
+					seq: result.row.seq,
+					saved_seq: result.row.saved_seq,
+					state: null,
+					updates: [],
+					initialize: false,
+					ready: result.row.seq > 0,
+					participants: [],
+					awareness: [],
+				},
+			};
+		}
 
 		const participants = CollabSessions.participants(orgId, file.id, now);
 		const awarenessChanged =
@@ -352,6 +416,8 @@ export namespace Collab {
 		return {
 			ok: true,
 			data: {
+				epoch: result.row.epoch,
+				reset: false,
 				seq: result.row.seq,
 				saved_seq: result.row.saved_seq,
 				state: result.state ? result.state.toString("base64") : null,
@@ -415,7 +481,12 @@ export namespace Collab {
 					.from(DB.Tables.fileCollab)
 					.where(and(inOrg(DB.Tables.fileCollab), eq(DB.Tables.fileCollab.file_id, file.id)))
 					.get();
-				if (!row || input.seq > row.seq)
+				const otherDocument =
+					input.epoch !== null &&
+					input.epoch !== undefined &&
+					row !== undefined &&
+					input.epoch !== row.epoch;
+				if (!row || input.seq > row.seq || otherDocument)
 					return { ok: false, status: 409, message: "Unknown document state" };
 				if (input.seq <= row.saved_seq)
 					return { ok: true, data: { saved_seq: row.saved_seq, saved: false } };

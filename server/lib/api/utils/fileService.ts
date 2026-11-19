@@ -140,18 +140,76 @@ export class FileService {
 			.all();
 	}
 
-	/** Folder chain from the root down to (and including) `folderId`, for breadcrumbs. */
-	static async getPath(folderId: number | null, tx: DrizzleDB = DB.instance()) {
+	/**
+	 * Folder chain from the root down to (and including) `folderId`, for breadcrumbs and the access
+	 * walk. `cache`: rows already loaded (by id), shared between several walks. Throws when the chain
+	 * is longer than any valid one (`MAX_DEPTH`): an incomplete chain would skip the access lists
+	 * above it.
+	 */
+	static async getPath(
+		folderId: number | null,
+		tx: DrizzleDB = DB.instance(),
+		cache?: Map<number, DB.Models.File>,
+	) {
 		const path: DB.Models.File[] = [];
 		let currentId = folderId;
-		// Bounded walk: protects against accidental cycles.
-		for (let depth = 0; currentId !== null && depth < 64; depth++) {
-			const folder = await FileService.get(currentId, tx);
+		for (let depth = 0; currentId !== null; depth++) {
+			if (depth > FileService.MAX_DEPTH * 2) {
+				throw new Error(`Folder chain of file ${folderId} is too deep (or a cycle)`);
+			}
+			const folder = cache?.get(currentId) ?? (await FileService.get(currentId, tx));
 			if (!folder) break;
+			cache?.set(folder.id, folder);
 			path.unshift(folder);
 			currentId = folder.parent_id;
 		}
 		return path;
+	}
+
+	/** Folders nest at most this deep (the top level is 1). */
+	static readonly MAX_DEPTH = 30;
+	static readonly TOO_DEEP =
+		`Folders can't be nested more than ${FileService.MAX_DEPTH} levels deep`;
+
+	/**
+	 * Whether a folder fits into `parentId` (null = the top level), with `levelsBelow` levels of
+	 * folders inside it (moving a folder).
+	 */
+	static async fitsDepth(parentId: number | null, levelsBelow = 0, tx: DrizzleDB = DB.instance()) {
+		const depth = parentId === null ? 0 : (await FileService.getPath(parentId, tx)).length;
+		return depth + 1 + levelsBelow <= FileService.MAX_DEPTH;
+	}
+
+	/**
+	 * Everything below a folder, level by level (`[0]`: its children). `skipTrashed`: leave out
+	 * what is in the Papierkorb, with what is inside it.
+	 */
+	static async descendantLevels(
+		folderId: number,
+		options: { skipTrashed?: boolean } = {},
+		tx: DrizzleDB = DB.instance(),
+	) {
+		const levels: DB.Models.File[][] = [];
+		let frontier = [folderId];
+		while (frontier.length > 0 && levels.length <= FileService.MAX_DEPTH * 2) {
+			let children = await tx
+				.select()
+				.from(DB.Tables.files)
+				.where(and(inOrg(DB.Tables.files), inArray(DB.Tables.files.parent_id, frontier)))
+				.all();
+			if (options.skipTrashed) children = children.filter((child) => child.deleted_at === null);
+			if (children.length === 0) break;
+			levels.push(children);
+			frontier = children.filter((child) => child.kind === "folder").map((child) => child.id);
+		}
+		return levels;
+	}
+
+	/** How many levels of folders lie inside a folder (0 for a file or an empty folder). */
+	static async folderLevelsBelow(file: DB.Models.File, tx: DrizzleDB = DB.instance()) {
+		if (file.kind !== "folder") return 0;
+		const levels = await FileService.descendantLevels(file.id, {}, tx);
+		return levels.filter((level) => level.some((entry) => entry.kind === "folder")).length;
 	}
 
 	/** Whether something on the path (root → item) is in the Papierkorb. */
@@ -261,9 +319,7 @@ export class FileService {
 		type: OfficeTemplates.Type,
 		userId: number,
 	) {
-		const cleaned = FileService.sanitizeName(name);
-		const fileName = cleaned.toLowerCase().endsWith(`.${type}`) ? cleaned : `${cleaned}.${type}`;
-		const file = new File([OfficeTemplates.blank(type)], fileName, {
+		const file = new File([OfficeTemplates.blank(type)], FileService.withExtension(name, type), {
 			type: OfficeTemplates.MIME_TYPES[type],
 		});
 		return await FileService.upload(location, parentId, file, userId);
@@ -278,9 +334,22 @@ export class FileService {
 		userId: number,
 	) {
 		const cleaned = FileService.sanitizeName(name);
-		const fileName = /\.(md|markdown)$/i.test(cleaned) ? cleaned : `${cleaned}.md`;
+		const fileName = FileService.isMarkdownName(cleaned)
+			? cleaned
+			: FileService.withExtension(name, "md");
 		const file = new File([content], fileName, { type: FileService.MARKDOWN_MIME_TYPE });
 		return await FileService.upload(location, parentId, file, userId);
+	}
+
+	/**
+	 * A clean file name that ends in `.ext` (added when missing), within the name length — a long
+	 * name is shortened, not its extension.
+	 */
+	static withExtension(name: string, ext: string) {
+		const cleaned = FileService.sanitizeName(name);
+		if (cleaned.toLowerCase().endsWith(`.${ext}`)) return cleaned;
+		const base = cleaned.slice(0, FileService.MAX_NAME_LENGTH - ext.length - 1).trimEnd();
+		return `${base || "Unbenannt"}.${ext}`;
 	}
 
 	static async update(
@@ -448,12 +517,14 @@ export class FileService {
 		await FileStorage.remove([...rows.map((row) => row.storage_key), ...versionKeys]);
 	}
 
+	static readonly MAX_NAME_LENGTH = 200;
+
 	static sanitizeName(name: string) {
 		const cleaned = name
 			.replace(/[\\/\0]/g, "_")
 			.replace(/[\r\n\t]/g, " ")
 			.trim()
-			.slice(0, 200);
+			.slice(0, FileService.MAX_NAME_LENGTH);
 		return cleaned || "Unbenannt";
 	}
 

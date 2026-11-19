@@ -101,7 +101,8 @@ export type TrashItem = GetOrgDocumentsTrashResponses["200"]["data"][number];
 /** The Papierkorb calls of one library (org documents or one event's), for `FilesBrowser`. */
 export interface TrashAdapter {
 	list: () => Promise<TrashItem[] | null>;
-	restore: (fileId: number) => Promise<boolean>;
+	/** The restored item (`parent_id` null: it went to the top level), null when that failed. */
+	restore: (fileId: number) => Promise<FileItem | null>;
 	purge: (fileId: number) => Promise<boolean>;
 	empty: () => Promise<boolean>;
 }

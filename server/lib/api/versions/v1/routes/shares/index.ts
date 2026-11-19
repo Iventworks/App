@@ -332,6 +332,9 @@ router.post(
 		const body = c.req.valid("json") as PublicSharesModel.CreateFolderBody;
 		const parent = await folderInShare(c, body.parent_id);
 		if (!parent) return APIResponse.notFound(c, "Folder not found");
+		if (!(await FileService.fitsDepth(parent.id))) {
+			return APIResponse.badRequest(c, FileService.TOO_DEEP);
+		}
 
 		const folder = await FileService.createFolder(
 			{ scope: parent.scope, eventId: parent.event_id },
@@ -424,8 +427,13 @@ router.delete(
 		const file = await inShare(c, fileId);
 		if (!file || file.id === c.get("root").id) return APIResponse.notFound(c, "File not found");
 
-		if (await FileLocks.blocking(file.id)) {
-			return APIResponse.conflict(c, "The file is being edited right now");
+		if (await FileLocks.blockingWithin(file)) {
+			return APIResponse.conflict(
+				c,
+				file.kind === "folder"
+					? "A document in this folder is being edited right now"
+					: "The file is being edited right now",
+			);
 		}
 		// Into the Papierkorb: the Kernteam / Leitung can undo what a link deleted.
 		await FileTrash.trash(file, null);

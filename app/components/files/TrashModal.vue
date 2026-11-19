@@ -2,7 +2,8 @@
 /**
  * The Papierkorb of a document library: deleted documents and folders (a folder with what was in
  * it), where they were, who deleted them and when they go for good. Restore puts an item back
- * (to the top level when its folder is gone); managers can delete for good and empty it.
+ * (managers: to the top level, only for them, when its folder is in the Papierkorb too); managers
+ * can delete for good and empty it.
  */
 import { Utils } from "~/utils";
 import type { TrashAdapter, TrashItem } from "~/utils/types";
@@ -34,14 +35,22 @@ function iconOf(item: TrashItem) {
 	return item.kind === "folder" ? "i-lucide-folder" : Utils.getFileIcon(item.name, item.mime_type);
 }
 
+const onlyManagers = computed(() => (props.scope === "org" ? "das Kernteam" : "die Leitung"));
+
 async function restore(item: TrashItem) {
 	busy.value = item.id;
-	const ok = await props.trash.restore(item.id);
+	const restored = await props.trash.restore(item.id);
 	busy.value = null;
-	if (!ok) return;
+	if (!restored) return;
+	// Its folder is in the Papierkorb too: it went to the top level, only for the managers.
+	const toRoot = item.parent_id !== null && restored.parent_id === null;
 	toast.add({
 		title: `„${item.name}“ wiederhergestellt`,
-		description: item.location.length ? `In „${item.location.join(" / ")}“` : undefined,
+		description: toRoot
+			? `Auf der obersten Ebene, weil der Ordner auch im Papierkorb ist. Sehen kann es erst nur ${onlyManagers.value}, bis du den Zugriff änderst.`
+			: item.location.length
+				? `In „${item.location.join(" / ")}“`
+				: undefined,
 		color: "success",
 		icon: "i-lucide-undo-2",
 	});
@@ -109,6 +118,13 @@ async function empty() {
 							<template v-if="item.location.length">aus „{{ item.location.join(" / ") }}“ · </template>
 							{{ item.deleted_by?.display_name ?? "über einen Freigabelink" }} · {{ formatRelative(item.deleted_at) }}
 							· endgültig weg {{ formatDate(item.purge_at) }}
+						</p>
+						<p v-if="item.folder_in_trash" class="text-xs text-amber-400/80">
+							{{
+								item.can_purge
+									? "Der Ordner ist auch im Papierkorb. Stelle am besten zuerst den Ordner wieder her."
+									: "Der Ordner ist auch im Papierkorb. Wiederherstellen kannst du es, sobald der Ordner wieder da ist."
+							}}
 						</p>
 					</div>
 					<div class="flex items-center gap-1">

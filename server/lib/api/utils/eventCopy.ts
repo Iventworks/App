@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, isNull, ne, sum } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { AnySQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { DB } from "../../db";
@@ -9,6 +9,26 @@ import { TimeUtils } from "../../utils/time";
 import { EventSchedule } from "./eventSchedule";
 import { FileService } from "./fileService";
 import { Occurrences } from "./occurrences";
+
+/**
+ * Leave out what lies inside a folder in the Papierkorb: `rows` are the documents outside it
+ * (`deleted_at` null), so an item whose folder is missing from them is below a deleted one.
+ */
+function outsideTrash<T extends { id: number; parent_id: number | null }>(rows: T[]): T[] {
+	const byId = new Map(rows.map((row) => [row.id, row]));
+	const kept = new Map<number, boolean>();
+	const keep = (row: T): boolean => {
+		const known = kept.get(row.id);
+		if (known !== undefined) return known;
+		kept.set(row.id, false);
+		const parent = row.parent_id === null ? null : byId.get(row.parent_id);
+		const result =
+			row.parent_id === null || (parent !== undefined && parent !== null && keep(parent));
+		kept.set(row.id, result);
+		return result;
+	};
+	return rows.filter(keep);
+}
 
 /**
  * Copy an event — "the same camp again next year". The master data always comes along; what else
@@ -28,18 +48,24 @@ export class EventCopier {
 				.where(and(inOrg(table), eq(table.event_id, event.id)))
 				.get()?.value ?? 0;
 
-		const documents = db
-			.select({ value: count(), size: sum(T.files.size) })
-			.from(T.files)
-			.where(
-				and(
-					inOrg(T.files),
-					eq(T.files.scope, "event"),
-					eq(T.files.event_id, event.id),
-					isNull(T.files.deleted_at),
-				),
-			)
-			.get();
+		const documentRows = outsideTrash(
+			db
+				.select({ id: T.files.id, parent_id: T.files.parent_id, size: T.files.size })
+				.from(T.files)
+				.where(
+					and(
+						inOrg(T.files),
+						eq(T.files.scope, "event"),
+						eq(T.files.event_id, event.id),
+						isNull(T.files.deleted_at),
+					),
+				)
+				.all(),
+		);
+		const documents = {
+			value: documentRows.length,
+			size: documentRows.reduce((total, row) => total + row.size, 0),
+		};
 
 		return {
 			team: countOf(T.eventMembers),
@@ -63,8 +89,8 @@ export class EventCopier {
 					.get()?.value ?? 0,
 			announcements: countOf(T.announcements),
 			budget: countOf(T.budgetItems),
-			documents: documents?.value ?? 0,
-			documents_size: Number(documents?.size ?? 0),
+			documents: documents.value,
+			documents_size: documents.size,
 			resources: countOf(T.resourceBookings),
 			participants:
 				db
@@ -98,19 +124,21 @@ export class EventCopier {
 
 		// --- file contents first: copying blobs is the only asynchronous part ---------------------
 		const sourceFiles = include.documents
-			? DB.instance()
-					.select()
-					.from(T.files)
-					// Not what is in the Papierkorb (what was inside a deleted folder is skipped below).
-					.where(
-						and(
-							inOrg(T.files),
-							eq(T.files.scope, "event"),
-							eq(T.files.event_id, source.id),
-							isNull(T.files.deleted_at),
-						),
-					)
-					.all()
+			? outsideTrash(
+					DB.instance()
+						.select()
+						.from(T.files)
+						// Not what is in the Papierkorb, nor what is inside a folder there.
+						.where(
+							and(
+								inOrg(T.files),
+								eq(T.files.scope, "event"),
+								eq(T.files.event_id, source.id),
+								isNull(T.files.deleted_at),
+							),
+						)
+						.all(),
+				)
 			: [];
 		const blobs = new Map<number, { storageKey: string; size: number }>();
 		let skippedFiles = 0;

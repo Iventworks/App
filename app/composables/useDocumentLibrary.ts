@@ -53,7 +53,9 @@ export function useDocumentLibrary(source: Source) {
 				: await useAPI((api) =>
 						api.postEventsByEventIdFilesFolders({ path: { eventId: source.eventId() }, body }),
 					);
-		if (!result.success) failed("Ordner konnte nicht angelegt werden", result.message);
+		if (!result.success) {
+			failed("Ordner konnte nicht angelegt werden", fileErrorText(result.message, source.scope));
+		}
 		return result.success;
 	}
 
@@ -114,8 +116,11 @@ export function useDocumentLibrary(source: Source) {
 								path: { eventId: source.eventId(), fileId },
 							}),
 						);
-			if (!result.success) failed("Wiederherstellen fehlgeschlagen", result.message);
-			return result.success;
+			if (!result.success) {
+				failed("Wiederherstellen fehlgeschlagen", fileErrorText(result.message, source.scope));
+				return null;
+			}
+			return result.data as FileItem;
 		},
 		async purge(fileId: number) {
 			const result =

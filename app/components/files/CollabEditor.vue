@@ -9,7 +9,7 @@
  */
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
-import { until, useEventListener } from "@vueuse/core";
+import { useEventListener } from "@vueuse/core";
 import { CollabProvider } from "~/utils/collabProvider";
 import { MARKDOWN_TOOLBAR_ITEMS } from "~/utils/editorToolbar";
 
@@ -24,6 +24,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	/** Editing ended: everything saved, the session left. */
 	close: [];
+	/** The session ended while this tab was away: open the editor again (a new component). */
+	restart: [];
 }>();
 
 const toast = useToast();
@@ -51,24 +53,31 @@ watch([status, editor], ([current, instance]) => {
 	instance?.setEditable(current === "ready");
 });
 
-onMounted(async () => {
-	const { initialize } = await provider.start();
-	const instance = await until(editor).toBeTruthy();
-	if (!instance) return;
-	provider.serialize = () => instance.getMarkdown();
-	if (!initialize) return;
+watch(
+	editor,
+	(instance) => {
+		if (instance) provider.serialize = () => instance.getMarkdown();
+	},
+	{ immediate: true },
+);
 
-	// A fresh session: fill the document from the stored text.
-	const response = await fetch(props.contentUrl, { credentials: "same-origin" });
-	if (!response.ok) {
-		status.value = "error";
-		return;
-	}
-	const markdown = await response.text();
-	const filled = await provider.initializeWith(() => {
-		instance.commands.setContent(markdown, { contentType: "markdown" });
-	});
-	if (!filled) {
+onMounted(() => provider.start());
+
+// A fresh session: this tab fills the document from the stored text — when it joins first, or
+// later when the tab that was to do it left.
+const initializeRequested = provider.initializeRequested;
+watch([initializeRequested, editor], async ([requested, instance]) => {
+	if (!requested || !instance) return;
+	const filled = await provider.initializeWith(
+		async () => {
+			const response = await fetch(props.contentUrl, { credentials: "same-origin" });
+			if (response.ok) return await response.text();
+			status.value = "error";
+			return null;
+		},
+		(markdown) => instance.commands.setContent(markdown, { contentType: "markdown" }),
+	);
+	if (!filled && status.value === "error") {
 		toast.add({
 			title: "Dokument konnte nicht geöffnet werden",
 			description: "Lade die Seite neu und versuche es noch einmal.",
@@ -194,6 +203,16 @@ const saveText = computed(() => {
 				<UButton label="Fertig" icon="i-lucide-check" size="sm" :loading="closing" @click="finish" />
 			</div>
 		</div>
+
+		<UAlert
+			v-if="status === 'reset'"
+			icon="i-lucide-rotate-ccw"
+			color="warning"
+			variant="subtle"
+			title="Die Bearbeitung wurde zwischendurch neu gestartet"
+			description="Während du offline warst, haben alle anderen das Dokument geschlossen. Was du seitdem geschrieben hast, konnte nicht übernommen werden – kopiere es bei Bedarf und öffne das Dokument neu."
+			:actions="[{ label: 'Neu öffnen', icon: 'i-lucide-refresh-cw', color: 'warning', variant: 'subtle', onClick: () => emit('restart') }]"
+		/>
 
 		<UAlert
 			v-if="status === 'error'"

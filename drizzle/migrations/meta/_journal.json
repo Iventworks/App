@@ -85,6 +85,13 @@
       "when": 1795037428489,
       "tag": "0011_office_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1795084799151,
+      "tag": "0012_collab_epoch",
+      "breakpoints": true
     }
   ]
 }

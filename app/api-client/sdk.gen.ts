@@ -1550,7 +1550,7 @@ export const getFilesByFileIdContentByFilename = <TComposable extends Composable
 /**
  * Delete file
  *
- * Delete a file, or a folder with everything inside it (`permissions.delete`). Org and event documents go to the Papierkorb (restorable for 30 days, see `…/trash`); receipts and attachments are deleted right away. Refused while someone is editing the file.
+ * Delete a file, or a folder with everything inside it (`permissions.delete`). Org and event documents go to the Papierkorb (restorable for 30 days, see `…/trash`); receipts and attachments are deleted right away. Refused while someone is editing the file (or a file inside the folder). A folder that holds items with their own access list is deleted by managers only.
  */
 export const deleteFilesByFileId = <TComposable extends Composable = '$fetch', DefaultT extends DeleteFilesByFileIdResponse = DeleteFilesByFileIdResponse>(options: Options<TComposable, DeleteFilesByFileIdData, DeleteFilesByFileIdResponse, DefaultT>): RequestResult<TComposable, DeleteFilesByFileIdResponse | DefaultT, DefaultT> => (options.client ?? client).delete<TComposable, DeleteFilesByFileIdResponse | DefaultT, DeleteFilesByFileIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -1572,7 +1572,7 @@ export const getFilesByFileId = <TComposable extends Composable = '$fetch', Defa
 /**
  * Rename or move file
  *
- * Rename a file or folder (`permissions.rename`) and/or move it to another folder of the same library (`parent_id: null` = root). Moving needs `permissions.delete` on the item and the right to upload into the target folder.
+ * Rename a file or folder (`permissions.rename`) and/or move it to another folder of the same library (`parent_id: null` = root). Moving needs `permissions.delete` on the item and the right to upload into the target folder; a folder that holds items with their own access list is moved by managers only.
  */
 export const putFilesByFileId = <TComposable extends Composable = '$fetch', DefaultT extends PutFilesByFileIdResponse = PutFilesByFileIdResponse>(options: Options<TComposable, PutFilesByFileIdData, PutFilesByFileIdResponse, DefaultT>): RequestResult<TComposable, PutFilesByFileIdResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutFilesByFileIdResponse | DefaultT, PutFilesByFileIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2317,7 +2317,7 @@ export const deleteEventsByEventIdProgramByProgramItemId = <TComposable extends 
 /**
  * Update program item
  *
- * Update a Programmpunkt. Drag & drop in the week view sends only `start_at`/`end_at`. `responsible_user_ids` and `file_ids`, when given, replace the current sets.
+ * Update a Programmpunkt. Drag & drop in the week view sends only `start_at`/`end_at`. `responsible_user_ids` and `file_ids`, when given, replace the current sets — linked documents the caller can't see stay linked.
  */
 export const putEventsByEventIdProgramByProgramItemId = <TComposable extends Composable = '$fetch', DefaultT extends PutEventsByEventIdProgramByProgramItemIdResponse = PutEventsByEventIdProgramByProgramItemIdResponse>(options: Options<TComposable, PutEventsByEventIdProgramByProgramItemIdData, PutEventsByEventIdProgramByProgramItemIdResponse, DefaultT>): RequestResult<TComposable, PutEventsByEventIdProgramByProgramItemIdResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutEventsByEventIdProgramByProgramItemIdResponse | DefaultT, PutEventsByEventIdProgramByProgramItemIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2634,7 +2634,7 @@ export const getEventsByEventIdFilesTrash = <TComposable extends Composable = '$
 /**
  * Restore from Papierkorb
  *
- * Put a deleted document or folder back into its folder — or the top level when that folder is gone. Managers restore everything, others what they deleted.
+ * Put a deleted document or folder back into its folder. When that folder is in the Papierkorb too, managers restore it to the top level with an access list of its own that lets only them in; others restore the folder first. Managers restore everything, others what they deleted.
  */
 export const postEventsByEventIdFilesTrashByFileIdRestore = <TComposable extends Composable = '$fetch', DefaultT extends PostEventsByEventIdFilesTrashByFileIdRestoreResponse = PostEventsByEventIdFilesTrashByFileIdRestoreResponse>(options: Options<TComposable, PostEventsByEventIdFilesTrashByFileIdRestoreData, PostEventsByEventIdFilesTrashByFileIdRestoreResponse, DefaultT>): RequestResult<TComposable, PostEventsByEventIdFilesTrashByFileIdRestoreResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostEventsByEventIdFilesTrashByFileIdRestoreResponse | DefaultT, PostEventsByEventIdFilesTrashByFileIdRestoreError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3093,7 +3093,7 @@ export const getOrgDocumentsTrash = <TComposable extends Composable = '$fetch', 
 /**
  * Restore from Papierkorb
  *
- * Put a deleted document or folder back into its folder — or the top level when that folder is gone. Managers restore everything, others what they deleted.
+ * Put a deleted document or folder back into its folder. When that folder is in the Papierkorb too, managers restore it to the top level with an access list of its own that lets only them in; others restore the folder first. Managers restore everything, others what they deleted.
  */
 export const postOrgDocumentsTrashByFileIdRestore = <TComposable extends Composable = '$fetch', DefaultT extends PostOrgDocumentsTrashByFileIdRestoreResponse = PostOrgDocumentsTrashByFileIdRestoreResponse>(options: Options<TComposable, PostOrgDocumentsTrashByFileIdRestoreData, PostOrgDocumentsTrashByFileIdRestoreResponse, DefaultT>): RequestResult<TComposable, PostOrgDocumentsTrashByFileIdRestoreResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostOrgDocumentsTrashByFileIdRestoreResponse | DefaultT, PostOrgDocumentsTrashByFileIdRestoreError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

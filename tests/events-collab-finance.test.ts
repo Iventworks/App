@@ -539,6 +539,27 @@ describe("Expenses", () => {
 			uploadForm(new File([PNG_BYTES], "neu.png", { type: "image/png" })),
 			403,
 		);
+		// Nor through the file routes: the receipt of a reviewed expense stays as it is.
+		await makeAPIRequest(
+			`/v1/files/${receiptFileId}/content`,
+			{
+				authToken: cookSession.token,
+				additionalOptions: {
+					method: "PUT",
+					body: uploadForm(new File(["anders"], "anders.txt", { type: "text/plain" })),
+				},
+			},
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/files/${receiptFileId}`,
+			{ method: "DELETE", authToken: cookSession.token },
+			403,
+		);
+		const receipt = await makeAPIRequest(`/v1/files/${receiptFileId}`, {
+			authToken: cookSession.token,
+		});
+		expect(receipt.permissions).toMatchObject({ read: true, edit: false, delete: false });
 
 		const own = await makeAPIRequest(`/v1/events/${eventId}/expenses`, {
 			authToken: cookSession.token,

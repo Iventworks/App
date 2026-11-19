@@ -49,10 +49,13 @@ export namespace CollabSessions {
 		return sessions.get(key(orgId, fileId))?.get(clientId) ?? null;
 	}
 
-	export function remove(orgId: number, fileId: number, clientId: number) {
+	/** A tab leaves — only its own person can make it leave. */
+	export function remove(orgId: number, fileId: number, clientId: number, userId: number) {
 		const session = sessions.get(key(orgId, fileId));
-		session?.delete(clientId);
-		if (session?.size === 0) sessions.delete(key(orgId, fileId));
+		if (session?.get(clientId)?.userId !== userId) return false;
+		session.delete(clientId);
+		if (session.size === 0) sessions.delete(key(orgId, fileId));
+		return true;
 	}
 
 	/** Everyone leaves (the file was deleted or its session ended). */

@@ -113,11 +113,12 @@ const officeOpen = ref(false);
 
 async function closeOffice() {
 	officeOpen.value = false;
-	await refresh();
+	// Drop `?office=1` first: the refreshed file would open the editor again.
 	if (route.query.office) {
 		const { office: _office, ...query } = route.query;
 		await router.replace({ query });
 	}
+	await refresh();
 }
 
 /** A session is running (shared editing: join it) or the office server has the file (blocked). */
@@ -128,6 +129,8 @@ const blockedByOffice = computed(() => editingNow.value?.kind === "office");
 
 const editing = ref(false);
 const editorRef = ref<{ flush: () => Promise<boolean> } | null>(null);
+/** A new editor (`restart`: its session ended while the tab was away). */
+const editorKey = ref(0);
 
 function startEditing() {
 	if (!isMarkdown.value || !canEdit.value || blockedByOffice.value) return;
@@ -136,11 +139,12 @@ function startEditing() {
 
 async function stopEditing() {
 	editing.value = false;
-	await refresh();
+	// Drop `?edit=1` first: the refreshed file would open the editor again.
 	if (route.query.edit) {
 		const { edit: _edit, ...query } = route.query;
 		await router.replace({ query });
 	}
+	await refresh();
 }
 
 // `?edit=1` / `?office=1`: straight into the editor (new documents).
@@ -324,10 +328,12 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 					<FilesCollabEditor
 						v-else-if="editing && file.content_url"
 						ref="editorRef"
+						:key="editorKey"
 						:file-id="file.id"
 						:content-url="fileURL(file.content_url) as string"
 						:user-name="user?.display_name ?? 'Ich'"
 						@close="stopEditing"
+						@restart="editorKey++"
 					/>
 					<FilesPreview
 						v-else

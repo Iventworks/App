@@ -4,6 +4,7 @@
  * org and event groups, the member view, validation, program attachments and event copies.
  */
 import { beforeAll, describe, expect, test } from "bun:test";
+import { FileService } from "../server/lib/api/utils/fileService";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
@@ -427,6 +428,57 @@ describe("Event documents", () => {
 		);
 	});
 
+	test("a folder that holds items with their own access is deleted or moved by the Leitung only", async () => {
+		const project = await folder(path, staffA.token, "Projekt");
+		const target = await folder(path, staffA.token, "Ablage");
+		const restricted = await folder(path, leader.token, "Vertraulich", project.id);
+		await setAccess(restricted.id, leader.token, []);
+
+		await makeAPIRequest(
+			`/v1/files/${project.id}`,
+			{ method: "PUT", authToken: staffA.token, body: { parent_id: target.id } },
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/files/${project.id}`,
+			{ method: "DELETE", authToken: staffA.token },
+			403,
+		);
+
+		// What is in the Papierkorb doesn't count: then it's their own folder again.
+		await makeAPIRequest(`/v1/files/${restricted.id}`, { method: "DELETE", authToken: leader.token });
+		await makeAPIRequest(`/v1/files/${project.id}`, { method: "DELETE", authToken: staffA.token });
+	});
+
+	test("folders nest at most MAX_DEPTH deep", async () => {
+		let parentId: number | null = null;
+		for (let depth = 1; depth < FileService.MAX_DEPTH; depth++) {
+			parentId = DB.instance()
+				.insert(DB.Tables.files)
+				.values({
+					org_id: OrgContext.id(),
+					scope: "event",
+					event_id: eventId,
+					parent_id: parentId,
+					kind: "folder",
+					name: `Ebene ${depth}`,
+				})
+				.returning()
+				.get().id;
+		}
+		const last = await folder(path, leader.token, "Unterste", parentId as number);
+		await folder(path, leader.token, "Zu tief", last.id, 400);
+		await upload(path, leader.token, "geht.txt", last.id);
+		// Moving a folder with a folder inside to where it would be too deep.
+		const outer = await folder(path, leader.token, "Außen");
+		await folder(path, leader.token, "Innen", outer.id);
+		await makeAPIRequest(
+			`/v1/files/${outer.id}`,
+			{ method: "PUT", authToken: leader.token, body: { parent_id: parentId } },
+			400,
+		);
+	});
+
 	test("program attachments in restricted folders are only shown to those who can open them", async () => {
 		const BASE = Date.UTC(2027, 6, 2, 9);
 		await makeAPIRequest(
@@ -469,6 +521,35 @@ describe("Event documents", () => {
 			},
 			400,
 		);
+	});
+
+	test("editing a program item keeps the attachments the editor can't see", async () => {
+		const BASE = Date.UTC(2027, 6, 3, 9);
+		const orgSecret = await upload("/v1/org/documents", core.token, "kernteam.txt");
+		const item = await makeAPIRequest(
+			`/v1/events/${eventId}/program`,
+			{
+				method: "POST",
+				authToken: core.token,
+				body: {
+					title: "Elternabend",
+					start_at: BASE,
+					end_at: BASE + 3_600_000,
+					file_ids: [orgSecret.id],
+				},
+			},
+			201,
+		);
+		// The Leitung can't open the Kernteam-only file, so its edit doesn't send it.
+		await makeAPIRequest(`/v1/events/${eventId}/program/${item.id}`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { title: "Elternabend (neu)", file_ids: [] },
+		});
+		const forCore = await makeAPIRequest(`/v1/events/${eventId}/program`, { authToken: core.token });
+		const updated = forCore.find((entry: any) => entry.id === item.id);
+		expect(updated.title).toBe("Elternabend (neu)");
+		expect(updated.files.map((file: any) => file.id)).toEqual([orgSecret.id]);
 	});
 
 	test("copies keep access lists; groups and people come along with them", async () => {
