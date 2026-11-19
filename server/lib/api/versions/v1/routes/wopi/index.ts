@@ -4,6 +4,7 @@ import type { DB } from "../../../../../db";
 import { OfficeDiscovery } from "../../../../../office/discovery";
 import { WopiProof } from "../../../../../office/proof";
 import { OfficeTokens } from "../../../../../office/tokens";
+import { WopiIds } from "../../../../../office/wopiIds";
 import { OrgContext } from "../../../../../orgs/context";
 import { FileStorage } from "../../../../../utils/fileStorage";
 import { Logger } from "../../../../../utils/logger";
@@ -16,13 +17,15 @@ type WopiEnv = {
 };
 
 /**
- * The WOPI host for the office server (Euro-Office; MS-WOPI): CheckFileInfo, GetFile, PutFile and
+ * The WOPI host for the office server (Nextcloud Office; MS-WOPI): CheckFileInfo, GetFile, PutFile and
  * the lock operations. The office server calls these on the org's public address
  * (`<org url>/api/v1/wopi/files/{id}?access_token=…`), so the org comes from the host as for
  * every request. Every call needs a valid proof (`WopiProof`, the office server's signature; no
  * proof keys in the discovery → every call is refused) and a valid access token (`OfficeTokens`,
  * checked again each time). A proof that doesn't match reloads the discovery once a minute at
- * most, so new keys after an office update are picked up.
+ * most, so new keys after an office update are picked up. Files are addressed by their WOPI id
+ * (`WopiIds`: file id plus a suffix tied to this installation). The login middleware leaves these
+ * routes alone: office servers may send the access token as `Authorization: Bearer …`.
  *
  * WOPI defines its own responses (raw JSON, bytes, status codes, `X-WOPI-*` headers), so these
  * routes don't use the API envelope and aren't in the OpenAPI spec.
@@ -49,8 +52,9 @@ function calledUrl(c: Context) {
 
 router.use("/files/:fileId/*", async (c, next) => {
 	if (!OfficeDiscovery.enabled()) return c.body(null, 404);
-	const fileId = Number(c.req.param("fileId"));
-	if (!Number.isInteger(fileId) || fileId <= 0) return c.body(null, 404);
+	const wopiId = c.req.param("fileId") ?? "";
+	const fileId = WopiIds.parse(wopiId);
+	if (!fileId) return c.body(null, 404);
 
 	const accessToken = c.req.query("access_token") ?? "";
 	// Every call must be signed by the office server. Without its keys (no discovery, or one
@@ -94,6 +98,11 @@ router.use("/files/:fileId/*", async (c, next) => {
 		);
 		return c.body(null, 401);
 	}
+	// The id names this file of this installation (not one of the same number elsewhere).
+	if (!WopiIds.matches(wopiId, resolved.file)) return c.body(null, 404);
+	Logger.debug(
+		`WOPI ${c.req.method} ${c.req.header("X-WOPI-Override") ?? (c.req.path.endsWith("/contents") ? "contents" : "info")} file ${fileId}`,
+	);
 	c.set("wopi", resolved);
 	c.set("fileId", fileId);
 	await next();
@@ -155,8 +164,7 @@ router.post("/files/:fileId/contents", async (c) => {
 
 	const lockId = c.req.header(LOCK_HEADER) ?? "";
 	const current = await FileLocks.officeLockOf(file.id);
-	// A Markdown editing session has the file, or someone else's lock.
-	if (current === null) return c.body(null, 409, { [LOCK_HEADER]: "" });
+	// Someone else's lock.
 	if (current !== "" && current !== lockId) return c.body(null, 409, { [LOCK_HEADER]: current });
 	// Unlocked: only an empty file may be written without a lock.
 	if (current === "" && file.size > 0) return c.body(null, 409, { [LOCK_HEADER]: "" });
@@ -183,7 +191,7 @@ router.post("/files/:fileId", async (c) => {
 	switch (override) {
 		case "GET_LOCK": {
 			const current = await FileLocks.officeLockOf(file.id);
-			return c.body(null, 200, { [LOCK_HEADER]: current ?? "" });
+			return c.body(null, 200, { [LOCK_HEADER]: current });
 		}
 		case "LOCK": {
 			if (!canWrite) return c.body(null, 401);

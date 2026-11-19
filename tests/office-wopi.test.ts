@@ -11,6 +11,7 @@ import { API } from "../server/lib/api";
 import { DB } from "../server/lib/db";
 import { OfficeDiscovery } from "../server/lib/office/discovery";
 import { WopiProof } from "../server/lib/office/proof";
+import { WopiIds } from "../server/lib/office/wopiIds";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
 import { SecurityHeaders } from "../server/lib/utils/securityHeaders";
 import { makeAPIRequest } from "./helpers/api";
@@ -62,6 +63,15 @@ function discovery(): OfficeDiscovery.Discovery {
 	};
 }
 
+async function wopiIdOf(fileId: number) {
+	const file = DB.instance()
+		.select()
+		.from(DB.Tables.files)
+		.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, fileId)))
+		.get();
+	return WopiIds.of(file as DB.Models.File);
+}
+
 /** A call of the office server, signed like it would be. */
 async function wopi(
 	fileId: number,
@@ -72,9 +82,12 @@ async function wopi(
 		headers?: Record<string, string>;
 		body?: BodyInit;
 		proof?: "valid" | "wrong" | "old";
+		/** Call with this id instead of the file's WOPI id. */
+		rawId?: string;
 	} = {},
 ) {
-	const path = `/v1/wopi/files/${fileId}${options.suffix ?? ""}?access_token=${encodeURIComponent(token)}`;
+	const id = options.rawId ?? (await wopiIdOf(fileId));
+	const path = `/v1/wopi/files/${id}${options.suffix ?? ""}?access_token=${encodeURIComponent(token)}`;
 	const url = `${OrgContext.current().url}/api${path}`;
 	const at = options.proof === "old" ? Date.now() - 30 * 60_000 : Date.now();
 	const timestamp = WopiProof.msToTicks(at);
@@ -187,8 +200,10 @@ describe("Opening documents in the office editor", () => {
 			"https://office.test/hosting/wopi/word/edit?ui=de-DE&rs=de-DE&WOPISrc=",
 		);
 		expect(decodeURIComponent(edit.url.split("WOPISrc=")[1])).toBe(
-			`${OrgContext.current().url}/api/v1/wopi/files/${docId}`,
+			`${OrgContext.current().url}/api/v1/wopi/files/${await wopiIdOf(docId)}`,
 		);
+		// Not the bare file id: office servers keep documents by this id alone.
+		expect(await wopiIdOf(docId)).toMatch(new RegExp(`^${docId}-[0-9a-f]{16}$`));
 		expect(edit.access_token_ttl).toBeGreaterThan(Date.now());
 
 		expect((await open(viewer.token)).mode).toBe("view");
@@ -290,6 +305,16 @@ describe("WOPI calls", () => {
 			201,
 		);
 		expect((await wopi(other.id, token)).status).toBe(401);
+
+		// Only the WOPI id names the file — not the bare id, not another installation's suffix.
+		expect((await wopi(docId, token, { rawId: String(docId) })).status).toBe(404);
+		expect((await wopi(docId, token, { rawId: `${docId}-0000000000000000` })).status).toBe(404);
+	});
+
+	test("an Authorization header with the access token is fine (not taken for a login)", async () => {
+		const token = tokenOf(await open(staff.token));
+		const res = await wopi(docId, token, { headers: { Authorization: `Bearer ${token}` } });
+		expect(res.status).toBe(200);
 	});
 
 	test("without the office server's proof keys every call is refused", async () => {

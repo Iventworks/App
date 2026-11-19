@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * One file, using the whole window (layout `viewer`, like Google Docs, Office or Nextcloud): a
- * slim header — back into the folder, name and where it lives, download, versions, "Neue
- * Fassung" — and the file below it, edge to edge:
+ * slim toolbar — back into the folder, name and where it lives, "Zugriff" and "Teilen" for
+ * managers, versions, full screen, download, "In neuem Tab öffnen", "Neue Fassung" (narrow
+ * screens: in the menu) — and the file below it, edge to edge:
  * - office documents open right away in the office editor when one is configured (editing for
  *   people who may edit, viewing for everyone else — `FilesOfficeFrame`);
  * - everything else gets a preview (`FilesPreview`: the browser's PDF viewer, images, Markdown,
@@ -12,6 +13,7 @@
  * file the caller may open — the API checks access.
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
+import { useEventListener, useMediaQuery } from "@vueuse/core";
 import type { GetFilesByFileIdVersionsResponses } from "~/api-client";
 import { Utils } from "~/utils";
 import { filePreviewKind } from "~/utils/filePreview";
@@ -234,22 +236,55 @@ async function onUpload(event: Event) {
 	await refresh();
 }
 
+// --- the toolbar ---------------------------------------------------------------------------------
+
+/** Access lists and share links: managers of the library (Kernteam / Leitung). */
+const canManage = computed(() => Boolean(file.value?.permissions?.manage));
+const accessOpen = ref(false);
+const shareOpen = ref(false);
+/** Wide enough to show every action as its own button; narrow screens get them in the menu. */
+const wide = useMediaQuery("(min-width: 640px)");
+
+/** The file (or the version) in a tab of its own — the browser shows PDFs, images and text. */
+function openInNewTab() {
+	const url = shown.value ? fileURL(shown.value.url) : undefined;
+	if (url) window.open(url, "_blank", "noopener");
+}
+
+// Full screen: just the document, no header (Esc leaves it).
+const viewerElement = ref<HTMLElement | null>(null);
+const canFullscreen = ref(false);
+const fullscreen = ref(false);
+onMounted(() => {
+	canFullscreen.value = document.fullscreenEnabled === true;
+});
+useEventListener(document, "fullscreenchange", () => {
+	fullscreen.value = document.fullscreenElement !== null;
+});
+async function toggleFullscreen() {
+	if (document.fullscreenElement) await document.exitFullscreen();
+	else await viewerElement.value?.requestFullscreen();
+}
+
 const moreActions = computed<DropdownMenuItem[][]>(() => {
-	const current = shown.value;
-	if (!current) return [];
+	if (!shown.value) return [];
+	const onNarrow: DropdownMenuItem[] = wide.value
+		? []
+		: [
+				...(canManage.value
+					? [{ label: "Zugriff", icon: "i-lucide-users", onSelect: () => (accessOpen.value = true) }]
+					: []),
+				{ label: "Versionen", icon: "i-lucide-history", onSelect: () => (versionsOpen.value = true) },
+				...(canFullscreen.value
+					? [{ label: "Vollbild", icon: "i-lucide-maximize", onSelect: () => void toggleFullscreen() }]
+					: []),
+			];
 	return [
 		[
+			...onNarrow,
 			...(opensInBrowser.value
-				? [
-						{
-							label: "In neuem Tab öffnen",
-							icon: "i-lucide-external-link",
-							to: fileURL(current.url),
-							target: "_blank",
-						},
-					]
+				? [{ label: "In neuem Tab öffnen", icon: "i-lucide-external-link", onSelect: openInNewTab }]
 				: []),
-			{ label: "Versionen", icon: "i-lucide-history", onSelect: () => (versionsOpen.value = true) },
 		],
 		...(canEdit.value
 			? [
@@ -263,7 +298,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 					],
 				]
 			: []),
-	];
+	].filter((group) => group.length > 0);
 });
 </script>
 
@@ -292,16 +327,53 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 					variant="subtle"
 					class="hidden sm:inline-flex"
 				/>
-				<UButton
-					icon="i-lucide-download"
-					label="Herunterladen"
-					color="neutral"
-					variant="subtle"
-					:to="fileURL(shown.url, true)"
-					target="_blank"
-					:ui="{ label: 'hidden md:inline' }"
-				/>
-				<UDropdownMenu :items="moreActions" :ui="{ viewport: 'main-bg-color' }">
+				<template v-if="canManage">
+					<UTooltip v-if="wide" text="Wer die Datei sehen und bearbeiten darf">
+						<UButton
+							icon="i-lucide-users"
+							label="Zugriff"
+							color="neutral"
+							variant="ghost"
+							:ui="{ label: 'hidden lg:inline' }"
+							@click="accessOpen = true"
+						/>
+					</UTooltip>
+					<UTooltip text="Freigabelinks für Personen ohne Konto">
+						<UButton
+							icon="i-lucide-share-2"
+							label="Teilen"
+							color="primary"
+							variant="soft"
+							:ui="{ label: 'hidden md:inline' }"
+							@click="shareOpen = true"
+						/>
+					</UTooltip>
+				</template>
+				<template v-if="wide">
+					<UTooltip text="Versionen">
+						<UButton icon="i-lucide-history" color="neutral" variant="ghost" aria-label="Versionen" @click="versionsOpen = true" />
+					</UTooltip>
+					<UTooltip v-if="canFullscreen" :text="fullscreen ? 'Vollbild beenden' : 'Vollbild'">
+						<UButton
+							:icon="fullscreen ? 'i-lucide-minimize' : 'i-lucide-maximize'"
+							color="neutral"
+							variant="ghost"
+							:aria-label="fullscreen ? 'Vollbild beenden' : 'Vollbild'"
+							@click="toggleFullscreen"
+						/>
+					</UTooltip>
+				</template>
+				<UTooltip text="Herunterladen">
+					<UButton
+						icon="i-lucide-download"
+						color="neutral"
+						variant="ghost"
+						aria-label="Herunterladen"
+						:to="fileURL(shown.url, true)"
+						target="_blank"
+					/>
+				</UTooltip>
+				<UDropdownMenu v-if="moreActions.length" :items="moreActions" :ui="{ viewport: 'main-bg-color' }">
 					<UButton
 						icon="i-lucide-ellipsis-vertical"
 						color="neutral"
@@ -337,7 +409,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 			<UButton label="Aktuelle Fassung" color="neutral" variant="ghost" size="sm" @click="showCurrent" />
 		</div>
 
-		<main class="relative min-h-0 flex-1">
+		<main ref="viewerElement" class="main-bg-color relative min-h-0 flex-1">
 			<div v-if="loading && !file" class="flex h-full items-center justify-center">
 				<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 			</div>
@@ -371,5 +443,9 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 		</main>
 
 		<FilesVersionsModal v-model:open="versionsOpen" :item="file ?? null" @restored="refresh" />
+		<template v-if="file && canManage">
+			<FilesAccessModal v-model:open="accessOpen" :item="file" :scope="file.scope === 'event' ? 'event' : 'org'" @changed="refresh" />
+			<FilesShareModal v-model:open="shareOpen" :item="file" @changed="refresh" />
+		</template>
 	</div>
 </template>

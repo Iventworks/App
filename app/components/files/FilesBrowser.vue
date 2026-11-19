@@ -563,6 +563,23 @@ function fileLink(item: FileItem) {
 	return { path: `/files/${item.id}`, query: { from: route.path } };
 }
 
+/** Where a row leads: the folder in this library, or the file page. */
+function itemLink(item: FileItem) {
+	if (item.kind === "folder") {
+		const { folder: _folder, ...query } = route.query;
+		return { query: { ...query, folder: String(item.id) } };
+	}
+	return fileLink(item);
+}
+
+/** A plain click opens it here (like the row); with Ctrl/⌘/Shift the browser opens a new tab. */
+function onLinkClick(event: MouseEvent, item: FileItem) {
+	event.stopPropagation();
+	if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+	event.preventDefault();
+	onRowClick(item);
+}
+
 function onRowClick(item: FileItem) {
 	if (item.kind === "folder") {
 		void openFolder(item.id);
@@ -731,7 +748,8 @@ defineExpose({ refresh });
 					/>
 					<div class="min-w-0 flex-1">
 						<p class="flex items-center gap-1.5 truncate text-sm font-medium text-white">
-							<span class="truncate">{{ item.name }}</span>
+							<!-- Real links: middle-click and "open in new tab" work too. -->
+							<a :href="router.resolve(itemLink(item)).href" class="truncate hover:underline" @click="onLinkClick($event, item)">{{ item.name }}</a>
 							<UTooltip
 								v-if="item.custom_access && item.kind === 'file' && !showAccess"
 								text="Nur für ausgewählte Personen sichtbar"

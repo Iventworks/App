@@ -197,12 +197,17 @@ CMP (Crossover Management Portal) before; the repository still is.
     MS-WOPI says; no proof keys or no discovery → every call is refused, never token-only; a
     mismatch reloads the discovery at most once a minute, so new keys are picked up) and the
     token again: session, person, file (not in the Papierkorb), current rights
-    (`OfficeTokens.resolve`). Refusals are logged with their reason (once a minute per reason).
+    (`OfficeTokens.resolve`). Refusals are logged with their reason (once a minute per reason),
+    every call at debug level. The login middleware skips `/v1/wopi/` (office servers may send
+    the access token as `Authorization: Bearer`).
+  - Files are addressed by a WOPI id, not the bare file id (`WopiIds`: `<id>-<hash of org URL,
+    id, created_at>`): the office server keeps open documents by that id alone, so bare ids would
+    mix up installations sharing an office server, restored staging copies or reset databases.
   - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
     large as uploads (`RequestLimits.limitFor`, path-based).
   - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
     meanwhile (409). Saves keep versions per interval (`session: true`).
-  - Compose: the optional `eurooffice` service (profile `office`, `WOPI_ENABLED=true`), image
+  - Compose: the optional `office` service (profile `office`, `WOPI_ENABLED=true`), image
     `ghcr.io/nextcloud-releases/office-documentserver` at a pinned version (the Euro-Office
     community builds are meant for testing).
   - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
