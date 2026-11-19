@@ -86,7 +86,7 @@ services:
     profiles: [office]
     # Pin a release (e.g. :v9.3.1) once it works for you.
     image: ghcr.io/euro-office/documentserver:latest
-    container_name: iventworks_eurooffice
+    container_name: iventworks-eurooffice
     restart: unless-stopped
     ports:
       - "127.0.0.1:31317:80"
