@@ -28,15 +28,24 @@ function supported() {
 	);
 }
 
+/**
+ * Bumped whenever an opt-in changes: `localStorage` isn't reactive, so `isOn` (and the switch on
+ * the settings page) would otherwise keep the value it had before switching.
+ */
+const optInChanges = ref(0);
+/** Where storage is blocked: the opt-ins of this page load (they don't survive a reload). */
+const unstoredOptIns = new Map<number, boolean>();
+
 function optInKey(userId: number) {
 	return `${OPT_IN_PREFIX}${userId}`;
 }
 
 function readOptIn(userId: number) {
+	void optInChanges.value;
 	try {
 		return localStorage.getItem(optInKey(userId)) === "1";
 	} catch {
-		return false;
+		return unstoredOptIns.get(userId) ?? false;
 	}
 }
 
@@ -45,8 +54,9 @@ function writeOptIn(userId: number, on: boolean) {
 		if (on) localStorage.setItem(optInKey(userId), "1");
 		else localStorage.removeItem(optInKey(userId));
 	} catch {
-		// Private mode: the setting just doesn't survive a reload.
+		unstoredOptIns.set(userId, on);
 	}
+	optInChanges.value++;
 }
 
 /** The service worker's registration; null in dev (no worker) or when it isn't there yet. */
