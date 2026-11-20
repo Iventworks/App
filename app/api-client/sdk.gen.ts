@@ -2611,7 +2611,7 @@ export const deleteEventsByEventIdFilesTrashByFileId = <TComposable extends Comp
 /**
  * Create office document
  *
- * Create an empty Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It then opens in the office editor (`POST /files/{fileId}/office`).
+ * Create a Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It starts as an empty file; opening it in the office editor (`POST /files/{fileId}/office`) fills it with the office server's German template.
  */
 export const postEventsByEventIdFilesOffice = <TComposable extends Composable = '$fetch', DefaultT extends PostEventsByEventIdFilesOfficeResponse = PostEventsByEventIdFilesOfficeResponse>(options: Options<TComposable, PostEventsByEventIdFilesOfficeData, PostEventsByEventIdFilesOfficeResponse, DefaultT>): RequestResult<TComposable, PostEventsByEventIdFilesOfficeResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostEventsByEventIdFilesOfficeResponse | DefaultT, PostEventsByEventIdFilesOfficeError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3055,7 +3055,7 @@ export const deleteOrgDocumentsTrashByFileId = <TComposable extends Composable =
 /**
  * Create office document
  *
- * Create an empty Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It then opens in the office editor (`POST /files/{fileId}/office`).
+ * Create a Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It starts as an empty file; opening it in the office editor (`POST /files/{fileId}/office`) fills it with the office server's German template.
  */
 export const postOrgDocumentsOffice = <TComposable extends Composable = '$fetch', DefaultT extends PostOrgDocumentsOfficeResponse = PostOrgDocumentsOfficeResponse>(options: Options<TComposable, PostOrgDocumentsOfficeData, PostOrgDocumentsOfficeResponse, DefaultT>): RequestResult<TComposable, PostOrgDocumentsOfficeResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostOrgDocumentsOfficeResponse | DefaultT, PostOrgDocumentsOfficeError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

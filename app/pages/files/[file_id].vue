@@ -13,7 +13,7 @@
  * file the caller may open — the API checks access.
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
-import { useEventListener, useMediaQuery } from "@vueuse/core";
+import { useEventListener, useIntervalFn, useMediaQuery } from "@vueuse/core";
 import type { GetFilesByFileIdVersionsResponses } from "~/api-client";
 import { Utils } from "~/utils";
 import { filePreviewKind } from "~/utils/filePreview";
@@ -124,6 +124,7 @@ const officeAvailable = computed(
 );
 /** How the office editor opened (it decides by the caller's rights). */
 const officeMode = ref<"edit" | "view" | null>(null);
+const officeFrame = ref<{ focus: () => void } | null>(null);
 
 // --- an earlier version (`?version=`) ------------------------------------------------------------
 
@@ -204,9 +205,21 @@ const shown = computed(() => {
 });
 const showOffice = computed(() => officeAvailable.value && !versionId.value);
 
+// Restoring waits until nobody edits in Office any more: the office server lets go of a document
+// a few seconds after the last person closed it, so check again meanwhile.
+const waitingForOffice = computed(() => Boolean(version.value && file.value?.editing));
+const editingCheck = useIntervalFn(() => void refresh(), 5000, { immediate: false });
+watch(waitingForOffice, (waiting) => (waiting ? editingCheck.resume() : editingCheck.pause()), {
+	immediate: true,
+});
+
 // --- new contents, versions ----------------------------------------------------------------------
 
 const versionsOpen = ref(false);
+// What the dialog shows as the current version: Office may have saved since the page loaded.
+watch(versionsOpen, (opened) => {
+	if (opened) void refresh();
+});
 const uploadInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 
@@ -260,6 +273,14 @@ onMounted(() => {
 });
 useEventListener(document, "fullscreenchange", () => {
 	fullscreen.value = document.fullscreenElement !== null;
+	// The button keeps the focus otherwise: typing and shortcuts would go to the page.
+	officeFrame.value?.focus();
+});
+
+// After a dialog closes (and has put the focus back on its button), back into the document.
+const dialogOpen = computed(() => accessOpen.value || shareOpen.value || versionsOpen.value);
+watch(dialogOpen, (opened, wasOpen) => {
+	if (!opened && wasOpen) setTimeout(() => officeFrame.value?.focus(), 400);
 });
 async function toggleFullscreen() {
 	if (document.fullscreenElement) await document.exitFullscreen();
@@ -423,7 +444,15 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 				/>
 			</div>
 
-			<FilesOfficeFrame v-else-if="showOffice" :key="file.id" :file-id="file.id" @mode="officeMode = $event" />
+			<FilesOfficeFrame
+				v-else-if="showOffice"
+				ref="officeFrame"
+				:key="file.id"
+				:file-id="file.id"
+				@mode="officeMode = $event"
+				@versions="versionsOpen = true"
+				@sharing="shareOpen = canManage"
+			/>
 
 			<div v-else-if="versionId && !version" class="flex h-full items-center justify-center">
 				<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />

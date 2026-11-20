@@ -345,7 +345,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create office document",
 		description:
-			"Create an empty Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It then opens in the office editor (`POST /files/{fileId}/office`).",
+			"Create a Word, Excel or PowerPoint document — where the caller may upload, and only when office editing is configured (`office` in `GET /instance`). It starts as an empty file; opening it in the office editor (`POST /files/{fileId}/office`) fills it with the office server's German template.",
 		tags: [DOCS_TAGS.EVENTS.DOCUMENTS],
 
 		responses: APIResponseSpec.describeBasic(

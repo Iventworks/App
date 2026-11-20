@@ -30,7 +30,8 @@ export namespace FileVersions {
 		now: number,
 		session = false,
 	) {
-		if (!file.storage_key) return false;
+		// Nothing worth keeping (a new office document before the office server filled it).
+		if (!file.storage_key || file.size === 0) return false;
 		// Someone else's (or a share link's) contents are always kept — outside sessions.
 		if (!session && (file.modified_by === null || file.modified_by !== userId)) return true;
 		const latest = tx

@@ -1,6 +1,5 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
-import type { DB } from "../../../../../db";
 import { OfficeDiscovery } from "../../../../../office/discovery";
 import { WopiProof } from "../../../../../office/proof";
 import { OfficeTokens } from "../../../../../office/tokens";
@@ -108,7 +107,7 @@ router.use("/files/:fileId/*", async (c, next) => {
 	await next();
 });
 
-function fileInfo(file: DB.Models.File, user: DB.Models.User, canWrite: boolean) {
+function fileInfo({ file, user, canWrite, permissions }: OfficeTokens.Resolved) {
 	const org = OrgContext.current();
 	return {
 		BaseFileName: file.name,
@@ -130,13 +129,16 @@ function fileInfo(file: DB.Models.File, user: DB.Models.User, canWrite: boolean)
 		BreadcrumbBrandName: org.display_name,
 		PostMessageOrigin: org.url,
 		HostEditUrl: `${org.url}/files/${file.id}`,
+		// The editor's "Versionsverlauf" and "Freigeben" open the file page's own dialogs
+		// (`UI_FileVersions` / `UI_Sharing` to `FilesOfficeFrame`).
+		FileVersionPostMessage: true,
+		FileSharingPostMessage: permissions.manage,
 	};
 }
 
 // CheckFileInfo
 router.get("/files/:fileId", async (c) => {
-	const { file, user, canWrite } = c.get("wopi");
-	return c.json(fileInfo(file, user, canWrite));
+	return c.json(fileInfo(c.get("wopi")));
 });
 
 // GetFile

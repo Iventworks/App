@@ -222,26 +222,36 @@ describe("Opening documents in the office editor", () => {
 });
 
 describe("New office documents", () => {
-	test("empty Word, Excel and PowerPoint files, ready for the editor", async () => {
-		for (const [type, part] of [
-			["docx", "word/document.xml"],
-			["xlsx", "xl/workbook.xml"],
-			["pptx", "ppt/presentation.xml"],
-		] as const) {
+	test("start empty; the office server fills them with its template", async () => {
+		for (const type of ["docx", "xlsx", "pptx"] as const) {
 			const created = await makeAPIRequest(
 				`${base}/office`,
 				{ method: "POST", authToken: staff.token, body: { name: "Neu", type } },
 				201,
 			);
 			expect(created.name).toBe(`Neu.${type}`);
+			expect(created.size).toBe(0);
 			expect(created.permissions.edit).toBe(true);
-			const res = await API.getApp().request(`/v1/files/${created.id}/content/x`, {
-				headers: { "X-Iventworks-Host": TEST_HOST, Authorization: `Bearer ${staff.token}` },
+			const editor = await open(staff.token, created.id);
+			expect(editor.mode).toBe("edit");
+
+			// Opening an empty file, the office server writes its template — before any lock.
+			const token = tokenOf(editor);
+			const filled = await wopi(created.id, token, {
+				method: "POST",
+				suffix: "/contents",
+				headers: { "X-WOPI-Override": "PUT" },
+				body: `${type} template`,
 			});
-			const bytes = Buffer.from(await res.arrayBuffer());
-			expect(bytes.subarray(0, 4).toString("binary")).toBe("PK");
-			expect(bytes.includes(Buffer.from(part))).toBe(true);
-			expect((await open(staff.token, created.id)).mode).toBe("edit");
+			expect(filled.status).toBe(200);
+			expect(await (await wopi(created.id, token, { suffix: "/contents" })).text()).toBe(
+				`${type} template`,
+			);
+			// The empty file isn't kept as a version.
+			const versions = await makeAPIRequest(`/v1/files/${created.id}/versions`, {
+				authToken: staff.token,
+			});
+			expect(versions).toHaveLength(0);
 		}
 		// The extension isn't doubled.
 		const named = await makeAPIRequest(
@@ -290,8 +300,14 @@ describe("WOPI calls", () => {
 			SupportsLocks: true,
 		});
 
+		// The editor's version history opens the page's; its share button only for managers.
+		expect(info.FileVersionPostMessage).toBe(true);
+		const managed = await (await wopi(docId, tokenOf(await open(leader.token)))).json();
+		expect((managed as any).FileSharingPostMessage).toBe(true);
+
 		const view = await (await wopi(docId, tokenOf(await open(viewer.token)))).json();
 		expect((view as any).UserCanWrite).toBe(false);
+		expect((view as any).FileSharingPostMessage).toBe(false);
 	});
 
 	test("calls without a valid proof, token or fresh timestamp are refused", async () => {
