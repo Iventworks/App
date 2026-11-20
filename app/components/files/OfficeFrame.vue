@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * An office document (docx, xlsx, pptx, odt …) in the office server's editor (Nextcloud Office /
- * Euro-Office over WOPI), filling its container. The API hands out an access token and the editor
+ * An office document (docx, xlsx, pptx, odt …) in the office server's editor (Nextcloud Office over
+ * WOPI), filling its container. The API hands out an access token and the editor
  * URL — editing when the caller may edit, viewing otherwise (`mode`); the token is posted to the
  * editor in a frame (`form` → `iframe`, the WOPI way), so the office server's code never runs on
  * our page. Saving, co-editing and cursors happen inside the office server.

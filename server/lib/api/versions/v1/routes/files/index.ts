@@ -4,6 +4,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import { OfficeDiscovery } from "../../../../../office/discovery";
 import { OfficeTokens } from "../../../../../office/tokens";
+import { WopiIds } from "../../../../../office/wopiIds";
 import { inOrg, OrgContext } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
@@ -379,7 +380,7 @@ router.put(
 	},
 );
 
-// --- office (Euro-Office over WOPI) ----------------------------------------------------------
+// --- office (Nextcloud Office over WOPI) -----------------------------------------------------
 
 router.post(
 	"/:fileId/office",
@@ -421,7 +422,7 @@ router.post(
 		if (!choice) return APIResponse.badRequest(c, "This file can't be opened in the office editor");
 
 		const { token, expiresAt } = await OfficeTokens.create(file, authContext, choice.mode === "edit");
-		const wopiSrc = `${OrgContext.current().url}/api/v1/wopi/files/${file.id}`;
+		const wopiSrc = `${OrgContext.current().url}/api/v1/wopi/files/${WopiIds.of(file)}`;
 		return APIResponse.success(c, "Editor ready", {
 			url: OfficeDiscovery.editorUrl(choice.action, wopiSrc),
 			access_token: token,

@@ -1,6 +1,8 @@
 # Runs the registry image — CI (.gitlab/ci/build.yml) builds and pushes $CI_REGISTRY_IMAGE:latest
 # from the default branch. Adjust the image name to your registry and project. Ports and DB paths
 # are baked into the image (docker/Dockerfile ENV) — set only what differs for this deployment.
+# On the server this file goes to /opt/iventworks/compose/ (its .env next to it); the data lives
+# beside it under /opt/iventworks/.
 services:
   
   iventworks:
@@ -39,7 +41,7 @@ services:
       # it no backup can be restored). Schedule: cron, in IVENTWORKS_TIMEZONE.
       IVENTWORKS_BACKUP_ENABLED: true
       IVENTWORKS_BACKUP_SCHEDULE: "0 3 * * *"
-      IVENTWORKS_BACKUP_PASSPHRASE: ${IVENTWORKS_BACKUP_PASSPHRASE:?set it in docker/.env}
+      IVENTWORKS_BACKUP_PASSPHRASE: ${IVENTWORKS_BACKUP_PASSPHRASE:?set it in the .env next to this file}
       IVENTWORKS_BACKUP_RETENTION_DAYS: 30
       IVENTWORKS_BACKUP_RETENTION_MIN_COUNT: 3
       # Off-site copies (optional; all four needed). Then only the newest local copy stays.
@@ -66,7 +68,7 @@ services:
       # (it is in the backups); never change it, or every device has to switch push on again.
       IVENTWORKS_WEB_PUSH_SUBJECT: ${IVENTWORKS_WEB_PUSH_SUBJECT:-}
 
-      # Office documents in the browser (optional; needs the `eurooffice` service below). The
+      # Office documents in the browser (optional; needs the `office` service below). The
       # office server's own public host name — never a path or port of the app's host, or its
       # scripts would share the app's origin. The office server calls back on each org's normal
       # address; internally this server only fetches its discovery.
@@ -83,13 +85,13 @@ services:
   # for testing; it doesn't need Nextcloud). Optional: start it with
   # `docker compose --profile office up -d`, then set
   # IVENTWORKS_OFFICE_URL=https://office.ivb.example.org (served by the reverse proxy to the port
-  # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice. Needs at least 4 GB RAM.
-  eurooffice:
+  # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://office. Needs at least 4 GB RAM.
+  office:
     profiles: [office]
     # A pinned release; update by changing the version (releases:
     # https://github.com/nextcloud-releases/Office-DocumentServer/releases).
     image: ghcr.io/nextcloud-releases/office-documentserver:v9.3.8
-    container_name: iventworks-eurooffice
+    container_name: iventworks-office
     restart: unless-stopped
     ports:
       - "127.0.0.1:31317:80"
@@ -103,7 +105,7 @@ services:
       ALLOW_PRIVATE_IP_ADDRESS: "false"
       EXAMPLE_ENABLED: "false"
     volumes:
-      - /opt/iventworks/eurooffice/data:/var/lib/nextcloud-office/documentserver
+      - /opt/iventworks/office/data:/var/lib/nextcloud-office/documentserver
       # Keys and secrets (incl. the WOPI proof keys) — keep it, or open editors break on restart.
-      - /opt/iventworks/eurooffice/private:/var/www/nextcloud-office/Data
-      - /opt/iventworks/eurooffice/logs:/var/log/nextcloud-office/documentserver
+      - /opt/iventworks/office/private:/var/www/nextcloud-office/Data
+      - /opt/iventworks/office/logs:/var/log/nextcloud-office/documentserver

@@ -184,12 +184,12 @@ days.
 distribution of [Euro-Office](https://euro-office.github.io/) (it doesn't need Nextcloud).
 Optional; it needs its own container (at least 4 GB RAM) and its own public host name:
 
-1. Start it: `docker compose --profile office up -d` (service `eurooffice` in
+1. Start it: `docker compose --profile office up -d` in `/opt/iventworks/compose` (service `office` in
    `docker/docker-compose.yml`, image `ghcr.io/nextcloud-releases/office-documentserver` at a
    pinned version, `WOPI_ENABLED=true`).
 2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317).
 3. Set `IVENTWORKS_OFFICE_URL=https://office.ivb.example.org` and
-   `IVENTWORKS_OFFICE_INTERNAL_URL=http://eurooffice`, restart Iventworks.
+   `IVENTWORKS_OFFICE_INTERNAL_URL=http://office`, restart Iventworks.
 
 The office server calls back on each org's public address; it must be able to reach it (hairpin
 through the proxy). Use its own host name, never a path or port of the app's: its scripts would
@@ -199,8 +199,12 @@ free on the org's domain. A wildcard certificate for `*.example.org` doesn't cov
 a certificate per host (Caddy, certbot) or `*.ivb.example.org`.
 
 If the editor says "editor could not be loaded": the Iventworks log names refused WOPI calls
-(`WOPI call refused: …`). No such line means the office server didn't reach Iventworks at all —
-`docker logs iventworks-eurooffice` shows why (DNS, a private address it may not call, TLS).
+(`WOPI call refused: …`; every call is logged at `IVENTWORKS_LOG_LEVEL=debug`). No such line means
+the office server didn't reach Iventworks at all — `docker logs iventworks-office` shows why (DNS,
+a private address it may not call, TLS). "An error occurred while opening the file" means it got
+the file but couldn't convert it: `/opt/iventworks/office/logs/converter/out.log` says why. Each
+file has its own WOPI id per installation (`WopiIds`), so several installations (test, production)
+can share one office server.
 
 ## Configuration
 
@@ -292,14 +296,17 @@ bun run api-client:generate
 ## Deployment
 
 CI (`.gitlab/ci/build.yml`) builds the image from the default branch and pushes
-`$CI_REGISTRY_IMAGE:latest`; `docker/docker-compose.yml` runs it.
+`$CI_REGISTRY_IMAGE:latest`; `docker/docker-compose.yml` runs it. On the server it lives in
+`/opt/iventworks/compose/` (with its `.env` next to it), like in the self-hosting docs; the data
+lives beside it under `/opt/iventworks/` (`data`, `config`, `backups`, `office`).
 
-1. Put the SMTP credentials and `IVENTWORKS_BACKUP_PASSPHRASE` into `docker/.env` (gitignored):
+1. Copy `docker/docker-compose.yml` to `/opt/iventworks/compose/docker-compose.yml`. Put the SMTP
+   credentials and `IVENTWORKS_BACKUP_PASSPHRASE` into `/opt/iventworks/compose/.env`:
    `IVENTWORKS_SMTP_HOST`, `IVENTWORKS_SMTP_USERNAME`, `IVENTWORKS_SMTP_PASSWORD`. Without
    `IVENTWORKS_SMTP_HOST`, email (reset links, invitations) is off and invitation links are shown
    in the UI instead.
 2. Set `IVENTWORKS_APP_URL` (and `IVENTWORKS_MULTI_ORG`) in the compose file, then
-   `docker compose -f docker/docker-compose.yml up -d`. The container runs as root, like the style
+   `cd /opt/iventworks/compose && docker compose up -d`. The container runs as root, like the style
    guide's images; Docker creates `/opt/iventworks/{data,config,backups}` on the host if missing.
 3. The app listens on `127.0.0.1:31316`; point the reverse proxy (TLS) at it, in multi-org mode
    for the wildcard and the custom domains too. With that setup `IVENTWORKS_TRUST_PROXY=true` is
