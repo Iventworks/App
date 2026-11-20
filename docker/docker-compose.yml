@@ -88,9 +88,9 @@ services:
   # below) and IVENTWORKS_OFFICE_INTERNAL_URL=http://office. Needs at least 4 GB RAM.
   office:
     profiles: [office]
-    # A pinned release; update by changing the version (releases:
+    # Latest stable release; `docker compose --profile office pull` updates it (releases:
     # https://github.com/nextcloud-releases/Office-DocumentServer/releases).
-    image: ghcr.io/nextcloud-releases/office-documentserver:v9.3.8
+    image: ghcr.io/nextcloud-releases/office-documentserver:latest
     container_name: iventworks-office
     restart: unless-stopped
     ports:
@@ -104,8 +104,14 @@ services:
       # Keep it from fetching private addresses (SSRF): Iventworks is reached on its public address.
       ALLOW_PRIVATE_IP_ADDRESS: "false"
       EXAMPLE_ENABLED: "false"
+      # v9.3.8 fixes the data folder's owner under the euro-office path, not this image's
+      # nextcloud-office one, so the converter fails with EACCES on App_Data. Fixed upstream
+      # (Euro-Office/DocumentServer#578); drop this once a release includes it.
+      EO_LIB: /var/lib/nextcloud-office/documentserver
     volumes:
       - /opt/iventworks/office/data:/var/lib/nextcloud-office/documentserver
-      # Keys and secrets (incl. the WOPI proof keys) — keep it, or open editors break on restart.
+      # Keys and secrets (incl. the WOPI proof keys) — keep it. Releases after v9.3.8 keep them
+      # here; v9.3.8 still keeps them inside the container, so they change when it is recreated
+      # (Iventworks fetches new proof keys on its own).
       - /opt/iventworks/office/private:/var/www/nextcloud-office/Data
       - /opt/iventworks/office/logs:/var/log/nextcloud-office/documentserver

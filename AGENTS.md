@@ -208,14 +208,25 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
     meanwhile (409). Saves keep versions per interval (`session: true`).
   - Compose: the optional `office` service (profile `office`, `WOPI_ENABLED=true`), image
-    `ghcr.io/nextcloud-releases/office-documentserver` at a pinned version (the Euro-Office
-    community builds are meant for testing).
+    `ghcr.io/nextcloud-releases/office-documentserver:latest` (stable releases; the Euro-Office
+    community builds are meant for testing). v9.3.8 needs `EO_LIB` set to its `nextcloud-office`
+    data path, or its entrypoint never fixes that folder's owner and conversions fail with EACCES
+    (fixed upstream in Euro-Office/DocumentServer#578, not released yet). The compose file sets
+    it; the Website docs leave it out on purpose — drop it from compose once a release has the fix.
   - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
     `office.ivb.<org domain>` or `office.ivb.iventworks.de` — always a host of its own, never a
     path or port of the app's. `ivb` is a reserved org slug.
   - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
-    libraries) creates an empty docx/xlsx/pptx built in code (`OfficeTemplates`: the smallest valid
-    OOXML packages, zipped without compression) and opens it (its file page).
+    libraries) creates a 0-byte docx/xlsx/pptx and opens it (its file page). That's WOPI's way: the
+    office server fills an empty file with its own template in the editor's language (`ui=de-DE`:
+    German spell checking, A4) via an unlocked PutFile, which only empty files allow; empty
+    contents never become a version (`FileVersions.shouldKeep`).
+  - Editor ↔ page (`FilesOfficeFrame`, WOPI PostMessage): CheckFileInfo sets
+    `FileVersionPostMessage` / `FileSharingPostMessage` (managers), so the editor's version history
+    and share buttons open the page's dialogs. The page sends `Grab_Focus` (plus `iframe.focus()`)
+    after loading, full screen and dialogs, and catches Ctrl+S / Ctrl+A that land on the page. The
+    form posts `docs_api_config` with `customization.forcesave`, so Ctrl+S saves into Iventworks
+    right away; otherwise the office server writes back only when everyone has closed the document.
 - **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
   `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
   account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace

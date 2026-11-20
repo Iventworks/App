@@ -378,7 +378,11 @@ export class FileService {
 		}
 	}
 
-	/** A new, empty office document (Word, Excel, PowerPoint; the extension is added when missing). */
+	/**
+	 * A new office document (Word, Excel, PowerPoint; the extension is added when missing): an
+	 * empty file the office server fills with its template when it is first opened
+	 * (`OfficeTemplates`).
+	 */
 	static async createOffice(
 		location: FileService.Location,
 		parentId: number | null,
@@ -386,7 +390,7 @@ export class FileService {
 		type: OfficeTemplates.Type,
 		userId: number,
 	) {
-		const file = new File([OfficeTemplates.blank(type)], FileService.withExtension(name, type), {
+		const file = new File([], FileService.withExtension(name, type), {
 			type: OfficeTemplates.MIME_TYPES[type],
 		});
 		return await FileService.upload(location, parentId, file, userId);

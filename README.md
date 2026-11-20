@@ -185,8 +185,8 @@ distribution of [Euro-Office](https://euro-office.github.io/) (it doesn't need N
 Optional; it needs its own container (at least 4 GB RAM) and its own public host name:
 
 1. Start it: `docker compose --profile office up -d` in `/opt/iventworks/compose` (service `office` in
-   `docker/docker-compose.yml`, image `ghcr.io/nextcloud-releases/office-documentserver` at a
-   pinned version, `WOPI_ENABLED=true`).
+   `docker/docker-compose.yml`, image `ghcr.io/nextcloud-releases/office-documentserver:latest`,
+   `WOPI_ENABLED=true`).
 2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317).
 3. Set `IVENTWORKS_OFFICE_URL=https://office.ivb.example.org` and
    `IVENTWORKS_OFFICE_INTERNAL_URL=http://office`, restart Iventworks.
