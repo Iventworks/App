@@ -208,8 +208,11 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
     meanwhile (409). Saves keep versions per interval (`session: true`).
   - Compose: the optional `office` service (profile `office`, `WOPI_ENABLED=true`), image
-    `ghcr.io/nextcloud-releases/office-documentserver` at a pinned version (the Euro-Office
-    community builds are meant for testing).
+    `ghcr.io/nextcloud-releases/office-documentserver:latest` (stable releases; the Euro-Office
+    community builds are meant for testing). v9.3.8 needs `EO_LIB` set to its `nextcloud-office`
+    data path, or its entrypoint never fixes that folder's owner and conversions fail with EACCES
+    (fixed upstream in Euro-Office/DocumentServer#578, not released yet). The compose file sets
+    it; the Website docs leave it out on purpose — drop it from compose once a release has the fix.
   - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
     `office.ivb.<org domain>` or `office.ivb.iventworks.de` — always a host of its own, never a
     path or port of the app's. `ivb` is a reserved org slug.
