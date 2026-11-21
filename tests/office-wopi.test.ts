@@ -13,6 +13,7 @@ import { OfficeDiscovery } from "../server/lib/office/discovery";
 import { WopiProof } from "../server/lib/office/proof";
 import { WopiIds } from "../server/lib/office/wopiIds";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
+import { RequestLimits } from "../server/lib/utils/requestLimits";
 import { SecurityHeaders } from "../server/lib/utils/securityHeaders";
 import { makeAPIRequest } from "./helpers/api";
 import { TEST_HOST } from "./helpers/orgs";
@@ -209,6 +210,17 @@ describe("Opening documents in the office editor", () => {
 		expect((await open(viewer.token)).mode).toBe("view");
 	});
 
+	test("saves to the WOPISrc handed out may be as large as uploads", async () => {
+		// The server entry limits bodies by path before the app sees them (`server/runtime/bun.ts`).
+		const src = decodeURIComponent((await open(staff.token)).url.split("WOPISrc=")[1]);
+		const octets = new Headers({ "content-type": "application/octet-stream" });
+		const upload = 26 * 1024 * 1024;
+		expect(RequestLimits.limitFor(octets, upload, `${new URL(src).pathname}/contents`)).toBe(upload);
+		expect(RequestLimits.limitFor(octets, upload, new URL(src).pathname)).toBe(
+			RequestLimits.DEFAULT_BYTES,
+		);
+	});
+
 	test("only office types, only documents", async () => {
 		const form = new FormData();
 		form.append("file", new File(["# Notiz"], "notiz.md", { type: "text/markdown" }));
@@ -308,6 +320,22 @@ describe("WOPI calls", () => {
 		const view = await (await wopi(docId, tokenOf(await open(viewer.token)))).json();
 		expect((view as any).UserCanWrite).toBe(false);
 		expect((view as any).FileSharingPostMessage).toBe(false);
+
+		// Not while the org has switched share links off.
+		const admin = await seedSession((await seedUser("admin")).id);
+		const sharing = (enabled: boolean) =>
+			makeAPIRequest("/v1/admin/organization", {
+				method: "PUT",
+				authToken: admin.token,
+				body: { file_sharing_enabled: enabled },
+			});
+		await sharing(false);
+		try {
+			const off = await (await wopi(docId, tokenOf(await open(leader.token)))).json();
+			expect((off as any).FileSharingPostMessage).toBe(false);
+		} finally {
+			await sharing(true);
+		}
 	});
 
 	test("calls without a valid proof, token or fresh timestamp are refused", async () => {

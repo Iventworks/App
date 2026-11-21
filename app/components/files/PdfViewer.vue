@@ -14,7 +14,8 @@ import { useDebounceFn, useResizeObserver } from "@vueuse/core";
 type PdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 type LoadingTask = ReturnType<PdfJs["getDocument"]>;
 type PdfDocument = Awaited<LoadingTask["promise"]>;
-type RenderTask = ReturnType<Awaited<ReturnType<PdfDocument["getPage"]>>["render"]>;
+type PdfPage = Awaited<ReturnType<PdfDocument["getPage"]>>;
+type RenderTask = ReturnType<PdfPage["render"]>;
 
 const props = defineProps<{
 	/** Where the bytes come from (same origin; the session or share cookie authenticates it). */
@@ -53,6 +54,8 @@ const near = new Set<number>();
 /** Scale each page was last rendered at. */
 const renderedAt = new Map<number, number>();
 const tasks = new Map<number, RenderTask>();
+/** Pages pdf.js has loaded: it keeps their drawing commands and images until `cleanup()`. */
+const pages = new Map<number, PdfPage>();
 
 const fitWidth = computed(() => Math.max(200, Math.min(containerWidth.value, MAX_FIT_WIDTH)));
 
@@ -128,6 +131,9 @@ async function render(page: number) {
 
 	tasks.get(page)?.cancel();
 	const proxy = await pdf.getPage(page);
+	// Scrolled away meanwhile.
+	if (!near.has(page)) return;
+	pages.set(page, proxy);
 	const base = proxy.getViewport({ scale: 1 });
 	if (!pageSizes.value[page - 1])
 		pageSizes.value[page - 1] = { width: base.width, height: base.height };
@@ -156,9 +162,12 @@ async function render(page: number) {
 	}
 }
 
-/** Free a page's canvas once it is far from the screen. */
+/** Free a page's canvas and what pdf.js keeps of it once it is far from the screen. */
 function release(page: number) {
 	tasks.get(page)?.cancel();
+	// After a cancelled render, pdf.js cleans up once that has stopped.
+	pages.get(page)?.cleanup();
+	pages.delete(page);
 	renderedAt.delete(page);
 	const canvas = canvases.get(page);
 	if (canvas) {

@@ -122,7 +122,10 @@ export namespace OfficeDiscovery {
 		}
 	}
 
-	/** The discovery (cached), or null when office editing is off or the server can't be reached. */
+	/**
+	 * The discovery (cached), or null when office editing is off or the server hasn't been reached
+	 * since the start.
+	 */
 	export async function get(now = Date.now()): Promise<Discovery | null> {
 		if (override) return override;
 		if (!enabled()) return null;
@@ -145,8 +148,11 @@ export namespace OfficeDiscovery {
 		loading ??= fetchDiscovery().finally(() => {
 			loading = null;
 		});
-		const discovery = await loading;
-		cache = { discovery, fetchedAt: now, until: now + (discovery ? TTL_MS : RETRY_MS) };
+		const fetched = await loading;
+		// A failed fetch (the office server restarting, a timeout) keeps the last good discovery: its
+		// keys still check the office server's calls. Try again after RETRY_MS.
+		const discovery = fetched ?? cache?.discovery ?? null;
+		cache = { discovery, fetchedAt: now, until: now + (fetched ? TTL_MS : RETRY_MS) };
 		return discovery;
 	}
 

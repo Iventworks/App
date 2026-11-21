@@ -512,7 +512,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Restore version",
 		description:
-			"Make an earlier version the current contents again (`permissions.edit`); the current contents become a version, so this can be undone. Refused while someone else is editing the file.",
+			"Make an earlier version the current contents again (`permissions.edit`). The version stays in the list and the current contents become a version, so this can be undone. Refused while someone else is editing the file.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
@@ -535,7 +535,7 @@ router.post(
 		const version = await FileVersions.get(file.id, versionId);
 		if (!version) return APIResponse.notFound(c, "Version not found");
 
-		const updated = FileVersions.restore(file, version, userId);
+		const updated = await FileVersions.restore(file, version, userId);
 		if (!updated) return APIResponse.notFound(c, "Version not found");
 
 		await AuditLog.record({
@@ -566,7 +566,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "Get access list",
 		description:
-			"Who has access to a document or folder: its own access list, or the one it inherits (`inherited_from`, null = the library's default). Kernteam (org documents) and Leitung (event documents) only.",
+			"Who has access to a document or folder: its own access list, or the one it inherits (`inherited_from`, null = the library's default); `inherits` is what would apply if it inherited. Kernteam (org documents) and Leitung (event documents) only.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(

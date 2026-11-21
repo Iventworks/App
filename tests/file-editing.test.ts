@@ -132,9 +132,23 @@ describe("Versions", () => {
 			authToken: anna.token,
 		});
 		expect(await text(docId, reader.token)).toBe("# Sitzung März\n");
+		// The restored version stays; the contents it replaced became one.
 		const after = await versionsOf(docId);
-		expect(after.map((version: any) => version.id)).not.toContain(oldest.id);
+		expect(after.map((version: any) => version.id)).toContain(oldest.id);
+		expect(after).toHaveLength(versions.length + 1);
+	});
+
+	test("saving right after a restore doesn't lose the restored contents", async () => {
+		const versions = await versionsOf(docId);
+		const oldest = versions.at(-1);
+		// Anna restored a moment ago: her next save coalesces with the version the restore made.
+		await replace(anna.token, docId, "# Anna, nach dem Zurückholen");
+		const after = await versionsOf(docId);
 		expect(after).toHaveLength(versions.length);
+		expect(after.map((version: any) => version.id)).toContain(oldest.id);
+		expect(await text(docId, reader.token, oldest.content_url.replace("/api", ""))).toBe(
+			"# Sitzung März\n",
+		);
 	});
 });
 

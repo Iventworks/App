@@ -7756,6 +7756,24 @@ export type GetFilesByFileIdAccessResponses = {
                     delete: boolean;
                 };
             }>;
+            inherits: {
+                from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            };
         };
     };
 };
@@ -7838,6 +7856,24 @@ export type PutFilesByFileIdAccessResponses = {
                     delete: boolean;
                 };
             }>;
+            inherits: {
+                from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            };
         };
     };
 };
@@ -13491,6 +13527,24 @@ export type GetEventsByEventIdFilesResponses = {
                         delete: boolean;
                     };
                 }>;
+                inherits: {
+                    from: {
+                        id: number;
+                        name: string;
+                    } | null;
+                    entries: Array<{
+                        principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                        id: number | null;
+                        label: string;
+                        color: string | null;
+                        permissions: {
+                            read: boolean;
+                            upload: boolean;
+                            edit: boolean;
+                            delete: boolean;
+                        };
+                    }>;
+                };
             } | null;
         };
     };
@@ -16487,6 +16541,24 @@ export type GetOrgDocumentsResponses = {
                         delete: boolean;
                     };
                 }>;
+                inherits: {
+                    from: {
+                        id: number;
+                        name: string;
+                    } | null;
+                    entries: Array<{
+                        principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                        id: number | null;
+                        label: string;
+                        color: string | null;
+                        permissions: {
+                            read: boolean;
+                            upload: boolean;
+                            edit: boolean;
+                            delete: boolean;
+                        };
+                    }>;
+                };
             } | null;
         };
     };

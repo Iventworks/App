@@ -22,6 +22,8 @@ const fileURL = useFileURL();
 const confirm = useConfirmDialog();
 
 const versions = ref<Version[]>([]);
+/** The file `versions` belong to. */
+let shownFor: number | null = null;
 const loading = ref(false);
 const restoring = ref<number | null>(null);
 
@@ -34,11 +36,18 @@ function versionLink(version: Version) {
 	return { path, query: { ...query, version: String(version.id) } };
 }
 
+/** Counts loads: only the latest one may fill the list (it can be reopened for another file). */
+let loads = 0;
+
 async function load() {
 	const item = props.item;
 	if (!item) return;
+	const current = ++loads;
+	// Opened for another file: don't show the previous file's versions meanwhile.
+	if (item.id !== shownFor) versions.value = [];
 	loading.value = true;
 	const result = await useAPI((api) => api.getFilesByFileIdVersions({ path: { fileId: item.id } }));
+	if (current !== loads) return;
 	loading.value = false;
 	if (!result.success) {
 		toast.add({
@@ -49,6 +58,7 @@ async function load() {
 		return;
 	}
 	versions.value = result.data;
+	shownFor = item.id;
 }
 
 watch(open, (value) => {

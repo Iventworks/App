@@ -161,10 +161,12 @@ CMP (Crossover Management Portal) before; the repository still is.
   co-editing in the office editor (Markdown co-editing was removed: its own sync protocol cost
   more than it was worth next to notes and Office).
 - **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
-  a new version, the office editor, a share link, restoring) goes through
-  `FileService.replaceContent`, which keeps the old blob as a version — while the same person keeps
-  saving (or anyone in an office session), at most one every ten minutes. `files.modified_by`
-  is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
+  a new version, the office editor, a share link) goes through `FileService.replaceContent`, which
+  keeps the old blob as a version — while the same person keeps saving (or anyone in an office
+  session), at most one every ten minutes; empty contents never. Restoring (`FileVersions.restore`)
+  copies the version's blob, so the version stays (a save right after it would otherwise drop the
+  restored contents), and keeps the current contents. `files.modified_by` is who wrote the
+  current contents. Housekeeping keeps 30 days, the newest ten per file longer,
   never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
   removes its version blobs. Versions are never copied with an event.
 - **Papierkorb** (`files.deleted_at` / `deleted_by`, `FileTrash`): deleting an org or event

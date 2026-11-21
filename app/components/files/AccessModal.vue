@@ -35,16 +35,17 @@ const candidates = ref<FileAccessCandidate[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const mode = ref<"inherit" | "custom">("inherit");
+/** The own list being edited ("Eigener Zugriff"). */
 const rows = ref<Row[]>([]);
-/** Who can open the folder this item is in (null: it is at the top level, which everyone sees). */
-const parentEntries = ref<FileAccessEntry[] | null>(null);
 
 /**
  * Whether this entry's people can't open the folder above — then they never get to this item.
  * Only certain cases (a person in a group of the folder above can't be checked here, so no warning).
  */
 function cutOff(row: Row) {
-	const parent = parentEntries.value;
+	// Who can open the folder this item is in: what the item would inherit. Everyone sees the
+	// top level.
+	const parent = props.item?.parent_id != null ? view.value?.inherits.entries : null;
 	if (!parent || (!row.permissions.read && !row.permissions.upload)) return false;
 	const readers = parent.filter((entry) => entry.permissions.read);
 	if (readers.some((entry) => entry.principal === "members" || entry.principal === "team"))
@@ -79,19 +80,21 @@ function toRows(entries: FileAccessEntry[]): Row[] {
 	}));
 }
 
+/** Counts loads: only the latest one may fill the dialog (it can be reopened for another item). */
+let loads = 0;
+
 async function load() {
 	const item = props.item;
 	if (!item) return;
+	const current = ++loads;
+	view.value = null;
+	rows.value = [];
 	loading.value = true;
-	const parentId = item.parent_id;
-	const [access, list, parent] = await Promise.all([
+	const [access, list] = await Promise.all([
 		useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: item.id } })),
 		useAPI((api) => api.getFilesByFileIdAccessCandidates({ path: { fileId: item.id } })),
-		parentId !== null
-			? useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: parentId } }))
-			: Promise.resolve(null),
 	]);
-	parentEntries.value = parent?.success ? parent.data.entries : null;
+	if (current !== loads) return;
 	loading.value = false;
 	if (!access.success) {
 		toast.add({
@@ -105,6 +108,7 @@ async function load() {
 	view.value = access.data;
 	candidates.value = list.success ? list.data : [];
 	mode.value = access.data.custom ? "custom" : "inherit";
+	// An own list starts from what applies now.
 	rows.value = toRows(access.data.entries);
 }
 
@@ -112,16 +116,14 @@ watch(open, (value) => {
 	if (value) void load();
 });
 
-/** Back to inheriting: show what would apply again. */
-watch(mode, (value) => {
-	if (value === "inherit" && view.value && !view.value.custom)
-		rows.value = toRows(view.value.entries);
-});
+/** What the list shows: the own list, or what would be inherited. */
+const shownRows = computed(() =>
+	mode.value === "custom" ? rows.value : toRows(view.value?.inherits.entries ?? []),
+);
 
 const inheritedText = computed(() => {
-	const source = view.value?.inherited_from;
+	const source = view.value?.inherits.from;
 	if (source) return `Wie der Ordner „${source.name}“`;
-	if (view.value?.custom) return "Wie der übergeordnete Ordner";
 	return props.scope === "org"
 		? "Wie die oberste Ebene: nur das Kernteam"
 		: "Wie die oberste Ebene: alle im Team dürfen ansehen und hochladen";
@@ -198,7 +200,7 @@ watch(addKey, (key) => {
 
 async function save() {
 	const item = props.item;
-	if (!item) return;
+	if (!item || !view.value) return;
 	saving.value = true;
 	const custom = mode.value === "custom";
 	const result = await useAPI((api) =>
@@ -266,8 +268,8 @@ async function save() {
 				<p class="text-xs font-medium uppercase tracking-wide text-slate-500">
 					{{ mode === "custom" ? "Wer Zugriff hat" : "Zugriff, der übernommen wird" }}
 				</p>
-				<ul v-if="rows.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
-					<li v-for="(row, index) in rows" :key="keyOf(row)" class="flex flex-wrap items-center gap-3 px-3 py-2.5">
+				<ul v-if="shownRows.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
+					<li v-for="(row, index) in shownRows" :key="keyOf(row)" class="flex flex-wrap items-center gap-3 px-3 py-2.5">
 						<span
 							class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-800"
 							:style="row.color ? { backgroundColor: `${row.color}33` } : undefined"

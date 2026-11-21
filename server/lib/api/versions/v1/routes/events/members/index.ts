@@ -319,7 +319,7 @@ router.delete(
 	APIRouteSpec.authenticated({
 		summary: "Remove event staff member",
 		description:
-			"Remove a user from the event. Their group memberships, program and responsibility assignments, Kleingruppen they lead and rooms they are responsible for in this event are removed and their tasks become unassigned.",
+			"Remove a user from the event. Their group memberships, program and responsibility assignments, Kleingruppen they lead, rooms they are responsible for and entries on access lists of the event's documents are removed and their tasks become unassigned.",
 		tags: [DOCS_TAGS.EVENTS.MEMBERS],
 
 		responses: APIResponseSpec.describeBasic(
@@ -355,6 +355,27 @@ router.delete(
 								inOrg(DB.Tables.eventGroupMembers),
 								inArray(DB.Tables.eventGroupMembers.group_id, groupIds),
 								eq(DB.Tables.eventGroupMembers.user_id, member.user_id),
+							),
+						)
+						.run();
+				}
+
+				// Off the event's document access lists, which may only name the team.
+				const fileIds = (
+					await tx
+						.select({ id: DB.Tables.files.id })
+						.from(DB.Tables.files)
+						.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.event_id, event.id)))
+						.all()
+				).map((row) => row.id);
+				if (fileIds.length) {
+					await tx
+						.delete(DB.Tables.fileAccess)
+						.where(
+							and(
+								inOrg(DB.Tables.fileAccess),
+								inArray(DB.Tables.fileAccess.file_id, fileIds),
+								eq(DB.Tables.fileAccess.user_id, member.user_id),
 							),
 						)
 						.run();

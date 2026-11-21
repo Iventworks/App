@@ -130,9 +130,9 @@ function fileInfo({ file, user, canWrite, permissions }: OfficeTokens.Resolved) 
 		PostMessageOrigin: org.url,
 		HostEditUrl: `${org.url}/files/${file.id}`,
 		// The editor's "Versionsverlauf" and "Freigeben" open the file page's own dialogs
-		// (`UI_FileVersions` / `UI_Sharing` to `FilesOfficeFrame`).
+		// (`UI_FileVersions` / `UI_Sharing` to `FilesOfficeFrame`); share links only where allowed.
 		FileVersionPostMessage: true,
-		FileSharingPostMessage: permissions.manage,
+		FileSharingPostMessage: permissions.manage && org.file_sharing_enabled,
 	};
 }
 

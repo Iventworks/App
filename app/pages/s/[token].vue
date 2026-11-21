@@ -376,30 +376,31 @@ const previewable = computed(() => {
 				<p v-if="info.expires_at" class="text-xs text-slate-500">Dieser Link gilt bis {{ formatDate(info.expires_at) }}.</p>
 			</div>
 
-			<!-- A single file -->
-			<UCard v-if="!isFolder" class="border-slate-800 bg-slate-900/60">
-				<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-					<div class="flex-1 space-y-1 text-sm text-slate-400">
-						<p>{{ formatFileSize(info.item.size) }} · zuletzt geändert {{ formatDate(info.item.updated_at) }}</p>
+			<!-- A single file, with a preview where there is one (PDF, image, Markdown, CSV, text). -->
+			<template v-if="!isFolder">
+				<UCard class="border-slate-800 bg-slate-900/60">
+					<div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+						<div class="flex-1 space-y-1 text-sm text-slate-400">
+							<p>{{ formatFileSize(info.item.size) }} · zuletzt geändert {{ formatDate(info.item.updated_at) }}</p>
+						</div>
+						<div class="flex flex-wrap gap-2">
+							<UButton v-if="info.item.content_url" label="Öffnen" icon="i-lucide-external-link" color="neutral" variant="subtle" :to="fileURL(info.item.content_url)" target="_blank" />
+							<UButton v-if="info.item.content_url" label="Herunterladen" icon="i-lucide-download" color="primary" :to="fileURL(info.item.content_url, true)" target="_blank" />
+							<UButton v-if="permissions?.edit" label="Neue Fassung" icon="i-lucide-file-up" color="neutral" variant="subtle" :loading="replacing" @click="pickReplacement(info.item)" />
+						</div>
 					</div>
-					<div class="flex flex-wrap gap-2">
-						<UButton v-if="info.item.content_url" label="Öffnen" icon="i-lucide-external-link" color="neutral" variant="subtle" :to="fileURL(info.item.content_url)" target="_blank" />
-						<UButton v-if="info.item.content_url" label="Herunterladen" icon="i-lucide-download" color="primary" :to="fileURL(info.item.content_url, true)" target="_blank" />
-						<UButton v-if="permissions?.edit" label="Neue Fassung" icon="i-lucide-file-up" color="neutral" variant="subtle" :loading="replacing" @click="pickReplacement(info.item)" />
-					</div>
-				</div>
-			</UCard>
+				</UCard>
 
-			<!-- Preview of the shared file (PDF, image, Markdown, CSV, text). -->
-			<FilesPreview
-				v-if="!isFolder && previewable && info.item.content_url && permissions?.read"
-				:key="`${info.item.id}-${info.item.updated_at}`"
-				:url="fileURL(info.item.content_url) as string"
-				:download-url="fileURL(info.item.content_url, true)"
-				:name="info.item.name"
-				:mime-type="info.item.mime_type"
-				:size="info.item.size"
-			/>
+				<FilesPreview
+					v-if="previewable && info.item.content_url && permissions?.read"
+					:key="`${info.item.id}-${info.item.updated_at}`"
+					:url="fileURL(info.item.content_url) as string"
+					:download-url="fileURL(info.item.content_url, true)"
+					:name="info.item.name"
+					:mime-type="info.item.mime_type"
+					:size="info.item.size"
+				/>
+			</template>
 
 			<!-- A folder -->
 			<div v-else class="relative space-y-4" @dragover="onDragOver" @dragleave="isOver = false" @drop="onDrop">

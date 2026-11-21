@@ -132,7 +132,12 @@ describe("Org documents", () => {
 
 		const root = await list(ORG, core.token);
 		expect(root.permissions.manage).toBe(true);
-		expect(root.access).toEqual({ custom: false, inherited_from: null, entries: [] });
+		expect(root.access).toEqual({
+			custom: false,
+			inherited_from: null,
+			entries: [],
+			inherits: { from: null, entries: [] },
+		});
 	});
 
 	test("members, groups and single people get exactly what their entry allows", async () => {
@@ -222,6 +227,21 @@ describe("Org documents", () => {
 		expect(inherited.custom).toBe(false);
 		expect(inherited.inherited_from).toEqual({ id: guidesId, name: "Leitfäden" });
 		expect(inherited.entries.map((entry: any) => entry.label)).toEqual(["Alle Mitglieder"]);
+		expect(inherited.inherits).toEqual({
+			from: inherited.inherited_from,
+			entries: inherited.entries,
+		});
+
+		// With an own list: what it would inherit again ("Übernehmen" in the dialog).
+		const own = await makeAPIRequest(`/v1/files/${bobOnly.id}/access`, { authToken: core.token });
+		expect(own.custom).toBe(true);
+		expect(own.entries.map((entry: any) => entry.label)).toEqual(["Bob"]);
+		expect(own.inherits.from).toEqual({ id: guidesId, name: "Leitfäden" });
+		expect(own.inherits.entries.map((entry: any) => entry.label)).toEqual(["Alle Mitglieder"]);
+		// At the top level: the library's default (org documents: only the Kernteam).
+		const top = await makeAPIRequest(`/v1/files/${guidesId}/access`, { authToken: core.token });
+		expect(top.custom).toBe(true);
+		expect(top.inherits).toEqual({ from: null, entries: [] });
 
 		const listing = await list(ORG, core.token, guidesId);
 		const bobFolder = listing.items.find((item: any) => item.id === bobOnly.id);
@@ -416,6 +436,39 @@ describe("Event documents", () => {
 			400,
 		);
 		await setAccess(kitchen.id, leader.token, [{ principal: "members", permissions: VIEW }], 400);
+	});
+
+	test("leaving the team takes a person off the access lists", async () => {
+		const carlaUser = await seedUser("volunteer", { display_name: "Carla" });
+		const membership = await addEventMember(eventId, carlaUser.id, "staff");
+		const carla = await seedSession(carlaUser.id);
+		const plans = await folder(path, leader.token, "Pläne");
+		await setAccess(plans.id, leader.token, [
+			{ principal: "event_group", id: kitchenId, permissions: VIEW },
+			{ principal: "user", id: carlaUser.id, permissions: VIEW },
+		]);
+		expect(names(await list(path, carla.token))).toContain("Pläne");
+
+		await makeAPIRequest(`/v1/events/${eventId}/members/${membership.id}`, {
+			method: "DELETE",
+			authToken: leader.token,
+		});
+		const access = await makeAPIRequest(`/v1/files/${plans.id}/access`, {
+			authToken: leader.token,
+		});
+		expect(access.entries.map((entry: any) => entry.label)).toEqual(["Küche"]);
+		// The list saves as it is shown, and coming back doesn't bring the access back.
+		await setAccess(
+			plans.id,
+			leader.token,
+			access.entries.map((entry: any) => ({
+				principal: entry.principal,
+				id: entry.id,
+				permissions: entry.permissions,
+			})),
+		);
+		await addEventMember(eventId, carlaUser.id, "staff");
+		expect(names(await list(path, carla.token))).not.toContain("Pläne");
 	});
 
 	test("staff can't manage access or share links", async () => {

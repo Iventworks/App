@@ -132,37 +132,55 @@ export namespace FileVersions {
 	}
 
 	/**
-	 * Make `version` the current contents again; the current contents become a version (always
-	 * kept, so a restore can be undone). Null when the version is gone meanwhile.
+	 * Make `version` the current contents again. Its contents are copied, so the version stays in
+	 * the list: saving soon after a restore (which coalesces with the version the restore made) never
+	 * loses the restored contents. The current contents become a version (unless empty), so a restore
+	 * can be undone. Null when the version is gone meanwhile.
 	 */
-	export function restore(file: DB.Models.File, version: DB.Models.FileVersion, userId: number) {
+	export async function restore(
+		file: DB.Models.File,
+		version: DB.Models.FileVersion,
+		userId: number,
+	) {
+		const copy = await FileStorage.copy(version.storage_key);
+		if (!copy) return null;
 		const now = Date.now();
-		return DB.instance().transaction((tx) => {
-			const stillThere = tx
-				.select({ id: DB.Tables.fileVersions.id })
-				.from(DB.Tables.fileVersions)
-				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
-				.get();
-			if (!stillThere) return null;
-			archive(tx, currentRow(tx, file.id), now);
-			const updated = tx
-				.update(DB.Tables.files)
-				.set({
-					storage_key: version.storage_key,
-					size: version.size,
-					mime_type: version.mime_type,
-					modified_by: userId,
-					updated_at: now,
-				})
-				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
-				.returning()
-				.get();
-			tx
-				.delete(DB.Tables.fileVersions)
-				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
-				.run();
-			return updated as DB.Models.File;
-		});
+		let result: { row: DB.Models.File; dropKey: string | null } | null;
+		try {
+			result = DB.instance().transaction((tx) => {
+				const stillThere = tx
+					.select({ id: DB.Tables.fileVersions.id })
+					.from(DB.Tables.fileVersions)
+					.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
+					.get();
+				if (!stillThere) return null;
+				const current = currentRow(tx, file.id);
+				const keep = current.size > 0;
+				if (keep) archive(tx, current, now);
+				const row = tx
+					.update(DB.Tables.files)
+					.set({
+						storage_key: copy.storageKey,
+						size: copy.size,
+						mime_type: version.mime_type,
+						modified_by: userId,
+						updated_at: now,
+					})
+					.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
+					.returning()
+					.get() as DB.Models.File;
+				return { row, dropKey: keep ? null : current.storage_key };
+			});
+		} catch (error) {
+			await FileStorage.remove([copy.storageKey]);
+			throw error;
+		}
+		if (!result) {
+			await FileStorage.remove([copy.storageKey]);
+			return null;
+		}
+		if (result.dropKey) await FileStorage.remove([result.dropKey]);
+		return result.row;
 	}
 
 	/** Storage keys of the versions of `fileIds` (to remove them with their files). */

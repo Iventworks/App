@@ -4764,7 +4764,31 @@ export const zGetFilesByFileIdAccessResponse = z.object({
                 edit: z.boolean(),
                 delete: z.boolean()
             })
-        }))
+        })),
+        inherits: z.object({
+            from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        })
     })
 });
 
@@ -4822,7 +4846,31 @@ export const zPutFilesByFileIdAccessResponse = z.object({
                 edit: z.boolean(),
                 delete: z.boolean()
             })
-        }))
+        })),
+        inherits: z.object({
+            from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        })
     })
 });
 
@@ -8804,7 +8852,31 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                     edit: z.boolean(),
                     delete: z.boolean()
                 })
-            }))
+            })),
+            inherits: z.object({
+                from: z.object({
+                    id: z.number(),
+                    name: z.string()
+                }).nullable(),
+                entries: z.array(z.object({
+                    principal: z.enum([
+                        'members',
+                        'team',
+                        'org_group',
+                        'event_group',
+                        'user'
+                    ]),
+                    id: z.number().nullable(),
+                    label: z.string(),
+                    color: z.string().nullable(),
+                    permissions: z.object({
+                        read: z.boolean(),
+                        upload: z.boolean(),
+                        edit: z.boolean(),
+                        delete: z.boolean()
+                    })
+                }))
+            })
         }).nullable()
     })
 });
@@ -10968,7 +11040,31 @@ export const zGetOrgDocumentsResponse = z.object({
                     edit: z.boolean(),
                     delete: z.boolean()
                 })
-            }))
+            })),
+            inherits: z.object({
+                from: z.object({
+                    id: z.number(),
+                    name: z.string()
+                }).nullable(),
+                entries: z.array(z.object({
+                    principal: z.enum([
+                        'members',
+                        'team',
+                        'org_group',
+                        'event_group',
+                        'user'
+                    ]),
+                    id: z.number().nullable(),
+                    label: z.string(),
+                    color: z.string().nullable(),
+                    permissions: z.object({
+                        read: z.boolean(),
+                        upload: z.boolean(),
+                        edit: z.boolean(),
+                        delete: z.boolean()
+                    })
+                }))
+            })
         }).nullable()
     })
 });

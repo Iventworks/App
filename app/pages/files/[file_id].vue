@@ -253,6 +253,10 @@ async function onUpload(event: Event) {
 
 /** Access lists and share links: managers of the library (Kernteam / Leitung). */
 const canManage = computed(() => Boolean(file.value?.permissions?.manage));
+/** Share links, unless the org has switched them off. */
+const canShare = computed(
+	() => canManage.value && useInstance().value?.org?.file_sharing_enabled === true,
+);
 const accessOpen = ref(false);
 const shareOpen = ref(false);
 /** Wide enough to show every action as its own button; narrow screens get them in the menu. */
@@ -359,7 +363,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 							@click="accessOpen = true"
 						/>
 					</UTooltip>
-					<UTooltip text="Freigabelinks für Personen ohne Konto">
+					<UTooltip v-if="canShare" text="Freigabelinks für Personen ohne Konto">
 						<UButton
 							icon="i-lucide-share-2"
 							label="Teilen"
@@ -451,7 +455,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 				:file-id="file.id"
 				@mode="officeMode = $event"
 				@versions="versionsOpen = true"
-				@sharing="shareOpen = canManage"
+				@sharing="shareOpen = canShare"
 			/>
 
 			<div v-else-if="versionId && !version" class="flex h-full items-center justify-center">
@@ -474,7 +478,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 		<FilesVersionsModal v-model:open="versionsOpen" :item="file ?? null" @restored="refresh" />
 		<template v-if="file && canManage">
 			<FilesAccessModal v-model:open="accessOpen" :item="file" :scope="file.scope === 'event' ? 'event' : 'org'" @changed="refresh" />
-			<FilesShareModal v-model:open="shareOpen" :item="file" @changed="refresh" />
+			<FilesShareModal v-if="canShare" v-model:open="shareOpen" :item="file" @changed="refresh" />
 		</template>
 	</div>
 </template>

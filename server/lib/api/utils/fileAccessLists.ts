@@ -158,8 +158,9 @@ export namespace FileAccessLists {
 	}
 
 	/**
-	 * Who has access to the last item of `path` (root → item; empty = the root itself) and where
-	 * that comes from. `entries`: the access lists already loaded for the path.
+	 * Who has access to the last item of `path` (root → item; empty = the root itself), where that
+	 * comes from, and what would apply if it inherited. `entries`: the access lists already loaded
+	 * for the path.
 	 */
 	export async function describe(
 		location: FileService.Location,
@@ -167,16 +168,21 @@ export namespace FileAccessLists {
 		entries: Map<number, DB.Models.FileAccessEntry[]>,
 	): Promise<FileAccessModel.View> {
 		const item = path.at(-1) ?? null;
-		const source = [...path].reverse().find((file) => file.custom_access) ?? null;
 		const custom = item?.custom_access ?? false;
-		if (!source) return { custom: false, inherited_from: null, entries: defaultEntries(location) };
-
-		const labelled = await toEntries(entries.get(source.id) ?? []);
-		return {
-			custom,
-			inherited_from: custom ? null : { id: source.id, name: source.name },
-			entries: labelled.get(source.id) ?? [],
+		// The nearest folder above with its own list.
+		const source = path.slice(0, -1).findLast((file) => file.custom_access);
+		const labelled = await toEntries([
+			...(source ? (entries.get(source.id) ?? []) : []),
+			...(item && custom ? (entries.get(item.id) ?? []) : []),
+		]);
+		const inherits = {
+			from: source ? { id: source.id, name: source.name } : null,
+			entries: source ? (labelled.get(source.id) ?? []) : defaultEntries(location),
 		};
+		if (!item || !custom) {
+			return { custom: false, inherited_from: inherits.from, entries: inherits.entries, inherits };
+		}
+		return { custom: true, inherited_from: null, entries: labelled.get(item.id) ?? [], inherits };
 	}
 
 	/** German summary of a list for the audit log. */
