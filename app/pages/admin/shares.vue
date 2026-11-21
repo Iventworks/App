@@ -16,7 +16,7 @@ useSeoMeta({
 
 const toast = useToast();
 
-type Row = AdminShare & { state: "active" | "expired"; place: string };
+type Row = AdminShare & { state: "active" | "expired" | "trash"; place: string };
 
 const shares = await useAPIAsyncData("admin-shares", async () => {
 	const res = await useAPI((api) => api.getAdminShares({}));
@@ -34,7 +34,7 @@ const shares = await useAPIAsyncData("admin-shares", async () => {
 const rows = computed<Row[]>(() =>
 	(shares.data.value ?? []).map((share) => ({
 		...share,
-		state: share.expired ? "expired" : "active",
+		state: share.expired ? "expired" : share.file.in_trash ? "trash" : "active",
 		place: share.file.event?.name ?? "Organisation",
 	})),
 );
@@ -42,6 +42,7 @@ const rows = computed<Row[]>(() =>
 const counts = computed(() => ({
 	active: rows.value.filter((row) => row.state === "active").length,
 	expired: rows.value.filter((row) => row.state === "expired").length,
+	trash: rows.value.filter((row) => row.state === "trash").length,
 }));
 
 const tableFilters = computed(() => [
@@ -59,11 +60,12 @@ const tableFilters = computed(() => [
 		options: [
 			{ label: `Aktiv (${counts.value.active})`, value: "active" },
 			{ label: `Abgelaufen (${counts.value.expired})`, value: "expired" },
+			{ label: `Im Papierkorb (${counts.value.trash})`, value: "trash" },
 		],
 	},
 ]);
 
-// Active links first; expired ones on demand.
+// Active links first; expired ones and those in the Papierkorb on demand.
 const table = useDataTableInitialFilters({ state: ["active"] });
 
 const columns: TableColumn<Row>[] = [
@@ -155,6 +157,7 @@ async function onRevoke() {
 							<UBadge :label="sharePermissionLabel(row.original.permissions, row.original.file.kind)" color="neutral" variant="subtle" size="sm" />
 							<UBadge v-if="row.original.has_password" label="Passwort" icon="i-lucide-lock" color="neutral" variant="subtle" size="sm" />
 							<UBadge v-if="row.original.expired" label="Abgelaufen" color="error" variant="soft" size="sm" />
+							<UBadge v-else-if="row.original.file.in_trash" label="Im Papierkorb" icon="i-lucide-trash-2" color="warning" variant="soft" size="sm" />
 						</div>
 					</template>
 

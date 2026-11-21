@@ -2034,7 +2034,8 @@ export const zGetAdminSharesResponse = z.object({
                 name: z.string()
             }).nullable(),
             folder_id: z.number().nullable(),
-            path: z.string()
+            path: z.string(),
+            in_trash: z.boolean()
         })
     }))
 });
@@ -9083,7 +9084,16 @@ export const zGetEventsByEventIdFilesTrashResponse = z.object({
         deleted_at: z.number(),
         deleted_by: z.object({
             id: z.number(),
-            display_name: z.string()
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),
@@ -11242,7 +11252,16 @@ export const zGetOrgDocumentsTrashResponse = z.object({
         deleted_at: z.number(),
         deleted_by: z.object({
             id: z.number(),
-            display_name: z.string()
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),

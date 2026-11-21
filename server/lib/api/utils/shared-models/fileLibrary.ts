@@ -35,15 +35,28 @@ export namespace FileLibraryModel.CreateOffice {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace FileLibraryModel.Trash {
+export namespace FileLibraryModel.GetTrash {
 	export const Response = FileTrash.ListResponse;
 	export type Response = z.infer<typeof Response>;
+}
 
+/** An item in the Papierkorb (restore, delete for good). */
+export namespace FileLibraryModel.TrashItem {
 	export const Params = z.object({
 		fileId: z.coerce.number().int().positive(),
 	});
 	export type Params = z.infer<typeof Params>;
+}
 
-	export const Item = FileService.ItemSchema;
-	export type Item = z.infer<typeof Item>;
+export namespace FileLibraryModel.RestoreFromTrash {
+	export const Params = FileLibraryModel.TrashItem.Params;
+	export type Params = z.infer<typeof Params>;
+
+	export const Response = FileService.ItemSchema;
+	export type Response = z.infer<typeof Response>;
+}
+
+export namespace FileLibraryModel.DeleteFromTrash {
+	export const Params = FileLibraryModel.TrashItem.Params;
+	export type Params = z.infer<typeof Params>;
 }

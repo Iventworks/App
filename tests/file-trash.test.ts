@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { FileTrash } from "../server/lib/api/utils/fileTrash";
 import { DB } from "../server/lib/db";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
+import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
 import { addEventMember, type SeededSession, seedSession, seedUser } from "./helpers/seed";
 
@@ -166,7 +167,24 @@ describe("Papierkorb", () => {
 		await makeAPIRequest(`/v1/files/${deep.id}`, { authToken: leader.token });
 	});
 
-	test("only the Leitung deletes for good or empties it", async () => {
+	test("only the Leitung deletes for good or empties it — the files on disk go too", async () => {
+		const stored = async (key: string) => await FileStorage.open(key).exists();
+		// An earlier version of the note, to see that its file goes as well.
+		const old = await FileStorage.save(new Blob(["ältere Fassung"]));
+		DB.instance()
+			.insert(DB.Tables.fileVersions)
+			.values({
+				org_id: OrgContext.id(),
+				file_id: note.id,
+				storage_key: old.storageKey,
+				size: old.size,
+				modified_at: Date.now(),
+			})
+			.run();
+		const noteKey = row(note.id)?.storage_key as string;
+		const insideKey = row(inside.id)?.storage_key as string;
+		expect(await stored(noteKey)).toBe(true);
+
 		await makeAPIRequest(
 			`${base}/trash/${note.id}`,
 			{ method: "DELETE", authToken: anna.token },
@@ -174,12 +192,15 @@ describe("Papierkorb", () => {
 		);
 		await makeAPIRequest(`${base}/trash/${note.id}`, { method: "DELETE", authToken: leader.token });
 		expect(row(note.id)).toBeUndefined();
+		expect(await stored(noteKey)).toBe(false);
+		expect(await stored(old.storageKey)).toBe(false);
 
 		await makeAPIRequest(`${base}/trash`, { method: "DELETE", authToken: anna.token }, 403);
 		await makeAPIRequest(`${base}/trash`, { method: "DELETE", authToken: leader.token });
 		expect(await makeAPIRequest(`${base}/trash`, { authToken: leader.token })).toEqual([]);
 		expect(row(plans.id)).toBeUndefined();
 		expect(row(inside.id)).toBeUndefined();
+		expect(await stored(insideKey)).toBe(false);
 	});
 
 	test("share links stop at the Papierkorb; what a link deletes lands there", async () => {

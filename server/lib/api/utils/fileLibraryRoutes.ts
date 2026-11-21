@@ -64,8 +64,8 @@ export function createFileLibraryRouter(options: {
 		? FileLibraryModel.GetAll.Query
 		: FileLibraryModel.GetAll.Query.omit({ view: true });
 	const trashParams = options.parentParams
-		? FileLibraryModel.Trash.Params.extend(options.parentParams.shape)
-		: FileLibraryModel.Trash.Params;
+		? FileLibraryModel.TrashItem.Params.extend(options.parentParams.shape)
+		: FileLibraryModel.TrashItem.Params;
 
 	/** 404s of the route, with the mount point's. */
 	const notFound = (...messages: string[]) => {
@@ -224,7 +224,10 @@ export function createFileLibraryRouter(options: {
 			tags: [tag],
 
 			responses: APIResponseSpec.describeBasic(
-				APIResponseSpec.success("Papierkorb retrieved successfully", FileLibraryModel.Trash.Response),
+				APIResponseSpec.success(
+					"Papierkorb retrieved successfully",
+					FileLibraryModel.GetTrash.Response,
+				),
 				APIResponseSpec.forbidden("You are not allowed to view documents"),
 				notFound(),
 			),
@@ -236,7 +239,7 @@ export function createFileLibraryRouter(options: {
 			return APIResponse.success(
 				c,
 				"Papierkorb retrieved successfully",
-				(await FileTrash.list(viewer)) satisfies FileLibraryModel.Trash.Response,
+				(await FileTrash.list(viewer)) satisfies FileLibraryModel.GetTrash.Response,
 			);
 		},
 	);
@@ -251,7 +254,7 @@ export function createFileLibraryRouter(options: {
 			tags: [tag],
 
 			responses: APIResponseSpec.describeWithWrongInputs(
-				APIResponseSpec.success("Restored successfully", FileLibraryModel.Trash.Item),
+				APIResponseSpec.success("Restored successfully", FileLibraryModel.RestoreFromTrash.Response),
 				notFound("Not in the Papierkorb"),
 				APIResponseSpec.conflict(
 					"The folder it was in is in the Papierkorb too: restore the folder first",
@@ -264,7 +267,7 @@ export function createFileLibraryRouter(options: {
 		async (c) => {
 			const viewer = await viewerOf(c, { asMember: false });
 			if (!viewer) return APIResponse.notFound(c, "Not in the Papierkorb");
-			const { fileId } = c.req.valid("param") as FileLibraryModel.Trash.Params;
+			const { fileId } = c.req.valid("param") as FileLibraryModel.RestoreFromTrash.Params;
 			const result = await FileTrash.restore(viewer, fileId);
 			if (!result.ok) return failure(c, result);
 
@@ -304,7 +307,7 @@ export function createFileLibraryRouter(options: {
 		async (c) => {
 			const viewer = await viewerOf(c, { asMember: false });
 			if (!viewer) return APIResponse.notFound(c, "Not in the Papierkorb");
-			const { fileId } = c.req.valid("param") as FileLibraryModel.Trash.Params;
+			const { fileId } = c.req.valid("param") as FileLibraryModel.DeleteFromTrash.Params;
 			const result = await FileTrash.purge(viewer, fileId);
 			if (!result.ok) return failure(c, result);
 

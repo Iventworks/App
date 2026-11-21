@@ -24,6 +24,8 @@ const Entry = FileShares.View.extend({
 		folder_id: z.number().nullable(),
 		/** Where the item is managed in the app (`/core-team/documents?folder=…`). */
 		path: z.string(),
+		/** In the Papierkorb (or below a folder there): the link works again once it is restored. */
+		in_trash: z.boolean(),
 	}),
 });
 

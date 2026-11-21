@@ -12,9 +12,13 @@ import { OrgContext } from "../orgs/context";
 export namespace WopiIds {
 	const PATTERN = /^(\d+)-([0-9a-f]{16})$/;
 
-	export function of(file: Pick<DB.Models.File, "id" | "created_at">) {
+	/** `orgUrl`: the org's address the id is handed out on (default: its current one). */
+	export function of(
+		file: Pick<DB.Models.File, "id" | "created_at">,
+		orgUrl = OrgContext.current().url,
+	) {
 		const suffix = createHash("sha256")
-			.update(`${OrgContext.current().url}\n${file.id}\n${file.created_at}`)
+			.update(`${orgUrl}\n${file.id}\n${file.created_at}`)
 			.digest("hex")
 			.slice(0, 16);
 		return `${file.id}-${suffix}`;
@@ -26,7 +30,15 @@ export namespace WopiIds {
 		return match ? Number(match[1]) : null;
 	}
 
-	export function matches(wopiId: string, file: Pick<DB.Models.File, "id" | "created_at">) {
-		return wopiId === of(file);
+	/**
+	 * `orgUrl`: the address the office server called — the one the id was handed out on, which
+	 * may no longer be the org's primary one (a custom domain went live meanwhile).
+	 */
+	export function matches(
+		wopiId: string,
+		file: Pick<DB.Models.File, "id" | "created_at">,
+		orgUrl: string,
+	) {
+		return wopiId === of(file, orgUrl);
 	}
 }

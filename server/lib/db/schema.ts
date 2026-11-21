@@ -665,6 +665,9 @@ export const files = sqliteTable(
 		uploaded_by: integer().references(() => users.id, { onDelete: "set null" }),
 		// Who wrote the current contents (upload, new version, office editor); null: a share link.
 		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// When the current contents were written (renaming and moving don't count); null: as
+		// `updated_at` (`FileVersions.contentsUpdatedAt`).
+		contents_updated_at: integer(),
 		// Own access list (`file_access`) for this item and everything below it, instead of the
 		// parent folder's. Only org and event documents.
 		custom_access: integer({ mode: "boolean" }).notNull().default(false),
@@ -782,6 +785,8 @@ export const wopiTokens = sqliteTable(
 	(table) => [
 		index("wopi_tokens_org_id_idx").on(table.org_id),
 		index("wopi_tokens_file_id_idx").on(table.file_id),
+		// Logging out (and housekeeping) deletes a session's tokens by cascade.
+		index("wopi_tokens_session_id_idx").on(table.session_id),
 	],
 );
 
@@ -845,6 +850,10 @@ export const fileAccess = sqliteTable(
 	(table) => [
 		index("file_access_org_id_idx").on(table.org_id),
 		index("file_access_file_id_idx").on(table.file_id),
+		// Deleting a person or a group, and leaving an event's team, remove entries by these.
+		index("file_access_user_id_idx").on(table.user_id),
+		index("file_access_org_group_id_idx").on(table.org_group_id),
+		index("file_access_event_group_id_idx").on(table.event_group_id),
 	],
 );
 

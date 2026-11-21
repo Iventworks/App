@@ -5,6 +5,7 @@ import { EVENT_MEMBER_ROLES, EVENT_STATUSES, EVENT_TYPES } from "../../../../../
 import { Recurrence } from "../../../../../utils/recurrence";
 import { Occurrences } from "../../../../utils/occurrences";
 import { PermissionHelper } from "../../../../utils/permissions";
+import { ApiHelperModels } from "../../../../utils/shared-models/api-helper-models";
 import { UserSummary } from "../../../../utils/shared-models/userSummary";
 
 export namespace EventsModel {
@@ -40,10 +41,7 @@ export namespace EventsModel {
 	export type EventWithAccess = z.infer<typeof EventWithAccess>;
 
 	const isoDate = z.iso.date("Expected a date in the format YYYY-MM-DD");
-	const color = z
-		.string()
-		.regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316")
-		.nullable();
+	const color = ApiHelperModels.HexColor.nullable();
 
 	/** Field rules shared by create and update (request bodies are explicit `z.object`s:
 	 * drizzle-zod's insert schemas drop optionality when a column gets a refinement). */

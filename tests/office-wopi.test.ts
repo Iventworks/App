@@ -441,6 +441,53 @@ describe("WOPI calls", () => {
 		).toBe(501);
 	});
 
+	test("an editing session keeps what was there before it; saves are audited per version", async () => {
+		const versions = async () =>
+			await makeAPIRequest(`/v1/files/${docId}/versions`, { authToken: viewer.token });
+		const audited = () =>
+			DB.instance()
+				.select()
+				.from(DB.Tables.auditLogs)
+				.where(and(inOrg(DB.Tables.auditLogs), eq(DB.Tables.auditLogs.entity_id, docId)))
+				.all()
+				.filter((row) => row.summary.includes("in Office bearbeitet")).length;
+		const before = (await versions()).length;
+		const auditedBefore = audited();
+
+		// A new version uploaded just now …
+		const upload = new FormData();
+		upload.append("file", new File(["vom Leiter"], "Ablauf.docx"));
+		await makeAPIRequest(`/v1/files/${docId}/content`, {
+			authToken: leader.token,
+			additionalOptions: { method: "PUT", body: upload },
+		});
+		expect(await versions()).toHaveLength(before + 1);
+
+		// … stays when Office saves right after: it was there before the editing session.
+		const token = tokenOf(await open(staff.token));
+		const call = (operation: string, body?: string) =>
+			wopi(docId, token, {
+				method: "POST",
+				suffix: body === undefined ? "" : "/contents",
+				headers: { "X-WOPI-Override": operation, "X-WOPI-Lock": "session" },
+				body,
+			});
+		expect((await call("LOCK")).status).toBe(200);
+		// Opening isn't a change.
+		expect(audited()).toBe(auditedBefore);
+		expect((await call("PUT", "aus Office 1")).status).toBe(200);
+		const kept = await versions();
+		expect(kept).toHaveLength(before + 2);
+		expect(kept[0].modified_by.display_name).toBe("Lea");
+		expect(audited()).toBe(auditedBefore + 1);
+
+		// The session's own saves: at most one version (and audit entry) per interval.
+		expect((await call("PUT", "aus Office 2")).status).toBe(200);
+		expect(await versions()).toHaveLength(before + 2);
+		expect(audited()).toBe(auditedBefore + 1);
+		expect((await call("UNLOCK")).status).toBe(200);
+	});
+
 	test("viewers can't lock or save", async () => {
 		const token = tokenOf(await open(viewer.token));
 		const locked = await wopi(docId, token, {

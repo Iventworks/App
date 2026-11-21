@@ -508,6 +508,10 @@ describe("Admin overview and clean-up", () => {
 		const token = tokenOf((await createShare(file.id, { permissions: READ })).url);
 		await makeAPIRequest(`/v1/files/${file.id}`, { method: "DELETE", authToken: core.token });
 		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(404);
+		// The overview says why the link doesn't work.
+		const all = await makeAPIRequest("/v1/admin/shares", { authToken: admin.token });
+		const entry = all.find((s: any) => s.file.id === file.id);
+		expect(entry).toMatchObject({ expired: false, file: { in_trash: true } });
 	});
 
 	test("housekeeping drops long-expired links and orphaned stored files", async () => {

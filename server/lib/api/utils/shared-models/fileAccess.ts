@@ -12,7 +12,11 @@ export namespace FileAccessModel {
 	});
 	export type Rights = z.infer<typeof Rights>;
 
-	/** What the caller may do with an item (see `FileAccess.Permissions`). */
+	/**
+	 * What the caller may do with one item: `read` (open, download; a folder: list it), `upload`
+	 * (folders: add files and folders), `edit` (files: replace contents), `rename`, `delete` (also
+	 * needed to move it), `manage` (access lists and share links).
+	 */
 	export const Permissions = Rights.extend({
 		rename: z.boolean(),
 		manage: z.boolean(),

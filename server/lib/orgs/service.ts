@@ -155,8 +155,13 @@ export class OrgService {
 				.from(DB.Tables.files)
 				.where(and(eq(DB.Tables.files.org_id, orgId), isNotNull(DB.Tables.files.storage_key)))
 				.all();
+			const versions = await db
+				.select({ storage_key: DB.Tables.fileVersions.storage_key })
+				.from(DB.Tables.fileVersions)
+				.where(eq(DB.Tables.fileVersions.org_id, orgId))
+				.all();
 			await db.delete(DB.Tables.orgs).where(eq(DB.Tables.orgs.id, orgId)).run();
-			return files.map((f) => f.storage_key!);
+			return [...files.map((f) => f.storage_key!), ...versions.map((v) => v.storage_key)];
 		});
 		await OrgRegistry.reload();
 

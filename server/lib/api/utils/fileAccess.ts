@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { DB } from "../../db";
 import { inOrg } from "../../orgs/context";
 import type { AuthHandler } from "./authHandler";
@@ -6,6 +6,7 @@ import { ConversationAccess } from "./conversations";
 import { EventAccess } from "./eventAccess";
 import { FileService } from "./fileService";
 import { PermissionHelper } from "./permissions";
+import type { FileAccessModel } from "./shared-models/fileAccess";
 
 const NO_RIGHTS: FileAccess.Rights = { read: false, upload: false, edit: false, delete: false };
 const NONE: FileAccess.Permissions = { ...NO_RIGHTS, rename: false, manage: false };
@@ -59,24 +60,27 @@ export class FileAccess {
 
 		if (location.scope === "org") {
 			const canRead = PermissionHelper.can({ authContext, permission: "org_documents:read" });
-			const memberships = canRead
-				? await DB.instance()
-						.select({ group_id: DB.Tables.orgGroupMembers.group_id })
-						.from(DB.Tables.orgGroupMembers)
-						.where(
-							and(
-								inOrg(DB.Tables.orgGroupMembers),
-								eq(DB.Tables.orgGroupMembers.user_id, authContext.user_id),
-							),
-						)
-						.all()
-				: [];
+			const manager =
+				!options.asMember && PermissionHelper.can({ authContext, permission: "org_documents:write" });
+			// Managers may do everything: their groups don't matter.
+			const memberships =
+				canRead && !manager
+					? await DB.instance()
+							.select({ group_id: DB.Tables.orgGroupMembers.group_id })
+							.from(DB.Tables.orgGroupMembers)
+							.where(
+								and(
+									inOrg(DB.Tables.orgGroupMembers),
+									eq(DB.Tables.orgGroupMembers.user_id, authContext.user_id),
+								),
+							)
+							.all()
+					: [];
 			return {
 				userId: authContext.user_id,
 				location,
 				inLibrary: canRead,
-				manager:
-					!options.asMember && PermissionHelper.can({ authContext, permission: "org_documents:write" }),
+				manager,
 				root: NO_RIGHTS,
 				isOrgMember: canRead,
 				isTeamMember: false,
@@ -148,7 +152,7 @@ export class FileAccess {
 		return map;
 	}
 
-	static matches(viewer: FileAccess.Viewer, entry: DB.Models.FileAccessEntry) {
+	protected static matches(viewer: FileAccess.Viewer, entry: DB.Models.FileAccessEntry) {
 		switch (entry.principal) {
 			case "members":
 				return viewer.location.scope === "org" && viewer.isOrgMember;
@@ -166,7 +170,7 @@ export class FileAccess {
 	}
 
 	/** Everything the matching entries of an access list allow together. */
-	static rightsFrom(
+	protected static rightsFrom(
 		viewer: FileAccess.Viewer,
 		entries: readonly DB.Models.FileAccessEntry[],
 	): FileAccess.Rights {
@@ -182,7 +186,7 @@ export class FileAccess {
 	}
 
 	/** The rights inside an item, given the rights of its parent folder. */
-	static rightsBelow(
+	protected static rightsBelow(
 		viewer: FileAccess.Viewer,
 		item: Pick<DB.Models.File, "id" | "custom_access">,
 		parentRights: FileAccess.Rights,
@@ -194,7 +198,7 @@ export class FileAccess {
 	}
 
 	/** Turn the rights that apply to an item into what the caller may do with it. */
-	static permissionsOf(
+	protected static permissionsOf(
 		viewer: FileAccess.Viewer,
 		item: DB.Models.File,
 		rights: FileAccess.Rights,
@@ -225,7 +229,7 @@ export class FileAccess {
 	 * What the caller may do with the last item of `path` (root → item). `null` rights: a folder
 	 * above it can't be opened.
 	 */
-	static walk(
+	protected static walk(
 		viewer: FileAccess.Viewer,
 		path: readonly DB.Models.File[],
 		entries: Map<number, DB.Models.FileAccessEntry[]>,
@@ -242,7 +246,7 @@ export class FileAccess {
 	}
 
 	/** What the caller may do with `item`, whose chain of folders is `path` (root → item). */
-	static evaluate(
+	protected static evaluate(
 		viewer: FileAccess.Viewer,
 		path: readonly DB.Models.File[],
 		entries: Map<number, DB.Models.FileAccessEntry[]>,
@@ -370,7 +374,7 @@ export class FileAccess {
 	): Promise<Set<number>> {
 		const documents = files.filter((file) => file.scope === "org" || file.scope === "event");
 		// Shared folders are loaded once, their access lists in one query.
-		const rows = new Map<number, DB.Models.File>();
+		const rows = new Map(documents.map((file) => [file.id, file]));
 		const paths = new Map<number, DB.Models.File[]>();
 		for (const file of documents) {
 			if (!paths.has(file.id)) paths.set(file.id, await FileService.getPath(file.id, undefined, rows));
@@ -403,8 +407,28 @@ export class FileAccess {
 	 */
 	static async hasCustomAccessBelow(file: DB.Models.File) {
 		if (file.kind !== "folder") return false;
-		const levels = await FileService.descendantLevels(file.id, { skipTrashed: true });
-		return levels.some((level) => level.some((entry) => entry.custom_access));
+		// Level by level, until one is found.
+		let frontier = [file.id];
+		for (let depth = 0; frontier.length > 0 && depth <= FileService.MAX_DEPTH * 2; depth++) {
+			const children = await DB.instance()
+				.select({
+					id: DB.Tables.files.id,
+					kind: DB.Tables.files.kind,
+					custom_access: DB.Tables.files.custom_access,
+				})
+				.from(DB.Tables.files)
+				.where(
+					and(
+						inOrg(DB.Tables.files),
+						inArray(DB.Tables.files.parent_id, frontier),
+						isNull(DB.Tables.files.deleted_at),
+					),
+				)
+				.all();
+			if (children.some((child) => child.custom_access)) return true;
+			frontier = children.filter((child) => child.kind === "folder").map((child) => child.id);
+		}
+		return false;
 	}
 
 	// --- fixed rules ----------------------------------------------------------------------------
@@ -457,23 +481,8 @@ export class FileAccess {
 }
 
 export namespace FileAccess {
-	/** What an access list entry (or a share link) grants. */
-	export interface Rights {
-		read: boolean;
-		upload: boolean;
-		edit: boolean;
-		delete: boolean;
-	}
-
-	/**
-	 * What the caller may do with one item: `read` (open, download; a folder: list it), `upload`
-	 * (folders: add files and folders), `edit` (files: replace contents), `rename`, `delete` (also
-	 * needed to move it), `manage` (access lists and share links).
-	 */
-	export interface Permissions extends Rights {
-		rename: boolean;
-		manage: boolean;
-	}
+	export type Rights = FileAccessModel.Rights;
+	export type Permissions = FileAccessModel.Permissions;
 
 	export interface Viewer {
 		readonly userId: number;

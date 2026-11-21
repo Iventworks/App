@@ -97,7 +97,8 @@ export namespace FileLocks {
 			if (existing) {
 				tx
 					.update(DB.Tables.fileLocks)
-					.set({ lock_id: lockId, expires_at: now + TTL_MS })
+					// A new editing session when the old lock had expired (`created_at`: its start).
+					.set({ lock_id: lockId, expires_at: now + TTL_MS, ...(valid ? {} : { created_at: now }) })
 					.where(and(inOrg(DB.Tables.fileLocks), eq(DB.Tables.fileLocks.file_id, fileId)))
 					.run();
 			} else {
@@ -108,6 +109,7 @@ export namespace FileLocks {
 						file_id: fileId,
 						lock_id: lockId,
 						expires_at: now + TTL_MS,
+						created_at: now,
 					})
 					.run();
 			}

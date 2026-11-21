@@ -202,6 +202,12 @@ export class FileShares {
 		const filesById = new Map(files.map((file) => [file.id, file]));
 		const eventsById = new Map(events.map((event) => [event.id, event]));
 
+		const inTrash = new Map(
+			await Promise.all(
+				files.map(async (file) => [file.id, await FileService.isInTrash(file, tx)] as const),
+			),
+		);
+
 		const views = await FileShares.views(shares, tx);
 		return views.flatMap((view) => {
 			const file = filesById.get(view.file_id);
@@ -218,6 +224,7 @@ export class FileShares {
 						event: file.event_id ? (eventsById.get(file.event_id) ?? null) : null,
 						folder_id: file.kind === "folder" ? file.id : file.parent_id,
 						path,
+						in_trash: inTrash.get(file.id) ?? false,
 					},
 				},
 			];

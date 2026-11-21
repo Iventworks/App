@@ -21,9 +21,10 @@ let annaUser: SeededUser;
 let folderId: number;
 let docId: number;
 
-async function request(path: string, token: string) {
+async function request(path: string, token: string, method = "GET") {
 	const { API } = await import("../server/lib/api");
 	return await API.getApp().request(path, {
+		method,
 		headers: { "X-Iventworks-Host": "test.localhost", Authorization: `Bearer ${token}` },
 	});
 }
@@ -137,6 +138,21 @@ describe("Versions", () => {
 		expect(after).toHaveLength(versions.length + 1);
 	});
 
+	test("a version says when its contents were written, not when the file was renamed", async () => {
+		const file = await upload(core.token, "Entwurf", "entwurf.txt", "text/plain");
+		await Bun.sleep(5);
+		const renamed = await makeAPIRequest(`/v1/files/${file.id}`, {
+			method: "PUT",
+			authToken: core.token,
+			body: { name: "entwurf-umbenannt.txt" },
+		});
+
+		await replace(anna.token, file.id, "Von Anna");
+		const [version] = await versionsOf(file.id);
+		expect(version.modified_by.display_name).not.toBe("Anna");
+		expect(version.modified_at).toBeLessThan(renamed.updated_at);
+	});
+
 	test("saving right after a restore doesn't lose the restored contents", async () => {
 		const versions = await versionsOf(docId);
 		const oldest = versions.at(-1);
@@ -222,6 +238,12 @@ describe("Contents", () => {
 		// The browser's own viewer, embedded by our pages.
 		expect(asPdf.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'self'");
 		expect(asPdf.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
+		// The preview asks with HEAD first whether it gets a PDF to show.
+		const head = await request(`/v1/files/${pdf.id}/content/plan.pdf`, reader.token, "HEAD");
+		expect(head.status).toBe(200);
+		expect(head.headers.get("Content-Type")).toBe("application/pdf");
+		const notPdfHead = await request(`/v1/files/${notPdf.id}/content/x`, reader.token, "HEAD");
+		expect(notPdfHead.headers.get("Content-Type")).toBe("application/octet-stream");
 
 		for (const file of [html.id, notPdf.id]) {
 			const res = await request(`/v1/files/${file}/content/x`, reader.token);

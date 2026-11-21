@@ -156,9 +156,11 @@ CMP (Crossover Management Portal) before; the repository still is.
   Markdown co-editing was removed (its own sync protocol cost more than it was worth next to notes
   and Office); don't bring it back.
 - **Versions** (`file_versions`, `FileVersions`): content changes go through
-  `FileService.replaceContent`, which keeps the old blob as a version — the same person (or an
-  office session) at most once every ten minutes, empty contents never. Restoring copies the
-  version (it stays) and keeps the current contents. Housekeeping keeps 30 days, the newest ten
+  `FileService.replaceContent`, which keeps the old blob as a version — the same person at most
+  once every ten minutes; an office editing session (it starts with the lock) always keeps what was
+  there before it, its own saves at most once every ten minutes; empty contents never. Restoring
+  copies the version (it stays) and keeps the current contents. `files.contents_updated_at` is when
+  the contents were written (renaming doesn't count). Housekeeping keeps 30 days, the newest ten
   longer, at most 50. Versions are never copied with an event.
 - **Papierkorb** (`files.deleted_at`, `FileTrash`): deleting org or event documents (also through
   a share link) moves them there; receipts and attachments are deleted right away. What is in it,
@@ -183,6 +185,7 @@ CMP (Crossover Management Portal) before; the repository still is.
   - The page CSP adds the office origin to `frame-src` / `form-action`; saves (PutFile) may be as
     large as uploads (`RequestLimits.limitFor`, by path).
   - Locks are WOPI's (`FileLocks`, 30 min): no uploads, restores or deletes meanwhile (409).
+    Office saves are audited once per version they keep, not when a document is opened.
   - New documents are empty files; the office server fills them with its German template (an
     unlocked PutFile, which only empty files allow).
   - Compose: the optional `office` service (profile `office`), image `:latest`. v9.3.8 needs

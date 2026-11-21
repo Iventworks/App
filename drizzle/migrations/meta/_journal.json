@@ -113,6 +113,20 @@
       "when": 1795269738901,
       "tag": "0015_simplify_file_locks",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1795277999357,
+      "tag": "0016_file_contents_updated_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795278603356,
+      "tag": "0017_file_access_indexes",
+      "breakpoints": true
     }
   ]
 }

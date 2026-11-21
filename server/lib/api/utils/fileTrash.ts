@@ -22,7 +22,8 @@ export namespace FileTrash {
 
 	export const ItemSchema = FileService.ItemSchema.extend({
 		deleted_at: z.number(),
-		deleted_by: z.object({ id: z.number(), display_name: z.string() }).nullable(),
+		/** null: through a share link. */
+		deleted_by: UserSummary.Schema.nullable(),
 		/** The folders it was in (top first). */
 		location: z.array(z.string()),
 		/** When it will be deleted for good. */
@@ -84,7 +85,7 @@ export namespace FileTrash {
 			items.push({
 				...FileService.toResponse(row),
 				deleted_at: row.deleted_at as number,
-				deleted_by: deletedBy ? { id: deletedBy.id, display_name: deletedBy.display_name } : null,
+				deleted_by: deletedBy ?? null,
 				location: path.map((folder) => folder.name),
 				purge_at: (row.deleted_at as number) + RETENTION_DAYS * 24 * 60 * 60 * 1000,
 				folder_in_trash: folderInTrash,

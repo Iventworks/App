@@ -1,6 +1,7 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../db";
+import { ApiHelperModels } from "../../../../utils/shared-models/api-helper-models";
 
 export namespace CalendarModel {
 	export const Entry = createSelectSchema(DB.Tables.calendarEntries).omit({ org_id: true });
@@ -18,10 +19,7 @@ export namespace CalendarModel {
 		start_at: z.number().int(),
 		end_at: z.number().int(),
 		all_day: z.boolean(),
-		color: z
-			.string()
-			.regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316")
-			.nullable(),
+		color: ApiHelperModels.HexColor.nullable(),
 	};
 
 	/** Maximum span of one feed request. */

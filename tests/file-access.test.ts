@@ -471,6 +471,37 @@ describe("Event documents", () => {
 		expect(names(await list(path, carla.token))).not.toContain("Pläne");
 	});
 
+	test("moving needs upload rights where it goes, and only managers move items with own access", async () => {
+		const move = (id: number, parentId: number, code = 200) =>
+			makeAPIRequest(
+				`/v1/files/${id}`,
+				{ method: "PUT", authToken: staffA.token, body: { parent_id: parentId } },
+				code,
+			);
+		const mine = await upload(path, staffA.token, "umzug.txt");
+		const hidden = await folder(path, leader.token, "Nur für die Leitung");
+		await setAccess(hidden.id, leader.token, []);
+		const readOnly = await folder(path, leader.token, "Nur lesen");
+		await setAccess(readOnly.id, leader.token, [{ principal: "team", permissions: VIEW }]);
+		const open = await folder(path, leader.token, "Ablage");
+		await setAccess(open.id, leader.token, [{ principal: "team", permissions: UPLOAD }]);
+
+		// A folder the caller can't see doesn't exist for them; one they may only view refuses.
+		await move(mine.id, hidden.id, 400);
+		await move(mine.id, readOnly.id, 403);
+		await move(mine.id, open.id);
+		expect(names(await list(path, staffA.token, open.id))).toContain("umzug.txt");
+
+		// Once the Leitung gives the file its own access, only the Leitung moves it.
+		await setAccess(mine.id, leader.token, [{ principal: "team", permissions: VIEW }]);
+		await move(mine.id, readOnly.id, 403);
+		await makeAPIRequest(`/v1/files/${mine.id}`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { parent_id: readOnly.id },
+		});
+	});
+
 	test("staff can't manage access or share links", async () => {
 		await setAccess(leadId, staffA.token, [], 403);
 		const mine = await upload(path, staffA.token, "teilen.txt");
@@ -645,5 +676,41 @@ describe("Event documents", () => {
 			"user:Ben",
 		]);
 		expect(kitchen.access[0].id).not.toBe(kitchenId);
+	});
+
+	test("copies without team or groups drop those entries; the list stays restrictive", async () => {
+		const copy = await makeAPIRequest(
+			`/v1/events/${eventId}/copy`,
+			{
+				method: "POST",
+				authToken: core.token,
+				body: {
+					name: "Sommerlager ohne Team",
+					start_date: "2029-07-01",
+					include: {
+						team: false,
+						groups: false,
+						rooms: false,
+						small_groups: false,
+						responsibilities: false,
+						program: false,
+						tasks: false,
+						notes: false,
+						announcements: false,
+						budget: false,
+						documents: true,
+						resources: false,
+						participants: false,
+					},
+				},
+			},
+			201,
+		);
+		const kitchen = (await list(`/v1/events/${copy.event.id}/files`, core.token)).items.find(
+			(item: any) => item.name === "Küche",
+		);
+		// Nobody to name any more: the folder stays closed (Nur Leitung) instead of opening up.
+		expect(kitchen.custom_access).toBe(true);
+		expect(kitchen.access).toEqual([]);
 	});
 });

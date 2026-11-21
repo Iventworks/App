@@ -365,6 +365,7 @@ export class FileService {
 					storage_key: storageKey,
 					uploaded_by: userId,
 					modified_by: userId,
+					contents_updated_at: Date.now(),
 				})
 				.returning()
 				.get();
@@ -459,34 +460,32 @@ export class FileService {
 
 	/**
 	 * Replace a file's contents (same row, new blob). The old contents become a version
-	 * (`FileVersions`). `userId` null: through a share link. Returns null when the upload is too
-	 * large.
+	 * (`FileVersions`; `kept`). `userId` null: through a share link. Returns null when the upload is
+	 * too large.
 	 */
 	static async replaceContent(
 		file: DB.Models.File,
 		upload: Blob,
 		userId: number | null,
 		/**
-		 * `session`: several people save in turns (the office server) — versions per interval, not
-		 * per author.
+		 * `sessionSince`: saved by an editing session that began then (the office server's lock),
+		 * where several people save in turns — versions per interval, not per author.
 		 */
-		options: { session?: boolean } = {},
+		options: { sessionSince?: number } = {},
 	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
-		let updated: DB.Models.File;
 		try {
-			updated = await FileVersions.replace(
+			return await FileVersions.replace(
 				file,
 				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
 				userId,
-				{ session: options.session },
+				options,
 			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
-		return updated;
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */

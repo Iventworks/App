@@ -3382,6 +3382,7 @@ export type GetAdminSharesResponses = {
                 } | null;
                 folder_id: number | null;
                 path: string;
+                in_trash: boolean;
             };
         }>;
     };
@@ -7398,6 +7399,14 @@ export type PostFilesByFileIdOfficeErrors = {
         code: 404;
         message: 'File not found / Office editing is not available';
     };
+    /**
+     * The office server can't be reached
+     */
+    500: {
+        success: false;
+        code: 500;
+        message: 'The office server can\'t be reached';
+    };
 };
 
 export type PostFilesByFileIdOfficeError = PostFilesByFileIdOfficeErrors[keyof PostFilesByFileIdOfficeErrors];
@@ -7601,12 +7610,12 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreData = {
 
 export type PostFilesByFileIdVersionsByVersionIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * You are not allowed to edit this file
@@ -13869,7 +13878,11 @@ export type GetEventsByEventIdFilesTrashResponses = {
             deleted_at: number;
             deleted_by: {
                 id: number;
+                username: string;
                 display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             location: Array<string>;
             purge_at: number;
@@ -16830,7 +16843,11 @@ export type GetOrgDocumentsTrashResponses = {
             deleted_at: number;
             deleted_by: {
                 id: number;
+                username: string;
                 display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             location: Array<string>;
             purge_at: number;

@@ -115,3 +115,10 @@ services:
       # (Iventworks fetches new proof keys on its own).
       - /opt/iventworks/office/private:/var/www/nextcloud-office/Data
       - /opt/iventworks/office/logs:/var/log/nextcloud-office/documentserver
+    # Its own health endpoint (the image has no HEALTHCHECK); the first start takes a few minutes.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m

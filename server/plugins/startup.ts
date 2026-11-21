@@ -3,6 +3,7 @@ import { API } from "../lib/api";
 import { EmailService } from "../lib/api/utils/email";
 import { BackupService } from "../lib/backup/service";
 import { DB } from "../lib/db";
+import { OfficeDiscovery } from "../lib/office/discovery";
 import { OrgBootstrap } from "../lib/orgs/bootstrap";
 import { TaskScheduler } from "../lib/tasks";
 import { Utils } from "../lib/utils";
@@ -79,6 +80,11 @@ export default defineNitroPlugin(async (nitroApp) => {
 	const backupErrors = BackupService.validate(config);
 	if (backupErrors.length) {
 		for (const error of backupErrors) Logger.error(`Backup configuration: ${error}`);
+		process.exit(1);
+	}
+	const officeErrors = OfficeDiscovery.validate(config);
+	if (officeErrors.length) {
+		for (const error of officeErrors) Logger.error(`Office configuration: ${error}`);
 		process.exit(1);
 	}
 	Logger.log(`Starting ${AppConstants.APP_NAME}...`);
