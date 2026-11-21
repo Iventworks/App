@@ -1,6 +1,8 @@
 /**
  * Which in-app preview a file gets (`FilesPreview`). Decided by the stored MIME type and the
  * extension. Images only for the types the API serves inline (no SVG: it is only ever downloaded).
+ * "pdf" is a guess: the API checks the bytes and sends a file that isn't one as a download, so
+ * `FilesPreview` asks it (`HEAD`) before handing the file to the browser's PDF viewer.
  */
 export type FilePreviewKind = "image" | "pdf" | "markdown" | "csv" | "text" | "office" | "none";
 
@@ -43,11 +45,22 @@ export function filePreviewKind(
 	return "none";
 }
 
+/** Rows the CSV preview shows at most. */
+export const CSV_PREVIEW_MAX_ROWS = 1000;
+
 /**
  * Rows of a CSV text (comma or semicolon, whichever the first line uses more; quotes with `""`
  * escapes). At most `maxRows` rows.
  */
-export function parseCsv(text: string, maxRows = 1000): string[][] {
+export function parseCsv(text: string, maxRows = CSV_PREVIEW_MAX_ROWS): string[][] {
+	return parseCsvPreview(text, maxRows).rows;
+}
+
+/** `parseCsv`, and whether the text has more rows than `maxRows` (blank lines don't count). */
+export function parseCsvPreview(
+	text: string,
+	maxRows = CSV_PREVIEW_MAX_ROWS,
+): { rows: string[][]; truncated: boolean } {
 	const lineEnd = text.indexOf("\n");
 	const firstLine = lineEnd === -1 ? text : text.slice(0, lineEnd);
 	const delimiter =
@@ -81,7 +94,7 @@ export function parseCsv(text: string, maxRows = 1000): string[][] {
 			field = "";
 			rows.push(row);
 			row = [];
-			if (rows.length >= maxRows) return rows;
+			if (rows.length >= maxRows) return { rows, truncated: /\S/.test(text.slice(i + 1)) };
 		} else {
 			field += char;
 		}
@@ -90,5 +103,5 @@ export function parseCsv(text: string, maxRows = 1000): string[][] {
 		row.push(field);
 		rows.push(row);
 	}
-	return rows;
+	return { rows, truncated: false };
 }

@@ -4,18 +4,18 @@
  *
  * The page passes the location-specific calls (list, upload, create folder); rename, move,
  * delete, access and share links go through the shared `/files/{fileId}` API. What the caller may
- * do comes with the listing (`permissions` of the folder and of every item). With `manageAccess`
- * (Kernteam / Leitung pages) the browser shows who has access to each item and the folder, and
- * offers "Zugriff" to change it.
+ * do comes with the listing (`permissions` of the folder and of every item). Managers of the
+ * library (`permissions.manage`: Kernteam / Leitung, not in the member view of `/documents`) see
+ * who has access to each item and the folder, and get "Zugriff" to change it and — while the org
+ * allows share links — "Teilen".
  *
  * Files open on the in-app file page (`/files/{id}`, previews). The open folder lives in
  * `?folder=` so the browser's back button works. Items can be moved by
  * dragging them onto a folder or a breadcrumb entry; files can be dropped from the desktop to
  * upload.
  */
-import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
+import type { DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
-import { accessEntryIcon, ownRightsSentence, rightsLabel } from "~/utils/filePermissions";
 import type {
 	FileAccessEntry,
 	FileItem,
@@ -41,10 +41,6 @@ const props = withDefaults(
 		) => Promise<FileItem | null>;
 		/** The library's Papierkorb (deleting moves items there). */
 		trash?: TrashAdapter;
-		/** Show who has access and let managers change it. */
-		manageAccess?: boolean;
-		/** Share links are possible (the org allows them); only managers create them. */
-		sharingEnabled?: boolean;
 		emptyDescription?: string;
 	}>(),
 	{
@@ -53,8 +49,6 @@ const props = withDefaults(
 		createFolder: undefined,
 		createOffice: undefined,
 		trash: undefined,
-		manageAccess: false,
-		sharingEnabled: false,
 		emptyDescription: "Hier wurden noch keine Dateien abgelegt.",
 	},
 );
@@ -63,6 +57,8 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const fileURL = useFileURL();
+const shareLinksAllowed = useShareLinksAllowed();
+const managers = computed(() => managersOf(props.scope));
 
 const folderId = computed(() => {
 	const raw = Number(route.query.folder);
@@ -73,9 +69,15 @@ const listing = ref<FolderListing | null>(null);
 const loading = ref(false);
 const search = ref("");
 
+/** Counts loads: only the latest one may fill the list (folders can be opened faster than they load). */
+let loads = 0;
+
 async function refresh() {
+	const current = ++loads;
 	loading.value = true;
-	listing.value = await props.load(folderId.value);
+	const result = await props.load(folderId.value);
+	if (current !== loads) return;
+	listing.value = result;
 	loading.value = false;
 }
 
@@ -96,20 +98,14 @@ const canAdd = computed(() => Boolean(folderPermissions.value?.upload));
 const uploadOnly = computed(() =>
 	Boolean(folderPermissions.value?.upload && !folderPermissions.value.read),
 );
-/** Show access lists (management pages, for managers). */
-const showAccess = computed(() => props.manageAccess && Boolean(folderPermissions.value?.manage));
-const onlyManagersLabel = computed(() => (props.scope === "org" ? "Nur Kernteam" : "Nur Leitung"));
+/** Managers of the library (not in the member view): access lists, "Zugriff", "Teilen". */
+const showAccess = computed(() => Boolean(folderPermissions.value?.manage));
+const onlyManagersLabel = computed(() => `Nur ${managers.value.name}`);
 
-const breadcrumb = computed<BreadcrumbItem[]>(() => [
-	{
-		label: props.rootLabel,
-		icon: "i-lucide-folder-root",
-		onClick: () => openFolder(null),
-	},
-	...(listing.value?.path ?? []).map((folder) => ({
-		label: folder.name,
-		onClick: () => openFolder(folder.id),
-	})),
+/** The path to the open folder; `id` null is the top level. Entries are drop targets too. */
+const breadcrumb = computed<{ id: number | null; label: string; icon?: string }[]>(() => [
+	{ id: null, label: props.rootLabel, icon: "i-lucide-folder-root" },
+	...(listing.value?.path ?? []).map((folder) => ({ id: folder.id, label: folder.name })),
 ]);
 
 const items = computed(() => {
@@ -264,33 +260,44 @@ const nameModal = computed(() => {
 	return { title: "Neuer Ordner", icon: "i-lucide-folder-plus", submit: "Anlegen" };
 });
 
+async function rename(item: FileItem, name: string) {
+	const result = await useAPI((api) =>
+		api.putFilesByFileId({ path: { fileId: item.id }, body: { name } }),
+	);
+	if (!result.success) {
+		toast.add({
+			title: "Umbenennen fehlgeschlagen",
+			description: fileErrorText(result.message, props.scope),
+			color: "error",
+		});
+	}
+	return result.success;
+}
+
 async function submitFolderModal() {
 	const name = folderName.value.trim();
-	if (!name) return;
+	if (!name || saving.value) return;
 	saving.value = true;
 
+	const kind = createKind.value;
+	let done = false;
+	/** A new office document: it opens in the office editor. */
+	let created: FileItem | null = null;
 	if (renameTarget.value) {
-		const target = renameTarget.value;
-		const result = await useAPI((api) =>
-			api.putFilesByFileId({ path: { fileId: target.id }, body: { name } }),
-		);
-		if (!result.success) {
-			toast.add({ title: "Umbenennen fehlgeschlagen", description: result.message, color: "error" });
-		}
-	} else if (createKind.value !== "folder" && props.createOffice) {
-		const created = await props.createOffice(name, createKind.value, folderId.value);
-		saving.value = false;
-		folderModalOpen.value = false;
-		// Office documents open in the office editor.
-		if (created) await router.push({ path: `/files/${created.id}`, query: { from: route.path } });
-		return;
-	} else if (props.createFolder) {
-		await props.createFolder(name, folderId.value);
+		done = await rename(renameTarget.value, name);
+	} else if (kind !== "folder") {
+		created = (await props.createOffice?.(name, kind, folderId.value)) ?? null;
+		done = created !== null;
+	} else {
+		done = (await props.createFolder?.(name, folderId.value)) ?? false;
 	}
-
 	saving.value = false;
+
+	// Failed: the dialog stays open with the name (the toast says why).
+	if (!done) return;
 	folderModalOpen.value = false;
-	await refresh();
+	if (created) await router.push(fileLink(created));
+	else await refresh();
 }
 
 /** The "Neu" menu: folder, office documents (with an office server). */
@@ -316,6 +323,7 @@ const newItems = computed<DropdownMenuItem[][]>(() => [
 
 const replaceInput = ref<HTMLInputElement | null>(null);
 const replaceTarget = ref<FileItem | null>(null);
+const { uploadNewVersion } = useFileVersions();
 
 function pickReplacement(item: FileItem) {
 	replaceTarget.value = item;
@@ -328,26 +336,7 @@ async function onReplace(event: Event) {
 	input.value = "";
 	const target = replaceTarget.value;
 	if (!upload || !target) return;
-	const result = await useAPI((api) =>
-		api.putFilesByFileIdContent({ path: { fileId: target.id }, body: { file: upload } }),
-	);
-	if (!result.success) {
-		toast.add({
-			title: "Neue Fassung nicht hochgeladen",
-			description:
-				(result as { code?: number }).code === 409
-					? "Die Datei wird gerade bearbeitet."
-					: result.message,
-			color: "error",
-		});
-		return;
-	}
-	toast.add({
-		title: `Neue Fassung von „${target.name}“ hochgeladen`,
-		color: "success",
-		icon: "i-lucide-check",
-	});
-	await refresh();
+	if (await uploadNewVersion(target, upload)) await refresh();
 }
 
 const versionsTarget = ref<FileItem | null>(null);
@@ -510,11 +499,11 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 	}
 
 	const sharing: DropdownMenuItem[] = [];
-	if (props.manageAccess && can(item, "manage")) {
+	if (can(item, "manage")) {
 		sharing.push({ label: "Zugriff", icon: "i-lucide-lock", onSelect: () => openAccess(item) });
-	}
-	if (props.sharingEnabled && can(item, "manage")) {
-		sharing.push({ label: "Teilen", icon: "i-lucide-share-2", onSelect: () => openShare(item) });
+		if (shareLinksAllowed.value) {
+			sharing.push({ label: "Teilen", icon: "i-lucide-share-2", onSelect: () => openShare(item) });
+		}
 	}
 	if (sharing.length) groups.push(sharing);
 
@@ -552,6 +541,9 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 
 	return groups;
 }
+
+/** The listed items with their menus (built once per change, not on every render). */
+const rows = computed(() => items.value.map((item) => ({ item, actions: itemActions(item) })));
 
 async function onMoveUp(item: FileItem) {
 	draggedItem.value = item;
@@ -601,22 +593,20 @@ defineExpose({ refresh });
 	>
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex min-w-0 flex-wrap items-center gap-1">
-				<template v-for="(crumb, index) in breadcrumb" :key="index">
+				<template v-for="(crumb, index) in breadcrumb" :key="crumb.id ?? 'root'">
 					<UIcon v-if="index > 0" name="i-lucide-chevron-right" class="size-4 text-slate-600" />
 					<button
 						type="button"
 						:class="[
 							'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition',
 							index === breadcrumb.length - 1 ? 'font-medium text-white' : 'text-slate-400 hover:text-white',
-							dropTargetId === (index === 0 ? 'root' : listing?.path[index - 1]?.id)
-								? 'bg-primary/15 ring-1 ring-primary'
-								: '',
+							dropTargetId === (crumb.id ?? 'root') ? 'bg-primary/15 ring-1 ring-primary' : '',
 						]"
-						@click="crumb.onClick?.($event as any)"
-						@dragenter="onDragOver($event, index === 0 ? null : (listing?.path[index - 1]?.id ?? null))"
-						@dragover="onDragOver($event, index === 0 ? null : (listing?.path[index - 1]?.id ?? null))"
+						@click="openFolder(crumb.id)"
+						@dragenter="onDragOver($event, crumb.id)"
+						@dragover="onDragOver($event, crumb.id)"
 						@dragleave="dropTargetId = null"
-						@drop="draggedItem && ($event.preventDefault(), onDropOnFolder(index === 0 ? null : (listing?.path[index - 1]?.id ?? null)))"
+						@drop="draggedItem && ($event.preventDefault(), onDropOnFolder(crumb.id))"
 					>
 						<UIcon v-if="crumb.icon" :name="crumb.icon" class="size-4" />
 						{{ crumb.label }}
@@ -710,7 +700,7 @@ defineExpose({ refresh });
 				v-else-if="uploadOnly"
 				icon="i-lucide-inbox"
 				title="Nur hochladen"
-				:description="`Lade hier Dateien hoch. Was in diesem Ordner liegt, sehen nur die Personen mit Zugriff und ${scope === 'org' ? 'das Kernteam' : 'die Leitung'}.`"
+				:description="`Lade hier Dateien hoch. Was in diesem Ordner liegt, sehen nur die Personen mit Zugriff und ${managers.the}.`"
 				variant="naked"
 				class="py-10"
 			/>
@@ -726,7 +716,7 @@ defineExpose({ refresh });
 
 			<ul v-else class="divide-y divide-slate-800">
 				<li
-					v-for="item in items"
+					v-for="{ item, actions } in rows"
 					:key="item.id"
 					:draggable="can(item, 'delete')"
 					:class="[
@@ -754,10 +744,16 @@ defineExpose({ refresh });
 								v-if="item.custom_access && item.kind === 'file' && !showAccess"
 								text="Nur für ausgewählte Personen sichtbar"
 							>
-								<UIcon name="i-lucide-lock" class="size-3.5 shrink-0 text-slate-500" aria-label="eingeschränkt" />
+								<span class="inline-flex shrink-0">
+									<UIcon name="i-lucide-lock" class="size-3.5 text-slate-500" aria-hidden="true" />
+									<span class="sr-only">Nur für ausgewählte Personen sichtbar</span>
+								</span>
 							</UTooltip>
 							<UTooltip v-if="item.shared" text="Per Link geteilt">
-								<UIcon name="i-lucide-share-2" class="size-3.5 shrink-0 text-primary-400" aria-label="geteilt" />
+								<span class="inline-flex shrink-0">
+									<UIcon name="i-lucide-share-2" class="size-3.5 text-primary-400" aria-hidden="true" />
+									<span class="sr-only">Per Link geteilt</span>
+								</span>
 							</UTooltip>
 						</p>
 						<p class="flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
@@ -817,8 +813,8 @@ defineExpose({ refresh });
 						</div>
 					</div>
 					<UDropdownMenu
-						v-if="itemActions(item).length"
-						:items="itemActions(item)"
+						v-if="actions.length"
+						:items="actions"
 						:ui="{ viewport: 'main-bg-color' }"
 					>
 						<UButton
@@ -890,6 +886,13 @@ defineExpose({ refresh });
 			:on-delete="confirmDelete"
 		/>
 
-		<FilesTrashModal v-if="trash" v-model:open="trashOpen" :trash="trash" :scope="scope" @restored="refresh" />
+		<FilesTrashModal
+			v-if="trash"
+			v-model:open="trashOpen"
+			:trash="trash"
+			:scope="scope"
+			:manage="showAccess"
+			@restored="refresh"
+		/>
 	</div>
 </template>

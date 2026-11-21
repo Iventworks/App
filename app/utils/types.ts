@@ -24,6 +24,7 @@ import type {
 	GetFilesByFileIdAccessCandidatesResponses,
 	GetFilesByFileIdAccessResponses,
 	GetFilesByFileIdSharesResponses,
+	GetFilesByFileIdVersionsResponses,
 	GetNotificationsResponses,
 	GetOrgDocumentsTrashResponses,
 	GetSharesByTokenItemsResponses,
@@ -33,6 +34,7 @@ import type {
 	GetUsersResponses,
 	PostAccountApikeysData,
 	PostAdminUsersByUserIdPasswordLinkResponses,
+	PostOrgDocumentsOfficeData,
 } from "~/api-client";
 
 export namespace UtilityTypes {
@@ -90,8 +92,11 @@ export type FileAccessCandidate = GetFilesByFileIdAccessCandidatesResponses["200
 
 export type OrgGroup = GetAdminGroupsResponses["200"]["data"][number];
 
+/** An earlier version of a file ("Versionen"). */
+export type FileVersion = GetFilesByFileIdVersionsResponses["200"]["data"][number];
+
 /** Office documents that can be created empty (with an office server). */
-export type OfficeType = "docx" | "xlsx" | "pptx";
+export type OfficeType = PostOrgDocumentsOfficeData["body"]["type"];
 
 /** An item in the Papierkorb of a document library. */
 export type TrashItem = GetOrgDocumentsTrashResponses["200"]["data"][number];

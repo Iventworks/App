@@ -8,7 +8,12 @@
 import { Utils } from "~/utils";
 import type { TrashAdapter, TrashItem } from "~/utils/types";
 
-const props = defineProps<{ trash: TrashAdapter; scope: "org" | "event" }>();
+const props = defineProps<{
+	trash: TrashAdapter;
+	scope: "org" | "event";
+	/** The caller manages the library (`permissions.manage` of the listing). */
+	manage?: boolean;
+}>();
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ restored: [] }>();
 
@@ -19,7 +24,13 @@ const items = ref<TrashItem[]>([]);
 const loading = ref(false);
 const busy = ref<number | "empty" | null>(null);
 
-const canEmpty = computed(() => items.value.some((item) => item.can_purge));
+/**
+ * Managers see everything in the Papierkorb and may delete for good. In the member view of the org
+ * library (`/documents`) the listing doesn't say so, but the Papierkorb shows the Kernteam
+ * everything all the same (`can_purge`).
+ */
+const isManager = computed(() => props.manage || items.value.some((item) => item.can_purge));
+const canEmpty = computed(() => isManager.value && items.value.length > 0);
 
 async function load() {
 	loading.value = true;
@@ -35,7 +46,7 @@ function iconOf(item: TrashItem) {
 	return item.kind === "folder" ? "i-lucide-folder" : Utils.getFileIcon(item.name, item.mime_type);
 }
 
-const onlyManagers = computed(() => (props.scope === "org" ? "das Kernteam" : "die Leitung"));
+const onlyManagers = computed(() => managersOf(props.scope).the);
 
 async function restore(item: TrashItem) {
 	busy.value = item.id;
@@ -99,11 +110,9 @@ async function empty() {
 		<div class="space-y-3">
 			<p class="text-sm text-slate-400">
 				Gelöschte Dateien und Ordner bleiben 30 Tage hier und lassen sich wiederherstellen.
-				{{
-					items.some((item) => item.can_purge)
-						? ""
-						: `Du siehst, was du selbst gelöscht hast – alles andere ${scope === "org" ? "das Kernteam" : "die Leitung"}.`
-				}}
+				<template v-if="!isManager">
+					Du siehst, was du selbst gelöscht hast – alles andere {{ onlyManagers }}.
+				</template>
 			</p>
 
 			<ul v-if="items.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
@@ -116,7 +125,7 @@ async function empty() {
 						<p class="truncate text-white">{{ item.name }}</p>
 						<p class="text-xs text-slate-500">
 							<template v-if="item.location.length">aus „{{ item.location.join(" / ") }}“ · </template>
-							{{ item.deleted_by?.display_name ?? "über einen Freigabelink" }} · {{ formatRelative(item.deleted_at) }}
+							{{ item.deleted_by?.display_name ?? "Über einen Freigabelink" }} · {{ formatRelative(item.deleted_at) }}
 							· endgültig weg {{ formatDate(item.purge_at) }}
 						</p>
 						<p v-if="item.folder_in_trash" class="text-xs text-amber-400/80">

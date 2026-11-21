@@ -1,7 +1,7 @@
 /**
  * The calls of one document library for `FilesBrowser` — the org library (`scope: "org"`,
- * `memberView`: as members see it) or one event's documents — with error toasts. Spread the result
- * onto the browser: `<FilesBrowser v-bind="library" … />`.
+ * `memberView`: as members see it) or one event's documents — with error toasts (in German,
+ * `fileErrorText`). Spread the result onto the browser: `<FilesBrowser v-bind="library" … />`.
  */
 import type { FileItem, FolderListing, OfficeType, TrashAdapter, TrashItem } from "~/utils/types";
 
@@ -11,7 +11,7 @@ export function useDocumentLibrary(source: Source) {
 	const toast = useToast();
 
 	function failed(title: string, message: string) {
-		toast.add({ title, description: message, color: "error" });
+		toast.add({ title, description: fileErrorText(message, source.scope), color: "error" });
 	}
 
 	async function load(parentId: number | null): Promise<FolderListing | null> {
@@ -54,7 +54,7 @@ export function useDocumentLibrary(source: Source) {
 						api.postEventsByEventIdFilesFolders({ path: { eventId: source.eventId() }, body }),
 					);
 		if (!result.success) {
-			failed("Ordner konnte nicht angelegt werden", fileErrorText(result.message, source.scope));
+			failed("Ordner konnte nicht angelegt werden", result.message);
 		}
 		return result.success;
 	}
@@ -102,7 +102,7 @@ export function useDocumentLibrary(source: Source) {
 							}),
 						);
 			if (!result.success) {
-				failed("Wiederherstellen fehlgeschlagen", fileErrorText(result.message, source.scope));
+				failed("Wiederherstellen fehlgeschlagen", result.message);
 				return null;
 			}
 			return result.data as FileItem;

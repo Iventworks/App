@@ -4,7 +4,7 @@
  * one — what the link allows (presets), expiry, optional password and an internal note.
  */
 import { Utils } from "~/utils";
-import { type RightsPreset, rightsPresetFor, rightsPresetsFor } from "~/utils/filePermissions";
+import type { RightsPreset, RightsPresetKey } from "~/utils/filePermissions";
 import type { FileItem, FileShare, SharePermissions } from "~/utils/types";
 
 const props = defineProps<{ item: FileItem | null }>();
@@ -85,7 +85,7 @@ const formOpen = ref(false);
 const editing = ref<FileShare | null>(null);
 const saving = ref(false);
 const form = reactive({
-	preset: "view" as string,
+	preset: "view" as RightsPresetKey,
 	label: "",
 	/** `YYYY-MM-DD`; "" = never. */
 	expires: "",

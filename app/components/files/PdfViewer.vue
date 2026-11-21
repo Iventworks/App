@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * PDF preview with pdf.js — the browser's own viewer is missing in the installed iOS app and on
- * Android. pdf.js is loaded only when a PDF is opened (dynamic `import()`, like jsPDF for the
- * program PDF). Pages are rendered to canvases while they are near the screen (and released when
- * they leave it), fitted to the width, with zoom on top.
+ * PDF preview with pdf.js, for browsers without a built-in PDF viewer (e.g. on Android). pdf.js
+ * is loaded only when a PDF is opened (dynamic `import()`, like jsPDF for the program PDF). Pages
+ * are rendered to canvases while they are near the screen (and released when they leave it),
+ * fitted to the width, with zoom on top.
  *
  * CSP: pdf.js 6 evaluates no strings, the worker comes from our own bundle (`worker-src 'self'`),
  * and WebAssembly is off (`useWasm: false`; the CSP has no `wasm-unsafe-eval`) — its image
@@ -282,6 +282,7 @@ onBeforeUnmount(() => {
 				<UTooltip text="An die Breite anpassen">
 					<UButton
 						:label="`${Math.round(zoom * 100)} %`"
+						:aria-label="`Zoom zurücksetzen (jetzt ${Math.round(zoom * 100)} %)`"
 						color="neutral"
 						variant="ghost"
 						size="sm"

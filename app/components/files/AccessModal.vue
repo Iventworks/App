@@ -6,12 +6,7 @@
  * documents) and Leitung (event documents) always have full access and are not listed.
  */
 import type { SelectMenuItem } from "@nuxt/ui";
-import {
-	accessEntryIcon,
-	rightsLabel,
-	rightsPresetFor,
-	rightsPresetsFor,
-} from "~/utils/filePermissions";
+import type { RightsPresetKey } from "~/utils/filePermissions";
 import type {
 	FileAccessCandidate,
 	FileAccessEntry,
@@ -25,6 +20,7 @@ const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ changed: [] }>();
 
 const toast = useToast();
+const managers = computed(() => managersOf(props.scope));
 
 type Row = Pick<FileAccessEntry, "principal" | "id" | "label" | "color"> & {
 	permissions: FileAccessRights;
@@ -99,7 +95,7 @@ async function load() {
 	if (!access.success) {
 		toast.add({
 			title: "Zugriff konnte nicht geladen werden",
-			description: access.message,
+			description: fileErrorText(access.message, props.scope),
 			color: "error",
 		});
 		open.value = false;
@@ -144,12 +140,35 @@ const modes = computed(() => [
 	},
 ]);
 
+/** Arrow keys move between the two cards (a radio group, like native radio buttons). */
+const modeGroup = ref<HTMLElement | null>(null);
+const ARROW_STEPS: Record<string, number | undefined> = {
+	ArrowRight: 1,
+	ArrowDown: 1,
+	ArrowLeft: -1,
+	ArrowUp: -1,
+};
+
+function onModeKey(event: KeyboardEvent, index: number) {
+	const step = ARROW_STEPS[event.key];
+	if (!step) return;
+	event.preventDefault();
+	const options = modes.value;
+	const next = (index + step + options.length) % options.length;
+	const option = options[next];
+	if (!option) return;
+	mode.value = option.value;
+	modeGroup.value?.querySelectorAll<HTMLElement>("[role='radio']")[next]?.focus();
+}
+
 // --- entries ----------------------------------------------------------------------------------
 
 const keyOf = (row: Pick<Row, "principal" | "id">) => `${row.principal}:${row.id ?? ""}`;
 
 function presetItems(row: Row) {
-	const items = presets.value.map((preset) => ({ label: preset.label, value: preset.key }));
+	const items: { label: string; value: RightsPresetKey | "custom" }[] = presets.value.map(
+		(preset) => ({ label: preset.label, value: preset.key }),
+	);
 	if (!rightsPresetFor(props.item?.kind, row.permissions)) {
 		items.push({ label: rightsLabel(props.item?.kind, row.permissions), value: "custom" });
 	}
@@ -220,7 +239,11 @@ async function save() {
 	);
 	saving.value = false;
 	if (!result.success) {
-		toast.add({ title: "Zugriff nicht gespeichert", description: result.message, color: "error" });
+		toast.add({
+			title: "Zugriff nicht gespeichert",
+			description: fileErrorText(result.message, props.scope),
+			color: "error",
+		});
 		return;
 	}
 	toast.add({ title: "Zugriff gespeichert", color: "success", icon: "i-lucide-check" });
@@ -241,20 +264,24 @@ async function save() {
 			<p class="flex items-start gap-2 text-sm text-slate-400">
 				<UIcon name="i-lucide-crown" class="mt-0.5 size-4 shrink-0 text-amber-400" />
 				<span>
-					{{ scope === "org" ? "Das Kernteam" : "Die Leitung (und das Kernteam)" }} hat immer Vollzugriff und
+					{{ managers.The }}{{ scope === "event" ? " (und das Kernteam)" : "" }} hat immer Vollzugriff und
 					legt den Zugriff fest. Eigener Zugriff gilt für alles darin, bis ein Unterordner seinen eigenen hat.
 				</span>
 			</p>
 
-			<div class="grid gap-2 sm:grid-cols-2">
+			<!-- Two cards as one radio group: arrow keys switch, like native radio buttons. -->
+			<div ref="modeGroup" role="radiogroup" aria-label="Zugriff" class="grid gap-2 sm:grid-cols-2">
 				<button
-					v-for="option in modes"
+					v-for="(option, index) in modes"
 					:key="option.value"
 					type="button"
+					role="radio"
 					class="flex items-start gap-3 rounded-lg border p-3 text-left transition"
 					:class="mode === option.value ? 'border-primary bg-primary/10' : 'border-slate-800 hover:border-slate-600'"
-					:aria-pressed="mode === option.value"
+					:aria-checked="mode === option.value"
+					:tabindex="mode === option.value ? 0 : -1"
 					@click="mode = option.value"
+					@keydown="onModeKey($event, index)"
 				>
 					<UIcon :name="option.icon" class="mt-0.5 size-5 shrink-0 text-primary-400" />
 					<span>
@@ -314,7 +341,7 @@ async function save() {
 					class="flex items-center gap-2 rounded-lg border border-dashed border-slate-700 px-3 py-3 text-sm text-slate-400"
 				>
 					<UIcon name="i-lucide-lock" class="size-4 text-amber-400" />
-					Nur {{ scope === "org" ? "das Kernteam" : "die Leitung" }} –
+					Nur {{ managers.the }} –
 					sonst sieht niemand {{ isFolder ? "diesen Ordner" : "diese Datei" }}.
 				</div>
 

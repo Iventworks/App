@@ -31,7 +31,8 @@ const {
 	return result.data;
 });
 
-const { data: users } = await useAPIAsyncData("admin-org-groups-users", async () => {
+// Only the dialog needs the people: they load in the background.
+const { data: users } = await useAPILazyAsyncData("admin-org-groups-users", async () => {
 	const result = await useAPI((api) => api.getUsers({}));
 	return result.success ? result.data : ([] as UserSummary[]);
 });

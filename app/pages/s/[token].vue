@@ -6,7 +6,6 @@
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
-import { filePreviewKind } from "~/utils/filePreview";
 import type { PublicShareInfo, PublicShareItem, PublicShareListing } from "~/utils/types";
 
 definePageMeta({ layout: "public" });

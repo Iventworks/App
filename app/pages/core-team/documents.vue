@@ -8,8 +8,6 @@ definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({ title: "Dokumente verwalten | Kernteam" });
 
-const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
-
 const library = useDocumentLibrary({ scope: "org" });
 </script>
 
@@ -39,8 +37,6 @@ const library = useDocumentLibrary({ scope: "org" });
 					scope="org"
 					root-label="Ablage"
 					v-bind="library"
-					manage-access
-					:sharing-enabled="sharingEnabled"
 					empty-description="Neue Ordner und Dateien sieht zuerst nur das Kernteam. Über „Zugriff“ gibst du sie für alle Mitglieder, Gruppen oder einzelne Personen frei."
 				/>
 			</DashboardPageBody>

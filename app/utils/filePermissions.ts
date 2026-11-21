@@ -4,8 +4,11 @@
  */
 import type { FileAccessEntry, FileAccessRights, FileItem } from "~/utils/types";
 
+/** Keys of the presets below; folders and files share "view". */
+export type RightsPresetKey = "view" | "upload" | "edit" | "full" | "dropbox" | "file-edit";
+
 export interface RightsPreset {
-	key: string;
+	key: RightsPresetKey;
 	label: string;
 	description: string;
 	icon: string;
@@ -66,6 +69,25 @@ export const FILE_RIGHTS_PRESETS: RightsPreset[] = [
 		permissions: { read: true, upload: false, edit: true, delete: false },
 	},
 ];
+
+/** Which document library: the org's (managed by the Kernteam) or one event's (the Leitung). */
+export type LibraryScope = "org" | "event";
+
+/** The library a document belongs to (`scope` of a file item). */
+export function libraryScopeOf(item: { scope: string }): LibraryScope {
+	return item.scope === "event" ? "event" : "org";
+}
+
+/**
+ * Who manages a library and always has full access: the Kernteam (org documents) or the Leitung
+ * (event documents). `name` for labels ("Nur Kernteam"), `the` / `The` with the article ("nur das
+ * Kernteam", "Die Leitung hat …").
+ */
+export function managersOf(scope: LibraryScope) {
+	return scope === "org"
+		? { name: "Kernteam", the: "das Kernteam", The: "Das Kernteam" }
+		: { name: "Leitung", the: "die Leitung", The: "Die Leitung" };
+}
 
 export function rightsPresetsFor(kind: FileItem["kind"] | undefined) {
 	return kind === "folder" ? FOLDER_RIGHTS_PRESETS : FILE_RIGHTS_PRESETS;
