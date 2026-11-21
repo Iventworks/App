@@ -108,13 +108,13 @@ controls.
 
 ## Frontend
 
-One layout (`app/layouts/dashboard.vue`) with route-switched sidebars — files open full-window
-(`app/layouts/viewer.vue`):
+Pages use `app/layouts/dashboard.vue` with route-switched sidebars. `/files/<id>` opens a file
+full-window in `app/layouts/viewer.vue`, without a sidebar (the Office editor, the browser's PDF
+viewer or a preview, versions).
 
 - **Main** (`/`, `/tasks`, `/messages`, `/calendar`, `/notes`, `/events/**`, `/news`,
-  `/documents`, `/files/<id>`): personal space, the event switcher with the selected event's pages,
-  organisation. `/documents` is the org library as members see it; `/files/<id>` opens a file
-  full-window (the Office editor, the browser's PDF viewer or a preview, versions).
+  `/documents`): personal space, the event switcher with the selected event's pages,
+  organisation. `/documents` is the org library as members see it.
 - **Settings** (`/settings/**`), **Administration** (`/admin/**`, admins — incl. *Gruppen* at
   `/admin/groups`) and **Kernteam** (`/core-team/**`, core team — incl. *Dokumente verwalten* at
   `/core-team/documents`: the whole library with access and share links): each with a "Zurück zum
@@ -175,9 +175,9 @@ below it are reachable through a link. Org admins see every link under *Administ
 Freigabelinks*, can switch sharing off for the org and set a default expiry.
 
 Files open full-window: PDFs in the browser's own viewer (pdf.js only where a browser has
-none), images, Markdown (read-only), CSV and text as previews. Every change keeps the old contents
-as a **version** (restorable for 30 days), and deleted documents go to the **Papierkorb** for 30
-days.
+none), images, Markdown (read-only), CSV and text as previews. Changes keep the old contents as a
+**version** (the same person's quick saves at most once every ten minutes; kept 30 days, the newest
+ten longer), and deleted documents go to the **Papierkorb** for 30 days.
 
 **Office documents** (docx, xlsx, pptx, odt, …) open in the browser, with co-editing, in
 [Nextcloud Office](https://github.com/nextcloud-releases/Office-DocumentServer) — the production
@@ -187,9 +187,15 @@ Optional; it needs its own container (at least 4 GB RAM) and its own public host
 1. Start it: `docker compose --profile office up -d` in `/opt/iventworks/compose` (service `office` in
    `docker/docker-compose.yml`, image `ghcr.io/nextcloud-releases/office-documentserver:latest`,
    `WOPI_ENABLED=true`).
-2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317).
+2. Let the reverse proxy serve e.g. `https://office.ivb.example.org` from it (port 31317), with
+   WebSockets and `X-Forwarded-Proto` / `Host` passed on (Caddy does both by itself).
 3. Set `IVENTWORKS_OFFICE_URL=https://office.ivb.example.org` and
    `IVENTWORKS_OFFICE_INTERNAL_URL=http://office`, restart Iventworks.
+
+Updates need the profile too (`docker compose --profile office pull`), or set
+`COMPOSE_PROFILES=office` in the `.env` next to the compose file. The office server's calls carry
+the access token in the query (`/api/v1/wopi/…?access_token=…`): keep query strings of these paths
+out of the proxy's access log.
 
 The office server calls back on each org's public address; it must be able to reach it (hairpin
 through the proxy). Use its own host name, never a path or port of the app's: its scripts would
@@ -217,6 +223,8 @@ All settings are `IVENTWORKS_*` env vars — see `example.env`. The names before
 - `IVENTWORKS_CUSTOM_DOMAINS_SELF_SERVICE` (default `false`) — org admins' custom domains go live
   without a system admin's approval (see above)
 - `IVENTWORKS_UPLOAD_DIR`, `IVENTWORKS_MAX_UPLOAD_SIZE_MB` — file storage and the upload limit
+- `IVENTWORKS_OFFICE_URL`, `IVENTWORKS_OFFICE_INTERNAL_URL` — the office server (see Documents):
+  its public address, and where Iventworks reaches it (default: the public one)
 - `IVENTWORKS_WEB_PUSH_SUBJECT` — contact for the push services (`mailto:…` or `https://…`;
   default: `IVENTWORKS_APP_URL` when it is https). `IVENTWORKS_WEB_PUSH_PUBLIC_KEY` /
   `…_PRIVATE_KEY` — optional VAPID key pair (`bunx web-push generate-vapid-keys`); without them a
@@ -254,14 +262,16 @@ tool (`server/lib/backup/`):
 
 - Every response: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,
   `Permissions-Policy`, `Cross-Origin-Opener-Policy`, and HSTS when `IVENTWORKS_APP_URL` is https
-  (`server/middleware/00.security-headers.ts`).
+  (`server/middleware/00.security-headers.ts`). Only PDF contents get `SAMEORIGIN`: the app embeds
+  the browser's PDF viewer.
 - Pages get a Content-Security-Policy with the hashes of their own inline scripts (no
   `unsafe-inline`/`unsafe-eval` for scripts; `server/plugins/csp.ts`); API responses one that
-  allows nothing. Icons come from the local `/api/_nuxt_icon`, never from api.iconify.design.
+  allows nothing, file contents a sandbox (PDFs: `frame-ancestors 'self'`, `FileService`). Icons
+  come from the local `/api/_nuxt_icon`, never from api.iconify.design.
 - Request bodies are checked before they are read (`server/runtime/bun.ts`, the Bun server entry):
-  file uploads up to `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, everything else up to 2 MB; larger ones get
-  413. Uploads are held in memory while they are processed, so keep the limit in proportion to the
-  server's RAM.
+  file uploads and the office server's saves up to `IVENTWORKS_MAX_UPLOAD_SIZE_MB`, everything
+  else up to 2 MB; larger ones get 413. Uploads are held in memory while they are processed, so
+  keep the limit in proportion to the server's RAM.
 
 ## Migrating from the standalone CMP-API
 

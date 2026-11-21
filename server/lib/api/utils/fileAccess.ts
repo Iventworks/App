@@ -31,8 +31,8 @@ const FULL: FileAccess.Permissions = {
  *   whole team (read + upload, `files:view` / `files:upload`).
  * - An item is only visible when every folder above it can be opened (read). A folder you may
  *   only upload into ("Nur hochladen") shows up, its contents don't.
- * - An item with its own access list is only renamed, moved or deleted by managers — and so is a
- *   folder that holds one (`hasCustomAccessBelow`).
+ * - An item with its own access list is only renamed, moved or deleted by managers; a folder that
+ *   holds one is only moved or deleted by them (`hasCustomAccessBelow`).
  * - Own uploads may be renamed, moved, replaced and deleted while you may still add things where
  *   they are.
  *

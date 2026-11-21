@@ -44,7 +44,7 @@ export const FOLDER_RIGHTS_PRESETS: RightsPreset[] = [
 	{
 		key: "dropbox",
 		label: "Nur hochladen",
-		description: "Dateiablage: hochladen, ohne den Inhalt zu sehen",
+		description: "Briefkasten: hochladen, ohne den Inhalt zu sehen",
 		icon: "i-lucide-inbox",
 		permissions: { read: false, upload: true, edit: false, delete: false },
 	},
