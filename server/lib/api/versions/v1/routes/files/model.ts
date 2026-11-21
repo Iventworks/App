@@ -99,7 +99,7 @@ export namespace FilesModel.Office {
 		access_token: z.string(),
 		/** When the token expires (unix ms). */
 		access_token_ttl: z.number(),
-		/** `view` when the person may only read, or a Markdown session holds the file. */
+		/** `view` when the person may only read the file. */
 		mode: z.enum(["edit", "view"]),
 	});
 	export type Response = z.infer<typeof Response>;

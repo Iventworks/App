@@ -5,7 +5,6 @@
  */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { FileLocks } from "../server/lib/api/utils/fileLocks";
-import { FileService } from "../server/lib/api/utils/fileService";
 import { FileVersions } from "../server/lib/api/utils/fileVersions";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
@@ -182,7 +181,7 @@ describe("While the office server edits", () => {
 		expect(FileLocks.officeLock(doc.id, "office-lock")).toEqual({ ok: true });
 
 		const details = await makeAPIRequest(`/v1/files/${doc.id}`, { authToken: reader.token });
-		expect(details.editing).toMatchObject({ kind: "office" });
+		expect(details.editing).toEqual({ expires_at: expect.any(Number) });
 		await replace(core.token, doc.id, "v3", 409);
 		await makeAPIRequest(
 			`/v1/files/${doc.id}/versions/${version.id}/restore`,
@@ -232,7 +231,6 @@ describe("Contents", () => {
 
 		const download = await request(`/v1/files/${csv.id}/content/x?download=1`, reader.token);
 		expect(download.headers.get("Content-Disposition")).toStartWith("attachment");
-		expect(FileService.TEXT_EXTENSIONS.has("md")).toBe(true);
 	});
 });
 

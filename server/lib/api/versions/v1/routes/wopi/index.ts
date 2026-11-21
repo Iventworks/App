@@ -12,7 +12,7 @@ import { FileLocks } from "../../../../utils/fileLocks";
 import { FileService } from "../../../../utils/fileService";
 
 type WopiEnv = {
-	Variables: { wopi: OfficeTokens.Resolved; fileId: number };
+	Variables: { wopi: OfficeTokens.Resolved };
 };
 
 /**
@@ -103,7 +103,6 @@ router.use("/files/:fileId/*", async (c, next) => {
 		`WOPI ${c.req.method} ${c.req.header("X-WOPI-Override") ?? (c.req.path.endsWith("/contents") ? "contents" : "info")} file ${fileId}`,
 	);
 	c.set("wopi", resolved);
-	c.set("fileId", fileId);
 	await next();
 });
 

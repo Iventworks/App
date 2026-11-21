@@ -428,6 +428,12 @@ describe("WOPI calls", () => {
 		expect((await lock("UNLOCK", "lock-a")).status).toBe(409);
 		expect((await lock("UNLOCK", "lock-c")).status).toBe(200);
 		expect((await lock("GET_LOCK", "")).headers.get("X-WOPI-Lock")).toBe("");
+		// A free file can't be refreshed or unlocked: a conflict with an empty lock (MS-WOPI).
+		for (const operation of ["REFRESH_LOCK", "UNLOCK"]) {
+			const free = await lock(operation, "");
+			expect(free.status).toBe(409);
+			expect(free.headers.get("X-WOPI-Lock")).toBe("");
+		}
 
 		expect(
 			(await wopi(docId, token, { method: "POST", headers: { "X-WOPI-Override": "PUT_RELATIVE" } }))

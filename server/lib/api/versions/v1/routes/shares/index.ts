@@ -395,7 +395,7 @@ router.put(
 		const file = await inShare(c, fileId);
 		if (!file || file.kind !== "file") return APIResponse.notFound(c, "File not found");
 
-		if (await FileLocks.blocking(file.id)) {
+		if (await FileLocks.current(file.id)) {
 			return APIResponse.conflict(c, "The file is being edited right now");
 		}
 		const { file: upload } = c.req.valid("form") as PublicSharesModel.ReplaceForm;

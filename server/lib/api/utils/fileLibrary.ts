@@ -56,10 +56,8 @@ export namespace FileLibrary {
 			);
 		}
 
-		// "Wird bearbeitet von …"
-		const editing = await FileLocks.describe(
-			(await FileLocks.forFiles(visible.map((item) => item.file.id))).values(),
-		);
+		// "Wird in Office bearbeitet"
+		const locks = await FileLocks.forFiles(visible.map((item) => item.file.id));
 
 		return {
 			ok: true,
@@ -76,7 +74,7 @@ export namespace FileLibrary {
 					(file) => ({
 						permissions: permissionsOf.get(file.id) ?? null,
 						access: viewer.manager && file.custom_access ? (itemAccess.get(file.id) ?? []) : null,
-						editing: editing.get(file.id) ?? null,
+						editing: FileLocks.editingOf(locks.get(file.id)),
 					}),
 				),
 				permissions,

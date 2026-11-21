@@ -8,8 +8,8 @@ import { UserSummary } from "./shared-models/userSummary";
 
 /**
  * Earlier contents of files ("Versionen", `file_versions`). Whenever contents are replaced, the
- * old blob is kept as a version — unless the same person keeps saving (autosave): then at most one
- * version per `INTERVAL_MS`. Housekeeping keeps everything of the last `KEEP_DAYS` days, beyond
+ * old blob is kept as a version — unless the same person keeps saving, or an office session saves:
+ * then at most one version per `INTERVAL_MS`. Housekeeping keeps everything of the last `KEEP_DAYS` days, beyond
  * that the newest `KEEP_MIN` per file, never more than `MAX_PER_FILE`.
  */
 export namespace FileVersions {

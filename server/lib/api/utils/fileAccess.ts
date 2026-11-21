@@ -261,10 +261,7 @@ export class FileAccess {
 		return { ...NONE, read: true, upload: viewer.root.upload };
 	}
 
-	/**
-	 * Permissions of `folder` (null = the root) and of each of its children. The rights inside the
-	 * folder are returned too, for creating things in it.
-	 */
+	/** Permissions of `folder` (null = the root) and of each of its children. */
 	static async forFolder(
 		viewer: FileAccess.Viewer,
 		folderPath: readonly DB.Models.File[],
@@ -305,7 +302,7 @@ export class FileAccess {
 					: NONE,
 		}));
 
-		return { permissions: folderPermissions, inside, items, entries };
+		return { permissions: folderPermissions, items, entries };
 	}
 
 	/**

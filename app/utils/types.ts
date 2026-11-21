@@ -82,8 +82,6 @@ export type NotificationItem = GetNotificationsResponses["200"]["data"]["items"]
 
 export type FolderListing = GetEventsByEventIdFilesResponses["200"]["data"];
 export type FileItem = FolderListing["items"][number];
-/** What the caller may do with a document or folder. */
-export type FilePermissions = FolderListing["permissions"];
 /** Who has access to a document or folder (own, inherited or the library's default list). */
 export type FileAccessView = GetFilesByFileIdAccessResponses["200"]["data"];
 export type FileAccessEntry = FileAccessView["entries"][number];

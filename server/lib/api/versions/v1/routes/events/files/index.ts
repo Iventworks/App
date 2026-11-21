@@ -337,8 +337,6 @@ router.delete(
 	},
 );
 
-const OFFICE_LABELS = { docx: "Textdokument", xlsx: "Tabelle", pptx: "Präsentation" } as const;
-
 router.post(
 	"/office",
 
@@ -387,7 +385,7 @@ router.post(
 			action: "create",
 			entityType: "file",
 			entityId: file.id,
-			summary: `${OFFICE_LABELS[body.type]} „${file.name}“ angelegt`,
+			summary: `${FileService.OFFICE_LABELS[body.type]} „${file.name}“ angelegt`,
 		});
 
 		return APIResponse.created(

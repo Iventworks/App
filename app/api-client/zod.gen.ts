@@ -4408,7 +4408,6 @@ export const zPutFilesByFileIdContentResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4500,7 +4499,6 @@ export const zGetFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         path: z.array(z.object({
@@ -4577,7 +4575,6 @@ export const zPutFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4724,7 +4721,6 @@ export const zPostFilesByFileIdVersionsByVersionIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -7545,7 +7541,6 @@ export const zGetEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7651,7 +7646,6 @@ export const zPostEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7773,7 +7767,6 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7871,7 +7864,6 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8715,7 +8707,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -8766,7 +8757,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8817,7 +8807,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8944,7 +8933,6 @@ export const zPostEventsByEventIdFilesResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9013,7 +9001,6 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9091,7 +9078,6 @@ export const zGetEventsByEventIdFilesTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
@@ -9166,7 +9152,6 @@ export const zPostEventsByEventIdFilesTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9255,7 +9240,6 @@ export const zPostEventsByEventIdFilesOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9375,7 +9359,6 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9497,7 +9480,6 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9678,7 +9660,6 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9797,7 +9778,6 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9921,7 +9901,6 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -10903,7 +10882,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -10954,7 +10932,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -11005,7 +10982,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -11128,7 +11104,6 @@ export const zPostOrgDocumentsResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11193,7 +11168,6 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11263,7 +11237,6 @@ export const zGetOrgDocumentsTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
@@ -11337,7 +11310,6 @@ export const zPostOrgDocumentsTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11421,7 +11393,6 @@ export const zPostOrgDocumentsOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })

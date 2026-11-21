@@ -207,7 +207,7 @@ CMP (Crossover Management Portal) before; the repository still is.
     mix up installations sharing an office server, restored staging copies or reset databases.
   - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
     large as uploads (`RequestLimits.limitFor`, path-based).
-  - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
+  - Locks are WOPI's (`file_locks`, `FileLocks`, 30 min): no uploads, restores or deletes
     meanwhile (409). Saves keep versions per interval (`session: true`).
   - Compose: the optional `office` service (profile `office`, `WOPI_ENABLED=true`), image
     `ghcr.io/nextcloud-releases/office-documentserver:latest` (stable releases; the Euro-Office

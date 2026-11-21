@@ -7055,7 +7055,6 @@ export type PutFilesByFileIdContentResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7256,7 +7255,6 @@ export type GetFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             path: Array<{
@@ -7358,7 +7356,6 @@ export type PutFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7683,7 +7680,6 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -11690,7 +11686,6 @@ export type GetEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -11816,7 +11811,6 @@ export type PostEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -11996,7 +11990,6 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -12114,7 +12107,6 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13417,7 +13409,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -13457,7 +13448,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13497,7 +13487,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13640,7 +13629,6 @@ export type PostEventsByEventIdFilesResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13734,7 +13722,6 @@ export type PostEventsByEventIdFilesFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13861,7 +13848,6 @@ export type GetEventsByEventIdFilesTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
@@ -13963,7 +13949,6 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -14111,7 +14096,6 @@ export type PostEventsByEventIdFilesOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -14236,7 +14220,6 @@ export type GetEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14368,7 +14351,6 @@ export type PostEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14630,7 +14612,6 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14762,7 +14743,6 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14892,7 +14872,6 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16431,7 +16410,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16471,7 +16449,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16511,7 +16488,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16644,7 +16620,6 @@ export type PostOrgDocumentsResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -16728,7 +16703,6 @@ export type PostOrgDocumentsFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -16835,7 +16809,6 @@ export type GetOrgDocumentsTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
@@ -16936,7 +16909,6 @@ export type PostOrgDocumentsTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -17081,7 +17053,6 @@ export type PostOrgDocumentsOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };

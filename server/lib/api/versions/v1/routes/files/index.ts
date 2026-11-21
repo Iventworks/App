@@ -154,8 +154,7 @@ router.get(
 						.get()) ?? null)
 				: null;
 
-		const lock = await FileLocks.current(file.id);
-		const editing = lock ? (FileLocks.describe([lock]).get(file.id) ?? null) : null;
+		const editing = FileLocks.editingOf(await FileLocks.current(file.id));
 
 		return APIResponse.success(c, "File retrieved successfully", {
 			...FileService.toResponse(file, { permissions: c.get("permissions"), editing }),
@@ -357,7 +356,7 @@ router.put(
 		const userId = getAuthUserId(c);
 		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
 		if (file.kind !== "file") return APIResponse.badRequest(c, "Only files have contents");
-		if (await FileLocks.blocking(file.id)) return APIResponse.conflict(c, LOCKED);
+		if (await FileLocks.current(file.id)) return APIResponse.conflict(c, LOCKED);
 
 		const { file: upload } = c.req.valid("form") as FilesModel.Upload.Form;
 		const updated = await FileService.replaceContent(file, upload, userId);
@@ -529,7 +528,7 @@ router.post(
 		const file = c.get("file");
 		const userId = getAuthUserId(c);
 		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
-		if (await FileLocks.blocking(file.id)) return APIResponse.conflict(c, LOCKED);
+		if (await FileLocks.current(file.id)) return APIResponse.conflict(c, LOCKED);
 
 		const { versionId } = c.req.valid("param") as FilesModel.Versions.Params;
 		const version = await FileVersions.get(file.id, versionId);

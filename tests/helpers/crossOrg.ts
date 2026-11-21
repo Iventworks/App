@@ -175,7 +175,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			})
 			.returning()
 			.get();
-		// A version and an editor lock (the rows only need to exist for the attacks).
+		// A version and an office lock (the rows only need to exist for the attacks).
 		const version = db
 			.insert(DB.Tables.fileVersions)
 			.values({
@@ -193,9 +193,7 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.values({
 				org_id,
 				file_id: eventFile.id,
-				kind: "office",
 				lock_id: text("Sperre"),
-				user_id: admin.id,
 				expires_at: now + 86_400_000,
 			})
 			.run();

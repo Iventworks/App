@@ -28,10 +28,7 @@ export class MessageService {
 	static readonly PREVIEW_LENGTH = 200;
 
 	static isImage(file: Pick<DB.Models.File, "mime_type">) {
-		return (
-			FileService.isInlineSafe(file.mime_type) &&
-			Boolean(file.mime_type?.toLowerCase().startsWith("image/"))
-		);
+		return FileService.isImage(file.mime_type);
 	}
 
 	static toAttachment(file: DB.Models.File): MessageService.Attachment {

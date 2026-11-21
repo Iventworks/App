@@ -99,11 +99,6 @@ export function rightsLabel(kind: FileItem["kind"] | undefined, rights: FileAcce
 		.join(", ");
 }
 
-/** Who always has full access: the Kernteam (org documents) or the Leitung (event documents). */
-export function accessManagersLabel(scope: "org" | "event") {
-	return scope === "org" ? "Kernteam" : "Leitung";
-}
-
 export function accessEntryIcon(entry: Pick<FileAccessEntry, "principal">) {
 	switch (entry.principal) {
 		case "members":

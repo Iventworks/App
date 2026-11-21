@@ -129,7 +129,7 @@ describe("Papierkorb", () => {
 			404,
 		);
 
-		// A file inside the deleted folder, deleted on its own afterwards.
+		// The folder comes back with what was in it.
 		const restoredFolder = await makeAPIRequest(`${base}/trash/${plans.id}/restore`, {
 			method: "POST",
 			authToken: anna.token,
@@ -140,6 +140,7 @@ describe("Papierkorb", () => {
 
 		await remove(anna.token, plans.id);
 		await remove(leader.token, inside.id, 404); // in the Papierkorb with its folder already
+		// A file deleted on its own, then its folder.
 		const sub = await folder(anna.token, "Unterordner");
 		const deep = await upload(anna.token, "tief.txt", sub.id);
 		await remove(anna.token, deep.id);
