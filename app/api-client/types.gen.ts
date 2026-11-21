@@ -13353,12 +13353,12 @@ export type GetEventsByEventIdFilesErrors = {
         message: 'You are not allowed to view documents';
     };
     /**
-     * Folder not found
+     * Folder not found / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Folder not found';
+        message: 'Folder not found / Event not found';
     };
 };
 
@@ -13756,6 +13756,14 @@ export type DeleteEventsByEventIdFilesTrashErrors = {
         code: 403;
         message: 'Only managers can delete for good';
     };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
 };
 
 export type DeleteEventsByEventIdFilesTrashError = DeleteEventsByEventIdFilesTrashErrors[keyof DeleteEventsByEventIdFilesTrashErrors];
@@ -13799,6 +13807,14 @@ export type GetEventsByEventIdFilesTrashErrors = {
         success: false;
         code: 403;
         message: 'You are not allowed to view documents';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
     };
 };
 
@@ -13878,20 +13894,20 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreData = {
 
 export type PostEventsByEventIdFilesTrashByFileIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * Not in the Papierkorb
+     * Not in the Papierkorb / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Not in the Papierkorb';
+        message: 'Not in the Papierkorb / Event not found';
     };
     /**
      * The folder it was in is in the Papierkorb too: restore the folder first
@@ -13969,12 +13985,12 @@ export type DeleteEventsByEventIdFilesTrashByFileIdData = {
 
 export type DeleteEventsByEventIdFilesTrashByFileIdErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Only managers can delete for good
@@ -13985,12 +14001,12 @@ export type DeleteEventsByEventIdFilesTrashByFileIdErrors = {
         message: 'Only managers can delete for good';
     };
     /**
-     * Not in the Papierkorb
+     * Not in the Papierkorb / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Not in the Papierkorb';
+        message: 'Not in the Papierkorb / Event not found';
     };
 };
 
@@ -14041,12 +14057,12 @@ export type PostEventsByEventIdFilesOfficeErrors = {
         message: 'You are not allowed to add documents here';
     };
     /**
-     * Office editing is not available
+     * Office editing is not available / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Office editing is not available';
+        message: 'Office editing is not available / Event not found';
     };
 };
 
@@ -16557,12 +16573,12 @@ export type PostOrgDocumentsData = {
 
 export type PostOrgDocumentsErrors = {
     /**
-     * Parent folder not found / File is too large / Syntax or validation error in request
+     * File is too large / Parent folder not found / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Parent folder not found / File is too large / Syntax or validation error in request';
+        message: 'File is too large / Parent folder not found / Syntax or validation error in request';
     };
     /**
      * You are not allowed to add documents here
@@ -16838,12 +16854,12 @@ export type PostOrgDocumentsTrashByFileIdRestoreData = {
 
 export type PostOrgDocumentsTrashByFileIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Not in the Papierkorb
@@ -16928,12 +16944,12 @@ export type DeleteOrgDocumentsTrashByFileIdData = {
 
 export type DeleteOrgDocumentsTrashByFileIdErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Only managers can delete for good

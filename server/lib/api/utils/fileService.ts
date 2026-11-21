@@ -390,7 +390,8 @@ export class FileService {
 		const file = new File([], FileService.withExtension(name, type), {
 			type: FileService.OFFICE_MIME_TYPES[type],
 		});
-		return await FileService.upload(location, parentId, file, userId);
+		// Empty: never over the upload limit.
+		return (await FileService.upload(location, parentId, file, userId)) as DB.Models.File;
 	}
 
 	/**

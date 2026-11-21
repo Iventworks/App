@@ -2,10 +2,10 @@ import { beforeAll, describe, expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { API } from "../server/lib/api";
 import { FileService } from "../server/lib/api/utils/fileService";
+import { FileLibraryModel } from "../server/lib/api/utils/shared-models/fileLibrary";
 import { EventAnnouncementsModel } from "../server/lib/api/versions/v1/routes/events/announcements/model";
 import { EventBudgetModel } from "../server/lib/api/versions/v1/routes/events/budget/model";
 import { EventExpensesModel } from "../server/lib/api/versions/v1/routes/events/expenses/model";
-import { EventFilesModel } from "../server/lib/api/versions/v1/routes/events/files/model";
 import { EventNotesModel } from "../server/lib/api/versions/v1/routes/events/notes/model";
 import { FilesModel } from "../server/lib/api/versions/v1/routes/files/model";
 import { DB } from "../server/lib/db";
@@ -243,7 +243,7 @@ describe("Event documents and /files", () => {
 			method: "POST",
 			authToken: cookSession.token,
 			body: { name: "Andachten" },
-			expectedBodySchema: EventFilesModel.CreateFolder.Response,
+			expectedBodySchema: FileLibraryModel.CreateFolder.Response,
 		});
 		folderId = folder.id;
 
@@ -253,7 +253,7 @@ describe("Event documents and /files", () => {
 			uploadForm(new File([PNG_BYTES], "Plan Tag 1.png", { type: "image/png" })),
 			201,
 		);
-		const parsed = EventFilesModel.Upload.Response.parse(file);
+		const parsed = FileLibraryModel.Upload.Response.parse(file);
 		expect(parsed.size).toBe(PNG_BYTES.length);
 		expect(parsed.content_url).toBe(`/api/v1/files/${parsed.id}/content/Plan%20Tag%201.png`);
 		fileId = parsed.id;
@@ -275,7 +275,7 @@ describe("Event documents and /files", () => {
 
 		const root = await makeAPIRequest(`/v1/events/${eventId}/files`, {
 			authToken: helperSession.token,
-			expectedBodySchema: EventFilesModel.GetAll.Response,
+			expectedBodySchema: FileLibraryModel.GetAll.Response,
 		});
 		expect(root.folder).toBeNull();
 		// Folders are listed before files.
@@ -283,7 +283,7 @@ describe("Event documents and /files", () => {
 
 		const inFolder = await makeAPIRequest(`/v1/events/${eventId}/files?parent_id=${folderId}`, {
 			authToken: helperSession.token,
-			expectedBodySchema: EventFilesModel.GetAll.Response,
+			expectedBodySchema: FileLibraryModel.GetAll.Response,
 		});
 		expect(inFolder.path.map((entry) => entry.id)).toEqual([folderId]);
 		expect(inFolder.items.map((item) => item.name)).toEqual(["andacht.txt"]);
@@ -354,7 +354,7 @@ describe("Event documents and /files", () => {
 			],
 			["seite.html", "text/html", "<script>alert(1)</script>"],
 		] as const) {
-			const uploaded = EventFilesModel.Upload.Response.parse(
+			const uploaded = FileLibraryModel.Upload.Response.parse(
 				await upload(
 					`/v1/events/${eventId}/files`,
 					helperSession.token,

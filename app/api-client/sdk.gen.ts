@@ -2525,7 +2525,7 @@ export const putEventsByEventIdAnnouncementsByAnnouncementId = <TComposable exte
 /**
  * List event documents
  *
- * List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path — only what the caller may see, each item with the caller's `permissions`. Each file carries its `content_url`; `shared` marks items with a share link. The Leitung also gets the access lists (`access`).
+ * List a folder of the event's documents (the root without `parent_id`) with its breadcrumb path — only what the caller may see, each item with the caller's `permissions`. Each file carries its `content_url`; `shared` marks items with a share link. The Leitung sees everything plus the access lists (`access`).
  */
 export const getEventsByEventIdFiles = <TComposable extends Composable = '$fetch', DefaultT extends GetEventsByEventIdFilesResponse = GetEventsByEventIdFilesResponse>(options: Options<TComposable, GetEventsByEventIdFilesData, GetEventsByEventIdFilesResponse, DefaultT>): RequestResult<TComposable, GetEventsByEventIdFilesResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetEventsByEventIdFilesResponse | DefaultT, GetEventsByEventIdFilesError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2969,7 +2969,7 @@ export const putOrgAnnouncementsByAnnouncementId = <TComposable extends Composab
 /**
  * List organisation documents
  *
- * List a folder of the organisation's document library (the root without `parent_id`) with the breadcrumb path — only what the caller may see, each item with the caller's `permissions`. The Kernteam sees everything plus the access lists (`access`); with `view=member` it sees the library like a member.
+ * List a folder of the organisation's document library (the root without `parent_id`) with its breadcrumb path — only what the caller may see, each item with the caller's `permissions`. Each file carries its `content_url`; `shared` marks items with a share link. The Kernteam sees everything plus the access lists (`access`); with `view=member` it sees the library like a member.
  */
 export const getOrgDocuments = <TComposable extends Composable = '$fetch', DefaultT extends GetOrgDocumentsResponse = GetOrgDocumentsResponse>(options: Options<TComposable, GetOrgDocumentsData, GetOrgDocumentsResponse, DefaultT>): RequestResult<TComposable, GetOrgDocumentsResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetOrgDocumentsResponse | DefaultT, GetOrgDocumentsError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2980,7 +2980,7 @@ export const getOrgDocuments = <TComposable extends Composable = '$fetch', Defau
 /**
  * Upload organisation document
  *
- * Upload a file into the organisation's document library — the Kernteam anywhere, others where an access list lets them upload.
+ * Upload a file (multipart/form-data, field `file`) into the organisation's document library, optionally into the folder `parent_id` — where the caller may upload.
  */
 export const postOrgDocuments = <TComposable extends Composable = '$fetch', DefaultT extends PostOrgDocumentsResponse = PostOrgDocumentsResponse>(options: Options<TComposable, PostOrgDocumentsData, PostOrgDocumentsResponse, DefaultT>): RequestResult<TComposable, PostOrgDocumentsResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostOrgDocumentsResponse | DefaultT, PostOrgDocumentsError, DefaultT>({
     ...formDataBodySerializer,
@@ -2996,7 +2996,7 @@ export const postOrgDocuments = <TComposable extends Composable = '$fetch', Defa
 /**
  * Create organisation folder
  *
- * Create a folder in the organisation's document library — the Kernteam anywhere, others where an access list lets them upload.
+ * Create a folder in the organisation's document library — where the caller may upload.
  */
 export const postOrgDocumentsFolders = <TComposable extends Composable = '$fetch', DefaultT extends PostOrgDocumentsFoldersResponse = PostOrgDocumentsFoldersResponse>(options: Options<TComposable, PostOrgDocumentsFoldersData, PostOrgDocumentsFoldersResponse, DefaultT>): RequestResult<TComposable, PostOrgDocumentsFoldersResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostOrgDocumentsFoldersResponse | DefaultT, PostOrgDocumentsFoldersError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

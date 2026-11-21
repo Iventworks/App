@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { API } from "../server/lib/api";
 import { type CapturedEmail, EmailService } from "../server/lib/api/utils/email";
+import { FileLibraryModel } from "../server/lib/api/utils/shared-models/fileLibrary";
 import { AccountSessionsModel } from "../server/lib/api/versions/v1/routes/account/sessions/model";
 import { AdminAuditLogModel } from "../server/lib/api/versions/v1/routes/admin/audit-log/model";
 import { AdminInvitationsModel } from "../server/lib/api/versions/v1/routes/admin/invitations/model";
@@ -11,7 +12,6 @@ import { hashInvitationToken } from "../server/lib/api/versions/v1/routes/auth/i
 import { AuthInvitationsModel } from "../server/lib/api/versions/v1/routes/auth/invitations/model";
 import { OrgAnnouncementsModel } from "../server/lib/api/versions/v1/routes/org/announcements/model";
 import { CoreTeamModel } from "../server/lib/api/versions/v1/routes/org/core-team/model";
-import { OrgDocumentsModel } from "../server/lib/api/versions/v1/routes/org/documents/model";
 import { OrgResourcesModel } from "../server/lib/api/versions/v1/routes/org/resources/model";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
@@ -723,7 +723,7 @@ describe("Organisation documents", () => {
 				method: "POST",
 				authToken: coreSession.token,
 				body: { name: "Leitfäden" },
-				expectedBodySchema: OrgDocumentsModel.CreateFolder.Response,
+				expectedBodySchema: FileLibraryModel.CreateFolder.Response,
 			},
 			201,
 		);
@@ -735,7 +735,7 @@ describe("Organisation documents", () => {
 			{
 				authToken: coreSession.token,
 				additionalOptions: { method: "POST", body: uploadForm("leitfaden.txt", folder.id) },
-				expectedBodySchema: OrgDocumentsModel.Upload.Response,
+				expectedBodySchema: FileLibraryModel.Upload.Response,
 			},
 			201,
 		);
@@ -746,7 +746,7 @@ describe("Organisation documents", () => {
 
 		const hidden = await makeAPIRequest("/v1/org/documents", {
 			authToken: volunteerSession.token,
-			expectedBodySchema: OrgDocumentsModel.GetAll.Response,
+			expectedBodySchema: FileLibraryModel.GetAll.Response,
 		});
 		expect(hidden.items.some((item) => item.id === folder.id)).toBe(false);
 		await makeAPIRequest(
@@ -771,7 +771,7 @@ describe("Organisation documents", () => {
 
 		const root = await makeAPIRequest("/v1/org/documents", {
 			authToken: volunteerSession.token,
-			expectedBodySchema: OrgDocumentsModel.GetAll.Response,
+			expectedBodySchema: FileLibraryModel.GetAll.Response,
 		});
 		expect(root.folder).toBeNull();
 		expect(root.items.some((item) => item.id === folder.id)).toBe(true);
@@ -780,7 +780,7 @@ describe("Organisation documents", () => {
 
 		const inside = await makeAPIRequest(`/v1/org/documents?parent_id=${folder.id}`, {
 			authToken: volunteerSession.token,
-			expectedBodySchema: OrgDocumentsModel.GetAll.Response,
+			expectedBodySchema: FileLibraryModel.GetAll.Response,
 		});
 		expect(inside.folder?.id).toBe(folder.id);
 		expect(inside.path.map((entry) => entry.id)).toEqual([folder.id]);

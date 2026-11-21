@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { FileService } from "../../../../../utils/fileService";
-import { FileTrash } from "../../../../../utils/fileTrash";
+import { FileService } from "../fileService";
+import { FileTrash } from "../fileTrash";
 
-export namespace OrgDocumentsModel.GetAll {
+/** The document library routes (`createFileLibraryRouter`): the org library and event documents. */
+export namespace FileLibraryModel.GetAll {
 	export const Query = FileService.ListQuery;
 	export type Query = z.infer<typeof Query>;
 
@@ -10,7 +11,7 @@ export namespace OrgDocumentsModel.GetAll {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace OrgDocumentsModel.Upload {
+export namespace FileLibraryModel.Upload {
 	export const Form = FileService.UploadForm;
 	export type Form = z.infer<typeof Form>;
 
@@ -18,7 +19,7 @@ export namespace OrgDocumentsModel.Upload {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace OrgDocumentsModel.CreateFolder {
+export namespace FileLibraryModel.CreateFolder {
 	export const Body = FileService.CreateFolderBody;
 	export type Body = z.infer<typeof Body>;
 
@@ -26,7 +27,15 @@ export namespace OrgDocumentsModel.CreateFolder {
 	export type Response = z.infer<typeof Response>;
 }
 
-export namespace OrgDocumentsModel.Trash {
+export namespace FileLibraryModel.CreateOffice {
+	export const Body = FileService.CreateOfficeBody;
+	export type Body = z.infer<typeof Body>;
+
+	export const Response = FileService.ItemSchema;
+	export type Response = z.infer<typeof Response>;
+}
+
+export namespace FileLibraryModel.Trash {
 	export const Response = FileTrash.ListResponse;
 	export type Response = z.infer<typeof Response>;
 
@@ -37,12 +46,4 @@ export namespace OrgDocumentsModel.Trash {
 
 	export const Item = FileService.ItemSchema;
 	export type Item = z.infer<typeof Item>;
-}
-
-export namespace OrgDocumentsModel.CreateOffice {
-	export const Body = FileService.CreateOfficeBody;
-	export type Body = z.infer<typeof Body>;
-
-	export const Response = FileService.ItemSchema;
-	export type Response = z.infer<typeof Response>;
 }
