@@ -31,15 +31,22 @@ function cookieAuthHeader(c: Context): string | undefined {
 	return token ? `Bearer ${token}` : undefined;
 }
 
-// The office server's WOPI calls (`routes/wopi`): authenticated by their access token and the
-// office server's signature, never by a login — some office servers also send the access token as
-// `Authorization: Bearer …`, which must not be taken for (and rejected as) a session token.
-function isWopiPath(fullPath: string) {
-	return fullPath.slice(Math.max(fullPath.indexOf("/v1/"), 0)).startsWith("/v1/wopi/");
+// Never behind a login, whatever the request carries:
+// - the office server's WOPI calls (`routes/wopi`): authenticated by their access token and the
+//   office server's signature — some office servers also send the access token as
+//   `Authorization: Bearer …`, which must not be taken for (and rejected as) a session token;
+// - what people without an account open through a link (`routes/public`: document share links,
+//   forms): the token in the path decides, and a visitor's expired session must not turn the page
+//   into a 401.
+const NO_LOGIN_PATHS = ["/v1/wopi/", "/v1/public/"];
+
+function isNoLoginPath(fullPath: string) {
+	const path = fullPath.slice(Math.max(fullPath.indexOf("/v1/"), 0));
+	return NO_LOGIN_PATHS.some((prefix) => path.startsWith(prefix));
 }
 
 export const authMiddlewareV1 = createMiddleware(async (c, next) => {
-	if (isWopiPath(c.req.path)) {
+	if (isNoLoginPath(c.req.path)) {
 		AuthHandler.AuthContext.set(c, {
 			type: "unauthenticated",
 		} satisfies AuthHandler.UnauthenticatedAuthContext);

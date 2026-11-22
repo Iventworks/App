@@ -11,6 +11,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { UserAccountSettings } from "../api/utils/shared-models/accountData";
+import type { FormFields } from "../forms/fields";
 import type { Recurrence } from "../utils/recurrence";
 import { SQLUtils } from "./utils";
 
@@ -76,6 +77,8 @@ export const orgs = sqliteTable("orgs", {
 	file_sharing_enabled: integer({ mode: "boolean" }).notNull().default(true),
 	// Expiry suggested for new share links, in days; null = no expiry by default.
 	share_default_expiry_days: integer(),
+	// The starter form templates (`FormStarters`) were added once; deleting them is final.
+	form_starters_added: integer({ mode: "boolean" }).notNull().default(false),
 	// Applies to accounts created from now on; existing usernames are never changed.
 	username_mode: text({ enum: USERNAME_MODES }).notNull().default("schema"),
 	username_schema: text().notNull().default(DEFAULT_USERNAME_SCHEMA),
@@ -689,7 +692,7 @@ export const files = sqliteTable(
 );
 
 /**
- * Share links for people without an account (like Nextcloud): `<org url>/s/<token>` opens one
+ * Share links for people without an account (like Nextcloud): `<org url>/s/doc/<token>` opens one
  * file or folder — a folder with everything inside it. What the link allows is stored per link:
  * `can_read` (view/download; off = an upload-only drop box), `can_upload` (folders: add files and
  * folders), `can_edit` (rename, replace file contents) and `can_delete` (delete inside the shared
@@ -1080,6 +1083,77 @@ export const announcements = sqliteTable(
 	(table) => [
 		index("announcements_org_id_idx").on(table.org_id),
 		index("announcements_event_id_idx").on(table.event_id),
+	],
+);
+
+// ---------------------------------------------------------------------------
+// Forms ("Formulare")
+// ---------------------------------------------------------------------------
+
+export const FORM_SCOPES = ["org", "event", "template"] as const;
+export const FORM_STATUSES = ["draft", "open", "closed"] as const;
+
+/**
+ * Forms anyone with the link fills in (`<org url>/s/form/<token>`, no account): the Kernteam's
+ * (`scope = org`), an event's (`event`, managed by its Leitung) and the Kernteam's templates for
+ * both (`template`, never published). `fields` are the questions (`FormFields` in
+ * server/lib/forms/fields.ts). A form is a draft until it is published — then it gets its `token`
+ * and keeps it —, takes answers while `open` and before `closes_at`, and keeps its link when
+ * `closed`.
+ * @deprecated Use DB.Tables.forms to access this table.
+ */
+export const forms = sqliteTable(
+	"forms",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		scope: text({ enum: FORM_SCOPES }).notNull(),
+		event_id: integer().references(() => events.id, { onDelete: "cascade" }),
+		title: text().notNull(),
+		description: text().notNull().default(""),
+		fields: text({ mode: "json" }).$type<FormFields.Field[]>().notNull().default(sql`'[]'`),
+		// Shown after sending; empty: a default text.
+		confirmation_message: text().notNull().default(""),
+		status: text({ enum: FORM_STATUSES }).notNull().default("draft"),
+		token: text().unique(),
+		// Stops taking answers at this instant (the status stays `open`).
+		closes_at: integer(),
+		published_at: integer(),
+		closed_at: integer(),
+		// The number the last answer got (`form_responses.number`); back to 0 when all are deleted.
+		last_response_number: integer().notNull().default(0),
+		created_by: integer().references(() => users.id, { onDelete: "set null" }),
+		updated_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [
+		index("forms_org_id_idx").on(table.org_id),
+		index("forms_event_id_idx").on(table.event_id),
+	],
+);
+
+/**
+ * Answers to a form, anonymous: no account, no address, nothing but the answers (`FormAnswers`,
+ * by question id) and when they came. `number` counts per form (1, 2, …); a deleted answer's
+ * number is not given again (`forms.last_response_number`).
+ * @deprecated Use DB.Tables.formResponses to access this table.
+ */
+export const formResponses = sqliteTable(
+	"form_responses",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		form_id: integer()
+			.notNull()
+			.references(() => forms.id, { onDelete: "cascade" }),
+		number: integer().notNull(),
+		answers: text({ mode: "json" }).$type<Record<string, string | number | string[]>>().notNull(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [
+		index("form_responses_org_id_idx").on(table.org_id),
+		uniqueIndex("form_responses_form_number_idx").on(table.form_id, table.number),
 	],
 );
 

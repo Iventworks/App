@@ -27,8 +27,8 @@ import type {
 	GetFilesByFileIdVersionsResponses,
 	GetNotificationsResponses,
 	GetOrgDocumentsTrashResponses,
-	GetSharesByTokenItemsResponses,
-	GetSharesByTokenResponses,
+	GetPublicDocsByTokenItemsResponses,
+	GetPublicDocsByTokenResponses,
 	GetSystemDomainsResponses,
 	GetSystemOrgsResponses,
 	GetUsersResponses,
@@ -122,6 +122,6 @@ export type SharePermissions = FileShare["permissions"];
 /** A share link with the item it opens (admins' overview). */
 export type AdminShare = GetAdminSharesResponses["200"]["data"][number];
 /** What a share link's visitors see. */
-export type PublicShareInfo = GetSharesByTokenResponses["200"]["data"];
+export type PublicShareInfo = GetPublicDocsByTokenResponses["200"]["data"];
 export type PublicShareItem = NonNullable<PublicShareInfo["item"]>;
-export type PublicShareListing = GetSharesByTokenItemsResponses["200"]["data"];
+export type PublicShareListing = GetPublicDocsByTokenItemsResponses["200"]["data"];

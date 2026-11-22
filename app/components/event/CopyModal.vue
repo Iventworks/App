@@ -94,6 +94,13 @@ const PARTS: { key: Part; label: string; hint: string; icon: string; default: bo
 		default: false,
 	},
 	{
+		key: "forms",
+		label: "Formulare",
+		hint: "Als Entwürfe mit allen Fragen; ohne Antworten und ohne Link.",
+		icon: "i-lucide-clipboard-list",
+		default: true,
+	},
+	{
 		key: "documents",
 		label: "Dokumente",
 		hint: "Alle Ordner und Dateien als eigene Kopien.",

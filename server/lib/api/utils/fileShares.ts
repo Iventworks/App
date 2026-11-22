@@ -13,7 +13,7 @@ const TOKEN_LENGTH = 32;
 const UNLOCK_TTL_MS = 12 * 60 * 60 * 1000;
 
 /**
- * Share links for people without an account (`file_shares`, like Nextcloud): `<org url>/s/<token>`
+ * Share links for people without an account (`file_shares`, like Nextcloud): `<org url>/s/doc/<token>`
  * opens one file or folder; a folder share covers everything below it. Every request through a
  * link is confined to that subtree ({@link FileShares.resolveInShare}).
  *
@@ -35,7 +35,7 @@ export class FileShares {
 	}
 
 	static url(token: string) {
-		return `${OrgContext.current().url}/s/${token}`;
+		return `${OrgContext.current().url}/s/doc/${token}`;
 	}
 
 	static isExpired(share: Pick<DB.Models.FileShare, "expires_at">, now = Date.now()) {
@@ -356,7 +356,7 @@ export namespace FileShares {
 	export const View = z.object({
 		id: z.number(),
 		file_id: z.number(),
-		/** `<org url>/s/<token>` — what gets sent to people. */
+		/** `<org url>/s/doc/<token>` — what gets sent to people. */
 		url: z.string(),
 		/** Internal note; never shown to the link's visitors. */
 		label: z.string().nullable(),

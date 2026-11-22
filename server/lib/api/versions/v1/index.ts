@@ -13,13 +13,14 @@ import { router as conversationsRouter } from "./routes/conversations";
 import { router as dashboardRouter } from "./routes/dashboard";
 import { router as eventsRouter } from "./routes/events";
 import { router as filesRouter } from "./routes/files";
+import { router as formsRouter } from "./routes/forms";
 import { router as instanceRouter } from "./routes/instance";
 import { router as notesRouter } from "./routes/notes";
 import { router as notificationsRouter } from "./routes/notifications";
 import { router as orgRouter } from "./routes/org";
+import { router as publicRouter } from "./routes/public";
 import { router as pushRouter } from "./routes/push";
 import { router as realtimeRouter } from "./routes/realtime";
-import { router as sharesRouter } from "./routes/shares";
 import { router as systemRouter } from "./routes/system";
 import { router as tasksRouter } from "./routes/tasks";
 import { router as usersRouter } from "./routes/users";
@@ -56,9 +57,16 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[DOCS_TAGS.FILES, "File contents, renaming, moving and deleting"],
 	[DOCS_TAGS.FILE_SHARES, "Share links for people without an account", DOCS_TAGS.FILES],
 	[
-		DOCS_TAGS.PUBLIC_SHARES,
-		"What a share link opens: no account, the link's token (and password) decide",
+		DOCS_TAGS.PUBLIC.DOCS,
+		"What a document share link opens: no account, the link's token (and password) decide",
+		DOCS_TAGS.PUBLIC.BASE,
 	],
+	[
+		DOCS_TAGS.PUBLIC.FORMS,
+		"Filling in a form through its link: no account, the token decides",
+		DOCS_TAGS.PUBLIC.BASE,
+	],
+	[DOCS_TAGS.FORMS, "One form or template: questions, publishing, copies and answers"],
 
 	[DOCS_TAGS.EVENTS.EVENTS, "Camps, events and recurring events"],
 	[DOCS_TAGS.EVENTS.MEMBERS, "Leaders and staff of an event", DOCS_TAGS.EVENTS.EVENTS],
@@ -93,6 +101,7 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[DOCS_TAGS.EVENTS.NOTES, "Event-wide and group notes", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.ANNOUNCEMENTS, "News for the event's staff", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.DOCUMENTS, "Event documents and folders", DOCS_TAGS.EVENTS.EVENTS],
+	[DOCS_TAGS.EVENTS.FORMS, "The event's forms (leaders)", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.EXPENSES, "Expenses and receipts", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.BUDGET, "Budget planning (leaders)", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.INSIGHTS, "Statistics and audit log (leaders)", DOCS_TAGS.EVENTS.EVENTS],
@@ -104,6 +113,7 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 		DOCS_TAGS.ORG.BASE,
 	],
 	[DOCS_TAGS.ORG.RESOURCES, "Inventory and resource bookings for events", DOCS_TAGS.ORG.BASE],
+	[DOCS_TAGS.ORG.FORMS, "The core team's forms and the form templates", DOCS_TAGS.ORG.BASE],
 	[
 		DOCS_TAGS.ORG.CORE_TEAM,
 		"Core team tools: finances, statistics, staff planning, notes",
@@ -200,8 +210,12 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 					DOCS_TAGS.USERS,
 					DOCS_TAGS.FILES,
 					DOCS_TAGS.FILE_SHARES,
-					DOCS_TAGS.PUBLIC_SHARES,
+					DOCS_TAGS.FORMS,
 				],
+			},
+			{
+				name: DOCS_TAGS.PUBLIC.BASE,
+				tags: [DOCS_TAGS.PUBLIC.DOCS, DOCS_TAGS.PUBLIC.FORMS],
 			},
 			{
 				name: DOCS_TAGS.EVENTS.BASE,
@@ -268,12 +282,13 @@ router.route("/", realtimeRouter);
 router.route("/", pushRouter);
 router.route("/", usersRouter);
 router.route("/", filesRouter);
-router.route("/", sharesRouter);
+router.route("/", publicRouter);
 // The office server's WOPI calls (own protocol, not in the OpenAPI spec).
 router.route("/", wopiRouter);
 
 router.route("/", eventsRouter);
 router.route("/", orgRouter);
+router.route("/", formsRouter);
 
 export class APIv1Router extends APIVersionRouter {
 	constructor() {

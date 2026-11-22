@@ -61,8 +61,8 @@ function idFor(ids: SeededIds, path: string, param: string): string {
 		case "kind":
 			return "logo";
 		case "token":
-			// The share link token (`/shares/{token}`).
-			return pick("shareToken");
+			// A document share link's token (`/public/docs/{token}`) or a form's (`/public/forms/{token}`).
+			return pick(path.startsWith("/public/forms") ? "formToken" : "shareToken");
 		case "filename":
 			return "datei.txt";
 		case "orgId":
@@ -97,6 +97,7 @@ function bodyIdFor(field: string, ids: SeededIds, userIds: number[]): number | n
 		participant_id: one("participantId"),
 		program_item_id: one("programItemId"),
 		reply_to_id: one("messageId"),
+		template_id: one("templateId"),
 	};
 	if (field.endsWith("_ids")) {
 		if (field.includes("file") || field.includes("attachment")) {

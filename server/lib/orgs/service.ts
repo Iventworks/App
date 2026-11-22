@@ -1,5 +1,6 @@
 import { and, count, eq, isNotNull } from "drizzle-orm";
 import { DB } from "../db";
+import { FormStarters } from "../forms/starters";
 import { FileStorage } from "../utils/fileStorage";
 import { Logger } from "../utils/logger";
 import { OrgContext } from "./context";
@@ -100,6 +101,7 @@ export class OrgService {
 		await OrgRegistry.reload();
 		const org = OrgRegistry.get(id);
 		if (!org) throw new Error(`Org ${id} missing from the registry after creation`);
+		FormStarters.addTo(org);
 		return org;
 	}
 

@@ -87,6 +87,7 @@ export class EventCopier {
 					)
 					.get()?.value ?? 0,
 			announcements: countOf(T.announcements),
+			forms: countOf(T.forms),
 			budget: countOf(T.budgetItems),
 			documents: documents.value,
 			documents_size: documents.size,
@@ -622,6 +623,30 @@ export class EventCopier {
 					}
 				}
 
+				// --- forms: drafts with the same questions; no answers, no link ---------------------------
+				if (include.forms) {
+					for (const form of tx
+						.select()
+						.from(T.forms)
+						.where(and(inOrg(T.forms), eq(T.forms.event_id, source.id)))
+						.all()) {
+						tx
+							.insert(T.forms)
+							.values({
+								org_id,
+								scope: "event",
+								event_id: event.id,
+								title: form.title,
+								description: form.description,
+								fields: form.fields,
+								confirmation_message: form.confirmation_message,
+								created_by: options.userId,
+								updated_by: options.userId,
+							})
+							.run();
+					}
+				}
+
 				if (include.budget) {
 					for (const item of tx
 						.select()
@@ -811,6 +836,7 @@ export namespace EventCopier {
 		"tasks",
 		"notes",
 		"announcements",
+		"forms",
 		"budget",
 		"documents",
 		"resources",
@@ -837,6 +863,8 @@ export namespace EventCopier {
 		/** Event notes, and group notes when `groups` are copied. */
 		notes: z.boolean().default(false),
 		announcements: z.boolean().default(false),
+		/** Forms as drafts with their questions and texts — without answers and without a link. */
+		forms: z.boolean().default(true),
 		/** Planned budget lines (not the expenses). */
 		budget: z.boolean().default(true),
 		/** Folders and files of the event's documents. */
@@ -858,6 +886,7 @@ export namespace EventCopier {
 		tasks: z.number(),
 		notes: z.number(),
 		announcements: z.number(),
+		forms: z.number(),
 		budget: z.number(),
 		documents: z.number(),
 		/** Bytes of all files among the documents. */

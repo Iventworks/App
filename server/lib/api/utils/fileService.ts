@@ -23,7 +23,7 @@ function contentDisposition(type: "inline" | "attachment", name: string) {
  *
  * File contents are plain paths with an access check on every request:
  * `GET /files/{fileId}/content/{name}` for signed-in people (the session cookie is accepted there,
- * so `<img src>`, links and new tabs work), `GET /shares/{token}/files/{fileId}/content/{name}`
+ * so `<img src>`, links and new tabs work), `GET /public/docs/{token}/files/{fileId}/content/{name}`
  * for share links. Every item carries its `content_url`.
  */
 export class FileService {

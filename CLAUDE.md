@@ -59,6 +59,11 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
   `<FilesBrowser scope="…" v-bind="library" />`. What a person may do comes with the listing and
   each listed item (`permissions`; managers get `manage`, which shows access lists, "Zugriff" and
   "Teilen") — never derive it from roles in the page (AGENTS.md › Document access lists).
+- Form pages (`/core-team/forms/[form_id]`, `/events/[event_id]/forms/[form_id]`): the parent
+  page calls `createFormDetail({ … })` and `provideFormDetail(detail)` after the `await`; the tabs
+  are one-line pages around `FormsQuestionsEditor` / `FormsSettingsEditor` /
+  `FormsResponsesView`, which use `useFormDetail()`. The form components live in
+  `components/forms/` (`Forms*`); `components/form/` holds input fields (`FormDatePicker`, …).
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
 - `UDashboardToolbar` is only for sub-route navigation
   (`<UNavigationMenu :items="subrouterPathDynamics.links.value" highlight class="-mx-1 flex-1" />`,

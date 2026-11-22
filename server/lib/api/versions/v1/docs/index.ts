@@ -21,7 +21,14 @@ export const DOCS_TAGS = {
 	USERS: "Users",
 	FILES: "Files",
 	FILE_SHARES: "Files / Share links",
-	PUBLIC_SHARES: "Public share links",
+	FORMS: "Forms",
+
+	PUBLIC: {
+		BASE: "Public",
+
+		DOCS: "Public / Documents",
+		FORMS: "Public / Forms",
+	},
 
 	EVENTS: {
 		BASE: "Events",
@@ -39,6 +46,7 @@ export const DOCS_TAGS = {
 		NOTES: "Events / Notes",
 		ANNOUNCEMENTS: "Events / Announcements",
 		DOCUMENTS: "Events / Documents",
+		FORMS: "Events / Forms",
 		EXPENSES: "Events / Expenses",
 		BUDGET: "Events / Budget",
 		INSIGHTS: "Events / Statistics & Audit Log",
@@ -49,6 +57,7 @@ export const DOCS_TAGS = {
 
 		ANNOUNCEMENTS: "Organisation / Announcements",
 		DOCUMENTS: "Organisation / Documents",
+		FORMS: "Organisation / Forms",
 		RESOURCES: "Organisation / Resources",
 		CORE_TEAM: "Organisation / Core Team",
 	},

@@ -25,7 +25,10 @@ const HOME_ROUTE = "/";
 const SYSTEM_HOME_ROUTE = "/admin";
 const SYSTEM_PREFIXES = ["/auth", "/settings", "/admin"];
 const SYSTEM_ONLY_PREFIXES = ["/admin/orgs", "/admin/domains"];
-/** Share links (`/s/<token>`): no account needed, the token decides (org hosts only). */
+/**
+ * Links for people without an account (`/s/<kind>/<token>`: documents, forms): no account needed,
+ * the token decides (org hosts only).
+ */
 const PUBLIC_PREFIXES = ["/s"];
 const PENDING_ROUTE = "/pending";
 const ALWAYS_ALLOWED_FOR_UNVERIFIED = ["/settings", PENDING_ROUTE];

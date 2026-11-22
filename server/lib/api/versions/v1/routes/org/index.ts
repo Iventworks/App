@@ -3,7 +3,7 @@ import { requireOrgRole } from "../../../../utils/guards";
 
 /**
  * Organisation level: news, the shared document library and inventory for everyone; finances,
- * statistics, staff planning and internal notes for the core team ("Kernteam").
+ * statistics, staff planning, internal notes and forms for the core team ("Kernteam").
  * Fine-grained checks (`PermissionHelper.can`) live in the handlers.
  */
 export const router = new Hono().basePath("/org");
@@ -14,3 +14,5 @@ router.route("/", (await import("./announcements")).router);
 router.route("/", (await import("./documents")).router);
 router.route("/", (await import("./resources")).router);
 router.route("/", (await import("./core-team")).router);
+router.route("/", (await import("./forms")).router);
+router.route("/", (await import("./form-templates")).router);

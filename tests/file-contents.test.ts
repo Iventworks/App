@@ -193,7 +193,7 @@ describe("While the office server edits", () => {
 			},
 			201,
 		);
-		const token = share.url.split("/s/")[1];
+		const token = share.url.split("/s/doc/")[1];
 
 		expect(FileLocks.officeLock(doc.id, "office-lock")).toEqual({ ok: true });
 
@@ -206,7 +206,7 @@ describe("While the office server edits", () => {
 			409,
 		);
 		await makeAPIRequest(
-			`/v1/shares/${token}/files/${doc.id}/content`,
+			`/v1/public/docs/${token}/files/${doc.id}/content`,
 			{ additionalOptions: { method: "PUT", body: uploadForm("von außen") } },
 			409,
 		);

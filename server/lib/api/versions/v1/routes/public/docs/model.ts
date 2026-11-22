@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { FileShares } from "../../../../utils/fileShares";
+import { FileShares } from "../../../../../utils/fileShares";
 
 /** What a share link's visitors see: no ids of people, no internal label, no library details. */
-export namespace PublicSharesModel {
+export namespace PublicDocsModel {
 	export const TokenParams = z.object({
 		token: z.string().min(1).max(64),
 	});

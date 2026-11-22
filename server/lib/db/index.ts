@@ -128,6 +128,8 @@ export namespace DB.Tables {
 	export const tasks = TableSchema.tasks;
 	export const notes = TableSchema.notes;
 	export const announcements = TableSchema.announcements;
+	export const forms = TableSchema.forms;
+	export const formResponses = TableSchema.formResponses;
 
 	export const expenses = TableSchema.expenses;
 	export const budgetItems = TableSchema.budgetItems;
@@ -197,6 +199,8 @@ export namespace DB.Models {
 	export type Task = typeof DB.Tables.tasks.$inferSelect;
 	export type Note = typeof DB.Tables.notes.$inferSelect;
 	export type Announcement = typeof DB.Tables.announcements.$inferSelect;
+	export type Form = typeof DB.Tables.forms.$inferSelect;
+	export type FormResponse = typeof DB.Tables.formResponses.$inferSelect;
 
 	export type Expense = typeof DB.Tables.expenses.$inferSelect;
 	export type BudgetItem = typeof DB.Tables.budgetItems.$inferSelect;

@@ -3,7 +3,7 @@
  *
  * Content paths are checked on every request: the session cookie authenticates them, so
  * `<img src>`, `<a href>` and "open in new tab" work. Share links have their own content paths
- * (`/api/v1/shares/<token>/files/…`) in the same field. `download: true` forces an attachment.
+ * (`/api/v1/public/docs/<token>/files/…`) in the same field. `download: true` forces an attachment.
  */
 export function useFileURL() {
 	const origin = useAPIOrigin();

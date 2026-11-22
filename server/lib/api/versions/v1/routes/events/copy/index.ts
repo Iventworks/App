@@ -30,6 +30,7 @@ const PART_LABELS: Record<EventCopier.Part, string> = {
 	tasks: "Aufgaben",
 	notes: "Notizen",
 	announcements: "Neuigkeiten",
+	forms: "Formulare",
 	budget: "Budgetplanung",
 	documents: "Dokumente",
 	resources: "Ressourcen",

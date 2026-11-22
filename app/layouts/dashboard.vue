@@ -137,6 +137,9 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 	];
 
 	const leaderItems: NavigationMenuItem[] = [
+		...(can("forms:manage")
+			? [{ label: "Formulare", icon: "i-lucide-clipboard-list", to: `${base}/forms` }]
+			: []),
 		...(can("event:edit")
 			? [{ label: "Einstellungen", icon: "i-lucide-settings-2", to: `${base}/settings` }]
 			: []),
@@ -153,7 +156,9 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 			label: "Leitung",
 			icon: "i-lucide-crown",
 			type: "trigger",
-			defaultOpen: leaderItems.some((item) => route.path === item.to),
+			defaultOpen: leaderItems.some(
+				(item) => route.path === item.to || route.path.startsWith(`${item.to}/`),
+			),
 			children: leaderItems,
 		});
 	}
@@ -223,6 +228,7 @@ const coreTeamItems: NavigationMenuItem[] = [
 	{ label: "Material & Ressourcen", icon: "i-lucide-package", to: "/core-team/resources" },
 	{ label: "Neuigkeiten verwalten", icon: "i-lucide-megaphone", to: "/core-team/announcements" },
 	{ label: "Dokumente verwalten", icon: "i-lucide-library", to: "/core-team/documents" },
+	{ label: "Formulare", icon: "i-lucide-clipboard-list", to: "/core-team/forms" },
 	{ label: "Interne Notizen", icon: "i-lucide-notebook-tabs", to: "/core-team/notes" },
 	{ label: "Kernteam-Chat", icon: "i-lucide-messages-square", to: "/messages?channel=core_team" },
 ];
