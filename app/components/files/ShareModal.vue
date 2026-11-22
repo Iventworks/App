@@ -20,6 +20,11 @@ function presetFor(permissions: SharePermissions): RightsPreset | undefined {
 	return rightsPresetFor(props.item?.kind, permissions);
 }
 
+/** The API's (English) error in German. */
+function errorText(message: string) {
+	return props.item ? fileErrorText(message, libraryScopeOf(props.item)) : message;
+}
+
 // --- links ------------------------------------------------------------------------------------
 
 const shares = ref<FileShare[]>([]);
@@ -37,7 +42,7 @@ async function load() {
 	} else {
 		toast.add({
 			title: "Freigaben konnten nicht geladen werden",
-			description: result.message,
+			description: errorText(result.message),
 			color: "error",
 		});
 	}
@@ -66,7 +71,11 @@ async function remove(share: FileShare) {
 		api.deleteFilesByFileIdSharesByShareId({ path: { fileId: props.item!.id, shareId: share.id } }),
 	);
 	if (!result.success) {
-		toast.add({ title: "Löschen fehlgeschlagen", description: result.message, color: "error" });
+		toast.add({
+			title: "Löschen fehlgeschlagen",
+			description: errorText(result.message),
+			color: "error",
+		});
 		return;
 	}
 	toast.add({
@@ -161,7 +170,11 @@ async function save() {
 	saving.value = false;
 
 	if (!result.success) {
-		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
+		toast.add({
+			title: "Speichern fehlgeschlagen",
+			description: errorText(result.message),
+			color: "error",
+		});
 		return;
 	}
 	if (!editing.value) await copy((result.data as FileShare).url);

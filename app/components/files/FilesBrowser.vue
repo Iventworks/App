@@ -10,9 +10,9 @@
  * allows share links — "Teilen".
  *
  * Files open on the in-app file page (`/files/{id}`, previews). The open folder lives in
- * `?folder=` so the browser's back button works. Items can be moved by
- * dragging them onto a folder or a breadcrumb entry; files can be dropped from the desktop to
- * upload.
+ * `?folder=` so the browser's back button works. Items can be moved by dragging them onto a
+ * folder or a breadcrumb entry, or with "Verschieben nach …" (`FilesMoveModal`, for phones and
+ * keyboards); files can be dropped from the desktop to upload.
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { Utils } from "~/utils";
@@ -392,24 +392,41 @@ async function onDropOnFolder(targetId: number | null) {
 	const allowed = canDropOn(targetId);
 	onDragEnd();
 	if (!item || !allowed) return;
+	await moveItem(item, targetId);
+}
 
+/**
+ * Move an item into another folder of this library (`targetId` null: the top level) — drag and
+ * drop, "Eine Ebene nach oben" and "Verschieben nach …". The server checks the rights.
+ */
+async function moveItem(item: FileItem, targetId: number | null) {
 	const result = await useAPI((api) =>
 		api.putFilesByFileId({ path: { fileId: item.id }, body: { parent_id: targetId } }),
 	);
-	if (result.success) {
-		toast.add({
-			title: `„${item.name}“ verschoben`,
-			color: "success",
-			icon: "i-lucide-folder-input",
-		});
-		await refresh();
-	} else {
+	if (!result.success) {
 		toast.add({
 			title: "Verschieben fehlgeschlagen",
 			description: fileErrorText(result.message, props.scope),
 			color: "error",
 		});
+		return false;
 	}
+	toast.add({
+		title: `„${item.name}“ verschoben`,
+		color: "success",
+		icon: "i-lucide-folder-input",
+	});
+	await refresh();
+	return true;
+}
+
+/** "Verschieben nach …": pick the folder in a dialog (works without drag and drop, e.g. on phones). */
+const moveTarget = ref<FileItem | null>(null);
+const moveOpen = ref(false);
+
+function openMove(item: FileItem) {
+	moveTarget.value = item;
+	moveOpen.value = true;
 }
 
 // --- delete ---------------------------------------------------------------------------------
@@ -519,6 +536,13 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 	if (can(item, "rename")) {
 		editing.push({ label: "Umbenennen", icon: "i-lucide-pencil", onSelect: () => openRename(item) });
 	}
+	if (can(item, "delete")) {
+		editing.push({
+			label: "Verschieben nach …",
+			icon: "i-lucide-folder-input",
+			onSelect: () => openMove(item),
+		});
+	}
 	if (can(item, "delete") && listing.value?.folder) {
 		editing.push({
 			label: "Eine Ebene nach oben",
@@ -546,8 +570,7 @@ function itemActions(item: FileItem): DropdownMenuItem[][] {
 const rows = computed(() => items.value.map((item) => ({ item, actions: itemActions(item) })));
 
 async function onMoveUp(item: FileItem) {
-	draggedItem.value = item;
-	await onDropOnFolder(listing.value?.folder?.parent_id ?? null);
+	await moveItem(item, listing.value?.folder?.parent_id ?? null);
 }
 
 /** The in-app file page; `from` leads its breadcrumb back to this library page. */
@@ -871,6 +894,13 @@ defineExpose({ refresh });
 
 		<input ref="replaceInput" type="file" class="hidden" @change="onReplace" />
 		<FilesVersionsModal v-model:open="versionsOpen" :item="versionsTarget" @restored="refresh" />
+		<FilesMoveModal
+			v-model:open="moveOpen"
+			:item="moveTarget"
+			:root-label="rootLabel"
+			:load="load"
+			:move="moveItem"
+		/>
 		<FilesShareModal v-model:open="shareOpen" :item="shareTarget" @changed="refresh" />
 		<FilesAccessModal v-model:open="accessOpen" :item="accessTarget" :scope="scope" @changed="refresh" />
 

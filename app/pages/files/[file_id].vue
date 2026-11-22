@@ -95,8 +95,7 @@ const locationItems = computed(() => {
 		];
 	}
 	if (current.scope === "org") {
-		const label = libraryPage.value === "/core-team/documents" ? "Ablage" : "Bibliothek";
-		return [{ label, to: folderLink(null) }, ...folders];
+		return [{ label: "Bibliothek", to: folderLink(null) }, ...folders];
 	}
 	return [];
 });

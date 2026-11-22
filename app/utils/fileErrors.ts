@@ -37,11 +37,30 @@ export function fileErrorText(message: string, scope: LibraryScope) {
 		["not allowed to add documents here", "Hier darfst du nichts ablegen."],
 		["not allowed to edit this file", "Du darfst diese Datei nicht bearbeiten."],
 		["not allowed to manage access", `Den Zugriff legt ${managers} fest.`],
+		// Share links ("Teilen").
+		["Share links are switched off", "Freigabelinks sind in deiner Organisation ausgeschaltet."],
+		["not allowed to share", `Freigabelinks erstellt und verwaltet nur ${managers}.`],
+		["manage share links", `Freigabelinks erstellt und verwaltet nur ${managers}.`],
+		["Share link not found", "Diesen Freigabelink gibt es nicht (mehr)."],
+		["Expiry must be in the future", "Das Ablaufdatum muss in der Zukunft liegen."],
+		["Mindestens 4 Zeichen", "Das Passwort muss mindestens 4 Zeichen lang sein."],
+		["Nothing to change", "Es gibt nichts zu ändern."],
 		["not allowed", "Dazu fehlt dir die Berechtigung."],
 		["listed once", "Jede Gruppe und jede Person darf nur einmal in der Liste stehen."],
-		["people on the event's team", "Hinzufügen kannst du nur Personen aus dem Team."],
+		[
+			"people on the event's team",
+			"Hinzufügen kannst du nur Personen aus dem Team, nicht die Leitung (sie hat ohnehin Zugriff).",
+		],
 		["Group not found", "Diese Gruppe gibt es nicht (mehr)."],
+		// Before "User not found": the access lists' message names both cases.
+		[
+			"always has full access as Kernteam",
+			"Diese Person kann nicht in die Liste: Es gibt sie nicht (mehr), sie ist nicht aktiv, oder sie gehört zum Kernteam und hat ohnehin Zugriff.",
+		],
 		["User not found", "Diese Person gibt es nicht (mehr)."],
+		// Validation errors (the API doesn't say which field).
+		["input is invalid", "Bitte prüfe deine Eingaben."],
+		["validation error", "Bitte prüfe deine Eingaben."],
 	];
 	return texts.find(([part]) => message.includes(part))?.[1] ?? message;
 }
