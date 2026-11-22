@@ -53,11 +53,14 @@ export namespace EventMaterialsModel {
 		owner: UserSummary.Schema.nullable(),
 		/** The request it answers. */
 		request_id: z.number().nullable(),
-		/** `purchase`: when it was bought (null = still to buy). */
+		/**
+		 * When it was bought (null = still to buy). Also on an `inventory` entry that was bought for
+		 * the event and taken into the inventory; its Auslage can still be filed.
+		 */
 		bought_at: z.number().nullable(),
 		estimated_cents: z.number().nullable(),
 		buyer: UserSummary.Schema.nullable(),
-		/** An Auslage was filed for buying it. */
+		/** An Auslage was filed for buying it (a rejected one doesn't count). */
 		has_expense: z.boolean(),
 		/** Consumable inventory items: how many were used (taken off the stock). */
 		used_quantity: z.number().nullable(),

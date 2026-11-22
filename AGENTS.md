@@ -276,8 +276,9 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Availability goes through `Inventory` (`server/lib/materials/inventory.ts`): bookings hold the
     units for the event's **material period** (`MaterialPeriod.of`: dates widened by
     `events.material_days_before/after`; recurring events: their dates via `EventSchedule`);
-    cancelled events hold nothing. Over the limit = 409. Entries that end up over it later (dates
-    or stock changed) are flagged `overbooked`, not removed.
+    cancelled events hold nothing; a consumable's `used_quantity` no longer counts as held. Over
+    the limit = 409. Entries that end up over it later (dates or stock changed) are flagged
+    `overbooked`, not removed.
   - Rights (`materials:view`/`contribute` = staff, `materials:manage` = Leitung): the Leitung books
     (directly, no approval), plans purchases, answers requests, changes anything; it sees the
     inventory only through `GET /events/{id}/materials/catalog` — free counts, never other events'
@@ -286,12 +287,15 @@ CMP (Crossover Management Portal) before; the repository still is.
     items needing more only warn) and tick the packing list (`packed_at`/`returned_at`).
   - Requests are answered by entries with `request_id`; `MaterialService.settle` makes a request
     `done` once they cover it and opens an automatically settled one again when they no longer do
-    (one the Leitung decided stays). Notifications: `material_requested` (Leitung),
-    `material_answered` (who asked), `material_assigned` (owner/buyer set by someone else).
+    (one the Leitung decided stays; a status the Leitung just set isn't settled over). Code that
+    removes entries elsewhere (Kernteam bookings, deleting an item or a user, leaving the team)
+    collects `MaterialService.answeredBy(…)` first and calls `settleAll` after. Notifications:
+    `material_requested` (Leitung), `material_answered` (who asked), `material_assigned`
+    (owner/buyer set by someone else).
   - Bought purchases stay with the event or move into the inventory (`POST …/bought` with
-    `to_inventory`: stock added, entry becomes `inventory`). An expense can name the purchase
-    (`material_id`, buyer or Leitung, once). Consumables: `used_quantity` changes the stock by the
-    difference.
+    `to_inventory`: stock added, entry becomes `inventory`, `bought_at` stays). An expense can name
+    the purchase (`material_id`, buyer or Leitung; once, again after a rejected one). Consumables:
+    `used_quantity` changes the stock by the difference (409 when the stock has less).
   - Leaving the team deletes the person's `own` entries and clears them as buyer. Copying takes
     `inventory` entries (where free) with place and links to copied program items; duplicating a
     program item keeps its links.

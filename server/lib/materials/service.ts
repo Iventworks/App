@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, type SQL } from "drizzle-orm";
 import { UserSummary } from "../api/utils/shared-models/userSummary";
 import type { EventMaterialsModel } from "../api/versions/v1/routes/events/materials/model";
 import { DB } from "../db";
@@ -27,6 +27,21 @@ export namespace MaterialService {
 		};
 	}
 
+	/** What the API tells about an inventory item next to an entry or in the catalog. */
+	export function resourceInfo(resource: DB.Models.OrgResource): EventMaterialsModel.ResourceInfo {
+		return {
+			id: resource.id,
+			name: resource.name,
+			category: resource.category,
+			brand: resource.brand,
+			size: resource.size,
+			condition: resource.condition,
+			consumable: resource.consumable,
+			location: resource.location,
+			notes: resource.notes,
+		};
+	}
+
 	/** The event's entries (or only `ids`), inventory first, then by name. */
 	export async function list(
 		event: DB.Models.Event,
@@ -35,12 +50,17 @@ export namespace MaterialService {
 	): Promise<EventMaterialsModel.Material[]> {
 		if (ids && ids.length === 0) return [];
 		const rows = await DB.instance()
-			.select({ material: T.eventMaterials, resource: T.orgResources })
+			.select({
+				material: T.eventMaterials,
+				resource: T.orgResources,
+				expense_status: T.expenses.status,
+			})
 			.from(T.eventMaterials)
 			.leftJoin(
 				T.orgResources,
 				and(inOrg(T.orgResources), eq(T.orgResources.id, T.eventMaterials.resource_id)),
 			)
+			.leftJoin(T.expenses, and(inOrg(T.expenses), eq(T.expenses.id, T.eventMaterials.expense_id)))
 			.where(
 				and(
 					inOrg(T.eventMaterials),
@@ -67,7 +87,7 @@ export namespace MaterialService {
 
 		const kindOrder = { inventory: 0, purchase: 1, own: 2 } as const;
 		return rows
-			.map(({ material, resource }) => {
+			.map(({ material, resource, expense_status }) => {
 				const isOwner = material.kind === "own" && material.owner_id === viewer.userId;
 				const isBuyer = material.kind === "purchase" && material.buyer_id === viewer.userId;
 				return {
@@ -77,25 +97,14 @@ export namespace MaterialService {
 					quantity: material.quantity,
 					location: material.location,
 					notes: material.notes,
-					resource: resource
-						? {
-								id: resource.id,
-								name: resource.name,
-								category: resource.category,
-								brand: resource.brand,
-								size: resource.size,
-								condition: resource.condition,
-								consumable: resource.consumable,
-								location: resource.location,
-								notes: resource.notes,
-							}
-						: null,
+					resource: resource ? resourceInfo(resource) : null,
 					owner: material.owner_id ? (users.get(material.owner_id) ?? null) : null,
 					request_id: material.request_id,
 					bought_at: material.bought_at,
 					estimated_cents: material.estimated_cents,
 					buyer: material.buyer_id ? (users.get(material.buyer_id) ?? null) : null,
-					has_expense: material.expense_id !== null,
+					// A rejected Auslage doesn't count: the buyer files a new one.
+					has_expense: expense_status !== null && expense_status !== "rejected",
 					used_quantity: material.used_quantity,
 					packed_at: material.packed_at,
 					returned_at: material.returned_at,
@@ -271,6 +280,20 @@ export namespace MaterialService {
 			.where(and(inOrg(T.materialRequests), eq(T.materialRequests.id, request.id)))
 			.returning()
 			.get();
+	}
+
+	/** Requests answered by the entries matching `where` — to settle them once those are gone. */
+	export async function answeredBy(where: SQL | undefined) {
+		const rows = await DB.instance()
+			.selectDistinct({ request_id: T.eventMaterials.request_id })
+			.from(T.eventMaterials)
+			.where(and(inOrg(T.eventMaterials), isNotNull(T.eventMaterials.request_id), where))
+			.all();
+		return rows.map((row) => row.request_id!);
+	}
+
+	export async function settleAll(requestIds: number[]) {
+		for (const id of new Set(requestIds)) await settle(id);
 	}
 
 	/** User ids of the event's Leitung (members with role `leader`). */

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
@@ -194,15 +194,7 @@ router.get(
 				const others = taken.get(resource.id) ?? 0;
 				const here = booked.get(resource.id) ?? 0;
 				return {
-					id: resource.id,
-					name: resource.name,
-					category: resource.category,
-					brand: resource.brand,
-					size: resource.size,
-					condition: resource.condition,
-					consumable: resource.consumable,
-					location: resource.location,
-					notes: resource.notes,
+					...MaterialService.resourceInfo(resource),
 					quantity: resource.quantity,
 					taken: others,
 					booked_here: here,
@@ -244,16 +236,27 @@ router.put(
 			body.days_before > event.material_days_before || body.days_after > event.material_days_after;
 		if (widened) {
 			const booked = await Inventory.bookedBy(event.id);
-			const taken = await Inventory.takenByOthers(event, [...booked.keys()], {
+			const resourceIds = [...booked.keys()];
+			const before = await Inventory.takenByOthers(event, resourceIds);
+			const after = await Inventory.takenByOthers(event, resourceIds, {
 				material_days_before: body.days_before,
 				material_days_after: body.days_after,
 			});
-			const short: string[] = [];
-			for (const [resourceId, units] of booked) {
-				const resource = await loadResource(resourceId);
-				if (resource && (taken.get(resourceId) ?? 0) + units > resource.quantity)
-					short.push(resource.name);
-			}
+			const resources = resourceIds.length
+				? await DB.instance()
+						.select()
+						.from(T.orgResources)
+						.where(and(inOrg(T.orgResources), inArray(T.orgResources.id, resourceIds)))
+						.all()
+				: [];
+			// Only what the added days make short: a shortage that is already there doesn't block.
+			const short = resources
+				.filter((resource) => {
+					const taken = after.get(resource.id) ?? 0;
+					const units = booked.get(resource.id) ?? 0;
+					return taken > (before.get(resource.id) ?? 0) && taken + units > resource.quantity;
+				})
+				.map((resource) => resource.name);
 			if (short.length) {
 				return APIResponse.conflict(
 					c,
@@ -415,7 +418,7 @@ router.put(
 		}
 
 		const statusChanged = body.status !== undefined && body.status !== request.status;
-		await DB.instance()
+		const saved = await DB.instance()
 			.update(T.materialRequests)
 			.set({
 				...body,
@@ -430,8 +433,9 @@ router.put(
 			.where(and(inOrg(T.materialRequests), eq(T.materialRequests.id, request.id)))
 			.returning()
 			.get();
-		// A changed quantity can settle it (or open it again).
-		const updated = (await MaterialService.settle(request.id))!;
+		// A changed quantity can settle it (or open it again) — not when the Leitung just decided
+		// the status, e.g. opened it again although answers cover it.
+		const updated = statusChanged ? saved : (await MaterialService.settle(request.id))!;
 
 		const STATUS_TEXT = { open: "wieder offen", done: "erledigt", rejected: "abgelehnt" } as const;
 		await AuditLog.record({
@@ -744,9 +748,18 @@ router.put(
 			return APIResponse.badRequest(c, "More was used than was booked");
 		}
 		if (resource && body.quantity !== undefined && body.quantity > material.quantity) {
-			if (!(await Inventory.fits(event, resource, body.quantity, material.id))) {
+			if (!(await Inventory.fits(event, resource, quantity - (used ?? 0), material.id))) {
 				return APIResponse.conflict(c, NOT_ENOUGH);
 			}
+		}
+		// Used up: off the stock (or back on when corrected downwards).
+		const usedDelta =
+			resource && body.used_quantity !== undefined ? (used ?? 0) - (material.used_quantity ?? 0) : 0;
+		if (resource && usedDelta > resource.quantity) {
+			return APIResponse.conflict(
+				c,
+				`Only ${resource.quantity} left in stock; the core team corrects the inventory first`,
+			);
 		}
 
 		const now = Date.now();
@@ -764,12 +777,10 @@ router.put(
 			.where(and(inOrg(T.eventMaterials), eq(T.eventMaterials.id, material.id)))
 			.run();
 
-		// Used up: off the stock (or back on when corrected downwards), never below zero.
-		const usedDelta = (used ?? 0) - (material.used_quantity ?? 0);
-		if (resource && body.used_quantity !== undefined && usedDelta !== 0) {
+		if (resource && usedDelta !== 0) {
 			await DB.instance()
 				.update(T.orgResources)
-				.set({ quantity: Math.max(0, resource.quantity - usedDelta) })
+				.set({ quantity: sql`${T.orgResources.quantity} - ${usedDelta}` })
 				.where(and(inOrg(T.orgResources), eq(T.orgResources.id, resource.id)))
 				.run();
 		}
@@ -795,7 +806,7 @@ router.put(
 				entityType: "material",
 				entityId: material.id,
 				summary:
-					body.used_quantity !== undefined && usedDelta !== 0
+					usedDelta !== 0
 						? `Verbrauch von „${name}“: ${used ?? 0} von ${quantity}`
 						: `${quantityLabel(name, quantity)} bearbeitet`,
 			});

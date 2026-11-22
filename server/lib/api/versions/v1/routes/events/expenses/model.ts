@@ -53,7 +53,7 @@ export namespace EventExpensesModel.Create {
 		spent_on: EventExpensesModel.ExpenseFields.spent_on,
 		/**
 		 * The purchase on the event's material list this pays for (the buyer or the Leitung; one
-		 * expense per purchase).
+		 * expense per purchase, a new one after a rejected one).
 		 */
 		material_id: z.number().int().positive().nullable().default(null),
 	});

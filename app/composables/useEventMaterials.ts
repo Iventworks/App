@@ -153,8 +153,8 @@ export async function createEventMaterials(context: {
 	}
 
 	/**
-	 * Program items that need more units than the entry has — one item alone, or several at the
-	 * same time together. `text` names them, `short` fits a table cell.
+	 * Program items that need more units than the entry has — one item alone, or several running at
+	 * the same moment together. `text` names them, `short` fits a table cell.
 	 */
 	function linkWarnings(entry: EventMaterial) {
 		const timed = entry.links.filter(
@@ -163,9 +163,10 @@ export async function createEventMaterials(context: {
 		);
 		const seen = new Set<string>();
 		const warnings: { text: string; short: string }[] = [];
+		// The most needed at once is needed when one of the items starts: check each start.
 		for (const link of timed) {
 			const together = timed.filter(
-				(other) => other.start_at < link.end_at && link.start_at < other.end_at,
+				(other) => other === link || (other.start_at <= link.start_at && link.start_at < other.end_at),
 			);
 			const needed = together.reduce((sum, other) => sum + other.quantity, 0);
 			const key = together
@@ -196,12 +197,15 @@ export async function createEventMaterials(context: {
 			}),
 		);
 		if (!result.success) {
+			const conflict = (result.code as number) === 409;
+			const used = body.used_quantity !== undefined;
 			toast.add({
-				title: (result.code as number) === 409 ? "Nicht genug frei" : "Speichern fehlgeschlagen",
-				description:
-					(result.code as number) === 409
-						? "In diesem Zeitraum ist nicht mehr davon im Lager frei."
-						: result.message,
+				title: !conflict ? "Speichern fehlgeschlagen" : used ? "Verbrauch zu hoch" : "Nicht genug frei",
+				description: !conflict
+					? result.message
+					: used
+						? "Im Lager steht weniger, als du als verbraucht einträgst. Das Kernteam korrigiert zuerst den Bestand."
+						: "In diesem Zeitraum ist nicht mehr davon im Lager frei.",
 				color: "error",
 			});
 			return null;

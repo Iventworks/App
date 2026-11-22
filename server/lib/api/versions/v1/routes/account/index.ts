@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import type { DrizzleDB } from "../../../../../db/utils";
+import { MaterialService } from "../../../../../materials/service";
 import { inOrg } from "../../../../../orgs/context";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
@@ -228,6 +229,11 @@ router.delete(
 
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.getAsSession(c);
+		// What they would have brought leaves the material lists: the requests it answered may be
+		// open again.
+		const answered = await MaterialService.answeredBy(
+			eq(DB.Tables.eventMaterials.owner_id, authContext.user_id),
+		);
 
 		try {
 			await DB.instance().transaction(async (tx: DrizzleDB) => {
@@ -254,6 +260,7 @@ router.delete(
 					.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, authContext.user_id)))
 					.run();
 			});
+			await MaterialService.settleAll(answered);
 
 			return APIResponse.successNoData(c, "Account deleted successfully");
 		} catch (error: any) {

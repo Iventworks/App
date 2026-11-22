@@ -3,10 +3,12 @@
  * How many days before and after the event its inventory bookings hold the material (fetching,
  * packing, bringing back). The API refuses days on which the inventory isn't free.
  */
+import { zPutEventsByEventIdMaterialsPeriodBody } from "~/api-client/zod.gen";
+
 const { event, eventId, period, periodDialog, refresh } = useEventMaterials();
 const toast = useToast();
 
-const MAX_DAYS = 14;
+const MAX_DAYS = zPutEventsByEventIdMaterialsPeriodBody.shape.days_before.maxValue ?? undefined;
 const form = reactive({ days_before: 0, days_after: 0 });
 const saving = ref(false);
 

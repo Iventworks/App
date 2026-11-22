@@ -2323,7 +2323,7 @@ export const putEventsByEventIdProgramByProgramItemId = <TComposable extends Com
 /**
  * Duplicate program item
  *
- * Copy a Programmpunkt (incl. responsible staff and linked documents) to a new start time, keeping its duration.
+ * Copy a Programmpunkt (incl. responsible staff, linked documents and planned material) to a new start time, keeping its duration.
  */
 export const postEventsByEventIdProgramByProgramItemIdDuplicate = <TComposable extends Composable = '$fetch', DefaultT extends PostEventsByEventIdProgramByProgramItemIdDuplicateResponse = PostEventsByEventIdProgramByProgramItemIdDuplicateResponse>(options: Options<TComposable, PostEventsByEventIdProgramByProgramItemIdDuplicateData, PostEventsByEventIdProgramByProgramItemIdDuplicateResponse, DefaultT>): RequestResult<TComposable, PostEventsByEventIdProgramByProgramItemIdDuplicateResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostEventsByEventIdProgramByProgramItemIdDuplicateResponse | DefaultT, PostEventsByEventIdProgramByProgramItemIdDuplicateError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

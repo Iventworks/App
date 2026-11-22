@@ -240,11 +240,21 @@ router.post(
 				)
 				.get();
 			const buyerOrLeader = material?.buyer_id === userId || EventAccess.can(c, "materials:manage");
-			if (!material || material.kind !== "purchase" || !buyerOrLeader) {
+			// Bought and taken into the inventory, it is still the purchase to pay back.
+			const purchase = material?.kind === "purchase" || material?.bought_at != null;
+			if (!material || !purchase || !buyerOrLeader) {
 				return APIResponse.badRequest(c, "The material is not a purchase you can file this for");
 			}
 			if (material.expense_id !== null) {
-				return APIResponse.badRequest(c, "An expense was already filed for this purchase");
+				const filed = await DB.instance()
+					.select({ status: DB.Tables.expenses.status })
+					.from(DB.Tables.expenses)
+					.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, material.expense_id)))
+					.get();
+				// After a rejected one the buyer files a new one.
+				if (filed && filed.status !== "rejected") {
+					return APIResponse.badRequest(c, "An expense was already filed for this purchase");
+				}
 			}
 		}
 

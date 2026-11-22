@@ -118,7 +118,8 @@ function rowActions(entry: EventMaterial): DropdownMenuItem[][] {
 						},
 					]
 				: []),
-			...(entry.kind === "purchase" &&
+			// Also after it went into the inventory: it was still bought.
+			...((entry.kind === "purchase" || entry.bought_at !== null) &&
 			!entry.has_expense &&
 			(isBuyer || manage.value) &&
 			can("expenses:submit")

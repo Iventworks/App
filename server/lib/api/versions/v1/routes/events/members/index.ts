@@ -339,22 +339,13 @@ router.delete(
 		const member = c.get("member");
 		const users = await UserSummary.fetchMap([member.user_id]);
 		// Requests their own things answered may be open again afterwards.
-		const answeredRequests = (
-			await DB.instance()
-				.select({ request_id: DB.Tables.eventMaterials.request_id })
-				.from(DB.Tables.eventMaterials)
-				.where(
-					and(
-						inOrg(DB.Tables.eventMaterials),
-						eq(DB.Tables.eventMaterials.event_id, event.id),
-						eq(DB.Tables.eventMaterials.kind, "own"),
-						eq(DB.Tables.eventMaterials.owner_id, member.user_id),
-					),
-				)
-				.all()
-		)
-			.map((row) => row.request_id)
-			.filter((id): id is number => id !== null);
+		const answeredRequests = await MaterialService.answeredBy(
+			and(
+				eq(DB.Tables.eventMaterials.event_id, event.id),
+				eq(DB.Tables.eventMaterials.kind, "own"),
+				eq(DB.Tables.eventMaterials.owner_id, member.user_id),
+			),
+		);
 
 		try {
 			await DB.instance().transaction(async (tx: DrizzleDB) => {
@@ -530,7 +521,7 @@ router.delete(
 			Logger.error("Failed to remove event member", error.stack || error.message || error);
 			return APIResponse.serverError(c, "Failed to remove member");
 		}
-		for (const requestId of new Set(answeredRequests)) await MaterialService.settle(requestId);
+		await MaterialService.settleAll(answeredRequests);
 
 		await AuditLog.record({
 			userId: c.get("eventAccess").userId,

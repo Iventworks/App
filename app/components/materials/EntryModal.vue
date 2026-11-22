@@ -112,7 +112,8 @@ const canSubmit = computed(() => {
 watch(
 	() => entryDialog.open && editing.value?.kind === "inventory" && manage.value,
 	(load) => {
-		if (load && !catalog.value) void loadCatalog();
+		// Fresh each time: what is free changes with every booking.
+		if (load) void loadCatalog();
 	},
 );
 

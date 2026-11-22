@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import { Inventory, MaterialPeriod } from "../../../../../../materials/inventory";
+import { MaterialService } from "../../../../../../materials/service";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -136,7 +137,8 @@ async function toResponse(
 			booked_now: own
 				.filter((row) => row.event.status !== "cancelled")
 				.filter((row) => schedule.takesPlaceOn(periods.get(row.event.id)!, today))
-				.reduce((sum, row) => sum + row.booking.quantity, 0),
+				// What a consumable used up has left the stock already.
+				.reduce((sum, row) => sum + row.booking.quantity - (row.booking.used_quantity ?? 0), 0),
 			purchases: ownPurchases,
 			on_order: ownPurchases.reduce((sum, purchase) => sum + purchase.quantity, 0),
 		};
@@ -328,6 +330,7 @@ router.delete(
 			.delete(T.eventMaterials)
 			.where(and(inOrg(T.eventMaterials), eq(T.eventMaterials.id, bookingId)))
 			.run();
+		if (row.booking.request_id) await MaterialService.settle(row.booking.request_id);
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),
@@ -575,11 +578,14 @@ router.delete(
 		if (!can(c, "org_resources:write")) return APIResponse.forbidden(c, FORBIDDEN_WRITE);
 
 		const resource = c.get("resource");
+		// Its bookings leave the material lists: the requests they answered may be open again.
+		const answered = await MaterialService.answeredBy(eq(T.eventMaterials.resource_id, resource.id));
 
 		await DB.instance()
 			.delete(T.orgResources)
 			.where(and(inOrg(T.orgResources), eq(T.orgResources.id, resource.id)))
 			.run();
+		await MaterialService.settleAll(answered);
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),

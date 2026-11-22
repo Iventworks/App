@@ -33,7 +33,8 @@ onMounted(async () => {
 	const purchase = result.success
 		? result.data.items.find((item) => item.id === materialId)
 		: undefined;
-	if (!purchase || purchase.kind !== "purchase" || purchase.has_expense) return;
+	if (!purchase || (purchase.kind !== "purchase" && !purchase.bought_at) || purchase.has_expense)
+		return;
 	openCreateExpenseFor({
 		material_id: purchase.id,
 		title: materialLabel(purchase),

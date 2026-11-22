@@ -643,3 +643,208 @@ describe("Overbooking after the fact", () => {
 		).toBe(true);
 	});
 });
+
+describe("Edge cases", () => {
+	let fallId: number;
+	const fall = () => `/v1/events/${fallId}/materials`;
+	const addTo = (body: Record<string, unknown>, token = leaderSession.token, expected = 201) =>
+		add(body, token, expected, fallId);
+	const updateIn = (
+		id: number,
+		body: Record<string, unknown>,
+		token = leaderSession.token,
+		expected = 200,
+	) =>
+		makeAPIRequest<Material>(`${fall()}/${id}`, { method: "PUT", authToken: token, body }, expected);
+	const fallList = () => list(leaderSession.token, fallId);
+	const requestOf = async (id: number) =>
+		(await fallList()).requests.find((entry) => entry.id === id)!;
+	const resource = async (body: Record<string, unknown>) =>
+		await makeAPIRequest("/v1/org/resources", {
+			method: "POST",
+			authToken: coreSession.token,
+			body: { category: "Herbst", ...body },
+		});
+	const ask = async (body: Record<string, unknown>) =>
+		await makeAPIRequest(`${fall()}/requests`, {
+			method: "POST",
+			authToken: annaSession.token,
+			body,
+		});
+
+	beforeAll(async () => {
+		const camp = await makeAPIRequest("/v1/events", {
+			method: "POST",
+			authToken: coreSession.token,
+			body: {
+				name: "Herbstlager",
+				start_date: "2029-10-01",
+				end_date: "2029-10-05",
+				leader_ids: [leader.id],
+			},
+		});
+		fallId = camp.id;
+		await addEventMember(fallId, anna.id, "staff");
+		await addEventMember(fallId, ben.id, "staff");
+	});
+
+	test("used up units no longer count as booked; more than the stock is refused", async () => {
+		const glue = await resource({ name: "Kleber", quantity: 40, consumable: true });
+		const entry = await addTo({ kind: "inventory", resource_id: glue.id, quantity: 40 });
+		await updateIn(entry.id, { used_quantity: 30 });
+		expect(stockOf(glue.id)).toBe(10);
+		expect((await fallList()).items.find((item) => item.id === entry.id)!.overbooked).toBe(false);
+		expect((await catalog(fallId)).find((item) => item.id === glue.id)).toMatchObject({
+			booked_here: 10,
+			free: 0,
+		});
+
+		// The stock says 5 are left: 10 more used up can't be right.
+		await makeAPIRequest(`/v1/org/resources/${glue.id}`, {
+			method: "PUT",
+			authToken: coreSession.token,
+			body: { quantity: 5 },
+		});
+		await updateIn(entry.id, { used_quantity: 40 }, leaderSession.token, 409);
+		expect(stockOf(glue.id)).toBe(5);
+		await updateIn(entry.id, { used_quantity: 35 });
+		expect(stockOf(glue.id)).toBe(0);
+	});
+
+	test("a request the Leitung opens again stays open", async () => {
+		const request = await ask({ name: "Taschenlampe", quantity: 1 });
+		await addTo({ kind: "own", name: "Taschenlampe", owner_id: ben.id, request_id: request.id });
+		expect((await requestOf(request.id)).status).toBe("done");
+		const told = notificationsOf(anna.id, "material_answered").length;
+
+		const reopened = await makeAPIRequest(`${fall()}/requests/${request.id}`, {
+			method: "PUT",
+			authToken: leaderSession.token,
+			body: { status: "open", answer: null },
+		});
+		expect(reopened.status).toBe("open");
+		expect((await requestOf(request.id)).status).toBe("open");
+		expect(notificationsOf(anna.id, "material_answered")).toHaveLength(told);
+	});
+
+	test("answers removed outside the material page open their requests again", async () => {
+		const benches = await resource({ name: "Bierbank", quantity: 4 });
+		const request = await ask({ name: "Bierbänke", quantity: 2 });
+		const booked = await addTo({
+			kind: "inventory",
+			resource_id: benches.id,
+			quantity: 2,
+			request_id: request.id,
+		});
+		expect((await requestOf(request.id)).status).toBe("done");
+
+		// The Kernteam releases the booking …
+		await makeAPIRequest(`/v1/org/resources/bookings/${booked.id}`, {
+			method: "DELETE",
+			authToken: coreSession.token,
+		});
+		expect((await requestOf(request.id)).status).toBe("open");
+
+		// … or removes the item …
+		await addTo({ kind: "inventory", resource_id: benches.id, quantity: 2, request_id: request.id });
+		expect((await requestOf(request.id)).status).toBe("done");
+		await makeAPIRequest(`/v1/org/resources/${benches.id}`, {
+			method: "DELETE",
+			authToken: coreSession.token,
+		});
+		expect((await requestOf(request.id)).status).toBe("open");
+
+		// … or the person who brings it is deleted.
+		const carl = await seedUser("volunteer", { display_name: "Carl Team" });
+		await addEventMember(fallId, carl.id, "staff");
+		await addTo({
+			kind: "own",
+			name: "Bierbank",
+			quantity: 2,
+			owner_id: carl.id,
+			request_id: request.id,
+		});
+		expect((await requestOf(request.id)).status).toBe("done");
+		const admin = await seedUser("admin");
+		const adminSession = await seedSession(admin.id);
+		await makeAPIRequest(`/v1/admin/users/${carl.id}`, {
+			method: "DELETE",
+			authToken: adminSession.token,
+		});
+		expect((await requestOf(request.id)).status).toBe("open");
+	});
+
+	test("taken into the inventory, the buyer still files the Auslage; again after a rejection", async () => {
+		const gas = await addTo({
+			kind: "purchase",
+			name: "Gaskartuschen",
+			quantity: 4,
+			buyer_id: ben.id,
+		});
+		const moved = await makeAPIRequest<Material>(`${fall()}/${gas.id}/bought`, {
+			method: "POST",
+			authToken: leaderSession.token,
+			body: { to_inventory: true, category: "Küche" },
+		});
+		expect(moved.kind).toBe("inventory");
+
+		const expense = {
+			title: "Gaskartuschen",
+			amount_cents: 1996,
+			spent_on: "2029-09-28",
+			material_id: gas.id,
+		};
+		const filed = await makeAPIRequest(`/v1/events/${fallId}/expenses`, {
+			method: "POST",
+			authToken: benSession.token,
+			body: expense,
+		});
+		expect((await fallList()).items.find((item) => item.id === gas.id)!.has_expense).toBe(true);
+
+		await makeAPIRequest(`/v1/events/${fallId}/expenses/${filed.id}/review`, {
+			method: "POST",
+			authToken: leaderSession.token,
+			body: { status: "rejected", note: "Beleg fehlt" },
+		});
+		expect((await fallList()).items.find((item) => item.id === gas.id)!.has_expense).toBe(false);
+		await makeAPIRequest(`/v1/events/${fallId}/expenses`, {
+			method: "POST",
+			authToken: benSession.token,
+			body: expense,
+		});
+		expect((await fallList()).items.find((item) => item.id === gas.id)!.has_expense).toBe(true);
+	});
+
+	test("more material days aren't blocked by a shortage that is already there", async () => {
+		const tents = await resource({ name: "Pavillon", quantity: 2 });
+		await addTo({ kind: "inventory", resource_id: tents.id, quantity: 2 });
+		// One broke after the booking.
+		await makeAPIRequest(`/v1/org/resources/${tents.id}`, {
+			method: "PUT",
+			authToken: coreSession.token,
+			body: { quantity: 1 },
+		});
+		await makeAPIRequest(`${fall()}/period`, {
+			method: "PUT",
+			authToken: leaderSession.token,
+			body: { days_before: 1, days_after: 0 },
+		});
+
+		// A day that another event holds it on does make it worse.
+		const prep = await makeAPIRequest("/v1/events", {
+			method: "POST",
+			authToken: coreSession.token,
+			body: { name: "Herbstvorbereitung", start_date: "2029-09-27", end_date: "2029-09-28" },
+		});
+		await makeAPIRequest(`/v1/org/resources/${tents.id}/bookings`, {
+			method: "POST",
+			authToken: coreSession.token,
+			body: { event_id: prep.id, quantity: 1 },
+		});
+		await makeAPIRequest(
+			`${fall()}/period`,
+			{ method: "PUT", authToken: leaderSession.token, body: { days_before: 3, days_after: 0 } },
+			409,
+		);
+	});
+});
