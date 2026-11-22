@@ -357,6 +357,10 @@ export const events = sqliteTable(
 		max_participants: integer(),
 		participant_fee_cents: integer(),
 		budget_cents: integer().notNull().default(0),
+		// Days the material is needed before the start and after the end (fetching, packing,
+		// returning). Bookings hold the inventory for this longer period. Not for recurring events.
+		material_days_before: integer().notNull().default(0),
+		material_days_after: integer().notNull().default(0),
 		created_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
 		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
@@ -1218,7 +1222,11 @@ export const budgetItems = sqliteTable(
 // Organisation resources (inventory) & bookings
 // ---------------------------------------------------------------------------
 
+export const RESOURCE_CONDITIONS = ["new", "good", "worn", "damaged"] as const;
+
 /**
+ * The organisation's inventory ("Lager"), managed by the Kernteam. `quantity` is what is there;
+ * units still to be bought are `resource_purchases` and only count once bought.
  * @deprecated Use DB.Tables.orgResources to access this table.
  */
 export const orgResources = sqliteTable(
@@ -1229,7 +1237,15 @@ export const orgResources = sqliteTable(
 		name: text().notNull(),
 		category: text().notNull().default("Allgemein"),
 		quantity: integer().notNull().default(1),
+		// Where it is stored ("Lagerort").
 		location: text(),
+		brand: text(),
+		// Size or dimensions, free text ("3 × 4 m", "Größe L").
+		size: text(),
+		// null = not recorded.
+		condition: text({ enum: RESOURCE_CONDITIONS }),
+		// Used up at events ("Verbrauchsmaterial"): what an event used comes off the stock.
+		consumable: integer({ mode: "boolean" }).notNull().default(false),
 		notes: text().notNull().default(""),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
@@ -1237,27 +1253,134 @@ export const orgResources = sqliteTable(
 );
 
 /**
- * A resource reserved for an event (for the event's date range).
- * @deprecated Use DB.Tables.resourceBookings to access this table.
+ * Units of an inventory item the Kernteam still has to buy ("zu kaufen"). They can't be booked;
+ * marking the purchase bought adds them to the stock and removes the row.
+ * @deprecated Use DB.Tables.resourcePurchases to access this table.
  */
-export const resourceBookings = sqliteTable(
-	"resource_bookings",
+export const resourcePurchases = sqliteTable(
+	"resource_purchases",
 	{
 		org_id: orgIdColumn(),
 		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		resource_id: integer()
 			.notNull()
 			.references(() => orgResources.id, { onDelete: "cascade" }),
+		quantity: integer().notNull(),
+		estimated_cents: integer(),
+		buyer_id: integer().references(() => users.id, { onDelete: "set null" }),
+		notes: text().notNull().default(""),
+		created_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+	},
+	(table) => [index("resource_purchases_resource_id_idx").on(table.resource_id)],
+);
+
+export const EVENT_MATERIAL_KINDS = ["inventory", "purchase", "own"] as const;
+export const MATERIAL_REQUEST_STATUSES = ["open", "done", "rejected"] as const;
+
+/**
+ * Something a team member asked for ("Anfrage"), without seeing the inventory. The Leitung
+ * answers it with material entries (`event_materials.request_id`: from the inventory, to buy, or
+ * someone brings it) or rejects it. It is `done` once the answers cover the quantity.
+ * @deprecated Use DB.Tables.materialRequests to access this table.
+ */
+export const materialRequests = sqliteTable(
+	"material_requests",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
 		event_id: integer()
 			.notNull()
 			.references(() => events.id, { onDelete: "cascade" }),
+		name: text().notNull(),
 		quantity: integer().notNull().default(1),
 		notes: text().notNull().default(""),
+		// Needed for this program item: answers are linked to it.
+		program_item_id: integer().references(() => programItems.id, { onDelete: "set null" }),
+		status: text({ enum: MATERIAL_REQUEST_STATUSES }).notNull().default("open"),
+		// The Leitung's note, e.g. why it was rejected.
+		answer: text(),
+		requested_by: integer().references(() => users.id, { onDelete: "set null" }),
+		decided_by: integer().references(() => users.id, { onDelete: "set null" }),
+		decided_at: integer(),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [index("material_requests_event_id_idx").on(table.event_id)],
+);
+
+/**
+ * The material list of an event. `kind`:
+ * - `inventory`: units of an inventory item booked for the event's material period
+ *   (`resource_id`; the name comes from the item). Overlapping events can't book more than there
+ *   are.
+ * - `purchase`: to buy (`bought_at` null) or bought for this event (`name`). Moved into the
+ *   inventory it becomes an `inventory` entry.
+ * - `own`: something `owner_id` brings and lends for this event (`name`).
+ * @deprecated Use DB.Tables.eventMaterials to access this table.
+ */
+export const eventMaterials = sqliteTable(
+	"event_materials",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		event_id: integer()
+			.notNull()
+			.references(() => events.id, { onDelete: "cascade" }),
+		kind: text({ enum: EVENT_MATERIAL_KINDS }).notNull(),
+		resource_id: integer().references(() => orgResources.id, { onDelete: "cascade" }),
+		// `purchase` and `own`; null for `inventory`.
+		name: text(),
+		quantity: integer().notNull().default(1),
+		// Where it is at the event ("Materialzelt", a room).
+		location: text(),
+		notes: text().notNull().default(""),
+		owner_id: integer().references(() => users.id, { onDelete: "cascade" }),
+		request_id: integer().references(() => materialRequests.id, { onDelete: "set null" }),
+		bought_at: integer(),
+		estimated_cents: integer(),
+		buyer_id: integer().references(() => users.id, { onDelete: "set null" }),
+		// The Auslage filed for buying it.
+		expense_id: integer().references(() => expenses.id, { onDelete: "set null" }),
+		// Consumable inventory items: how many were used (already taken off the stock).
+		used_quantity: integer(),
+		// Packing list ("Packliste").
+		packed_at: integer(),
+		returned_at: integer(),
+		created_by: integer().references(() => users.id, { onDelete: "set null" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
+		updated_at: SQLUtils.getCreatedAtColumn("updated_at"),
+	},
+	(table) => [
+		index("event_materials_event_id_idx").on(table.event_id),
+		index("event_materials_resource_id_idx").on(table.resource_id),
+		index("event_materials_request_id_idx").on(table.request_id),
+	],
+);
+
+/**
+ * Where material is used: a program item or (recurring events) one date. `quantity` null = no
+ * number given.
+ * @deprecated Use DB.Tables.materialLinks to access this table.
+ */
+export const materialLinks = sqliteTable(
+	"material_links",
+	{
+		org_id: orgIdColumn(),
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		material_id: integer()
+			.notNull()
+			.references(() => eventMaterials.id, { onDelete: "cascade" }),
+		program_item_id: integer().references(() => programItems.id, { onDelete: "cascade" }),
+		occurrence_id: integer().references(() => eventOccurrences.id, { onDelete: "cascade" }),
+		quantity: integer(),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
 	(table) => [
-		index("resource_bookings_resource_id_idx").on(table.resource_id),
-		index("resource_bookings_event_id_idx").on(table.event_id),
+		uniqueIndex("material_links_program_unique").on(table.material_id, table.program_item_id),
+		uniqueIndex("material_links_occurrence_unique").on(table.material_id, table.occurrence_id),
+		index("material_links_program_item_id_idx").on(table.program_item_id),
+		index("material_links_occurrence_id_idx").on(table.occurrence_id),
 	],
 );
 

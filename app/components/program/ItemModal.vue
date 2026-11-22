@@ -3,7 +3,8 @@
  * Program item details. Staff see a read-only view (time, place, description, responsible people,
  * linked documents, and the Kleingruppen when it takes place in them); leaders (`editable`) edit
  * it, duplicate it to another slot or delete it. Pass `item` to edit an existing item or `draft`
- * (start/end) to create one.
+ * (start/end) to create one. With `materials` (the event's material list) existing items show
+ * the material planned for them, and `canPlanMaterial` lets anyone on the team plan more.
  */
 import * as z from "zod";
 import type {
@@ -11,7 +12,7 @@ import type {
 	GetEventsByEventIdSmallGroupsResponses,
 } from "~/api-client";
 import { zPostEventsByEventIdProgramBody } from "~/api-client/zod.gen";
-import type { EventMember, FileItem } from "~/utils/types";
+import type { EventMaterial, EventMember, FileItem } from "~/utils/types";
 
 type ProgramItem = GetEventsByEventIdProgramResponses["200"]["data"][number];
 type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
@@ -25,13 +26,17 @@ const props = withDefaults(
 		members: EventMember[];
 		/** The event's Kleingruppen, shown for items that take place in them. */
 		smallGroups?: SmallGroup[];
+		/** The event's material list; null when the person doesn't see it. */
+		materials?: EventMaterial[] | null;
+		canPlanMaterial?: boolean;
 	}>(),
-	{ smallGroups: () => [] },
+	{ smallGroups: () => [], materials: null, canPlanMaterial: false },
 );
 
 const emit = defineEmits<{
 	saved: [];
 	deleted: [];
+	materialsChanged: [];
 }>();
 
 const open = defineModel<boolean>("open", { required: true });
@@ -295,6 +300,15 @@ function fileLink(file: FileItem) {
 					</li>
 				</ul>
 			</div>
+
+			<MaterialsProgramBlock
+				v-if="materials"
+				:event-id="eventId"
+				:program-item-id="item.id"
+				:materials="materials"
+				:can-plan="canPlanMaterial"
+				@changed="emit('materialsChanged')"
+			/>
 		</div>
 
 		<!-- edit form for leaders -->
@@ -416,6 +430,15 @@ function fileLink(file: FileItem) {
 					</li>
 				</ul>
 			</div>
+
+			<MaterialsProgramBlock
+				v-if="item && materials"
+				:event-id="eventId"
+				:program-item-id="item.id"
+				:materials="materials"
+				:can-plan="canPlanMaterial"
+				@changed="emit('materialsChanged')"
+			/>
 
 			<div
 				v-if="item"

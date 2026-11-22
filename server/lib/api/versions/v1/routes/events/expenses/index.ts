@@ -225,13 +225,52 @@ router.post(
 
 		const event = c.get("event");
 		const { userId } = c.get("eventAccess");
-		const body = c.req.valid("json") as EventExpensesModel.Create.Body;
+		const { material_id, ...body } = c.req.valid("json") as EventExpensesModel.Create.Body;
+
+		if (material_id) {
+			const material = await DB.instance()
+				.select()
+				.from(DB.Tables.eventMaterials)
+				.where(
+					and(
+						inOrg(DB.Tables.eventMaterials),
+						eq(DB.Tables.eventMaterials.id, material_id),
+						eq(DB.Tables.eventMaterials.event_id, event.id),
+					),
+				)
+				.get();
+			const buyerOrLeader = material?.buyer_id === userId || EventAccess.can(c, "materials:manage");
+			// Bought and taken into the inventory, it is still the purchase to pay back.
+			const purchase = material?.kind === "purchase" || material?.bought_at != null;
+			if (!material || !purchase || !buyerOrLeader) {
+				return APIResponse.badRequest(c, "The material is not a purchase you can file this for");
+			}
+			if (material.expense_id !== null) {
+				const filed = await DB.instance()
+					.select({ status: DB.Tables.expenses.status })
+					.from(DB.Tables.expenses)
+					.where(and(inOrg(DB.Tables.expenses), eq(DB.Tables.expenses.id, material.expense_id)))
+					.get();
+				// After a rejected one the buyer files a new one.
+				if (filed && filed.status !== "rejected") {
+					return APIResponse.badRequest(c, "An expense was already filed for this purchase");
+				}
+			}
+		}
 
 		const expense = await DB.instance()
 			.insert(DB.Tables.expenses)
 			.values({ ...body, event_id: event.id, submitted_by: userId, org_id: OrgContext.id() })
 			.returning()
 			.get();
+
+		if (material_id) {
+			await DB.instance()
+				.update(DB.Tables.eventMaterials)
+				.set({ expense_id: expense.id, updated_at: Date.now() })
+				.where(and(inOrg(DB.Tables.eventMaterials), eq(DB.Tables.eventMaterials.id, material_id)))
+				.run();
+		}
 
 		await AuditLog.record({
 			userId,

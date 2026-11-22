@@ -448,8 +448,8 @@ describe("Copying everything", () => {
 	test("resources are booked again where they are free", async () => {
 		const bookings = db()
 			.select()
-			.from(DB.Tables.resourceBookings)
-			.where(eq(DB.Tables.resourceBookings.resource_id, resourceId))
+			.from(DB.Tables.eventMaterials)
+			.where(eq(DB.Tables.eventMaterials.resource_id, resourceId))
 			.all();
 		expect(bookings.map((booking) => booking.event_id).sort()).toEqual([sourceId, copyId].sort());
 
@@ -463,8 +463,8 @@ describe("Copying everything", () => {
 		expect(
 			db()
 				.select()
-				.from(DB.Tables.resourceBookings)
-				.where(eq(DB.Tables.resourceBookings.event_id, clash.event.id))
+				.from(DB.Tables.eventMaterials)
+				.where(eq(DB.Tables.eventMaterials.event_id, clash.event.id))
 				.all(),
 		).toHaveLength(0);
 	});

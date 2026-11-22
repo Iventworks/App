@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { MaterialService } from "../../../../../../materials/service";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { APIResponse } from "../../../../../utils/api-res";
 import { AuditLog } from "../../../../../utils/auditLog";
@@ -646,6 +647,9 @@ router.delete(
 		if (user.id === getAuthUserId(c)) {
 			return APIResponse.badRequest(c, "You cannot delete your own account here");
 		}
+		// What they would have brought leaves the material lists: the requests it answered may be
+		// open again.
+		const answered = await MaterialService.answeredBy(eq(DB.Tables.eventMaterials.owner_id, user.id));
 
 		await DB.instance().transaction(async (tx: DrizzleDB) => {
 			await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);
@@ -656,6 +660,7 @@ router.delete(
 				.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, user.id)))
 				.run();
 		});
+		await MaterialService.settleAll(answered);
 
 		await AuditLog.record({
 			userId: getAuthUserId(c),

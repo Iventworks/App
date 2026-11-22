@@ -135,7 +135,10 @@ export namespace DB.Tables {
 	export const budgetItems = TableSchema.budgetItems;
 
 	export const orgResources = TableSchema.orgResources;
-	export const resourceBookings = TableSchema.resourceBookings;
+	export const resourcePurchases = TableSchema.resourcePurchases;
+	export const eventMaterials = TableSchema.eventMaterials;
+	export const materialRequests = TableSchema.materialRequests;
+	export const materialLinks = TableSchema.materialLinks;
 
 	export const conversations = TableSchema.conversations;
 	export const conversationMembers = TableSchema.conversationMembers;
@@ -206,7 +209,10 @@ export namespace DB.Models {
 	export type BudgetItem = typeof DB.Tables.budgetItems.$inferSelect;
 
 	export type OrgResource = typeof DB.Tables.orgResources.$inferSelect;
-	export type ResourceBooking = typeof DB.Tables.resourceBookings.$inferSelect;
+	export type ResourcePurchase = typeof DB.Tables.resourcePurchases.$inferSelect;
+	export type EventMaterial = typeof DB.Tables.eventMaterials.$inferSelect;
+	export type MaterialRequest = typeof DB.Tables.materialRequests.$inferSelect;
+	export type MaterialLink = typeof DB.Tables.materialLinks.$inferSelect;
 
 	export type Conversation = typeof DB.Tables.conversations.$inferSelect;
 	export type ConversationMember = typeof DB.Tables.conversationMembers.$inferSelect;

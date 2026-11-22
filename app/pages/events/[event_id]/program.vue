@@ -14,7 +14,7 @@ import type {
 	GetEventsByEventIdSmallGroupsResponses,
 } from "~/api-client";
 import type { UseSubrouterPathDynamics } from "~/composables/useSubrouterPathDynamics";
-import type { EventMember } from "~/utils/types";
+import type { EventMaterials, EventMember } from "~/utils/types";
 
 type ProgramItem = GetEventsByEventIdProgramResponses["200"]["data"][number];
 type SmallGroup = GetEventsByEventIdSmallGroupsResponses["200"]["data"][number];
@@ -99,6 +99,18 @@ const { data: smallGroups } = await useAPIAsyncData(
 			api.getEventsByEventIdSmallGroups({ path: { eventId: eventId.value } }),
 		);
 		return result.success ? result.data : ([] as SmallGroup[]);
+	},
+);
+
+// The material list: the item modal shows (and lets the team plan) what is needed for an item.
+const { data: materials, refresh: refreshMaterials } = await useAPIAsyncData(
+	`event-${eventId.value}-materials`,
+	async () => {
+		if (!can("materials:view")) return null;
+		const result = await useAPI((api) =>
+			api.getEventsByEventIdMaterials({ path: { eventId: eventId.value } }),
+		);
+		return result.success ? (result.data as EventMaterials) : null;
 	},
 );
 
@@ -312,8 +324,11 @@ const exportOpen = ref(false);
 		:editable="editable"
 		:members="members ?? []"
 		:small-groups="smallGroups ?? []"
-		@saved="refresh"
-		@deleted="refresh"
+		:materials="materials?.items ?? null"
+		:can-plan-material="can('materials:contribute')"
+		@saved="refresh().then(() => refreshMaterials())"
+		@deleted="refresh().then(() => refreshMaterials())"
+		@materials-changed="refreshMaterials"
 	/>
 
 	<ProgramExportModal

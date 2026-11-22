@@ -541,7 +541,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Duplicate program item",
 		description:
-			"Copy a Programmpunkt (incl. responsible staff and linked documents) to a new start time, keeping its duration.",
+			"Copy a Programmpunkt (incl. responsible staff, linked documents and planned material) to a new start time, keeping its duration.",
 		tags: [DOCS_TAGS.EVENTS.PROGRAM],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -568,6 +568,11 @@ router.post(
 
 		const responsibleIds = await getResponsibleIds(item.id);
 		const fileIds = await getFileIds(item.id);
+		const materialLinks = await DB.instance()
+			.select()
+			.from(DB.Tables.materialLinks)
+			.where(and(inOrg(DB.Tables.materialLinks), eq(DB.Tables.materialLinks.program_item_id, item.id)))
+			.all();
 
 		let copy: DB.Models.ProgramItem;
 		try {
@@ -591,6 +596,18 @@ router.post(
 					.get();
 				replaceResponsibles(created.id, responsibleIds, tx);
 				replaceFiles(created.id, fileIds, tx);
+				// The copy needs the same material.
+				for (const link of materialLinks) {
+					tx
+						.insert(DB.Tables.materialLinks)
+						.values({
+							org_id: OrgContext.id(),
+							material_id: link.material_id,
+							program_item_id: created.id,
+							quantity: link.quantity,
+						})
+						.run();
+				}
 				return created;
 			});
 		} catch (error: any) {

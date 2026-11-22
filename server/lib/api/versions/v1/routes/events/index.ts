@@ -709,3 +709,4 @@ router.route("/", (await import("./insights")).router);
 router.route("/", (await import("./occurrences")).router);
 router.route("/", (await import("./copy")).router);
 router.route("/", (await import("./forms")).router);
+router.route("/", (await import("./materials")).router);

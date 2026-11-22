@@ -102,6 +102,11 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 	[DOCS_TAGS.EVENTS.ANNOUNCEMENTS, "News for the event's staff", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.DOCUMENTS, "Event documents and folders", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.FORMS, "The event's forms (leaders)", DOCS_TAGS.EVENTS.EVENTS],
+	[
+		DOCS_TAGS.EVENTS.MATERIALS,
+		"The event's material: inventory bookings, purchases, things people bring, requests, packing list",
+		DOCS_TAGS.EVENTS.EVENTS,
+	],
 	[DOCS_TAGS.EVENTS.EXPENSES, "Expenses and receipts", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.BUDGET, "Budget planning (leaders)", DOCS_TAGS.EVENTS.EVENTS],
 	[DOCS_TAGS.EVENTS.INSIGHTS, "Statistics and audit log (leaders)", DOCS_TAGS.EVENTS.EVENTS],
@@ -112,7 +117,11 @@ const TAG_DEFINITIONS: [string, string, string?][] = [
 		"Organisation-wide documents (read: everyone, write: core team)",
 		DOCS_TAGS.ORG.BASE,
 	],
-	[DOCS_TAGS.ORG.RESOURCES, "Inventory and resource bookings for events", DOCS_TAGS.ORG.BASE],
+	[
+		DOCS_TAGS.ORG.RESOURCES,
+		"The inventory, purchases and bookings for events (core team)",
+		DOCS_TAGS.ORG.BASE,
+	],
 	[DOCS_TAGS.ORG.FORMS, "The core team's forms and the form templates", DOCS_TAGS.ORG.BASE],
 	[
 		DOCS_TAGS.ORG.CORE_TEAM,

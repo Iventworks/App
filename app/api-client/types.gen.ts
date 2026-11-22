@@ -9146,12 +9146,14 @@ export type GetEventsResponses = {
             max_participants: number | null;
             participant_fee_cents: number | null;
             budget_cents: number;
+            material_days_before: number;
+            material_days_after: number;
             created_by: number | null;
             created_at: number;
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9254,12 +9256,14 @@ export type PostEventsResponses = {
             max_participants: number | null;
             participant_fee_cents: number | null;
             budget_cents: number;
+            material_days_before: number;
+            material_days_after: number;
             created_by: number | null;
             created_at: number;
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9403,12 +9407,14 @@ export type GetEventsByEventIdResponses = {
             max_participants: number | null;
             participant_fee_cents: number | null;
             budget_cents: number;
+            material_days_before: number;
+            material_days_after: number;
             created_by: number | null;
             created_at: number;
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9520,12 +9526,14 @@ export type PutEventsByEventIdResponses = {
             max_participants: number | null;
             participant_fee_cents: number | null;
             budget_cents: number;
+            material_days_before: number;
+            material_days_after: number;
             created_by: number | null;
             created_at: number;
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9618,12 +9626,14 @@ export type GetEventsByEventIdOverviewResponses = {
                 max_participants: number | null;
                 participant_fee_cents: number | null;
                 budget_cents: number;
+                material_days_before: number;
+                material_days_after: number;
                 created_by: number | null;
                 created_at: number;
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -14513,6 +14523,7 @@ export type PostEventsByEventIdExpensesData = {
         category?: string;
         amount_cents: number;
         spent_on: string;
+        material_id?: number | null;
     };
     path: {
         eventId: number;
@@ -16327,12 +16338,14 @@ export type PostEventsByEventIdCopyResponses = {
                 max_participants: number | null;
                 participant_fee_cents: number | null;
                 budget_cents: number;
+                material_days_before: number;
+                material_days_after: number;
                 created_by: number | null;
                 created_at: number;
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -16656,6 +16669,1232 @@ export type PostEventsByEventIdFormsResponses = {
 };
 
 export type PostEventsByEventIdFormsResponse = PostEventsByEventIdFormsResponses[keyof PostEventsByEventIdFormsResponses];
+
+export type GetEventsByEventIdMaterialsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials';
+};
+
+export type GetEventsByEventIdMaterialsErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to see the material of this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to see the material of this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdMaterialsError = GetEventsByEventIdMaterialsErrors[keyof GetEventsByEventIdMaterialsErrors];
+
+export type GetEventsByEventIdMaterialsResponses = {
+    /**
+     * Material retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Material retrieved successfully';
+        data: {
+            period: {
+                days_before: number;
+                days_after: number;
+                from: string;
+                until: string;
+            } | null;
+            items: Array<{
+                id: number;
+                kind: 'inventory' | 'purchase' | 'own';
+                name: string;
+                quantity: number;
+                location: string | null;
+                notes: string;
+                resource: {
+                    id: number;
+                    name: string;
+                    category: string;
+                    brand: string | null;
+                    size: string | null;
+                    condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                    consumable: boolean;
+                    location: string | null;
+                    notes: string;
+                } | null;
+                owner: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                request_id: number | null;
+                bought_at: number | null;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                has_expense: boolean;
+                used_quantity: number | null;
+                packed_at: number | null;
+                returned_at: number | null;
+                links: Array<{
+                    id: number;
+                    program_item_id: number | null;
+                    occurrence_id: number | null;
+                    quantity: number | null;
+                    title: string | null;
+                    start_at: number | null;
+                    end_at: number | null;
+                    date: string | null;
+                }>;
+                overbooked: boolean;
+                creator: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                created_at: number;
+                updated_at: number;
+                can_edit: boolean;
+                can_delete: boolean;
+                can_mark_bought: boolean;
+            }>;
+            requests: Array<{
+                id: number;
+                name: string;
+                quantity: number;
+                notes: string;
+                program_item: {
+                    id: number;
+                    title: string;
+                    start_at: number;
+                } | null;
+                status: 'open' | 'done' | 'rejected';
+                answer: string | null;
+                requested_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                decided_by: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                decided_at: number | null;
+                created_at: number;
+                covered: number;
+                can_edit: boolean;
+                can_delete: boolean;
+            }>;
+        };
+    };
+};
+
+export type GetEventsByEventIdMaterialsResponse = GetEventsByEventIdMaterialsResponses[keyof GetEventsByEventIdMaterialsResponses];
+
+export type PostEventsByEventIdMaterialsData = {
+    body: {
+        kind: 'inventory' | 'purchase' | 'own';
+        resource_id?: number | null;
+        name?: string | null;
+        quantity?: number;
+        location?: string | null;
+        notes?: string;
+        owner_id?: number | null;
+        estimated_cents?: number | null;
+        buyer_id?: number | null;
+        request_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials';
+};
+
+export type PostEventsByEventIdMaterialsErrors = {
+    /**
+     * Inventory item not found / A name is required / … is not on the event's team / The request is not open / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Inventory item not found / A name is required / … is not on the event\'s team / The request is not open / Syntax or validation error in request';
+    };
+    /**
+     * Only the event's leaders can do this
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the event\'s leaders can do this';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+    /**
+     * Not enough units available
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Not enough units available';
+    };
+};
+
+export type PostEventsByEventIdMaterialsError = PostEventsByEventIdMaterialsErrors[keyof PostEventsByEventIdMaterialsErrors];
+
+export type PostEventsByEventIdMaterialsResponses = {
+    /**
+     * Material added successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Material added successfully';
+        data: {
+            id: number;
+            kind: 'inventory' | 'purchase' | 'own';
+            name: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                brand: string | null;
+                size: string | null;
+                condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                consumable: boolean;
+                location: string | null;
+                notes: string;
+            } | null;
+            owner: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            request_id: number | null;
+            bought_at: number | null;
+            estimated_cents: number | null;
+            buyer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            has_expense: boolean;
+            used_quantity: number | null;
+            packed_at: number | null;
+            returned_at: number | null;
+            links: Array<{
+                id: number;
+                program_item_id: number | null;
+                occurrence_id: number | null;
+                quantity: number | null;
+                title: string | null;
+                start_at: number | null;
+                end_at: number | null;
+                date: string | null;
+            }>;
+            overbooked: boolean;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            can_edit: boolean;
+            can_delete: boolean;
+            can_mark_bought: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdMaterialsResponse = PostEventsByEventIdMaterialsResponses[keyof PostEventsByEventIdMaterialsResponses];
+
+export type GetEventsByEventIdMaterialsCatalogData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/catalog';
+};
+
+export type GetEventsByEventIdMaterialsCatalogErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Only the event's leaders can do this
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the event\'s leaders can do this';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdMaterialsCatalogError = GetEventsByEventIdMaterialsCatalogErrors[keyof GetEventsByEventIdMaterialsCatalogErrors];
+
+export type GetEventsByEventIdMaterialsCatalogResponses = {
+    /**
+     * Inventory retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Inventory retrieved successfully';
+        data: Array<{
+            id: number;
+            name: string;
+            category: string;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
+            location: string | null;
+            notes: string;
+            quantity: number;
+            taken: number;
+            booked_here: number;
+            free: number;
+            on_order: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdMaterialsCatalogResponse = GetEventsByEventIdMaterialsCatalogResponses[keyof GetEventsByEventIdMaterialsCatalogResponses];
+
+export type PutEventsByEventIdMaterialsPeriodData = {
+    body: {
+        days_before: number;
+        days_after: number;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/period';
+};
+
+export type PutEventsByEventIdMaterialsPeriodErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the event's leaders can do this
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the event\'s leaders can do this';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+    /**
+     * Not enough units available on the added days: …
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Not enough units available on the added days: …';
+    };
+};
+
+export type PutEventsByEventIdMaterialsPeriodError = PutEventsByEventIdMaterialsPeriodErrors[keyof PutEventsByEventIdMaterialsPeriodErrors];
+
+export type PutEventsByEventIdMaterialsPeriodResponses = {
+    /**
+     * Period updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Period updated successfully';
+        data: {
+            days_before: number;
+            days_after: number;
+            from: string;
+            until: string;
+        };
+    };
+};
+
+export type PutEventsByEventIdMaterialsPeriodResponse = PutEventsByEventIdMaterialsPeriodResponses[keyof PutEventsByEventIdMaterialsPeriodResponses];
+
+export type PostEventsByEventIdMaterialsRequestsData = {
+    body: {
+        name: string;
+        quantity?: number;
+        notes?: string;
+        program_item_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/requests';
+};
+
+export type PostEventsByEventIdMaterialsRequestsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add material to this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add material to this event';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type PostEventsByEventIdMaterialsRequestsError = PostEventsByEventIdMaterialsRequestsErrors[keyof PostEventsByEventIdMaterialsRequestsErrors];
+
+export type PostEventsByEventIdMaterialsRequestsResponses = {
+    /**
+     * Request created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Request created successfully';
+        data: {
+            id: number;
+            name: string;
+            quantity: number;
+            notes: string;
+            program_item: {
+                id: number;
+                title: string;
+                start_at: number;
+            } | null;
+            status: 'open' | 'done' | 'rejected';
+            answer: string | null;
+            requested_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            decided_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            decided_at: number | null;
+            created_at: number;
+            covered: number;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdMaterialsRequestsResponse = PostEventsByEventIdMaterialsRequestsResponses[keyof PostEventsByEventIdMaterialsRequestsResponses];
+
+export type DeleteEventsByEventIdMaterialsRequestsByRequestIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        requestId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/requests/{requestId}';
+};
+
+export type DeleteEventsByEventIdMaterialsRequestsByRequestIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to delete this request
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to delete this request';
+    };
+    /**
+     * Request not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Request not found';
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsRequestsByRequestIdError = DeleteEventsByEventIdMaterialsRequestsByRequestIdErrors[keyof DeleteEventsByEventIdMaterialsRequestsByRequestIdErrors];
+
+export type DeleteEventsByEventIdMaterialsRequestsByRequestIdResponses = {
+    /**
+     * Request deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Request deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsRequestsByRequestIdResponse = DeleteEventsByEventIdMaterialsRequestsByRequestIdResponses[keyof DeleteEventsByEventIdMaterialsRequestsByRequestIdResponses];
+
+export type PutEventsByEventIdMaterialsRequestsByRequestIdData = {
+    body?: {
+        name?: string;
+        quantity?: number;
+        notes?: string;
+        program_item_id?: number | null;
+        status?: 'open' | 'done' | 'rejected';
+        answer?: string | null;
+    };
+    path: {
+        eventId: number;
+        requestId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/requests/{requestId}';
+};
+
+export type PutEventsByEventIdMaterialsRequestsByRequestIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to change this request
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to change this request';
+    };
+    /**
+     * Request not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Request not found';
+    };
+};
+
+export type PutEventsByEventIdMaterialsRequestsByRequestIdError = PutEventsByEventIdMaterialsRequestsByRequestIdErrors[keyof PutEventsByEventIdMaterialsRequestsByRequestIdErrors];
+
+export type PutEventsByEventIdMaterialsRequestsByRequestIdResponses = {
+    /**
+     * Request updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Request updated successfully';
+        data: {
+            id: number;
+            name: string;
+            quantity: number;
+            notes: string;
+            program_item: {
+                id: number;
+                title: string;
+                start_at: number;
+            } | null;
+            status: 'open' | 'done' | 'rejected';
+            answer: string | null;
+            requested_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            decided_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            decided_at: number | null;
+            created_at: number;
+            covered: number;
+            can_edit: boolean;
+            can_delete: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdMaterialsRequestsByRequestIdResponse = PutEventsByEventIdMaterialsRequestsByRequestIdResponses[keyof PutEventsByEventIdMaterialsRequestsByRequestIdResponses];
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        materialId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/{materialId}';
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * You are not allowed to remove this
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to remove this';
+    };
+    /**
+     * Material not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Material not found';
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdError = DeleteEventsByEventIdMaterialsByMaterialIdErrors[keyof DeleteEventsByEventIdMaterialsByMaterialIdErrors];
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdResponses = {
+    /**
+     * Material removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Material removed successfully';
+        data: null;
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdResponse = DeleteEventsByEventIdMaterialsByMaterialIdResponses[keyof DeleteEventsByEventIdMaterialsByMaterialIdResponses];
+
+export type PutEventsByEventIdMaterialsByMaterialIdData = {
+    body?: {
+        name?: string;
+        quantity?: number;
+        notes?: string;
+        location?: string | null;
+        estimated_cents?: number | null;
+        buyer_id?: number | null;
+        used_quantity?: number | null;
+        packed?: boolean;
+        returned?: boolean;
+    };
+    path: {
+        eventId: number;
+        materialId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/{materialId}';
+};
+
+export type PutEventsByEventIdMaterialsByMaterialIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to change this
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to change this';
+    };
+    /**
+     * Material not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Material not found';
+    };
+    /**
+     * Not enough units available
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Not enough units available';
+    };
+};
+
+export type PutEventsByEventIdMaterialsByMaterialIdError = PutEventsByEventIdMaterialsByMaterialIdErrors[keyof PutEventsByEventIdMaterialsByMaterialIdErrors];
+
+export type PutEventsByEventIdMaterialsByMaterialIdResponses = {
+    /**
+     * Material updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Material updated successfully';
+        data: {
+            id: number;
+            kind: 'inventory' | 'purchase' | 'own';
+            name: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                brand: string | null;
+                size: string | null;
+                condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                consumable: boolean;
+                location: string | null;
+                notes: string;
+            } | null;
+            owner: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            request_id: number | null;
+            bought_at: number | null;
+            estimated_cents: number | null;
+            buyer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            has_expense: boolean;
+            used_quantity: number | null;
+            packed_at: number | null;
+            returned_at: number | null;
+            links: Array<{
+                id: number;
+                program_item_id: number | null;
+                occurrence_id: number | null;
+                quantity: number | null;
+                title: string | null;
+                start_at: number | null;
+                end_at: number | null;
+                date: string | null;
+            }>;
+            overbooked: boolean;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            can_edit: boolean;
+            can_delete: boolean;
+            can_mark_bought: boolean;
+        };
+    };
+};
+
+export type PutEventsByEventIdMaterialsByMaterialIdResponse = PutEventsByEventIdMaterialsByMaterialIdResponses[keyof PutEventsByEventIdMaterialsByMaterialIdResponses];
+
+export type PostEventsByEventIdMaterialsByMaterialIdBoughtData = {
+    body?: {
+        to_inventory?: boolean;
+        resource_id?: number | null;
+        category?: string | null;
+    };
+    path: {
+        eventId: number;
+        materialId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/{materialId}/bought';
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdBoughtErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to mark this bought
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to mark this bought';
+    };
+    /**
+     * Material not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Material not found';
+    };
+    /**
+     * Already bought
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Already bought';
+    };
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdBoughtError = PostEventsByEventIdMaterialsByMaterialIdBoughtErrors[keyof PostEventsByEventIdMaterialsByMaterialIdBoughtErrors];
+
+export type PostEventsByEventIdMaterialsByMaterialIdBoughtResponses = {
+    /**
+     * Purchase updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Purchase updated successfully';
+        data: {
+            id: number;
+            kind: 'inventory' | 'purchase' | 'own';
+            name: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                brand: string | null;
+                size: string | null;
+                condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                consumable: boolean;
+                location: string | null;
+                notes: string;
+            } | null;
+            owner: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            request_id: number | null;
+            bought_at: number | null;
+            estimated_cents: number | null;
+            buyer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            has_expense: boolean;
+            used_quantity: number | null;
+            packed_at: number | null;
+            returned_at: number | null;
+            links: Array<{
+                id: number;
+                program_item_id: number | null;
+                occurrence_id: number | null;
+                quantity: number | null;
+                title: string | null;
+                start_at: number | null;
+                end_at: number | null;
+                date: string | null;
+            }>;
+            overbooked: boolean;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            can_edit: boolean;
+            can_delete: boolean;
+            can_mark_bought: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdBoughtResponse = PostEventsByEventIdMaterialsByMaterialIdBoughtResponses[keyof PostEventsByEventIdMaterialsByMaterialIdBoughtResponses];
+
+export type PostEventsByEventIdMaterialsByMaterialIdLinksData = {
+    body?: {
+        program_item_id?: number | null;
+        occurrence_id?: number | null;
+        quantity?: number | null;
+    };
+    path: {
+        eventId: number;
+        materialId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/{materialId}/links';
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdLinksErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add material to this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add material to this event';
+    };
+    /**
+     * Material not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Material not found';
+    };
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdLinksError = PostEventsByEventIdMaterialsByMaterialIdLinksErrors[keyof PostEventsByEventIdMaterialsByMaterialIdLinksErrors];
+
+export type PostEventsByEventIdMaterialsByMaterialIdLinksResponses = {
+    /**
+     * Link saved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Link saved successfully';
+        data: {
+            id: number;
+            kind: 'inventory' | 'purchase' | 'own';
+            name: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                brand: string | null;
+                size: string | null;
+                condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                consumable: boolean;
+                location: string | null;
+                notes: string;
+            } | null;
+            owner: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            request_id: number | null;
+            bought_at: number | null;
+            estimated_cents: number | null;
+            buyer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            has_expense: boolean;
+            used_quantity: number | null;
+            packed_at: number | null;
+            returned_at: number | null;
+            links: Array<{
+                id: number;
+                program_item_id: number | null;
+                occurrence_id: number | null;
+                quantity: number | null;
+                title: string | null;
+                start_at: number | null;
+                end_at: number | null;
+                date: string | null;
+            }>;
+            overbooked: boolean;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            can_edit: boolean;
+            can_delete: boolean;
+            can_mark_bought: boolean;
+        };
+    };
+};
+
+export type PostEventsByEventIdMaterialsByMaterialIdLinksResponse = PostEventsByEventIdMaterialsByMaterialIdLinksResponses[keyof PostEventsByEventIdMaterialsByMaterialIdLinksResponses];
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdData = {
+    body?: never;
+    path: {
+        eventId: number;
+        materialId: number;
+        linkId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/materials/{materialId}/links/{linkId}';
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to add material to this event
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to add material to this event';
+    };
+    /**
+     * Link not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Link not found';
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdError = DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdErrors[keyof DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdErrors];
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdResponses = {
+    /**
+     * Link removed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Link removed successfully';
+        data: {
+            id: number;
+            kind: 'inventory' | 'purchase' | 'own';
+            name: string;
+            quantity: number;
+            location: string | null;
+            notes: string;
+            resource: {
+                id: number;
+                name: string;
+                category: string;
+                brand: string | null;
+                size: string | null;
+                condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+                consumable: boolean;
+                location: string | null;
+                notes: string;
+            } | null;
+            owner: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            request_id: number | null;
+            bought_at: number | null;
+            estimated_cents: number | null;
+            buyer: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            has_expense: boolean;
+            used_quantity: number | null;
+            packed_at: number | null;
+            returned_at: number | null;
+            links: Array<{
+                id: number;
+                program_item_id: number | null;
+                occurrence_id: number | null;
+                quantity: number | null;
+                title: string | null;
+                start_at: number | null;
+                end_at: number | null;
+                date: string | null;
+            }>;
+            overbooked: boolean;
+            creator: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            can_edit: boolean;
+            can_delete: boolean;
+            can_mark_bought: boolean;
+        };
+    };
+};
+
+export type DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdResponse = DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdResponses[keyof DeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdResponses];
 
 export type GetOrgAnnouncementsData = {
     body?: never;
@@ -17648,12 +18887,12 @@ export type GetOrgResourcesData = {
 
 export type GetOrgResourcesErrors = {
     /**
-     * You do not have permission to access this resource
+     * Only the core team sees the inventory
      */
     403: {
         success: false;
         code: 403;
-        message: 'You do not have permission to access this resource';
+        message: 'Only the core team sees the inventory';
     };
 };
 
@@ -17673,12 +18912,17 @@ export type GetOrgResourcesResponses = {
             category: string;
             quantity: number;
             location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
             notes: string;
             created_at: number;
             bookings: Array<{
                 id: number;
                 quantity: number;
                 notes: string;
+                used_quantity: number | null;
                 created_at: number;
                 event: {
                     id: number;
@@ -17686,9 +18930,28 @@ export type GetOrgResourcesResponses = {
                     type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
+                    from: string;
+                    until: string;
                 };
             }>;
             booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
         }>;
     };
 };
@@ -17701,7 +18964,17 @@ export type PostOrgResourcesData = {
         category?: string;
         quantity?: number;
         location?: string | null;
+        brand?: string | null;
+        size?: string | null;
+        condition?: 'new' | 'good' | 'worn' | 'damaged' | null;
+        consumable?: boolean;
         notes?: string;
+        purchase?: {
+            quantity: number;
+            estimated_cents?: number | null;
+            buyer_id?: number | null;
+            notes?: string;
+        } | null;
     };
     path?: never;
     query?: never;
@@ -17743,12 +19016,17 @@ export type PostOrgResourcesResponses = {
             category: string;
             quantity: number;
             location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
             notes: string;
             created_at: number;
             bookings: Array<{
                 id: number;
                 quantity: number;
                 notes: string;
+                used_quantity: number | null;
                 created_at: number;
                 event: {
                     id: number;
@@ -17756,9 +19034,28 @@ export type PostOrgResourcesResponses = {
                     type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
+                    from: string;
+                    until: string;
                 };
             }>;
             booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
         };
     };
 };
@@ -17784,12 +19081,12 @@ export type GetOrgResourcesBookingsErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * You do not have permission to access this resource
+     * Only the core team sees the inventory
      */
     403: {
         success: false;
         code: 403;
-        message: 'You do not have permission to access this resource';
+        message: 'Only the core team sees the inventory';
     };
 };
 
@@ -17807,6 +19104,7 @@ export type GetOrgResourcesBookingsResponses = {
             id: number;
             quantity: number;
             notes: string;
+            used_quantity: number | null;
             created_at: number;
             event: {
                 id: number;
@@ -17814,6 +19112,8 @@ export type GetOrgResourcesBookingsResponses = {
                 type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
+                from: string;
+                until: string;
             };
             resource: {
                 id: number;
@@ -17879,6 +19179,259 @@ export type DeleteOrgResourcesBookingsByBookingIdResponses = {
 
 export type DeleteOrgResourcesBookingsByBookingIdResponse = DeleteOrgResourcesBookingsByBookingIdResponses[keyof DeleteOrgResourcesBookingsByBookingIdResponses];
 
+export type DeleteOrgResourcesPurchasesByPurchaseIdData = {
+    body?: never;
+    path: {
+        purchaseId: number;
+    };
+    query?: never;
+    url: '/org/resources/purchases/{purchaseId}';
+};
+
+export type DeleteOrgResourcesPurchasesByPurchaseIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Purchase not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Purchase not found';
+    };
+};
+
+export type DeleteOrgResourcesPurchasesByPurchaseIdError = DeleteOrgResourcesPurchasesByPurchaseIdErrors[keyof DeleteOrgResourcesPurchasesByPurchaseIdErrors];
+
+export type DeleteOrgResourcesPurchasesByPurchaseIdResponses = {
+    /**
+     * Purchase deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Purchase deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteOrgResourcesPurchasesByPurchaseIdResponse = DeleteOrgResourcesPurchasesByPurchaseIdResponses[keyof DeleteOrgResourcesPurchasesByPurchaseIdResponses];
+
+export type PutOrgResourcesPurchasesByPurchaseIdData = {
+    body?: {
+        quantity?: number;
+        estimated_cents?: number | null;
+        buyer_id?: number | null;
+        notes?: string;
+    };
+    path: {
+        purchaseId: number;
+    };
+    query?: never;
+    url: '/org/resources/purchases/{purchaseId}';
+};
+
+export type PutOrgResourcesPurchasesByPurchaseIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Purchase not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Purchase not found';
+    };
+};
+
+export type PutOrgResourcesPurchasesByPurchaseIdError = PutOrgResourcesPurchasesByPurchaseIdErrors[keyof PutOrgResourcesPurchasesByPurchaseIdErrors];
+
+export type PutOrgResourcesPurchasesByPurchaseIdResponses = {
+    /**
+     * Purchase updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Purchase updated successfully';
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                used_quantity: number | null;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    type: 'camp' | 'event' | 'recurring';
+                    start_date: string;
+                    end_date: string;
+                    from: string;
+                    until: string;
+                };
+            }>;
+            booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
+        };
+    };
+};
+
+export type PutOrgResourcesPurchasesByPurchaseIdResponse = PutOrgResourcesPurchasesByPurchaseIdResponses[keyof PutOrgResourcesPurchasesByPurchaseIdResponses];
+
+export type PostOrgResourcesPurchasesByPurchaseIdBoughtData = {
+    body?: never;
+    path: {
+        purchaseId: number;
+    };
+    query?: never;
+    url: '/org/resources/purchases/{purchaseId}/bought';
+};
+
+export type PostOrgResourcesPurchasesByPurchaseIdBoughtErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Purchase not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Purchase not found';
+    };
+};
+
+export type PostOrgResourcesPurchasesByPurchaseIdBoughtError = PostOrgResourcesPurchasesByPurchaseIdBoughtErrors[keyof PostOrgResourcesPurchasesByPurchaseIdBoughtErrors];
+
+export type PostOrgResourcesPurchasesByPurchaseIdBoughtResponses = {
+    /**
+     * Purchase bought successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Purchase bought successfully';
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                used_quantity: number | null;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    type: 'camp' | 'event' | 'recurring';
+                    start_date: string;
+                    end_date: string;
+                    from: string;
+                    until: string;
+                };
+            }>;
+            booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
+        };
+    };
+};
+
+export type PostOrgResourcesPurchasesByPurchaseIdBoughtResponse = PostOrgResourcesPurchasesByPurchaseIdBoughtResponses[keyof PostOrgResourcesPurchasesByPurchaseIdBoughtResponses];
+
 export type DeleteOrgResourcesByResourceIdData = {
     body?: never;
     path: {
@@ -17937,6 +19490,10 @@ export type PutOrgResourcesByResourceIdData = {
         category?: string;
         quantity?: number;
         location?: string | null;
+        brand?: string | null;
+        size?: string | null;
+        condition?: 'new' | 'good' | 'worn' | 'damaged' | null;
+        consumable?: boolean;
         notes?: string;
     };
     path: {
@@ -17989,12 +19546,17 @@ export type PutOrgResourcesByResourceIdResponses = {
             category: string;
             quantity: number;
             location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
             notes: string;
             created_at: number;
             bookings: Array<{
                 id: number;
                 quantity: number;
                 notes: string;
+                used_quantity: number | null;
                 created_at: number;
                 event: {
                     id: number;
@@ -18002,14 +19564,136 @@ export type PutOrgResourcesByResourceIdResponses = {
                     type: 'camp' | 'event' | 'recurring';
                     start_date: string;
                     end_date: string;
+                    from: string;
+                    until: string;
                 };
             }>;
             booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
         };
     };
 };
 
 export type PutOrgResourcesByResourceIdResponse = PutOrgResourcesByResourceIdResponses[keyof PutOrgResourcesByResourceIdResponses];
+
+export type PostOrgResourcesByResourceIdPurchasesData = {
+    body: {
+        quantity: number;
+        estimated_cents?: number | null;
+        buyer_id?: number | null;
+        notes?: string;
+    };
+    path: {
+        resourceId: number;
+    };
+    query?: never;
+    url: '/org/resources/{resourceId}/purchases';
+};
+
+export type PostOrgResourcesByResourceIdPurchasesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team can manage resources
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team can manage resources';
+    };
+    /**
+     * Resource not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Resource not found';
+    };
+};
+
+export type PostOrgResourcesByResourceIdPurchasesError = PostOrgResourcesByResourceIdPurchasesErrors[keyof PostOrgResourcesByResourceIdPurchasesErrors];
+
+export type PostOrgResourcesByResourceIdPurchasesResponses = {
+    /**
+     * Purchase created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Purchase created successfully';
+        data: {
+            id: number;
+            name: string;
+            category: string;
+            quantity: number;
+            location: string | null;
+            brand: string | null;
+            size: string | null;
+            condition: 'new' | 'good' | 'worn' | 'damaged' | null;
+            consumable: boolean;
+            notes: string;
+            created_at: number;
+            bookings: Array<{
+                id: number;
+                quantity: number;
+                notes: string;
+                used_quantity: number | null;
+                created_at: number;
+                event: {
+                    id: number;
+                    name: string;
+                    type: 'camp' | 'event' | 'recurring';
+                    start_date: string;
+                    end_date: string;
+                    from: string;
+                    until: string;
+                };
+            }>;
+            booked_now: number;
+            purchases: Array<{
+                id: number;
+                resource_id: number;
+                quantity: number;
+                estimated_cents: number | null;
+                buyer: {
+                    id: number;
+                    username: string;
+                    display_name: string;
+                    email: string;
+                    phone: string | null;
+                    role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+                } | null;
+                notes: string;
+                created_at: number;
+            }>;
+            on_order: number;
+        };
+    };
+};
+
+export type PostOrgResourcesByResourceIdPurchasesResponse = PostOrgResourcesByResourceIdPurchasesResponses[keyof PostOrgResourcesByResourceIdPurchasesResponses];
 
 export type PostOrgResourcesByResourceIdBookingsData = {
     body: {
@@ -18073,6 +19757,7 @@ export type PostOrgResourcesByResourceIdBookingsResponses = {
             id: number;
             quantity: number;
             notes: string;
+            used_quantity: number | null;
             created_at: number;
             event: {
                 id: number;
@@ -18080,6 +19765,8 @@ export type PostOrgResourcesByResourceIdBookingsResponses = {
                 type: 'camp' | 'event' | 'recurring';
                 start_date: string;
                 end_date: string;
+                from: string;
+                until: string;
             };
             resource: {
                 id: number;

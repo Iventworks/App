@@ -130,6 +130,9 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 		{ label: "Team", icon: "i-lucide-contact", to: `${base}/staff` },
 		{ label: "Gruppen", icon: "i-lucide-users-round", to: `${base}/groups` },
 		{ label: "Zuständigkeiten", icon: "i-lucide-badge-check", to: `${base}/responsibilities` },
+		...(can("materials:view")
+			? [{ label: "Material", icon: "i-lucide-package", to: `${base}/materials` }]
+			: []),
 		{ label: "Aufgaben", icon: "i-lucide-list-todo", to: `${base}/tasks` },
 		{ label: "Notizen", icon: "i-lucide-sticky-note", to: `${base}/notes` },
 		{ label: "Dokumente", icon: "i-lucide-folder", to: `${base}/documents` },
