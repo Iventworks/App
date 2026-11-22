@@ -49,7 +49,6 @@ const LOCATION_LABELS: Record<DB.Models.File["scope"], string> = {
 
 const CUSTOM_ACCESS_BELOW =
 	"Only managers can delete or move a folder that holds items with their own access";
-const TOO_DEEP = FileService.TOO_DEEP;
 
 function describeItem(file: DB.Models.File) {
 	return `${file.kind === "folder" ? "Ordner" : LOCATION_LABELS[file.scope]} „${file.name}“`;
@@ -67,7 +66,9 @@ router.use(
 		if (!file) return APIResponse.notFound(c, "File not found");
 		// Documents in the Papierkorb only exist there (`/…/trash`).
 		const isDocument = file.scope === "org" || file.scope === "event";
-		const path = isDocument ? await FileService.getPath(file.id) : [];
+		const path = isDocument
+			? await FileService.getPath(file.id, undefined, new Map([[file.id, file]]))
+			: [];
 		if (isDocument && FileService.isTrashed(path)) {
 			return APIResponse.notFound(c, "File not found");
 		}
@@ -154,8 +155,7 @@ router.get(
 						.get()) ?? null)
 				: null;
 
-		const lock = await FileLocks.current(file.id);
-		const editing = lock ? (FileLocks.describe([lock]).get(file.id) ?? null) : null;
+		const editing = FileLocks.editingOf(await FileLocks.current(file.id));
 
 		return APIResponse.success(c, "File retrieved successfully", {
 			...FileService.toResponse(file, { permissions: c.get("permissions"), editing }),
@@ -177,7 +177,7 @@ router.put(
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("File updated successfully", FilesModel.Update.Response),
 			APIResponseSpec.badRequest(
-				`Parent folder not found / A folder cannot be moved into itself / ${TOO_DEEP} / Syntax or validation error in request`,
+				`Parent folder not found / A folder cannot be moved into itself / ${FileService.TOO_DEEP} / Syntax or validation error in request`,
 			),
 			APIResponseSpec.notFound("File not found"),
 			APIResponseSpec.forbidden(`You are not allowed to change this file / ${CUSTOM_ACCESS_BELOW}`),
@@ -218,7 +218,7 @@ router.put(
 					await FileService.folderLevelsBelow(file),
 				))
 			) {
-				return APIResponse.badRequest(c, TOO_DEEP);
+				return APIResponse.badRequest(c, FileService.TOO_DEEP);
 			}
 
 			// Documents: the target must be a place the caller may add things to.
@@ -249,7 +249,7 @@ router.put(
 				entityType: "file",
 				entityId: file.id,
 				summary: renames
-					? `${LOCATION_LABELS[file.scope]} „${file.name}“ in „${updated.name}“ umbenannt`
+					? `${LOCATION_LABELS[file.scope]} „${file.name}“ in „${updated.name}“ umbenannt${moves ? " und verschoben" : ""}`
 					: `${LOCATION_LABELS[file.scope]} „${updated.name}“ verschoben`,
 			});
 		}
@@ -357,11 +357,11 @@ router.put(
 		const userId = getAuthUserId(c);
 		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
 		if (file.kind !== "file") return APIResponse.badRequest(c, "Only files have contents");
-		if (await FileLocks.blocking(file.id)) return APIResponse.conflict(c, LOCKED);
+		if (await FileLocks.current(file.id)) return APIResponse.conflict(c, LOCKED);
 
 		const { file: upload } = c.req.valid("form") as FilesModel.Upload.Form;
-		const updated = await FileService.replaceContent(file, upload, userId);
-		if (!updated) return APIResponse.badRequest(c, "File is too large");
+		const replaced = await FileService.replaceContent(file, upload, userId);
+		if (!replaced) return APIResponse.badRequest(c, "File is too large");
 
 		await AuditLog.record({
 			userId,
@@ -375,7 +375,7 @@ router.put(
 		return APIResponse.success(
 			c,
 			"File replaced successfully",
-			FileService.toResponse(updated, { permissions: c.get("permissions") }),
+			FileService.toResponse(replaced.file, { permissions: c.get("permissions") }),
 		);
 	},
 );
@@ -396,6 +396,7 @@ router.post(
 			APIResponseSpec.badRequest("This file can't be opened in the office editor"),
 			APIResponseSpec.notFound("File not found / Office editing is not available"),
 			APIResponseSpec.forbidden("Only available in the browser"),
+			APIResponseSpec.serverError("The office server can't be reached"),
 		),
 	}),
 
@@ -512,10 +513,10 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Restore version",
 		description:
-			"Make an earlier version the current contents again (`permissions.edit`); the current contents become a version, so this can be undone. Refused while someone else is editing the file.",
+			"Make an earlier version the current contents again (`permissions.edit`). The version stays in the list and the current contents become a version, so this can be undone. Refused while someone else is editing the file.",
 		tags: [DOCS_TAGS.FILES],
 
-		responses: APIResponseSpec.describeBasic(
+		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Version restored successfully", FilesModel.Item),
 			APIResponseSpec.notFound("Version not found"),
 			APIResponseSpec.forbidden(EDIT_FORBIDDEN),
@@ -529,13 +530,13 @@ router.post(
 		const file = c.get("file");
 		const userId = getAuthUserId(c);
 		if (!c.get("permissions").edit) return APIResponse.forbidden(c, EDIT_FORBIDDEN);
-		if (await FileLocks.blocking(file.id)) return APIResponse.conflict(c, LOCKED);
+		if (await FileLocks.current(file.id)) return APIResponse.conflict(c, LOCKED);
 
 		const { versionId } = c.req.valid("param") as FilesModel.Versions.Params;
 		const version = await FileVersions.get(file.id, versionId);
 		if (!version) return APIResponse.notFound(c, "Version not found");
 
-		const updated = FileVersions.restore(file, version, userId);
+		const updated = await FileVersions.restore(file, version, userId);
 		if (!updated) return APIResponse.notFound(c, "Version not found");
 
 		await AuditLog.record({
@@ -566,7 +567,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "Get access list",
 		description:
-			"Who has access to a document or folder: its own access list, or the one it inherits (`inherited_from`, null = the library's default). Kernteam (org documents) and Leitung (event documents) only.",
+			"Who has access to a document or folder: its own access list, or the one it inherits (`inherited_from`, null = the library's default); `inherits` is what would apply if it inherited. Kernteam (org documents) and Leitung (event documents) only.",
 		tags: [DOCS_TAGS.FILES],
 
 		responses: APIResponseSpec.describeBasic(
@@ -580,7 +581,7 @@ router.get(
 		const file = c.get("file");
 		if (!c.get("permissions").manage) return APIResponse.forbidden(c, ACCESS_FORBIDDEN);
 
-		const path = await FileService.getPath(file.id);
+		const path = c.get("path");
 		const view = await FileAccessLists.describe(
 			FileService.locationOf(file),
 			path,

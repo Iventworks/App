@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import { API } from "../server/lib/api";
 import { DB } from "../server/lib/db";
-import { OrgContext } from "../server/lib/orgs/context";
+import { inOrg, OrgContext } from "../server/lib/orgs/context";
 import { type DnsLookup, DomainService } from "../server/lib/orgs/domains";
 import { OrgRegistry } from "../server/lib/orgs/registry";
 import { ConfigHandler } from "../server/lib/utils/config";
@@ -727,5 +727,33 @@ describe("Custom domains", () => {
 			method: "DELETE",
 			authToken: orgAdminToken,
 		});
+	});
+});
+
+describe("Deleting an org", () => {
+	test("removes its files on disk, versions included", async () => {
+		const { OrgService } = await import("../server/lib/orgs/service");
+		const { FileService } = await import("../server/lib/api/utils/fileService");
+		const { FileStorage } = await import("../server/lib/utils/fileStorage");
+		const org = await OrgService.create({ slug: "short-lived", display_name: "Kurzlebig" });
+		const keys = await OrgContext.run(org, async () => {
+			const file = await FileService.upload(
+				{ scope: "org", eventId: null },
+				null,
+				new File(["erste Fassung"], "plan.txt"),
+				null,
+			);
+			const replaced = await FileService.replaceContent(file!, new Blob(["zweite"]), null);
+			expect(replaced?.kept).toBe(true);
+			const [version] = await DB.instance()
+				.select()
+				.from(DB.Tables.fileVersions)
+				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.file_id, file!.id)))
+				.all();
+			return [replaced!.file.storage_key!, version!.storage_key];
+		});
+
+		await OrgService.delete(org.id);
+		for (const key of keys) expect(await FileStorage.open(key).exists()).toBe(false);
 	});
 });

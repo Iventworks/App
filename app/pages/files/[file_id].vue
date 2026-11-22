@@ -14,19 +14,17 @@
  */
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useEventListener, useIntervalFn, useMediaQuery } from "@vueuse/core";
-import type { GetFilesByFileIdVersionsResponses } from "~/api-client";
 import { Utils } from "~/utils";
-import { filePreviewKind } from "~/utils/filePreview";
-
-type Version = GetFilesByFileIdVersionsResponses["200"]["data"][number];
+import type { FileVersion } from "~/utils/types";
 
 definePageMeta({ layout: "viewer" });
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
-const confirm = useConfirmDialog();
 const fileURL = useFileURL();
+const shareLinksAllowed = useShareLinksAllowed();
+const { uploading, restoring, uploadNewVersion, restoreVersion } = useFileVersions();
 
 const fileId = computed(() => Number(route.params.file_id));
 const errorMessage = ref("");
@@ -97,8 +95,7 @@ const locationItems = computed(() => {
 		];
 	}
 	if (current.scope === "org") {
-		const label = libraryPage.value === "/core-team/documents" ? "Ablage" : "Bibliothek";
-		return [{ label, to: folderLink(null) }, ...folders];
+		return [{ label: "Bibliothek", to: folderLink(null) }, ...folders];
 	}
 	return [];
 });
@@ -106,6 +103,8 @@ const locationItems = computed(() => {
 const icon = computed(() =>
 	file.value ? Utils.getFileIcon(file.value.name, file.value.mime_type) : "i-lucide-file",
 );
+/** The library the file belongs to (Kernteam / Leitung in texts). */
+const scope = computed(() => (file.value ? libraryScopeOf(file.value) : "org"));
 
 // --- what it is, what the caller may do ------------------------------------------------------------
 
@@ -132,60 +131,45 @@ const versionId = computed(() => {
 	const value = Number(route.query.version);
 	return Number.isInteger(value) && value > 0 ? value : null;
 });
-const version = ref<Version | null>(null);
+const version = ref<FileVersion | null>(null);
+/** The versions couldn't be loaded (not: the version doesn't exist). */
+const versionError = ref("");
+/** Counts loads: only the latest one may set the version. */
+let versionLoads = 0;
 
-watch(
-	[versionId, () => file.value?.id],
-	async ([id, current]) => {
-		version.value = null;
-		if (!id || !current) return;
-		const result = await useAPI((api) => api.getFilesByFileIdVersions({ path: { fileId: current } }));
-		version.value = result.success ? (result.data.find((entry) => entry.id === id) ?? null) : null;
-		if (!version.value) {
-			toast.add({ title: "Diese Version gibt es nicht (mehr)", color: "warning" });
-			void showCurrent();
-		}
-	},
-	{ immediate: true },
-);
+async function loadVersion() {
+	const current = ++versionLoads;
+	const id = versionId.value;
+	const target = file.value;
+	version.value = null;
+	versionError.value = "";
+	if (!id || !target) return;
+	const result = await useAPI((api) =>
+		api.getFilesByFileIdVersions({ path: { fileId: target.id } }),
+	);
+	if (current !== versionLoads) return;
+	if (!result.success) {
+		versionError.value = fileErrorText(result.message, libraryScopeOf(target));
+		return;
+	}
+	version.value = result.data.find((entry) => entry.id === id) ?? null;
+	if (!version.value) {
+		toast.add({ title: "Diese Version gibt es nicht (mehr)", color: "warning" });
+		void showCurrent();
+	}
+}
+
+watch([versionId, () => file.value?.id], loadVersion, { immediate: true });
 
 async function showCurrent() {
 	const { version: _version, ...query } = route.query;
 	await router.replace({ query });
 }
 
-const restoring = ref(false);
-async function restoreVersion() {
+async function restoreShownVersion() {
 	const current = file.value;
 	const shown = version.value;
-	if (!current || !shown) return;
-	const choice = await confirm({
-		title: "Version wiederherstellen?",
-		description: `Die Fassung vom ${formatDate(shown.modified_at)} wird wieder die aktuelle. Die jetzige bleibt als Version erhalten.`,
-		icon: "i-lucide-history",
-		confirmLabel: "Wiederherstellen",
-		confirmIcon: "i-lucide-history",
-	});
-	if (choice !== "confirm") return;
-	restoring.value = true;
-	const result = await useAPI((api) =>
-		api.postFilesByFileIdVersionsByVersionIdRestore({
-			path: { fileId: current.id, versionId: shown.id },
-		}),
-	);
-	restoring.value = false;
-	if (!result.success) {
-		toast.add({
-			title: "Wiederherstellen fehlgeschlagen",
-			description:
-				(result as { code?: number }).code === 409
-					? "Die Datei wird gerade in Office bearbeitet."
-					: result.message,
-			color: "error",
-		});
-		return;
-	}
-	toast.add({ title: "Version wiederhergestellt", color: "success", icon: "i-lucide-check" });
+	if (!current || !shown || !(await restoreVersion(current, shown))) return;
 	await showCurrent();
 	await refresh();
 }
@@ -221,7 +205,6 @@ watch(versionsOpen, (opened) => {
 	if (opened) void refresh();
 });
 const uploadInput = ref<HTMLInputElement | null>(null);
-const uploading = ref(false);
 
 async function onUpload(event: Event) {
 	const input = event.target as HTMLInputElement;
@@ -229,30 +212,15 @@ async function onUpload(event: Event) {
 	input.value = "";
 	const current = file.value;
 	if (!upload || !current) return;
-	uploading.value = true;
-	const result = await useAPI((api) =>
-		api.putFilesByFileIdContent({ path: { fileId: current.id }, body: { file: upload } }),
-	);
-	uploading.value = false;
-	if (!result.success) {
-		toast.add({
-			title: "Neue Fassung nicht hochgeladen",
-			description:
-				(result as { code?: number }).code === 409
-					? "Die Datei wird gerade in Office bearbeitet."
-					: result.message,
-			color: "error",
-		});
-		return;
-	}
-	toast.add({ title: "Neue Fassung hochgeladen", color: "success", icon: "i-lucide-check" });
-	await refresh();
+	if (await uploadNewVersion(current, upload)) await refresh();
 }
 
 // --- the toolbar ---------------------------------------------------------------------------------
 
 /** Access lists and share links: managers of the library (Kernteam / Leitung). */
 const canManage = computed(() => Boolean(file.value?.permissions?.manage));
+/** Share links, unless the org has switched them off. */
+const canShare = computed(() => canManage.value && shareLinksAllowed.value);
 const accessOpen = ref(false);
 const shareOpen = ref(false);
 /** Wide enough to show every action as its own button; narrow screens get them in the menu. */
@@ -293,7 +261,7 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 		? []
 		: [
 				...(canManage.value
-					? [{ label: "Zugriff", icon: "i-lucide-users", onSelect: () => (accessOpen.value = true) }]
+					? [{ label: "Zugriff", icon: "i-lucide-lock", onSelect: () => (accessOpen.value = true) }]
 					: []),
 				{ label: "Versionen", icon: "i-lucide-history", onSelect: () => (versionsOpen.value = true) },
 				...(canFullscreen.value
@@ -351,18 +319,20 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 				<template v-if="canManage">
 					<UTooltip v-if="wide" text="Wer die Datei sehen und bearbeiten darf">
 						<UButton
-							icon="i-lucide-users"
+							icon="i-lucide-lock"
 							label="Zugriff"
+							aria-label="Zugriff"
 							color="neutral"
 							variant="ghost"
 							:ui="{ label: 'hidden lg:inline' }"
 							@click="accessOpen = true"
 						/>
 					</UTooltip>
-					<UTooltip text="Freigabelinks für Personen ohne Konto">
+					<UTooltip v-if="canShare" text="Freigabelinks für Personen ohne Konto">
 						<UButton
 							icon="i-lucide-share-2"
 							label="Teilen"
+							aria-label="Teilen"
 							color="primary"
 							variant="soft"
 							:ui="{ label: 'hidden md:inline' }"
@@ -423,9 +393,9 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 				color="warning"
 				variant="subtle"
 				size="sm"
-				:loading="restoring"
+				:loading="restoring !== null"
 				:disabled="Boolean(file?.editing)"
-				@click="restoreVersion"
+				@click="restoreShownVersion"
 			/>
 			<UButton label="Aktuelle Fassung" color="neutral" variant="ghost" size="sm" @click="showCurrent" />
 		</div>
@@ -449,13 +419,24 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 				ref="officeFrame"
 				:key="file.id"
 				:file-id="file.id"
+				:scope="scope"
 				@mode="officeMode = $event"
 				@versions="versionsOpen = true"
-				@sharing="shareOpen = canManage"
+				@sharing="shareOpen = canShare"
 			/>
 
-			<div v-else-if="versionId && !version" class="flex h-full items-center justify-center">
-				<UIcon name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
+			<div v-else-if="versionId && !version" class="flex h-full items-center justify-center p-4">
+				<UEmpty
+					v-if="versionError"
+					icon="i-lucide-history"
+					title="Version konnte nicht geladen werden"
+					:description="versionError"
+					:actions="[
+						{ label: 'Erneut versuchen', icon: 'i-lucide-refresh-cw', color: 'neutral', variant: 'subtle', onClick: () => loadVersion() },
+						{ label: 'Aktuelle Fassung', color: 'neutral', variant: 'ghost', onClick: () => showCurrent() },
+					]"
+				/>
+				<UIcon v-else name="i-lucide-loader-2" class="animate-spin text-3xl text-slate-400" />
 			</div>
 
 			<FilesPreview
@@ -473,8 +454,8 @@ const moreActions = computed<DropdownMenuItem[][]>(() => {
 
 		<FilesVersionsModal v-model:open="versionsOpen" :item="file ?? null" @restored="refresh" />
 		<template v-if="file && canManage">
-			<FilesAccessModal v-model:open="accessOpen" :item="file" :scope="file.scope === 'event' ? 'event' : 'org'" @changed="refresh" />
-			<FilesShareModal v-model:open="shareOpen" :item="file" @changed="refresh" />
+			<FilesAccessModal v-model:open="accessOpen" :item="file" :scope="scope" @changed="refresh" />
+			<FilesShareModal v-if="canShare" v-model:open="shareOpen" :item="file" @changed="refresh" />
 		</template>
 	</div>
 </template>

@@ -2,6 +2,7 @@ import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../../db";
 import { GENDERS, PARTICIPANT_STATUSES } from "../../../../../../db/schema";
+import { ApiHelperModels } from "../../../../../utils/shared-models/api-helper-models";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventSmallGroupsModel {
@@ -43,10 +44,7 @@ export namespace EventSmallGroupsModel {
 		name: z.string().trim().min(1).max(80),
 		description: z.string().max(2_000),
 		meeting_point: z.string().trim().max(200).nullable(),
-		color: z
-			.string()
-			.regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316")
-			.nullable(),
+		color: ApiHelperModels.HexColor.nullable(),
 		/** Event staff responsible for the group; replaces the whole set. */
 		leader_ids: z.array(z.number().int().positive()).max(50),
 	};

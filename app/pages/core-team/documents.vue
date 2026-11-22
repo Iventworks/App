@@ -8,8 +8,6 @@ definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({ title: "Dokumente verwalten | Kernteam" });
 
-const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
-
 const library = useDocumentLibrary({ scope: "org" });
 </script>
 
@@ -19,7 +17,7 @@ const library = useDocumentLibrary({ scope: "org" });
 			<DashboardPageHeader
 				title="Dokumente verwalten"
 				icon="i-lucide-library"
-				description="Ablage des Kernteams – und was Mitglieder davon sehen"
+				description="Die ganze Bibliothek – mit Zugriff und Freigabelinks"
 			>
 				<template #right>
 					<UButton
@@ -37,10 +35,8 @@ const library = useDocumentLibrary({ scope: "org" });
 			<DashboardPageBody>
 				<FilesBrowser
 					scope="org"
-					root-label="Ablage"
+					root-label="Bibliothek"
 					v-bind="library"
-					manage-access
-					:sharing-enabled="sharingEnabled"
 					empty-description="Neue Ordner und Dateien sieht zuerst nur das Kernteam. Über „Zugriff“ gibst du sie für alle Mitglieder, Gruppen oder einzelne Personen frei."
 				/>
 			</DashboardPageBody>

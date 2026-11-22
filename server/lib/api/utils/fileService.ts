@@ -3,7 +3,6 @@ import { z } from "zod";
 import { DB } from "../../db";
 import { FILE_SCOPES } from "../../db/schema";
 import type { DrizzleDB } from "../../db/utils";
-import { OfficeTemplates } from "../../office/templates";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
@@ -29,19 +28,16 @@ function contentDisposition(type: "inline" | "attachment", name: string) {
  */
 export class FileService {
 	/**
-	 * MIME types the browser may render inline from our origin. Everything else — notably
-	 * `image/svg+xml`, HTML and XML, which can carry script — is only ever served as a download
-	 * (`application/octet-stream`, `Content-Disposition: attachment`). Uploaded `type`s are
-	 * client-controlled, so this allow-list is what keeps uploads from becoming stored XSS.
+	 * Images the browser may show from our origin (by their stored type). Not `image/svg+xml`: it
+	 * can carry script. Uploaded `type`s are client-controlled, so this allow-list (with
+	 * `displayAs`) is what keeps uploads from becoming stored XSS.
 	 */
-	static readonly INLINE_MIME_TYPES: ReadonlySet<string> = new Set([
+	static readonly IMAGE_MIME_TYPES: ReadonlySet<string> = new Set([
 		"image/png",
 		"image/jpeg",
 		"image/gif",
 		"image/webp",
 		"image/avif",
-		"application/pdf",
-		"text/plain",
 	]);
 
 	/** Receipt uploads: photos and PDFs only. */
@@ -56,8 +52,8 @@ export class FileService {
 		"application/pdf",
 	]);
 
-	static isInlineSafe(mimeType: string | null | undefined) {
-		return Boolean(mimeType && FileService.INLINE_MIME_TYPES.has(mimeType.toLowerCase()));
+	static isImage(mimeType: string | null | undefined) {
+		return Boolean(mimeType && FileService.IMAGE_MIME_TYPES.has(mimeType.toLowerCase()));
 	}
 
 	// --- contents ------------------------------------------------------------------------------
@@ -114,7 +110,7 @@ export class FileService {
 		const mime = (file.mime_type ?? "").toLowerCase().split(";")[0]?.trim() ?? "";
 		const dot = file.name.lastIndexOf(".");
 		const ext = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : "";
-		if (FileService.INLINE_MIME_TYPES.has(mime) && mime.startsWith("image/")) return "image";
+		if (FileService.IMAGE_MIME_TYPES.has(mime)) return "image";
 		if (mime === "application/pdf" || ext === "pdf") {
 			// A PDF starts with "%PDF-" (within its first kilobyte).
 			const head = new TextDecoder("latin1").decode(await blob.slice(0, 1024).arrayBuffer());
@@ -369,6 +365,7 @@ export class FileService {
 					storage_key: storageKey,
 					uploaded_by: userId,
 					modified_by: userId,
+					contents_updated_at: Date.now(),
 				})
 				.returning()
 				.get();
@@ -379,21 +376,23 @@ export class FileService {
 	}
 
 	/**
-	 * A new office document (Word, Excel, PowerPoint; the extension is added when missing): an
-	 * empty file the office server fills with its template when it is first opened
-	 * (`OfficeTemplates`).
+	 * A new office document (Word, Excel, PowerPoint; the extension is added when missing). It
+	 * starts as an empty file, the WOPI way: the office server fills an empty file with its own
+	 * template when the editor opens it (PutFile) — in the editor's language (`ui=de-DE`), so new
+	 * documents are German (spell checking, A4, styles).
 	 */
 	static async createOffice(
 		location: FileService.Location,
 		parentId: number | null,
 		name: string,
-		type: OfficeTemplates.Type,
+		type: FileService.OfficeType,
 		userId: number,
 	) {
 		const file = new File([], FileService.withExtension(name, type), {
-			type: OfficeTemplates.MIME_TYPES[type],
+			type: FileService.OFFICE_MIME_TYPES[type],
 		});
-		return await FileService.upload(location, parentId, file, userId);
+		// Empty: never over the upload limit.
+		return (await FileService.upload(location, parentId, file, userId)) as DB.Models.File;
 	}
 
 	/**
@@ -461,34 +460,32 @@ export class FileService {
 
 	/**
 	 * Replace a file's contents (same row, new blob). The old contents become a version
-	 * (`FileVersions`). `userId` null: through a share link. Returns null when the upload is too
-	 * large.
+	 * (`FileVersions`; `kept`). `userId` null: through a share link. Returns null when the upload is
+	 * too large.
 	 */
 	static async replaceContent(
 		file: DB.Models.File,
 		upload: Blob,
 		userId: number | null,
 		/**
-		 * `session`: several people save in turns (the office server) — versions per interval, not
-		 * per author.
+		 * `sessionSince`: saved by an editing session that began then (the office server's lock),
+		 * where several people save in turns — versions per interval, not per author.
 		 */
-		options: { session?: boolean } = {},
+		options: { sessionSince?: number } = {},
 	) {
 		if (upload.size > FileStorage.maxUploadBytes) return null;
 		const { storageKey, size } = await FileStorage.save(upload);
-		let updated: DB.Models.File;
 		try {
-			updated = await FileVersions.replace(
+			return await FileVersions.replace(
 				file,
 				{ storageKey, size, mimeType: upload.type || file.mime_type || "application/octet-stream" },
 				userId,
-				{ session: options.session },
+				options,
 			);
 		} catch (error) {
 			await FileStorage.remove([storageKey]);
 			throw error;
 		}
-		return updated;
 	}
 
 	/** True when `candidateId` is `folderId` itself or one of its descendants (move guard). */
@@ -617,12 +614,7 @@ export namespace FileService {
 		/** Its own access list — only for managers and only on items with `custom_access`. */
 		access: z.array(FileAccessModel.Entry).nullable(),
 		/** Someone has it open in the office editor, for editing (listings and the file page). */
-		editing: z
-			.object({
-				kind: z.enum(["office"]),
-				expires_at: z.number(),
-			})
-			.nullable(),
+		editing: z.object({ expires_at: z.number() }).nullable(),
 	});
 	export type Item = z.infer<typeof ItemSchema>;
 
@@ -657,10 +649,24 @@ export namespace FileService {
 	});
 	export type CreateFolderBody = z.infer<typeof CreateFolderBody>;
 
+	/** New office documents ("Neu → Textdokument / Tabelle / Präsentation", `createOffice`). */
+	export const OFFICE_TYPES = ["docx", "xlsx", "pptx"] as const;
+	export type OfficeType = (typeof OFFICE_TYPES)[number];
+	export const OFFICE_LABELS: Record<OfficeType, string> = {
+		docx: "Textdokument",
+		xlsx: "Tabelle",
+		pptx: "Präsentation",
+	};
+	export const OFFICE_MIME_TYPES: Record<OfficeType, string> = {
+		docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	};
+
 	export const CreateOfficeBody = z.object({
 		/** The extension is added when missing. */
 		name: z.string().trim().min(1).max(200),
-		type: z.enum(["docx", "xlsx", "pptx"]),
+		type: z.enum(OFFICE_TYPES),
 		parent_id: z.number().int().positive().nullable().optional(),
 	});
 	export type CreateOfficeBody = z.infer<typeof CreateOfficeBody>;

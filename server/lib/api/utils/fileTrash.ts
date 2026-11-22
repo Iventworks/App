@@ -2,7 +2,7 @@ import { and, desc, eq, isNotNull, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { DB } from "../../db";
 import { inOrg } from "../../orgs/context";
-import type { FileAccess } from "./fileAccess";
+import { FileAccess } from "./fileAccess";
 import { FileService } from "./fileService";
 import { UserSummary } from "./shared-models/userSummary";
 
@@ -22,7 +22,8 @@ export namespace FileTrash {
 
 	export const ItemSchema = FileService.ItemSchema.extend({
 		deleted_at: z.number(),
-		deleted_by: z.object({ id: z.number(), display_name: z.string() }).nullable(),
+		/** null: through a share link. */
+		deleted_by: UserSummary.Schema.nullable(),
 		/** The folders it was in (top first). */
 		location: z.array(z.string()),
 		/** When it will be deleted for good. */
@@ -81,11 +82,18 @@ export namespace FileTrash {
 				row.parent_id === null ? [] : await FileService.getPath(row.parent_id, undefined, folders);
 			const folderInTrash = FileService.isTrashed(path);
 			const deletedBy = row.deleted_by !== null ? users.get(row.deleted_by) : undefined;
+			// Folder names only for those who may still open the folder (access may have changed).
+			const parent = path.at(-1);
+			const showsLocation =
+				viewer.manager ||
+				(parent !== undefined && (await FileAccess.evaluateFile(viewer, parent, path)).read);
 			items.push({
 				...FileService.toResponse(row),
+				// Contents in the Papierkorb aren't served.
+				content_url: null,
 				deleted_at: row.deleted_at as number,
-				deleted_by: deletedBy ? { id: deletedBy.id, display_name: deletedBy.display_name } : null,
-				location: path.map((folder) => folder.name),
+				deleted_by: deletedBy ?? null,
+				location: showsLocation ? path.map((folder) => folder.name) : [],
 				purge_at: (row.deleted_at as number) + RETENTION_DAYS * 24 * 60 * 60 * 1000,
 				folder_in_trash: folderInTrash,
 				can_restore: viewer.manager || (row.deleted_by === viewer.userId && !folderInTrash),

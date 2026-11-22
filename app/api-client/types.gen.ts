@@ -3382,6 +3382,7 @@ export type GetAdminSharesResponses = {
                 } | null;
                 folder_id: number | null;
                 path: string;
+                in_trash: boolean;
             };
         }>;
     };
@@ -7055,7 +7056,6 @@ export type PutFilesByFileIdContentResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7256,7 +7256,6 @@ export type GetFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             path: Array<{
@@ -7358,7 +7357,6 @@ export type PutFilesByFileIdResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7400,6 +7398,14 @@ export type PostFilesByFileIdOfficeErrors = {
         success: false;
         code: 404;
         message: 'File not found / Office editing is not available';
+    };
+    /**
+     * The office server can't be reached
+     */
+    500: {
+        success: false;
+        code: 500;
+        message: 'The office server can\'t be reached';
     };
 };
 
@@ -7604,12 +7610,12 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreData = {
 
 export type PostFilesByFileIdVersionsByVersionIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * You are not allowed to edit this file
@@ -7683,7 +7689,6 @@ export type PostFilesByFileIdVersionsByVersionIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -7756,6 +7761,24 @@ export type GetFilesByFileIdAccessResponses = {
                     delete: boolean;
                 };
             }>;
+            inherits: {
+                from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            };
         };
     };
 };
@@ -7838,6 +7861,24 @@ export type PutFilesByFileIdAccessResponses = {
                     delete: boolean;
                 };
             }>;
+            inherits: {
+                from: {
+                    id: number;
+                    name: string;
+                } | null;
+                entries: Array<{
+                    principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                    id: number | null;
+                    label: string;
+                    color: string | null;
+                    permissions: {
+                        read: boolean;
+                        upload: boolean;
+                        edit: boolean;
+                        delete: boolean;
+                    };
+                }>;
+            };
         };
     };
 };
@@ -11654,7 +11695,6 @@ export type GetEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -11780,7 +11820,6 @@ export type PostEventsByEventIdProgramResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -11960,7 +11999,6 @@ export type PutEventsByEventIdProgramByProgramItemIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -12078,7 +12116,6 @@ export type PostEventsByEventIdProgramByProgramItemIdDuplicateResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13325,12 +13362,12 @@ export type GetEventsByEventIdFilesErrors = {
         message: 'You are not allowed to view documents';
     };
     /**
-     * Folder not found
+     * Folder not found / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Folder not found';
+        message: 'Folder not found / Event not found';
     };
 };
 
@@ -13381,7 +13418,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -13421,7 +13457,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13461,7 +13496,6 @@ export type GetEventsByEventIdFilesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -13491,6 +13525,24 @@ export type GetEventsByEventIdFilesResponses = {
                         delete: boolean;
                     };
                 }>;
+                inherits: {
+                    from: {
+                        id: number;
+                        name: string;
+                    } | null;
+                    entries: Array<{
+                        principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                        id: number | null;
+                        label: string;
+                        color: string | null;
+                        permissions: {
+                            read: boolean;
+                            upload: boolean;
+                            edit: boolean;
+                            delete: boolean;
+                        };
+                    }>;
+                };
             } | null;
         };
     };
@@ -13586,7 +13638,6 @@ export type PostEventsByEventIdFilesResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13680,7 +13731,6 @@ export type PostEventsByEventIdFilesFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13714,6 +13764,14 @@ export type DeleteEventsByEventIdFilesTrashErrors = {
         success: false;
         code: 403;
         message: 'Only managers can delete for good';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
     };
 };
 
@@ -13758,6 +13816,14 @@ export type GetEventsByEventIdFilesTrashErrors = {
         success: false;
         code: 403;
         message: 'You are not allowed to view documents';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
     };
 };
 
@@ -13807,13 +13873,16 @@ export type GetEventsByEventIdFilesTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
             deleted_by: {
                 id: number;
+                username: string;
                 display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             location: Array<string>;
             purge_at: number;
@@ -13838,20 +13907,20 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreData = {
 
 export type PostEventsByEventIdFilesTrashByFileIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * Not in the Papierkorb
+     * Not in the Papierkorb / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Not in the Papierkorb';
+        message: 'Not in the Papierkorb / Event not found';
     };
     /**
      * The folder it was in is in the Papierkorb too: restore the folder first
@@ -13909,7 +13978,6 @@ export type PostEventsByEventIdFilesTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -13930,12 +13998,12 @@ export type DeleteEventsByEventIdFilesTrashByFileIdData = {
 
 export type DeleteEventsByEventIdFilesTrashByFileIdErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Only managers can delete for good
@@ -13946,12 +14014,12 @@ export type DeleteEventsByEventIdFilesTrashByFileIdErrors = {
         message: 'Only managers can delete for good';
     };
     /**
-     * Not in the Papierkorb
+     * Not in the Papierkorb / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Not in the Papierkorb';
+        message: 'Not in the Papierkorb / Event not found';
     };
 };
 
@@ -14002,12 +14070,12 @@ export type PostEventsByEventIdFilesOfficeErrors = {
         message: 'You are not allowed to add documents here';
     };
     /**
-     * Office editing is not available
+     * Office editing is not available / Event not found
      */
     404: {
         success: false;
         code: 404;
-        message: 'Office editing is not available';
+        message: 'Office editing is not available / Event not found';
     };
 };
 
@@ -14057,7 +14125,6 @@ export type PostEventsByEventIdFilesOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -14182,7 +14249,6 @@ export type GetEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14314,7 +14380,6 @@ export type PostEventsByEventIdExpensesResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14576,7 +14641,6 @@ export type PutEventsByEventIdExpensesByExpenseIdResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14708,7 +14772,6 @@ export type PostEventsByEventIdExpensesByExpenseIdReceiptResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -14838,7 +14901,6 @@ export type PostEventsByEventIdExpensesByExpenseIdReviewResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16377,7 +16439,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             } | null;
@@ -16417,7 +16478,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16457,7 +16517,6 @@ export type GetOrgDocumentsResponses = {
                     };
                 }> | null;
                 editing: {
-                    kind: 'office';
                     expires_at: number;
                 } | null;
             }>;
@@ -16487,6 +16546,24 @@ export type GetOrgDocumentsResponses = {
                         delete: boolean;
                     };
                 }>;
+                inherits: {
+                    from: {
+                        id: number;
+                        name: string;
+                    } | null;
+                    entries: Array<{
+                        principal: 'members' | 'team' | 'org_group' | 'event_group' | 'user';
+                        id: number | null;
+                        label: string;
+                        color: string | null;
+                        permissions: {
+                            read: boolean;
+                            upload: boolean;
+                            edit: boolean;
+                            delete: boolean;
+                        };
+                    }>;
+                };
             } | null;
         };
     };
@@ -16509,12 +16586,12 @@ export type PostOrgDocumentsData = {
 
 export type PostOrgDocumentsErrors = {
     /**
-     * Parent folder not found / File is too large / Syntax or validation error in request
+     * File is too large / Parent folder not found / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Parent folder not found / File is too large / Syntax or validation error in request';
+        message: 'File is too large / Parent folder not found / Syntax or validation error in request';
     };
     /**
      * You are not allowed to add documents here
@@ -16572,7 +16649,6 @@ export type PostOrgDocumentsResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -16656,7 +16732,6 @@ export type PostOrgDocumentsFoldersResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -16763,13 +16838,16 @@ export type GetOrgDocumentsTrashResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
             deleted_at: number;
             deleted_by: {
                 id: number;
+                username: string;
                 display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
             } | null;
             location: Array<string>;
             purge_at: number;
@@ -16793,12 +16871,12 @@ export type PostOrgDocumentsTrashByFileIdRestoreData = {
 
 export type PostOrgDocumentsTrashByFileIdRestoreErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Not in the Papierkorb
@@ -16864,7 +16942,6 @@ export type PostOrgDocumentsTrashByFileIdRestoreResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };
@@ -16884,12 +16961,12 @@ export type DeleteOrgDocumentsTrashByFileIdData = {
 
 export type DeleteOrgDocumentsTrashByFileIdErrors = {
     /**
-     * Validation Error
+     * Bad Request: Syntax or validation error in request
      */
     400: {
         success: false;
-        error: Array<unknown>;
-        data: unknown;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
     };
     /**
      * Only managers can delete for good
@@ -17009,7 +17086,6 @@ export type PostOrgDocumentsOfficeResponses = {
                 };
             }> | null;
             editing: {
-                kind: 'office';
                 expires_at: number;
             } | null;
         };

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * PDF preview with pdf.js — the browser's own viewer is missing in the installed iOS app and on
- * Android. pdf.js is loaded only when a PDF is opened (dynamic `import()`, like jsPDF for the
- * program PDF). Pages are rendered to canvases while they are near the screen (and released when
- * they leave it), fitted to the width, with zoom on top.
+ * PDF preview with pdf.js, for browsers without a built-in PDF viewer (e.g. on Android). pdf.js
+ * is loaded only when a PDF is opened (dynamic `import()`, like jsPDF for the program PDF). Pages
+ * are rendered to canvases while they are near the screen (and released when they leave it),
+ * fitted to the width, with zoom on top.
  *
  * CSP: pdf.js 6 evaluates no strings, the worker comes from our own bundle (`worker-src 'self'`),
  * and WebAssembly is off (`useWasm: false`; the CSP has no `wasm-unsafe-eval`) — its image
@@ -14,7 +14,8 @@ import { useDebounceFn, useResizeObserver } from "@vueuse/core";
 type PdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 type LoadingTask = ReturnType<PdfJs["getDocument"]>;
 type PdfDocument = Awaited<LoadingTask["promise"]>;
-type RenderTask = ReturnType<Awaited<ReturnType<PdfDocument["getPage"]>>["render"]>;
+type PdfPage = Awaited<ReturnType<PdfDocument["getPage"]>>;
+type RenderTask = ReturnType<PdfPage["render"]>;
 
 const props = defineProps<{
 	/** Where the bytes come from (same origin; the session or share cookie authenticates it). */
@@ -53,6 +54,8 @@ const near = new Set<number>();
 /** Scale each page was last rendered at. */
 const renderedAt = new Map<number, number>();
 const tasks = new Map<number, RenderTask>();
+/** Pages pdf.js has loaded: it keeps their drawing commands and images until `cleanup()`. */
+const pages = new Map<number, PdfPage>();
 
 const fitWidth = computed(() => Math.max(200, Math.min(containerWidth.value, MAX_FIT_WIDTH)));
 
@@ -128,6 +131,9 @@ async function render(page: number) {
 
 	tasks.get(page)?.cancel();
 	const proxy = await pdf.getPage(page);
+	// Scrolled away meanwhile.
+	if (!near.has(page)) return;
+	pages.set(page, proxy);
 	const base = proxy.getViewport({ scale: 1 });
 	if (!pageSizes.value[page - 1])
 		pageSizes.value[page - 1] = { width: base.width, height: base.height };
@@ -156,9 +162,12 @@ async function render(page: number) {
 	}
 }
 
-/** Free a page's canvas once it is far from the screen. */
+/** Free a page's canvas and what pdf.js keeps of it once it is far from the screen. */
 function release(page: number) {
 	tasks.get(page)?.cancel();
+	// After a cancelled render, pdf.js cleans up once that has stopped.
+	pages.get(page)?.cleanup();
+	pages.delete(page);
 	renderedAt.delete(page);
 	const canvas = canvases.get(page);
 	if (canvas) {
@@ -273,6 +282,7 @@ onBeforeUnmount(() => {
 				<UTooltip text="An die Breite anpassen">
 					<UButton
 						:label="`${Math.round(zoom * 100)} %`"
+						:aria-label="`Zoom zurücksetzen (jetzt ${Math.round(zoom * 100)} %)`"
 						color="neutral"
 						variant="ghost"
 						size="sm"

@@ -7,12 +7,9 @@
  */
 definePageMeta({ layout: "dashboard" });
 
-const { event, eventId, can } = await useCurrentEvent();
+const { event, eventId } = await useCurrentEvent();
 
 useSeoMeta({ title: `Dokumente | ${event.value.name}` });
-
-// Share links for externals: only the Leitung creates them, while the org allows them.
-const sharingEnabled = computed(() => useInstance().value?.org?.file_sharing_enabled === true);
 
 const library = useDocumentLibrary({ scope: "event", eventId: () => eventId.value });
 </script>
@@ -29,8 +26,6 @@ const library = useDocumentLibrary({ scope: "event", eventId: () => eventId.valu
 					scope="event"
 					:root-label="`Dokumente – ${event.name}`"
 					v-bind="library"
-					:manage-access="can('files:manage_all')"
-					:sharing-enabled="sharingEnabled"
 					empty-description="Lade Ablaufpläne, Präsentationen, Listen oder Fotos für das Team hoch."
 				/>
 			</DashboardPageBody>

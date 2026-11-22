@@ -14,7 +14,11 @@
  */
 import { useEventListener } from "@vueuse/core";
 
-const props = defineProps<{ fileId: number }>();
+const props = defineProps<{
+	fileId: number;
+	/** The file's library, for the error texts. */
+	scope: "org" | "event";
+}>();
 const emit = defineEmits<{ mode: ["edit" | "view"]; versions: []; sharing: [] }>();
 
 const state = ref<"loading" | "ready" | "error">("loading");
@@ -40,7 +44,7 @@ async function open() {
 	);
 	if (!result.success) {
 		state.value = "error";
-		errorMessage.value = result.message;
+		errorMessage.value = fileErrorText(result.message, props.scope);
 		return;
 	}
 	editor.value = result.data;

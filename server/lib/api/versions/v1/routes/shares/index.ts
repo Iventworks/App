@@ -274,7 +274,8 @@ router.get(
 			: null;
 		if (!response) return APIResponse.notFound(c, "File not found");
 
-		await FileShares.recordAccess(share(c));
+		// HEAD: the preview checking what it would get (a PDF), not an access of its own.
+		if (c.req.method !== "HEAD") await FileShares.recordAccess(share(c));
 		return response;
 	},
 );
@@ -395,15 +396,15 @@ router.put(
 		const file = await inShare(c, fileId);
 		if (!file || file.kind !== "file") return APIResponse.notFound(c, "File not found");
 
-		if (await FileLocks.blocking(file.id)) {
+		if (await FileLocks.current(file.id)) {
 			return APIResponse.conflict(c, "The file is being edited right now");
 		}
 		const { file: upload } = c.req.valid("form") as PublicSharesModel.ReplaceForm;
-		const updated = await FileService.replaceContent(file, upload, null);
-		if (!updated) return APIResponse.badRequest(c, "File is too large");
+		const replaced = await FileService.replaceContent(file, upload, null);
+		if (!replaced) return APIResponse.badRequest(c, "File is too large");
 
-		await audit(c, "update", updated, `Inhalt von „${updated.name}“ ersetzt`);
-		return APIResponse.success(c, "File replaced successfully", item(c, updated));
+		await audit(c, "update", replaced.file, `Inhalt von „${replaced.file.name}“ ersetzt`);
+		return APIResponse.success(c, "File replaced successfully", item(c, replaced.file));
 	},
 );
 

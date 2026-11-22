@@ -25,8 +25,12 @@ export namespace RequestLimits {
 		);
 	}
 
-	/** The office server saving a document (WOPI PutFile): raw bytes, as large as an upload. */
-	const WOPI_PUT_FILE = /\/api\/v1\/wopi\/files\/\d+\/contents$/;
+	/**
+	 * The office server saving a document (WOPI PutFile): raw bytes, as large as an upload. Any id
+	 * segment: the WOPI route checks it (`WopiIds`), and a stricter pattern here would silently fall
+	 * back to `DEFAULT_BYTES` whenever the id format changes.
+	 */
+	const WOPI_PUT_FILE = /\/api\/v1\/wopi\/files\/[^/]+\/contents$/;
 
 	export function limitFor(headers: Headers, uploadLimit: number, path = ""): number {
 		const type = headers.get("content-type")?.toLowerCase() ?? "";

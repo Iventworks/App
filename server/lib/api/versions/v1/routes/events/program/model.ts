@@ -2,6 +2,7 @@ import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../../db";
 import { FileService } from "../../../../../utils/fileService";
+import { ApiHelperModels } from "../../../../../utils/shared-models/api-helper-models";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventProgramModel {
@@ -28,10 +29,7 @@ export namespace EventProgramModel {
 		description: z.string().max(10_000),
 		location: z.string().trim().max(200).nullable(),
 		category: z.string().trim().max(60).nullable(),
-		color: z
-			.string()
-			.regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316")
-			.nullable(),
+		color: ApiHelperModels.HexColor.nullable(),
 		start_at: z.number().int().nonnegative(),
 		end_at: z.number().int().nonnegative(),
 		/** Takes place in the Kleingruppen of the event (each with its leaders at its meeting point). */

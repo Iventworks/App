@@ -5,13 +5,10 @@
  * current contents become a version, so a restore can be undone). Versions are kept for 30 days,
  * the newest ten longer, at most 50.
  */
-import type { GetFilesByFileIdVersionsResponses } from "~/api-client";
-import type { FileItem } from "~/utils/types";
-
-type Version = GetFilesByFileIdVersionsResponses["200"]["data"][number];
+import type { FileItem, FileVersion } from "~/utils/types";
 
 const props = defineProps<{
-	item: Pick<FileItem, "id" | "name" | "permissions" | "updated_at" | "size"> | null;
+	item: Pick<FileItem, "id" | "name" | "scope" | "permissions" | "updated_at" | "size"> | null;
 }>();
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ restored: [] }>();
@@ -19,73 +16,54 @@ const emit = defineEmits<{ restored: [] }>();
 const toast = useToast();
 const route = useRoute();
 const fileURL = useFileURL();
-const confirm = useConfirmDialog();
+const { restoring, restoreVersion } = useFileVersions();
 
-const versions = ref<Version[]>([]);
+const versions = ref<FileVersion[]>([]);
+/** The file `versions` belong to. */
+let shownFor: number | null = null;
 const loading = ref(false);
-const restoring = ref<number | null>(null);
 
 const canEdit = computed(() => Boolean(props.item?.permissions?.edit));
 
 /** A version in the file view — from the file view itself, or from a library page (`from`). */
-function versionLink(version: Version) {
+function versionLink(version: FileVersion) {
 	const path = `/files/${props.item?.id}`;
 	const query = route.path === path ? { ...route.query } : { from: route.path };
 	return { path, query: { ...query, version: String(version.id) } };
 }
 
+/** Counts loads: only the latest one may fill the list (it can be reopened for another file). */
+let loads = 0;
+
 async function load() {
 	const item = props.item;
 	if (!item) return;
+	const current = ++loads;
+	// Opened for another file: don't show the previous file's versions meanwhile.
+	if (item.id !== shownFor) versions.value = [];
 	loading.value = true;
 	const result = await useAPI((api) => api.getFilesByFileIdVersions({ path: { fileId: item.id } }));
+	if (current !== loads) return;
 	loading.value = false;
 	if (!result.success) {
 		toast.add({
 			title: "Versionen konnten nicht geladen werden",
-			description: result.message,
+			description: fileErrorText(result.message, libraryScopeOf(item)),
 			color: "error",
 		});
 		return;
 	}
 	versions.value = result.data;
+	shownFor = item.id;
 }
 
 watch(open, (value) => {
 	if (value) void load();
 });
 
-async function restore(version: Version) {
+async function restore(version: FileVersion) {
 	const item = props.item;
-	if (!item) return;
-	const choice = await confirm({
-		title: "Version wiederherstellen?",
-		description: `Die Fassung vom ${formatDate(version.modified_at)} wird wieder die aktuelle. Die jetzige bleibt als Version erhalten.`,
-		icon: "i-lucide-history",
-		confirmLabel: "Wiederherstellen",
-		confirmIcon: "i-lucide-history",
-	});
-	if (choice !== "confirm") return;
-
-	restoring.value = version.id;
-	const result = await useAPI((api) =>
-		api.postFilesByFileIdVersionsByVersionIdRestore({
-			path: { fileId: item.id, versionId: version.id },
-		}),
-	);
-	restoring.value = null;
-	if (!result.success) {
-		toast.add({
-			title: "Wiederherstellen fehlgeschlagen",
-			description:
-				(result as { code?: number }).code === 409
-					? "Die Datei wird gerade bearbeitet."
-					: result.message,
-			color: "error",
-		});
-		return;
-	}
-	toast.add({ title: "Version wiederhergestellt", color: "success", icon: "i-lucide-check" });
+	if (!item || !(await restoreVersion(item, version))) return;
 	emit("restored");
 	await load();
 }

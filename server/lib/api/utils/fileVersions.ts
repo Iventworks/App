@@ -8,8 +8,8 @@ import { UserSummary } from "./shared-models/userSummary";
 
 /**
  * Earlier contents of files ("Versionen", `file_versions`). Whenever contents are replaced, the
- * old blob is kept as a version — unless the same person keeps saving (autosave): then at most one
- * version per `INTERVAL_MS`. Housekeeping keeps everything of the last `KEEP_DAYS` days, beyond
+ * old blob is kept as a version — unless the same person keeps saving, or an editing session in
+ * the office server saves what it wrote itself: then at most one version per `INTERVAL_MS`. Housekeeping keeps everything of the last `KEEP_DAYS` days, beyond
  * that the newest `KEEP_MIN` per file, never more than `MAX_PER_FILE`.
  */
 export namespace FileVersions {
@@ -18,22 +18,35 @@ export namespace FileVersions {
 	export const KEEP_MIN = 10;
 	export const MAX_PER_FILE = 50;
 
+	/** When the file's current contents were written (renaming or moving doesn't count). */
+	export function contentsUpdatedAt(
+		file: Pick<DB.Models.File, "contents_updated_at" | "updated_at">,
+	) {
+		return file.contents_updated_at ?? file.updated_at;
+	}
+
 	/**
 	 * Whether the current contents of `file` become a version when `userId` replaces them.
-	 * `session`: saved by a shared editing session, where several people save in turns — at most
-	 * one version per interval, whoever saves.
+	 * `sessionSince`: saved by an editing session that began then (the office server's lock), where
+	 * several people save in turns — what was there before the session is kept, the session's own
+	 * saves at most once per interval, whoever saves.
 	 */
-	export function shouldKeep(
+	function shouldKeep(
 		tx: DrizzleDB.Sync,
 		file: DB.Models.File,
 		userId: number | null,
 		now: number,
-		session = false,
+		sessionSince?: number,
 	) {
 		// Nothing worth keeping (a new office document before the office server filled it).
 		if (!file.storage_key || file.size === 0) return false;
-		// Someone else's (or a share link's) contents are always kept — outside sessions.
-		if (!session && (file.modified_by === null || file.modified_by !== userId)) return true;
+		if (sessionSince === undefined) {
+			// Someone else's (or a share link's) contents are always kept.
+			if (file.modified_by === null || file.modified_by !== userId) return true;
+		} else if (contentsUpdatedAt(file) < sessionSince) {
+			// Written before the session (an upload, another session): always kept.
+			return true;
+		}
 		const latest = tx
 			.select({ created_at: DB.Tables.fileVersions.created_at })
 			.from(DB.Tables.fileVersions)
@@ -45,7 +58,7 @@ export namespace FileVersions {
 	}
 
 	/** Store the current contents of `file` as a version (inside the caller's transaction). */
-	export function archive(tx: DrizzleDB.Sync, file: DB.Models.File, now: number) {
+	function archive(tx: DrizzleDB.Sync, file: DB.Models.File, now: number) {
 		if (!file.storage_key) return;
 		tx
 			.insert(DB.Tables.fileVersions)
@@ -56,27 +69,27 @@ export namespace FileVersions {
 				size: file.size,
 				mime_type: file.mime_type,
 				modified_by: file.modified_by,
-				modified_at: file.updated_at,
+				modified_at: contentsUpdatedAt(file),
 				created_at: now,
 			})
 			.run();
 	}
 
 	/**
-	 * Replace the contents of `file` with a stored blob: the old contents become a version (or are
-	 * removed, see `shouldKeep`). Returns the updated row.
+	 * Replace the contents of `file` with a stored blob: the old contents become a version
+	 * (`kept`) or are removed, see `shouldKeep`. Returns the updated row.
 	 */
 	export async function replace(
 		file: DB.Models.File,
 		blob: { storageKey: string; size: number; mimeType: string },
 		userId: number | null,
-		options: { session?: boolean } = {},
+		options: { sessionSince?: number } = {},
 	) {
 		const now = Date.now();
-		const { row, dropKey } = DB.instance().transaction((tx) => {
+		const { row, kept, dropKey } = DB.instance().transaction((tx) => {
 			// The row as it is now: another replace may have finished since the caller loaded it.
 			const current = currentRow(tx, file.id);
-			const keep = shouldKeep(tx, current, userId, now, options.session);
+			const keep = shouldKeep(tx, current, userId, now, options.sessionSince);
 			if (keep) archive(tx, current, now);
 			const updated = tx
 				.update(DB.Tables.files)
@@ -85,15 +98,16 @@ export namespace FileVersions {
 					size: blob.size,
 					mime_type: blob.mimeType,
 					modified_by: userId,
+					contents_updated_at: now,
 					updated_at: now,
 				})
 				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
 				.returning()
-				.get();
-			return { row: updated, dropKey: keep ? null : current.storage_key };
+				.get() as DB.Models.File;
+			return { row: updated, kept: keep, dropKey: keep ? null : current.storage_key };
 		});
 		if (dropKey) await FileStorage.remove([dropKey]);
-		return row as DB.Models.File;
+		return { file: row, kept };
 	}
 
 	function currentRow(tx: DrizzleDB.Sync, fileId: number) {
@@ -132,37 +146,56 @@ export namespace FileVersions {
 	}
 
 	/**
-	 * Make `version` the current contents again; the current contents become a version (always
-	 * kept, so a restore can be undone). Null when the version is gone meanwhile.
+	 * Make `version` the current contents again. Its contents are copied, so the version stays in
+	 * the list: saving soon after a restore (which coalesces with the version the restore made) never
+	 * loses the restored contents. The current contents become a version (unless empty), so a restore
+	 * can be undone. Null when the version is gone meanwhile.
 	 */
-	export function restore(file: DB.Models.File, version: DB.Models.FileVersion, userId: number) {
+	export async function restore(
+		file: DB.Models.File,
+		version: DB.Models.FileVersion,
+		userId: number,
+	) {
+		const copy = await FileStorage.copy(version.storage_key);
+		if (!copy) return null;
 		const now = Date.now();
-		return DB.instance().transaction((tx) => {
-			const stillThere = tx
-				.select({ id: DB.Tables.fileVersions.id })
-				.from(DB.Tables.fileVersions)
-				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
-				.get();
-			if (!stillThere) return null;
-			archive(tx, currentRow(tx, file.id), now);
-			const updated = tx
-				.update(DB.Tables.files)
-				.set({
-					storage_key: version.storage_key,
-					size: version.size,
-					mime_type: version.mime_type,
-					modified_by: userId,
-					updated_at: now,
-				})
-				.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
-				.returning()
-				.get();
-			tx
-				.delete(DB.Tables.fileVersions)
-				.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
-				.run();
-			return updated as DB.Models.File;
-		});
+		let result: { row: DB.Models.File; dropKey: string | null } | null;
+		try {
+			result = DB.instance().transaction((tx) => {
+				const stillThere = tx
+					.select({ id: DB.Tables.fileVersions.id })
+					.from(DB.Tables.fileVersions)
+					.where(and(inOrg(DB.Tables.fileVersions), eq(DB.Tables.fileVersions.id, version.id)))
+					.get();
+				if (!stillThere) return null;
+				const current = currentRow(tx, file.id);
+				const keep = current.size > 0;
+				if (keep) archive(tx, current, now);
+				const row = tx
+					.update(DB.Tables.files)
+					.set({
+						storage_key: copy.storageKey,
+						size: copy.size,
+						mime_type: version.mime_type,
+						modified_by: userId,
+						contents_updated_at: now,
+						updated_at: now,
+					})
+					.where(and(inOrg(DB.Tables.files), eq(DB.Tables.files.id, file.id)))
+					.returning()
+					.get() as DB.Models.File;
+				return { row, dropKey: keep ? null : current.storage_key };
+			});
+		} catch (error) {
+			await FileStorage.remove([copy.storageKey]);
+			throw error;
+		}
+		if (!result) {
+			await FileStorage.remove([copy.storageKey]);
+			return null;
+		}
+		if (result.dropKey) await FileStorage.remove([result.dropKey]);
+		return result.row;
 	}
 
 	/** Storage keys of the versions of `fileIds` (to remove them with their files). */

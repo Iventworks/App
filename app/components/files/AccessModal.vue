@@ -6,12 +6,7 @@
  * documents) and Leitung (event documents) always have full access and are not listed.
  */
 import type { SelectMenuItem } from "@nuxt/ui";
-import {
-	accessEntryIcon,
-	rightsLabel,
-	rightsPresetFor,
-	rightsPresetsFor,
-} from "~/utils/filePermissions";
+import type { RightsPresetKey } from "~/utils/filePermissions";
 import type {
 	FileAccessCandidate,
 	FileAccessEntry,
@@ -25,6 +20,7 @@ const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ changed: [] }>();
 
 const toast = useToast();
+const managers = computed(() => managersOf(props.scope));
 
 type Row = Pick<FileAccessEntry, "principal" | "id" | "label" | "color"> & {
 	permissions: FileAccessRights;
@@ -35,16 +31,17 @@ const candidates = ref<FileAccessCandidate[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const mode = ref<"inherit" | "custom">("inherit");
+/** The own list being edited ("Eigener Zugriff"). */
 const rows = ref<Row[]>([]);
-/** Who can open the folder this item is in (null: it is at the top level, which everyone sees). */
-const parentEntries = ref<FileAccessEntry[] | null>(null);
 
 /**
  * Whether this entry's people can't open the folder above — then they never get to this item.
  * Only certain cases (a person in a group of the folder above can't be checked here, so no warning).
  */
 function cutOff(row: Row) {
-	const parent = parentEntries.value;
+	// Who can open the folder this item is in: what the item would inherit. Everyone sees the
+	// top level.
+	const parent = props.item?.parent_id != null ? view.value?.inherits.entries : null;
 	if (!parent || (!row.permissions.read && !row.permissions.upload)) return false;
 	const readers = parent.filter((entry) => entry.permissions.read);
 	if (readers.some((entry) => entry.principal === "members" || entry.principal === "team"))
@@ -79,24 +76,26 @@ function toRows(entries: FileAccessEntry[]): Row[] {
 	}));
 }
 
+/** Counts loads: only the latest one may fill the dialog (it can be reopened for another item). */
+let loads = 0;
+
 async function load() {
 	const item = props.item;
 	if (!item) return;
+	const current = ++loads;
+	view.value = null;
+	rows.value = [];
 	loading.value = true;
-	const parentId = item.parent_id;
-	const [access, list, parent] = await Promise.all([
+	const [access, list] = await Promise.all([
 		useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: item.id } })),
 		useAPI((api) => api.getFilesByFileIdAccessCandidates({ path: { fileId: item.id } })),
-		parentId !== null
-			? useAPI((api) => api.getFilesByFileIdAccess({ path: { fileId: parentId } }))
-			: Promise.resolve(null),
 	]);
-	parentEntries.value = parent?.success ? parent.data.entries : null;
+	if (current !== loads) return;
 	loading.value = false;
 	if (!access.success) {
 		toast.add({
 			title: "Zugriff konnte nicht geladen werden",
-			description: access.message,
+			description: fileErrorText(access.message, props.scope),
 			color: "error",
 		});
 		open.value = false;
@@ -105,6 +104,7 @@ async function load() {
 	view.value = access.data;
 	candidates.value = list.success ? list.data : [];
 	mode.value = access.data.custom ? "custom" : "inherit";
+	// An own list starts from what applies now.
 	rows.value = toRows(access.data.entries);
 }
 
@@ -112,16 +112,14 @@ watch(open, (value) => {
 	if (value) void load();
 });
 
-/** Back to inheriting: show what would apply again. */
-watch(mode, (value) => {
-	if (value === "inherit" && view.value && !view.value.custom)
-		rows.value = toRows(view.value.entries);
-});
+/** What the list shows: the own list, or what would be inherited. */
+const shownRows = computed(() =>
+	mode.value === "custom" ? rows.value : toRows(view.value?.inherits.entries ?? []),
+);
 
 const inheritedText = computed(() => {
-	const source = view.value?.inherited_from;
+	const source = view.value?.inherits.from;
 	if (source) return `Wie der Ordner „${source.name}“`;
-	if (view.value?.custom) return "Wie der übergeordnete Ordner";
 	return props.scope === "org"
 		? "Wie die oberste Ebene: nur das Kernteam"
 		: "Wie die oberste Ebene: alle im Team dürfen ansehen und hochladen";
@@ -142,12 +140,35 @@ const modes = computed(() => [
 	},
 ]);
 
+/** Arrow keys move between the two cards (a radio group, like native radio buttons). */
+const modeGroup = ref<HTMLElement | null>(null);
+const ARROW_STEPS: Record<string, number | undefined> = {
+	ArrowRight: 1,
+	ArrowDown: 1,
+	ArrowLeft: -1,
+	ArrowUp: -1,
+};
+
+function onModeKey(event: KeyboardEvent, index: number) {
+	const step = ARROW_STEPS[event.key];
+	if (!step) return;
+	event.preventDefault();
+	const options = modes.value;
+	const next = (index + step + options.length) % options.length;
+	const option = options[next];
+	if (!option) return;
+	mode.value = option.value;
+	modeGroup.value?.querySelectorAll<HTMLElement>("[role='radio']")[next]?.focus();
+}
+
 // --- entries ----------------------------------------------------------------------------------
 
 const keyOf = (row: Pick<Row, "principal" | "id">) => `${row.principal}:${row.id ?? ""}`;
 
 function presetItems(row: Row) {
-	const items = presets.value.map((preset) => ({ label: preset.label, value: preset.key }));
+	const items: { label: string; value: RightsPresetKey | "custom" }[] = presets.value.map(
+		(preset) => ({ label: preset.label, value: preset.key }),
+	);
 	if (!rightsPresetFor(props.item?.kind, row.permissions)) {
 		items.push({ label: rightsLabel(props.item?.kind, row.permissions), value: "custom" });
 	}
@@ -198,7 +219,7 @@ watch(addKey, (key) => {
 
 async function save() {
 	const item = props.item;
-	if (!item) return;
+	if (!item || !view.value) return;
 	saving.value = true;
 	const custom = mode.value === "custom";
 	const result = await useAPI((api) =>
@@ -218,7 +239,11 @@ async function save() {
 	);
 	saving.value = false;
 	if (!result.success) {
-		toast.add({ title: "Zugriff nicht gespeichert", description: result.message, color: "error" });
+		toast.add({
+			title: "Zugriff nicht gespeichert",
+			description: fileErrorText(result.message, props.scope),
+			color: "error",
+		});
 		return;
 	}
 	toast.add({ title: "Zugriff gespeichert", color: "success", icon: "i-lucide-check" });
@@ -239,20 +264,24 @@ async function save() {
 			<p class="flex items-start gap-2 text-sm text-slate-400">
 				<UIcon name="i-lucide-crown" class="mt-0.5 size-4 shrink-0 text-amber-400" />
 				<span>
-					{{ scope === "org" ? "Das Kernteam" : "Die Leitung (und das Kernteam)" }} hat immer Vollzugriff und
+					{{ managers.The }}{{ scope === "event" ? " (und das Kernteam)" : "" }} hat immer Vollzugriff und
 					legt den Zugriff fest. Eigener Zugriff gilt für alles darin, bis ein Unterordner seinen eigenen hat.
 				</span>
 			</p>
 
-			<div class="grid gap-2 sm:grid-cols-2">
+			<!-- Two cards as one radio group: arrow keys switch, like native radio buttons. -->
+			<div ref="modeGroup" role="radiogroup" aria-label="Zugriff" class="grid gap-2 sm:grid-cols-2">
 				<button
-					v-for="option in modes"
+					v-for="(option, index) in modes"
 					:key="option.value"
 					type="button"
+					role="radio"
 					class="flex items-start gap-3 rounded-lg border p-3 text-left transition"
 					:class="mode === option.value ? 'border-primary bg-primary/10' : 'border-slate-800 hover:border-slate-600'"
-					:aria-pressed="mode === option.value"
+					:aria-checked="mode === option.value"
+					:tabindex="mode === option.value ? 0 : -1"
 					@click="mode = option.value"
+					@keydown="onModeKey($event, index)"
 				>
 					<UIcon :name="option.icon" class="mt-0.5 size-5 shrink-0 text-primary-400" />
 					<span>
@@ -266,8 +295,8 @@ async function save() {
 				<p class="text-xs font-medium uppercase tracking-wide text-slate-500">
 					{{ mode === "custom" ? "Wer Zugriff hat" : "Zugriff, der übernommen wird" }}
 				</p>
-				<ul v-if="rows.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
-					<li v-for="(row, index) in rows" :key="keyOf(row)" class="flex flex-wrap items-center gap-3 px-3 py-2.5">
+				<ul v-if="shownRows.length" class="divide-y divide-slate-800 rounded-lg border border-slate-800">
+					<li v-for="(row, index) in shownRows" :key="keyOf(row)" class="flex flex-wrap items-center gap-3 px-3 py-2.5">
 						<span
 							class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-800"
 							:style="row.color ? { backgroundColor: `${row.color}33` } : undefined"
@@ -312,7 +341,7 @@ async function save() {
 					class="flex items-center gap-2 rounded-lg border border-dashed border-slate-700 px-3 py-3 text-sm text-slate-400"
 				>
 					<UIcon name="i-lucide-lock" class="size-4 text-amber-400" />
-					Nur {{ scope === "org" ? "das Kernteam" : "die Leitung" }} –
+					Nur {{ managers.the }} –
 					sonst sieht niemand {{ isFolder ? "diesen Ordner" : "diese Datei" }}.
 				</div>
 

@@ -4,8 +4,11 @@
  */
 import type { FileAccessEntry, FileAccessRights, FileItem } from "~/utils/types";
 
+/** Keys of the presets below; folders and files share "view". */
+export type RightsPresetKey = "view" | "upload" | "edit" | "full" | "dropbox" | "file-edit";
+
 export interface RightsPreset {
-	key: string;
+	key: RightsPresetKey;
 	label: string;
 	description: string;
 	icon: string;
@@ -44,7 +47,7 @@ export const FOLDER_RIGHTS_PRESETS: RightsPreset[] = [
 	{
 		key: "dropbox",
 		label: "Nur hochladen",
-		description: "Dateiablage: hochladen, ohne den Inhalt zu sehen",
+		description: "Briefkasten: hochladen, ohne den Inhalt zu sehen",
 		icon: "i-lucide-inbox",
 		permissions: { read: false, upload: true, edit: false, delete: false },
 	},
@@ -66,6 +69,25 @@ export const FILE_RIGHTS_PRESETS: RightsPreset[] = [
 		permissions: { read: true, upload: false, edit: true, delete: false },
 	},
 ];
+
+/** Which document library: the org's (managed by the Kernteam) or one event's (the Leitung). */
+export type LibraryScope = "org" | "event";
+
+/** The library a document belongs to (`scope` of a file item). */
+export function libraryScopeOf(item: { scope: string }): LibraryScope {
+	return item.scope === "event" ? "event" : "org";
+}
+
+/**
+ * Who manages a library and always has full access: the Kernteam (org documents) or the Leitung
+ * (event documents). `name` for labels ("Nur Kernteam"), `the` / `The` with the article ("nur das
+ * Kernteam", "Die Leitung hat …").
+ */
+export function managersOf(scope: LibraryScope) {
+	return scope === "org"
+		? { name: "Kernteam", the: "das Kernteam", The: "Das Kernteam" }
+		: { name: "Leitung", the: "die Leitung", The: "Die Leitung" };
+}
 
 export function rightsPresetsFor(kind: FileItem["kind"] | undefined) {
 	return kind === "folder" ? FOLDER_RIGHTS_PRESETS : FILE_RIGHTS_PRESETS;
@@ -97,11 +119,6 @@ export function rightsLabel(kind: FileItem["kind"] | undefined, rights: FileAcce
 	]
 		.filter(Boolean)
 		.join(", ");
-}
-
-/** Who always has full access: the Kernteam (org documents) or the Leitung (event documents). */
-export function accessManagersLabel(scope: "org" | "event") {
-	return scope === "org" ? "Kernteam" : "Leitung";
 }
 
 export function accessEntryIcon(entry: Pick<FileAccessEntry, "principal">) {

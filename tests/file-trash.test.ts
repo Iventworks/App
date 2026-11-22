@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { FileTrash } from "../server/lib/api/utils/fileTrash";
 import { DB } from "../server/lib/db";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
+import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
 import { addEventMember, type SeededSession, seedSession, seedUser } from "./helpers/seed";
 
@@ -122,6 +123,28 @@ describe("Papierkorb", () => {
 		expect(all[0].purge_at - all[0].deleted_at).toBe(FileTrash.RETENTION_DAYS * 86_400_000);
 	});
 
+	test("the folder names show only to those who may still open the folder", async () => {
+		const secret = await folder(anna.token, "Geheim");
+		const memo = await upload(anna.token, "memo.txt", secret.id);
+		await remove(anna.token, memo.id);
+		const own = async () =>
+			(await makeAPIRequest(`${base}/trash`, { authToken: anna.token })).find(
+				(item: any) => item.id === memo.id,
+			);
+		expect((await own()).location).toEqual(["Geheim"]);
+		// Contents in the Papierkorb aren't served: no link to them.
+		expect((await own()).content_url).toBeNull();
+
+		await makeAPIRequest(`/v1/files/${secret.id}/access`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { custom: true, entries: [] },
+		});
+		expect((await own()).location).toEqual([]);
+		const all = await makeAPIRequest(`${base}/trash`, { authToken: leader.token });
+		expect(all.find((item: any) => item.id === memo.id).location).toEqual(["Geheim"]);
+	});
+
 	test("restoring puts items back — to the top level when their folder is gone", async () => {
 		await makeAPIRequest(
 			`${base}/trash/${plans.id}/restore`,
@@ -129,7 +152,7 @@ describe("Papierkorb", () => {
 			404,
 		);
 
-		// A file inside the deleted folder, deleted on its own afterwards.
+		// The folder comes back with what was in it.
 		const restoredFolder = await makeAPIRequest(`${base}/trash/${plans.id}/restore`, {
 			method: "POST",
 			authToken: anna.token,
@@ -140,6 +163,7 @@ describe("Papierkorb", () => {
 
 		await remove(anna.token, plans.id);
 		await remove(leader.token, inside.id, 404); // in the Papierkorb with its folder already
+		// A file deleted on its own, then its folder.
 		const sub = await folder(anna.token, "Unterordner");
 		const deep = await upload(anna.token, "tief.txt", sub.id);
 		await remove(anna.token, deep.id);
@@ -165,7 +189,24 @@ describe("Papierkorb", () => {
 		await makeAPIRequest(`/v1/files/${deep.id}`, { authToken: leader.token });
 	});
 
-	test("only the Leitung deletes for good or empties it", async () => {
+	test("only the Leitung deletes for good or empties it — the files on disk go too", async () => {
+		const stored = async (key: string) => await FileStorage.open(key).exists();
+		// An earlier version of the note, to see that its file goes as well.
+		const old = await FileStorage.save(new Blob(["ältere Fassung"]));
+		DB.instance()
+			.insert(DB.Tables.fileVersions)
+			.values({
+				org_id: OrgContext.id(),
+				file_id: note.id,
+				storage_key: old.storageKey,
+				size: old.size,
+				modified_at: Date.now(),
+			})
+			.run();
+		const noteKey = row(note.id)?.storage_key as string;
+		const insideKey = row(inside.id)?.storage_key as string;
+		expect(await stored(noteKey)).toBe(true);
+
 		await makeAPIRequest(
 			`${base}/trash/${note.id}`,
 			{ method: "DELETE", authToken: anna.token },
@@ -173,12 +214,15 @@ describe("Papierkorb", () => {
 		);
 		await makeAPIRequest(`${base}/trash/${note.id}`, { method: "DELETE", authToken: leader.token });
 		expect(row(note.id)).toBeUndefined();
+		expect(await stored(noteKey)).toBe(false);
+		expect(await stored(old.storageKey)).toBe(false);
 
 		await makeAPIRequest(`${base}/trash`, { method: "DELETE", authToken: anna.token }, 403);
 		await makeAPIRequest(`${base}/trash`, { method: "DELETE", authToken: leader.token });
 		expect(await makeAPIRequest(`${base}/trash`, { authToken: leader.token })).toEqual([]);
 		expect(row(plans.id)).toBeUndefined();
 		expect(row(inside.id)).toBeUndefined();
+		expect(await stored(insideKey)).toBe(false);
 	});
 
 	test("share links stop at the Papierkorb; what a link deletes lands there", async () => {

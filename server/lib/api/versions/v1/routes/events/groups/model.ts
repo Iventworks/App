@@ -1,6 +1,7 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { DB } from "../../../../../../db";
+import { ApiHelperModels } from "../../../../../utils/shared-models/api-helper-models";
 import { UserSummary } from "../../../../../utils/shared-models/userSummary";
 
 export namespace EventGroupsModel {
@@ -21,10 +22,7 @@ export namespace EventGroupsModel {
 	export const GroupFields = {
 		name: z.string().trim().min(1).max(80),
 		description: z.string().max(2_000),
-		color: z
-			.string()
-			.regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316")
-			.nullable(),
+		color: ApiHelperModels.HexColor.nullable(),
 		/** Event staff user ids; replaces the whole member set. */
 		member_ids: z.array(z.number().int().positive()).max(500),
 	};

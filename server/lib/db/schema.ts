@@ -663,8 +663,11 @@ export const files = sqliteTable(
 		size: integer().notNull().default(0),
 		storage_key: text(),
 		uploaded_by: integer().references(() => users.id, { onDelete: "set null" }),
-		// Who wrote the current contents (upload, new version, editor); null: through a share link.
+		// Who wrote the current contents (upload, new version, office editor); null: a share link.
 		modified_by: integer().references(() => users.id, { onDelete: "set null" }),
+		// When the current contents were written (renaming and moving don't count); null: as
+		// `updated_at` (`FileVersions.contentsUpdatedAt`).
+		contents_updated_at: integer(),
 		// Own access list (`file_access`) for this item and everything below it, instead of the
 		// parent folder's. Only org and event documents.
 		custom_access: integer({ mode: "boolean" }).notNull().default(false),
@@ -724,10 +727,10 @@ export const fileShares = sqliteTable(
 );
 
 /**
- * Earlier contents of a file ("Versionen"): when contents are replaced (new upload, editor,
- * share link, office), the old blob is kept here — at most one per author every few minutes
- * while someone keeps saving (`FileVersions`). Housekeeping thins them out; the blobs count as
- * referenced. Never copied with an event.
+ * Earlier contents of a file ("Versionen"): when contents are replaced (new upload, office
+ * editor, share link, restore), the old blob is kept here — another person's always, the same
+ * person's (and an office session's) at most once every ten minutes (`FileVersions`).
+ * Housekeeping thins them out; the blobs count as referenced. Never copied with an event.
  * @deprecated Use DB.Tables.fileVersions to access this table.
  */
 export const fileVersions = sqliteTable(
@@ -782,10 +785,10 @@ export const wopiTokens = sqliteTable(
 	(table) => [
 		index("wopi_tokens_org_id_idx").on(table.org_id),
 		index("wopi_tokens_file_id_idx").on(table.file_id),
+		// Logging out (and housekeeping) deletes a session's tokens by cascade.
+		index("wopi_tokens_session_id_idx").on(table.session_id),
 	],
 );
-
-export const FILE_LOCK_KINDS = ["office"] as const;
 
 /**
  * Who is editing a file right now (`FileLocks`): the office server (WOPI locks). Nobody can
@@ -799,10 +802,8 @@ export const fileLocks = sqliteTable(
 		file_id: integer()
 			.primaryKey()
 			.references(() => files.id, { onDelete: "cascade" }),
-		kind: text({ enum: FILE_LOCK_KINDS }).notNull(),
-		// Random id the holder sends with its writes (or the office server's lock string).
+		// The office server's lock string (`X-WOPI-Lock`).
 		lock_id: text().notNull(),
-		user_id: integer().references(() => users.id, { onDelete: "cascade" }),
 		expires_at: integer().notNull(),
 		created_at: SQLUtils.getCreatedAtColumn(),
 	},
@@ -849,6 +850,10 @@ export const fileAccess = sqliteTable(
 	(table) => [
 		index("file_access_org_id_idx").on(table.org_id),
 		index("file_access_file_id_idx").on(table.file_id),
+		// Deleting a person or a group, and leaving an event's team, remove entries by these.
+		index("file_access_user_id_idx").on(table.user_id),
+		index("file_access_org_group_id_idx").on(table.org_group_id),
+		index("file_access_event_group_id_idx").on(table.event_group_id),
 	],
 );
 

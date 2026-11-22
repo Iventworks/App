@@ -30,7 +30,9 @@ export namespace FileLibrary {
 			}
 		}
 
-		const path = folder ? await FileService.getPath(folder.id) : [];
+		const path = folder
+			? await FileService.getPath(folder.id, undefined, new Map([[folder.id, folder]]))
+			: [];
 		if (FileService.isTrashed(path)) return { ok: false, status: 404, message: "Folder not found" };
 		const children = await FileService.listFolder(location, folder?.id ?? null);
 		const { permissions, items, entries } = await FileAccess.forFolder(viewer, path, children);
@@ -56,10 +58,8 @@ export namespace FileLibrary {
 			);
 		}
 
-		// "Wird bearbeitet von …"
-		const editing = await FileLocks.describe(
-			(await FileLocks.forFiles(visible.map((item) => item.file.id))).values(),
-		);
+		// "Wird in Office bearbeitet"
+		const locks = await FileLocks.forFiles(visible.map((item) => item.file.id));
 
 		return {
 			ok: true,
@@ -76,7 +76,7 @@ export namespace FileLibrary {
 					(file) => ({
 						permissions: permissionsOf.get(file.id) ?? null,
 						access: viewer.manager && file.custom_access ? (itemAccess.get(file.id) ?? []) : null,
-						editing: editing.get(file.id) ?? null,
+						editing: FileLocks.editingOf(locks.get(file.id)),
 					}),
 				),
 				permissions,
@@ -100,13 +100,14 @@ export namespace FileLibrary {
 			return FileAccess.rootPermissions(viewer).upload ? { ok: true, parentId: null } : denied;
 		}
 
-		const parent = await FileService.resolveParent(viewer.location, parentId);
-		if (!parent.ok) return { ok: false, status: 400, message: parent.message };
-		const folder = (await FileService.get(parentId)) as DB.Models.File;
-		const permissions = await FileAccess.evaluateFile(viewer, folder);
-		if (!permissions.read && !permissions.upload) {
-			return { ok: false, status: 400, message: "Parent folder not found" };
+		const notFound: Failure = { ok: false, status: 400, message: "Parent folder not found" };
+		const folder = await FileService.get(parentId);
+		if (folder?.kind !== "folder" || !FileService.isInLocation(folder, viewer.location)) {
+			return notFound;
 		}
+		const path = await FileService.getPath(folder.id, undefined, new Map([[folder.id, folder]]));
+		const permissions = await FileAccess.evaluateFile(viewer, folder, path);
+		if (!permissions.read && !permissions.upload) return notFound;
 		return permissions.upload ? { ok: true, parentId: folder.id } : denied;
 	}
 

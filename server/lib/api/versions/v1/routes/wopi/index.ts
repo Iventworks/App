@@ -5,14 +5,16 @@ import { WopiProof } from "../../../../../office/proof";
 import { OfficeTokens } from "../../../../../office/tokens";
 import { WopiIds } from "../../../../../office/wopiIds";
 import { OrgContext } from "../../../../../orgs/context";
+import { OrgRegistry } from "../../../../../orgs/registry";
 import { FileStorage } from "../../../../../utils/fileStorage";
 import { Logger } from "../../../../../utils/logger";
 import { AuditLog } from "../../../../utils/auditLog";
 import { FileLocks } from "../../../../utils/fileLocks";
 import { FileService } from "../../../../utils/fileService";
+import { FileVersions } from "../../../../utils/fileVersions";
 
 type WopiEnv = {
-	Variables: { wopi: OfficeTokens.Resolved; fileId: number };
+	Variables: { wopi: OfficeTokens.Resolved };
 };
 
 /**
@@ -42,11 +44,19 @@ function logRefusal(reason: string, message: string) {
 	Logger.warn(message);
 }
 
+/**
+ * The org's address the office server called — the one in the WOPISrc it was given. It is one
+ * of the org's hosts (the org came from it), but no longer the primary one after a change.
+ */
+function calledOrgUrl(c: Context) {
+	return OrgRegistry.urlForHost(OrgRegistry.requestHost(c.req.raw.headers, c.req.url));
+}
+
 /** The URL as the office server called it (what it signed). */
 function calledUrl(c: Context) {
 	const url = new URL(c.req.url);
 	const start = url.pathname.indexOf("/v1/wopi/");
-	return `${OrgContext.current().url}/api${url.pathname.slice(start)}${url.search}`;
+	return `${calledOrgUrl(c)}/api${url.pathname.slice(start)}${url.search}`;
 }
 
 router.use("/files/:fileId/*", async (c, next) => {
@@ -98,14 +108,18 @@ router.use("/files/:fileId/*", async (c, next) => {
 		return c.body(null, 401);
 	}
 	// The id names this file of this installation (not one of the same number elsewhere).
-	if (!WopiIds.matches(wopiId, resolved.file)) return c.body(null, 404);
+	if (!WopiIds.matches(wopiId, resolved.file, calledOrgUrl(c))) return c.body(null, 404);
 	Logger.debug(
 		`WOPI ${c.req.method} ${c.req.header("X-WOPI-Override") ?? (c.req.path.endsWith("/contents") ? "contents" : "info")} file ${fileId}`,
 	);
 	c.set("wopi", resolved);
-	c.set("fileId", fileId);
 	await next();
 });
+
+/** The version of a file's contents (`X-WOPI-ItemVersion`): renaming doesn't change it. */
+function itemVersion(file: Parameters<typeof FileVersions.contentsUpdatedAt>[0]) {
+	return String(FileVersions.contentsUpdatedAt(file));
+}
 
 function fileInfo({ file, user, canWrite, permissions }: OfficeTokens.Resolved) {
 	const org = OrgContext.current();
@@ -115,8 +129,8 @@ function fileInfo({ file, user, canWrite, permissions }: OfficeTokens.Resolved) 
 		Size: file.size,
 		UserId: String(user.id),
 		UserFriendlyName: user.display_name,
-		Version: String(file.updated_at),
-		LastModifiedTime: new Date(file.updated_at).toISOString(),
+		Version: itemVersion(file),
+		LastModifiedTime: new Date(FileVersions.contentsUpdatedAt(file)).toISOString(),
 		UserCanWrite: canWrite,
 		ReadOnly: !canWrite,
 		UserCanNotWriteRelative: true,
@@ -130,9 +144,9 @@ function fileInfo({ file, user, canWrite, permissions }: OfficeTokens.Resolved) 
 		PostMessageOrigin: org.url,
 		HostEditUrl: `${org.url}/files/${file.id}`,
 		// The editor's "Versionsverlauf" and "Freigeben" open the file page's own dialogs
-		// (`UI_FileVersions` / `UI_Sharing` to `FilesOfficeFrame`).
+		// (`UI_FileVersions` / `UI_Sharing` to `FilesOfficeFrame`); share links only where allowed.
 		FileVersionPostMessage: true,
-		FileSharingPostMessage: permissions.manage,
+		FileSharingPostMessage: permissions.manage && org.file_sharing_enabled,
 	};
 }
 
@@ -152,7 +166,7 @@ router.get("/files/:fileId/contents", async (c) => {
 		headers: {
 			"Content-Type": "application/octet-stream",
 			"Content-Length": String(blob.size),
-			"X-WOPI-ItemVersion": String(file.updated_at),
+			"X-WOPI-ItemVersion": itemVersion(file),
 			"Cache-Control": "private, no-store",
 		},
 	});
@@ -165,27 +179,39 @@ router.post("/files/:fileId/contents", async (c) => {
 	if (!canWrite) return c.body(null, 401);
 
 	const lockId = c.req.header(LOCK_HEADER) ?? "";
-	const current = await FileLocks.officeLockOf(file.id);
+	const lock = await FileLocks.current(file.id);
+	const current = lock?.lock_id ?? "";
 	// Someone else's lock.
 	if (current !== "" && current !== lockId) return c.body(null, 409, { [LOCK_HEADER]: current });
 	// Unlocked: only an empty file may be written without a lock.
 	if (current === "" && file.size > 0) return c.body(null, 409, { [LOCK_HEADER]: "" });
 
 	const data = await c.req.arrayBuffer();
-	if (data.byteLength > FileStorage.maxUploadBytes) return c.body(null, 413);
-	const updated = await FileService.replaceContent(
+	const replaced = await FileService.replaceContent(
 		file,
 		new Blob([data], { type: file.mime_type ?? "application/octet-stream" }),
 		user.id,
-		{ session: true },
+		// The editing session began with the lock (unlocked: filling an empty file).
+		{ sessionSince: lock?.created_at ?? Date.now() },
 	);
-	if (!updated) return c.body(null, 413);
-	return c.body(null, 200, { "X-WOPI-ItemVersion": String(updated.updated_at) });
+	if (!replaced) return c.body(null, 413);
+	// One entry per version: the office server saves often (Ctrl+S, when everyone has closed).
+	if (replaced.kept) {
+		await AuditLog.record({
+			userId: user.id,
+			eventId: file.scope === "event" ? file.event_id : null,
+			action: "update",
+			entityType: "file",
+			entityId: file.id,
+			summary: `Dokument „${file.name}“ in Office bearbeitet`,
+		}).catch((error) => Logger.error("WOPI audit failed:", error));
+	}
+	return c.body(null, 200, { "X-WOPI-ItemVersion": itemVersion(replaced.file) });
 });
 
 // Lock operations (and what we don't support).
 router.post("/files/:fileId", async (c) => {
-	const { file, user, canWrite } = c.get("wopi");
+	const { file, canWrite } = c.get("wopi");
 	const override = c.req.header("X-WOPI-Override") ?? "";
 	const lockId = (c.req.header(LOCK_HEADER) ?? "").slice(0, 1024);
 	const conflict = (current: string) => c.body(null, 409, { [LOCK_HEADER]: current });
@@ -198,20 +224,10 @@ router.post("/files/:fileId", async (c) => {
 		case "LOCK": {
 			if (!canWrite) return c.body(null, 401);
 			if (!lockId) return c.body(null, 400);
-			const oldLockId = c.req.header("X-WOPI-OldLock");
-			const result = FileLocks.officeLock(file.id, lockId, { oldLockId: oldLockId ?? undefined });
+			const oldLockId = c.req.header("X-WOPI-OldLock")?.slice(0, 1024);
+			const result = FileLocks.officeLock(file.id, lockId, { oldLockId });
 			if (!result.ok) return conflict(result.current);
-			if (oldLockId === undefined) {
-				await AuditLog.record({
-					userId: user.id,
-					eventId: file.scope === "event" ? file.event_id : null,
-					action: "update",
-					entityType: "file",
-					entityId: file.id,
-					summary: `Dokument „${file.name}“ in Office bearbeitet`,
-				}).catch((error) => Logger.error("WOPI audit failed:", error));
-			}
-			return c.body(null, 200, { "X-WOPI-ItemVersion": String(file.updated_at) });
+			return c.body(null, 200, { "X-WOPI-ItemVersion": itemVersion(file) });
 		}
 		case "REFRESH_LOCK": {
 			const result = await FileLocks.officeRefresh(file.id, lockId);
@@ -220,7 +236,7 @@ router.post("/files/:fileId", async (c) => {
 		case "UNLOCK": {
 			const result = await FileLocks.officeUnlock(file.id, lockId);
 			return result.ok
-				? c.body(null, 200, { "X-WOPI-ItemVersion": String(file.updated_at) })
+				? c.body(null, 200, { "X-WOPI-ItemVersion": itemVersion(file) })
 				: conflict(result.current);
 		}
 		default:

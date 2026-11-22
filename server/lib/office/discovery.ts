@@ -1,4 +1,5 @@
 import { ConfigHandler } from "../utils/config";
+import { AppConstants } from "../utils/constants";
 import { Logger } from "../utils/logger";
 
 /**
@@ -33,6 +34,49 @@ export namespace OfficeDiscovery {
 	let loading: Promise<Discovery | null> | null = null;
 	let override: Discovery | null = null;
 
+	/**
+	 * Problems with the office settings (empty when fine). Checked at startup: a wrong address
+	 * would only show up when someone opens a document, and the office server on the app's own
+	 * host would run its code on the app's origin — the reason for WOPI in the first place.
+	 */
+	export function validate(config: {
+		APP_URL: string;
+		OFFICE_URL?: string;
+		OFFICE_INTERNAL_URL?: string;
+	}): string[] {
+		const errors: string[] = [];
+		const name = (key: string) => `${AppConstants.APP_ENV_PREFIX}_${key}`;
+		const parse = (key: "OFFICE_URL" | "OFFICE_INTERNAL_URL") => {
+			const value = config[key];
+			if (!value) return null;
+			try {
+				const url = new URL(value);
+				if (url.protocol === "http:" || url.protocol === "https:") return url;
+			} catch {}
+			errors.push(`${name(key)} must be an http(s) address, e.g. https://office.ivb.example.org`);
+			return null;
+		};
+		if (config.OFFICE_INTERNAL_URL && !config.OFFICE_URL) {
+			errors.push(`${name("OFFICE_INTERNAL_URL")} needs ${name("OFFICE_URL")} as well`);
+		}
+		const publicUrl = parse("OFFICE_URL");
+		parse("OFFICE_INTERNAL_URL");
+		if (!publicUrl) return errors;
+		if (publicUrl.pathname !== "/") {
+			errors.push(`${name("OFFICE_URL")} must be a host of its own, without a path`);
+		}
+		let appHost: string | null = null;
+		try {
+			appHost = new URL(config.APP_URL).hostname;
+		} catch {}
+		if (appHost && publicUrl.hostname === appHost) {
+			errors.push(
+				`${name("OFFICE_URL")} must not be the app's own host name: use a host of its own, e.g. office.ivb.${appHost}`,
+			);
+		}
+		return errors;
+	}
+
 	/** Office editing is configured on this installation. */
 	export function enabled() {
 		return Boolean(ConfigHandler.getConfig()?.OFFICE_URL) || override !== null;
@@ -40,8 +84,8 @@ export namespace OfficeDiscovery {
 
 	/** The public origin of the office server (CSP `frame-src` / `form-action`). */
 	export function publicOrigin(): string | null {
-		const url = ConfigHandler.getConfig()?.OFFICE_URL;
-		if (!url) return override ? "https://office.test" : null;
+		const url = ConfigHandler.getConfig()?.OFFICE_URL ?? override?.actions[0]?.urlsrc;
+		if (!url) return null;
 		try {
 			return new URL(url).origin;
 		} catch {
@@ -122,7 +166,10 @@ export namespace OfficeDiscovery {
 		}
 	}
 
-	/** The discovery (cached), or null when office editing is off or the server can't be reached. */
+	/**
+	 * The discovery (cached), or null when office editing is off or the server hasn't been reached
+	 * since the start.
+	 */
 	export async function get(now = Date.now()): Promise<Discovery | null> {
 		if (override) return override;
 		if (!enabled()) return null;
@@ -145,8 +192,11 @@ export namespace OfficeDiscovery {
 		loading ??= fetchDiscovery().finally(() => {
 			loading = null;
 		});
-		const discovery = await loading;
-		cache = { discovery, fetchedAt: now, until: now + (discovery ? TTL_MS : RETRY_MS) };
+		const fetched = await loading;
+		// A failed fetch (the office server restarting, a timeout) keeps the last good discovery: its
+		// keys still check the office server's calls. Try again after RETRY_MS.
+		const discovery = fetched ?? cache?.discovery ?? null;
+		cache = { discovery, fetchedAt: now, until: now + (fetched ? TTL_MS : RETRY_MS) };
 		return discovery;
 	}
 

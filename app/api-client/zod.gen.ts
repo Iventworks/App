@@ -2034,7 +2034,8 @@ export const zGetAdminSharesResponse = z.object({
                 name: z.string()
             }).nullable(),
             folder_id: z.number().nullable(),
-            path: z.string()
+            path: z.string(),
+            in_trash: z.boolean()
         })
     }))
 });
@@ -4408,7 +4409,6 @@ export const zPutFilesByFileIdContentResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4500,7 +4500,6 @@ export const zGetFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         path: z.array(z.object({
@@ -4577,7 +4576,6 @@ export const zPutFilesByFileIdResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4724,7 +4722,6 @@ export const zPostFilesByFileIdVersionsByVersionIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -4764,7 +4761,31 @@ export const zGetFilesByFileIdAccessResponse = z.object({
                 edit: z.boolean(),
                 delete: z.boolean()
             })
-        }))
+        })),
+        inherits: z.object({
+            from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        })
     })
 });
 
@@ -4822,7 +4843,31 @@ export const zPutFilesByFileIdAccessResponse = z.object({
                 edit: z.boolean(),
                 delete: z.boolean()
             })
-        }))
+        })),
+        inherits: z.object({
+            from: z.object({
+                id: z.number(),
+                name: z.string()
+            }).nullable(),
+            entries: z.array(z.object({
+                principal: z.enum([
+                    'members',
+                    'team',
+                    'org_group',
+                    'event_group',
+                    'user'
+                ]),
+                id: z.number().nullable(),
+                label: z.string(),
+                color: z.string().nullable(),
+                permissions: z.object({
+                    read: z.boolean(),
+                    upload: z.boolean(),
+                    edit: z.boolean(),
+                    delete: z.boolean()
+                })
+            }))
+        })
     })
 });
 
@@ -7497,7 +7542,6 @@ export const zGetEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7603,7 +7647,6 @@ export const zPostEventsByEventIdProgramResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7725,7 +7768,6 @@ export const zPutEventsByEventIdProgramByProgramItemIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -7823,7 +7865,6 @@ export const zPostEventsByEventIdProgramByProgramItemIdDuplicateResponse = z.obj
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8667,7 +8708,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -8718,7 +8758,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8769,7 +8808,6 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -8804,7 +8842,31 @@ export const zGetEventsByEventIdFilesResponse = z.object({
                     edit: z.boolean(),
                     delete: z.boolean()
                 })
-            }))
+            })),
+            inherits: z.object({
+                from: z.object({
+                    id: z.number(),
+                    name: z.string()
+                }).nullable(),
+                entries: z.array(z.object({
+                    principal: z.enum([
+                        'members',
+                        'team',
+                        'org_group',
+                        'event_group',
+                        'user'
+                    ]),
+                    id: z.number().nullable(),
+                    label: z.string(),
+                    color: z.string().nullable(),
+                    permissions: z.object({
+                        read: z.boolean(),
+                        upload: z.boolean(),
+                        edit: z.boolean(),
+                        delete: z.boolean()
+                    })
+                }))
+            })
         }).nullable()
     })
 });
@@ -8872,7 +8934,6 @@ export const zPostEventsByEventIdFilesResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -8941,7 +9002,6 @@ export const zPostEventsByEventIdFilesFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9019,13 +9079,21 @@ export const zGetEventsByEventIdFilesTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
         deleted_by: z.object({
             id: z.number(),
-            display_name: z.string()
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),
@@ -9094,7 +9162,6 @@ export const zPostEventsByEventIdFilesTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9183,7 +9250,6 @@ export const zPostEventsByEventIdFilesOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -9303,7 +9369,6 @@ export const zGetEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9425,7 +9490,6 @@ export const zPostEventsByEventIdExpensesResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9606,7 +9670,6 @@ export const zPutEventsByEventIdExpensesByExpenseIdResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9725,7 +9788,6 @@ export const zPostEventsByEventIdExpensesByExpenseIdReceiptResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -9849,7 +9911,6 @@ export const zPostEventsByEventIdExpensesByExpenseIdReviewResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -10831,7 +10892,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         }).nullable(),
@@ -10882,7 +10942,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -10933,7 +10992,6 @@ export const zGetOrgDocumentsResponse = z.object({
                 })
             })).nullable(),
             editing: z.object({
-                kind: z.enum(['office']),
                 expires_at: z.number()
             }).nullable()
         })),
@@ -10968,7 +11026,31 @@ export const zGetOrgDocumentsResponse = z.object({
                     edit: z.boolean(),
                     delete: z.boolean()
                 })
-            }))
+            })),
+            inherits: z.object({
+                from: z.object({
+                    id: z.number(),
+                    name: z.string()
+                }).nullable(),
+                entries: z.array(z.object({
+                    principal: z.enum([
+                        'members',
+                        'team',
+                        'org_group',
+                        'event_group',
+                        'user'
+                    ]),
+                    id: z.number().nullable(),
+                    label: z.string(),
+                    color: z.string().nullable(),
+                    permissions: z.object({
+                        read: z.boolean(),
+                        upload: z.boolean(),
+                        edit: z.boolean(),
+                        delete: z.boolean()
+                    })
+                }))
+            })
         }).nullable()
     })
 });
@@ -11032,7 +11114,6 @@ export const zPostOrgDocumentsResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11097,7 +11178,6 @@ export const zPostOrgDocumentsFoldersResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11167,13 +11247,21 @@ export const zGetOrgDocumentsTrashResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable(),
         deleted_at: z.number(),
         deleted_by: z.object({
             id: z.number(),
-            display_name: z.string()
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
         }).nullable(),
         location: z.array(z.string()),
         purge_at: z.number(),
@@ -11241,7 +11329,6 @@ export const zPostOrgDocumentsTrashByFileIdRestoreResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })
@@ -11325,7 +11412,6 @@ export const zPostOrgDocumentsOfficeResponse = z.object({
             })
         })).nullable(),
         editing: z.object({
-            kind: z.enum(['office']),
             expires_at: z.number()
         }).nullable()
     })

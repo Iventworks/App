@@ -5,10 +5,10 @@
  */
 import { beforeAll, describe, expect, test } from "bun:test";
 import { FileLocks } from "../server/lib/api/utils/fileLocks";
-import { FileService } from "../server/lib/api/utils/fileService";
 import { FileVersions } from "../server/lib/api/utils/fileVersions";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
+import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
 import { type SeededSession, type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
@@ -22,9 +22,10 @@ let annaUser: SeededUser;
 let folderId: number;
 let docId: number;
 
-async function request(path: string, token: string) {
+async function request(path: string, token: string, method = "GET") {
 	const { API } = await import("../server/lib/api");
 	return await API.getApp().request(path, {
+		method,
 		headers: { "X-Iventworks-Host": "test.localhost", Authorization: `Bearer ${token}` },
 	});
 }
@@ -132,9 +133,38 @@ describe("Versions", () => {
 			authToken: anna.token,
 		});
 		expect(await text(docId, reader.token)).toBe("# Sitzung März\n");
+		// The restored version stays; the contents it replaced became one.
 		const after = await versionsOf(docId);
-		expect(after.map((version: any) => version.id)).not.toContain(oldest.id);
+		expect(after.map((version: any) => version.id)).toContain(oldest.id);
+		expect(after).toHaveLength(versions.length + 1);
+	});
+
+	test("a version says when its contents were written, not when the file was renamed", async () => {
+		const file = await upload(core.token, "Entwurf", "entwurf.txt", "text/plain");
+		await Bun.sleep(5);
+		const renamed = await makeAPIRequest(`/v1/files/${file.id}`, {
+			method: "PUT",
+			authToken: core.token,
+			body: { name: "entwurf-umbenannt.txt" },
+		});
+
+		await replace(anna.token, file.id, "Von Anna");
+		const [version] = await versionsOf(file.id);
+		expect(version.modified_by.display_name).not.toBe("Anna");
+		expect(version.modified_at).toBeLessThan(renamed.updated_at);
+	});
+
+	test("saving right after a restore doesn't lose the restored contents", async () => {
+		const versions = await versionsOf(docId);
+		const oldest = versions.at(-1);
+		// Anna restored a moment ago: her next save coalesces with the version the restore made.
+		await replace(anna.token, docId, "# Anna, nach dem Zurückholen");
+		const after = await versionsOf(docId);
 		expect(after).toHaveLength(versions.length);
+		expect(after.map((version: any) => version.id)).toContain(oldest.id);
+		expect(await text(docId, reader.token, oldest.content_url.replace("/api", ""))).toBe(
+			"# Sitzung März\n",
+		);
 	});
 });
 
@@ -168,7 +198,7 @@ describe("While the office server edits", () => {
 		expect(FileLocks.officeLock(doc.id, "office-lock")).toEqual({ ok: true });
 
 		const details = await makeAPIRequest(`/v1/files/${doc.id}`, { authToken: reader.token });
-		expect(details.editing).toMatchObject({ kind: "office" });
+		expect(details.editing).toEqual({ expires_at: expect.any(Number) });
 		await replace(core.token, doc.id, "v3", 409);
 		await makeAPIRequest(
 			`/v1/files/${doc.id}/versions/${version.id}/restore`,
@@ -209,6 +239,12 @@ describe("Contents", () => {
 		// The browser's own viewer, embedded by our pages.
 		expect(asPdf.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'self'");
 		expect(asPdf.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
+		// The preview asks with HEAD first whether it gets a PDF to show.
+		const head = await request(`/v1/files/${pdf.id}/content/plan.pdf`, reader.token, "HEAD");
+		expect(head.status).toBe(200);
+		expect(head.headers.get("Content-Type")).toBe("application/pdf");
+		const notPdfHead = await request(`/v1/files/${notPdf.id}/content/x`, reader.token, "HEAD");
+		expect(notPdfHead.headers.get("Content-Type")).toBe("application/octet-stream");
 
 		for (const file of [html.id, notPdf.id]) {
 			const res = await request(`/v1/files/${file}/content/x`, reader.token);
@@ -218,7 +254,6 @@ describe("Contents", () => {
 
 		const download = await request(`/v1/files/${csv.id}/content/x?download=1`, reader.token);
 		expect(download.headers.get("Content-Disposition")).toStartWith("attachment");
-		expect(FileService.TEXT_EXTENSIONS.has("md")).toBe(true);
 	});
 });
 
@@ -226,19 +261,20 @@ describe("Housekeeping", () => {
 	test("thins out old versions and keeps the blobs of the rest", async () => {
 		const { Housekeeping } = await import("../server/lib/utils/housekeeping");
 		const old = Date.now() - (FileVersions.KEEP_DAYS + 5) * 86_400_000;
-		const blob = (await DB.instance().select().from(DB.Tables.fileVersions).all()).find(
-			(row) => row.file_id === docId,
-		)!;
+		// 60 old versions, each with its own stored file as in real life.
+		const blobs = await Promise.all(
+			Array.from({ length: 60 }, (_, index) => FileStorage.save(new Blob([`Fassung ${index}`]))),
+		);
 		DB.instance()
 			.insert(DB.Tables.fileVersions)
 			.values(
-				Array.from({ length: 60 }, () => ({
+				blobs.map((blob, index) => ({
 					org_id: OrgContext.id(),
 					file_id: docId,
-					storage_key: blob.storage_key,
+					storage_key: blob.storageKey,
 					size: blob.size,
-					modified_at: old,
-					created_at: old,
+					modified_at: old + index,
+					created_at: old + index,
 				})),
 			)
 			.run();
@@ -250,7 +286,11 @@ describe("Housekeeping", () => {
 			(row) => row.file_id === docId,
 		);
 		expect(left.length).toBe(FileVersions.KEEP_MIN);
-		// Version blobs are not orphans.
+		// The files of the versions that went are removed; those of the kept ones aren't orphans.
+		const kept = new Set(left.map((row) => row.storage_key));
+		for (const blob of blobs) {
+			expect(await FileStorage.open(blob.storageKey).exists()).toBe(kept.has(blob.storageKey));
+		}
 		const versions = await versionsOf(docId);
 		await text(docId, reader.token, versions[0].content_url.replace("/api", ""));
 	});

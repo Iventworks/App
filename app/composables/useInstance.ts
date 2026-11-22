@@ -22,6 +22,15 @@ export function useBrandName() {
 }
 
 /**
+ * Share links ("Teilen", "Freigabelink") are possible: the org hasn't switched them off. Only the
+ * people managing a document create them (`permissions.manage`).
+ */
+export function useShareLinksAllowed() {
+	const instance = useInstance();
+	return computed(() => instance.value?.org?.file_sharing_enabled === true);
+}
+
+/**
  * Name of this host's installable app: the product and the org it is for ("Iventworks für
  * Crossover"), so people find it under the product's name and don't take it for the org's own
  * app. Same rule as the manifest's `name` (`routes/instance`).

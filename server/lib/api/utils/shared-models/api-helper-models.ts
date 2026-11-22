@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export namespace ApiHelperModels {
+	/** A colour picked in the UI (groups, events, program items, calendar entries). */
+	export const HexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #f97316");
+}
+
 export namespace ApiHelperModels.ListAll {
 	export const Query = z.object({
 		limit: z.coerce.number().int().positive().min(1).max(100).default(10),

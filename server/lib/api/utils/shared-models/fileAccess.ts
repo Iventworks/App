@@ -12,7 +12,11 @@ export namespace FileAccessModel {
 	});
 	export type Rights = z.infer<typeof Rights>;
 
-	/** What the caller may do with an item (see `FileAccess.Permissions`). */
+	/**
+	 * What the caller may do with one item: `read` (open, download; a folder: list it), `upload`
+	 * (folders: add files and folders), `edit` (files: replace contents), `rename`, `delete` (also
+	 * needed to move it), `manage` (access lists and share links).
+	 */
 	export const Permissions = Rights.extend({
 		rename: z.boolean(),
 		manage: z.boolean(),
@@ -49,6 +53,15 @@ export namespace FileAccessModel {
 		 * (Kernteam / Leitung) always have full access and are never listed.
 		 */
 		entries: z.array(Entry),
+		/**
+		 * What applies when the item inherits: the list of the nearest folder above with its own
+		 * (`from`), or the library's default (`from` null). The same as `inherited_from` and
+		 * `entries` while it inherits.
+		 */
+		inherits: z.object({
+			from: z.object({ id: z.number(), name: z.string() }).nullable(),
+			entries: z.array(Entry),
+		}),
 	});
 	export type View = z.infer<typeof View>;
 

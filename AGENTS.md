@@ -130,157 +130,97 @@ CMP (Crossover Management Portal) before; the repository still is.
   schema's `onDelete` actions are relied on (e.g. deleting an event cascades to its rows).
   The `created_at` SQL default has second precision — set `created_at: Date.now()` explicitly
   where millisecond ordering matters (chat messages vs. read markers do this).
-- **File uploads** (not covered by the guide): blobs on disk under `IVENTWORKS_UPLOAD_DIR` via
-  `FileStorage`, metadata in `files`, all access through `FileService` / `FileAccess`. Upload
-  routes use `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Contents are
-  plain paths with an access check on every request: `GET /files/{fileId}/content/{name}`
-  (`content_url` of every item, `?download=1` forces a download). It is the one route where the
-  API accepts the session cookie instead of the `Authorization` header, so `<img src>`, links and
-  new tabs work — read-only, SameSite=Lax (`COOKIE_AUTH_PATH` in `middleware/auth.ts`); every
-  other route needs the header. Responses are `Cache-Control: private, no-store`. Uploaded MIME
-  types are client-controlled, so `FileService.displayAs` decides what the browser may show:
-  raster images by type (sandbox CSP), text formats by type or extension — always as
-  `text/plain; charset=utf-8` (sandbox CSP) — and PDFs only when they start with `%PDF-` (CSP
-  just `frame-ancestors 'self'` + `X-Frame-Options: SAMEORIGIN`: the browsers' own viewers don't
-  work under a restrictive policy, and our pages embed them). Everything else, notably SVG and
-  HTML, goes out as an `application/octet-stream` attachment so it can never run script on the
-  app origin.
-  Housekeeping deletes stored files no `files` row references (after a day's grace).
-- **File page and previews** (`/files/[file_id]`, layout `viewer`, `FilesPreview`,
-  `FilesPdfViewer`, `app/utils/filePreview.ts`): files open on a page of their own that uses the
-  whole window (no sidebar, like Google Docs or Nextcloud): a slim header (back into the folder —
-  `?from=` names the library page —, name, location, download, versions, "Neue Fassung") and the
-  file edge to edge. Office files open straight in the office editor when one is configured
-  (editing or viewing by the caller's rights — no separate "edit mode"), else download. PDFs use
-  the browser's own viewer in a frame (`navigator.pdfViewerEnabled`); only browsers without one
-  (mostly Android) get pdf.js (`FilesPdfViewer`, a lazy component that imports `pdfjs-dist` only
-  then; worker from our bundle, WebAssembly off, no string evaluation, canvases ≤ 16 MP). Text
-  previews fetch the content and show it as text — Markdown rendered read-only, CSV as a table —
-  never as HTML. `?version=…` shows an earlier version (with "Wiederherstellen"). The share page
-  uses the same preview. There is no in-app text editing of files: quick text lives in notes, real
-  co-editing in the office editor (Markdown co-editing was removed: its own sync protocol cost
-  more than it was worth next to notes and Office).
-- **Versions** (`file_versions` / `FileVersions`): every change of a file's contents (upload of
-  a new version, the office editor, a share link, restoring) goes through
-  `FileService.replaceContent`, which keeps the old blob as a version — while the same person keeps
-  saving (or anyone in an office session), at most one every ten minutes. `files.modified_by`
-  is who wrote the current contents. Housekeeping keeps 30 days, the newest ten per file longer,
-  never more than 50; version blobs count as referenced in the orphan sweep, deleting a file
-  removes its version blobs. Versions are never copied with an event.
-- **Papierkorb** (`files.deleted_at` / `deleted_by`, `FileTrash`): deleting an org or event
-  document (also through a share link, `deleted_by` null) moves it to the Papierkorb — a folder
-  with everything inside; receipts and attachments are deleted right away. Items in the
-  Papierkorb, or below a folder in it, are gone everywhere else: listings skip them
-  (`FileService.listFolder`), the `/files/{id}` loader answers 404 (`FileService.isInTrash`),
-  `FileAccess.evaluateFile` gives nothing, share links stop, program attachments and event copies
-  leave them out. Managers (Kernteam / Leitung) see and restore everything and delete for good,
-  everyone else sees and restores what they deleted (`…/trash` on both libraries). Restoring goes
-  back into the folder. When that folder is in the Papierkorb too, only managers restore the item:
-  to the top level, with an access list of its own that lets only them in (the top level's access
-  would differ from what it had); everyone else gets 409 (`folder_in_trash` in the listing).
-  Deleting a folder is refused while a file inside is being edited (`FileLocks.blockingWithin`),
-  also through share links. Event copies leave out what is below a folder in it. Housekeeping
-  deletes after 30 days (rows below go by `ON DELETE CASCADE`, blobs with the orphan sweep). A new
-  query on `files` for documents must skip `deleted_at` (and what is below it).
+- **File uploads and contents** (not covered by the guide): blobs on disk under
+  `IVENTWORKS_UPLOAD_DIR` via `FileStorage`, metadata in `files`, all access through `FileService`
+  / `FileAccess`. Upload routes use
+  `zValidator("form", …, undefined, { media: "multipart/form-data" })`. Contents are plain paths
+  with an access check on every request (`content_url`, `?download=1`):
+  `GET /files/{id}/content/{name}` and `…/versions/{id}/content/{name}` are the only routes that
+  accept the session cookie instead of the `Authorization` header (GET/HEAD, SameSite=Lax,
+  `COOKIE_AUTH_PATH` in `middleware/auth.ts`), so `<img src>`, links and new tabs work. Uploaded
+  MIME types are client-controlled: `FileService.displayAs` decides what the browser may show
+  (raster images, text as `text/plain`, PDFs by their first bytes — with `SAMEORIGIN` framing so
+  our pages embed the browser's viewer); everything else, notably SVG and HTML, goes out as an
+  `application/octet-stream` attachment. Housekeeping deletes blobs no row references.
+- **Document libraries**: the org library (`/org/documents`) and event documents
+  (`/events/{id}/files`) are one router factory, `createFileLibraryRouter`
+  (`server/lib/api/utils/fileLibraryRoutes.ts`, model `FileLibraryModel` in `shared-models/`) —
+  unlike the guide's `index.ts` + `model.ts` per resource, like `createOrgDomainRouter`: the two
+  only differ in who may do what. Everything on one item (rename, move, delete, contents,
+  versions, access, share links, office) is the shared `/files/{fileId}` router. Pages:
+  `/documents` is the member view (`view=member`), `/core-team/documents` manages the library;
+  see CLAUDE.md for `useDocumentLibrary` / `FilesBrowser`.
+- **File page** (`/files/[file_id]`, layout `viewer`, no sidebar): office files open straight in
+  the office editor, PDFs in the browser's own viewer (pdf.js only where there is none, loaded
+  lazily), text as text (Markdown read-only) — never as HTML. There is no in-app text editing:
+  Markdown co-editing was removed (its own sync protocol cost more than it was worth next to notes
+  and Office); don't bring it back.
+- **Versions** (`file_versions`, `FileVersions`): content changes go through
+  `FileService.replaceContent`, which keeps the old blob as a version — the same person at most
+  once every ten minutes; an office editing session (it starts with the lock) always keeps what was
+  there before it, its own saves at most once every ten minutes; empty contents never. Restoring
+  copies the version (it stays) and keeps the current contents. `files.contents_updated_at` is when
+  the contents were written (renaming doesn't count). Housekeeping keeps 30 days, the newest ten
+  longer, at most 50. Versions are never copied with an event.
+- **Papierkorb** (`files.deleted_at`, `FileTrash`): deleting org or event documents (also through
+  a share link) moves them there; receipts and attachments are deleted right away. What is in it,
+  or below a folder in it, is gone everywhere else — **a new query on `files` for documents must
+  skip it** (`FileService.listFolder`, `isInTrash`). Managers see, restore and purge everything,
+  others see and restore what they deleted. When the item's folder is in the Papierkorb too, only
+  managers restore it: to the top level, with a list that lets only them in (409 for others).
+  Deleting is refused while a file in it is locked by the office server
+  (`FileLocks.blockingWithin`). Housekeeping purges after 30 days.
 - **Office documents** (Nextcloud Office — the production distribution of Euro-Office — over
-  WOPI, optional — `IVENTWORKS_OFFICE_URL`,
-  `server/lib/office`, `routes/wopi`, `FilesOfficeFrame`): `POST /files/{id}/office` (browser
-  sessions only) creates an access token (`wopi_tokens`, hashed, tied to the login session, 10 h)
-  and the editor URL from the office server's discovery; the browser posts the token to the editor
-  in a frame — the office server's code never runs on our origin (that is why not its document
-  API, whose `api.js` would). The office server calls `<org url>/api/v1/wopi/files/{id}` (the
-  org's public address, so the org comes from the host as always, and the office server keeps
-  blocking private addresses against SSRF). Deviations, all deliberate:
-  - WOPI routes answer in WOPI's own format (raw JSON, bytes, status codes, `X-WOPI-*` headers),
-    not the API envelope, and are not in the OpenAPI spec.
-  - Every call needs the proof signature (`WopiProof`, keys from the discovery; invalid → 500 as
-    MS-WOPI says; no proof keys or no discovery → every call is refused, never token-only; a
-    mismatch reloads the discovery at most once a minute, so new keys are picked up) and the
-    token again: session, person, file (not in the Papierkorb), current rights
-    (`OfficeTokens.resolve`). Refusals are logged with their reason (once a minute per reason),
-    every call at debug level. The login middleware skips `/v1/wopi/` (office servers may send
-    the access token as `Authorization: Bearer`).
-  - Files are addressed by a WOPI id, not the bare file id (`WopiIds`: `<id>-<hash of org URL,
-    id, created_at>`): the office server keeps open documents by that id alone, so bare ids would
-    mix up installations sharing an office server, restored staging copies or reset databases.
-  - The page CSP adds the office origin to `frame-src` and `form-action`; PutFile bodies may be as
-    large as uploads (`RequestLimits.limitFor`, path-based).
-  - Locks are WOPI's (`file_locks` kind `office`, 30 min): no uploads, restores or deletes
-    meanwhile (409). Saves keep versions per interval (`session: true`).
-  - Compose: the optional `office` service (profile `office`, `WOPI_ENABLED=true`), image
-    `ghcr.io/nextcloud-releases/office-documentserver:latest` (stable releases; the Euro-Office
-    community builds are meant for testing). v9.3.8 needs `EO_LIB` set to its `nextcloud-office`
-    data path, or its entrypoint never fixes that folder's owner and conversions fail with EACCES
-    (fixed upstream in Euro-Office/DocumentServer#578, not released yet). The compose file sets
-    it; the Website docs leave it out on purpose — drop it from compose once a release has the fix.
-  - Host names: backend services go under `ivb.` ("Iventworks backends"), e.g.
-    `office.ivb.<org domain>` or `office.ivb.iventworks.de` — always a host of its own, never a
-    path or port of the app's. `ivb` is a reserved org slug.
-  - New documents: "Neu → Textdokument / Tabelle / Präsentation" (`POST …/office` on both
-    libraries) creates a 0-byte docx/xlsx/pptx and opens it (its file page). That's WOPI's way: the
-    office server fills an empty file with its own template in the editor's language (`ui=de-DE`:
-    German spell checking, A4) via an unlocked PutFile, which only empty files allow; empty
-    contents never become a version (`FileVersions.shouldKeep`).
-  - Editor ↔ page (`FilesOfficeFrame`, WOPI PostMessage): CheckFileInfo sets
-    `FileVersionPostMessage` / `FileSharingPostMessage` (managers), so the editor's version history
-    and share buttons open the page's dialogs. The page sends `Grab_Focus` (plus `iframe.focus()`)
-    after loading, full screen and dialogs, and catches Ctrl+S / Ctrl+A that land on the page. The
-    form posts `docs_api_config` with `customization.forcesave`, so Ctrl+S saves into Iventworks
-    right away; otherwise the office server writes back only when everyone has closed the document.
-- **Share links** (like Nextcloud, `file_shares`, `FileShares` in `server/lib/api/utils/fileShares.ts`):
-  `<org url>/s/<token>` opens a file or a folder with everything below it for people without an
-  account. Per link: view (`can_read`; off = upload-only drop box), upload, edit (rename, replace
-  contents), delete; optional password (hashed; unlocked per browser by a cookie derived from it)
-  and expiry. Rules:
-  - Every request through a link resolves its file ids with `FileShares.resolveInShare` — the
-    shared item or something below the shared folder, nothing else. The shared item itself is
-    never renamed or deleted through its link. Receipts are never shared.
-  - Only managers of the library create links (`permissions.manage`: org documents → Kernteam,
-    event documents → Leitung), so a link never grants more than its creator has. Receipts and
-    chat attachments are never shared.
-  - Unknown, expired and disabled links all answer 404; org admins can switch sharing off
-    (`orgs.file_sharing_enabled`, also stops existing links) and set a default expiry.
-  - Changes through a link are audited without a user ("über Freigabelink …"); creating, changing
-    and revoking links are audited as `file_share`. Admins see all links under
-    *Administration → Freigabelinks*. Public API: `/shares/{token}/…`; page: `pages/s/[token].vue`
-    (layout `public`).
-- **Document access lists** (like Nextcloud Team folders; `file_access`, `files.custom_access`,
-  `FileAccess` in `server/lib/api/utils/fileAccess.ts`, lists in `fileAccessLists.ts`):
-  - Managers always may do everything, including access and share links: the Kernteam for org
-    documents (`org_documents:write`), the Leitung for event documents (`files:manage_all`, which
-    includes the Kernteam — it acts as Leitung in every event, also for restricted folders).
-  - Everyone else gets the rights of the nearest item above with its own list (`custom_access`);
-    without one, the library default: org documents are Kernteam-only, event documents are open to
-    the whole team (view + upload). Rights are those of share links (read, upload, edit, delete,
-    same presets in the UI — `app/utils/filePermissions.ts`); files only take view or edit.
-    Entries name `members` / `org_group` / `user` (org) or `team` / `event_group` / a team
-    member (event); managers are never listed. No deny rules.
-  - An item is only visible when every folder above it can be read; an upload-only folder shows,
-    its contents don't. Items with their own list are renamed, moved or deleted by managers only,
-    and so are folders that hold one (`FileAccess.hasCustomAccessBelow`, outside the Papierkorb).
-    Own uploads may be renamed, moved, replaced and deleted while you may still upload there.
-  - Folders nest at most `FileService.MAX_DEPTH` (30) deep — creating and moving check it.
-    `FileService.getPath` throws on a longer chain rather than return part of it: the access walk
-    must see every list above an item.
-  - Every file route checks the caller's `permissions` (loaded in the `/files/{fileId}` loader;
-    listings carry them per item, managers also get `access`). Moving needs `delete` on the item
-    and upload rights on the target. Program items only show attachments the caller can open and
-    only link what the caller can open (`FileAccess.readableIds`); an edit keeps the links the
-    caller can't see.
-  - Receipts follow their expense, not access lists: the submitter and `expenses:review` read them;
-    reviewers rename or delete them any time, the submitter while the expense is `submitted`; their
-    contents are only replaced through `…/expenses/{id}/receipt` (never `PUT /files/{id}/content`).
-  - Pages: `/documents` is the member view (`view=member`: the Kernteam sees it like a member),
-    `/core-team/documents` manages the library (access, links, Kernteam-only items). Event
-    documents are one page; the Leitung sees the access controls there.
-  - Migration `0007` kept existing org documents visible: their top level got "Alle Mitglieder:
-    ansehen".
-  - People added to a list by name get a notification (`document_shared`); everyone/team/groups
-    don't (noise). The access dialog warns when an entry can't open the folder above (it would
-    never find the item).
-- **Org groups** (`org_groups`, `org_group_members`, `/admin/groups`, page *Administration →
-  Gruppen*): groups across the org, managed by admins only, used in access lists of org documents.
-  Deleting a group removes its access entries (`ON DELETE CASCADE`).
+  WOPI, optional; `IVENTWORKS_OFFICE_URL`, `server/lib/office`, `routes/wopi`, `FilesOfficeFrame`):
+  `POST /files/{id}/office` (browser sessions) issues an access token (`wopi_tokens`, hashed, tied
+  to the login session) and the editor URL; the browser posts the token to the editor in a frame,
+  so the office server's code never runs on our origin (that is why not its document API). The
+  office server calls back on the org's public address. Deliberate deviations and rules:
+  - WOPI routes answer in WOPI's format (raw JSON, bytes, `X-WOPI-*` headers), not the envelope,
+    and are not in the OpenAPI spec. The login middleware skips `/v1/wopi/`.
+  - Every call needs the proof signature (`WopiProof`) — never token-only — and the token is
+    checked again: session, person, Papierkorb, current rights (`OfficeTokens.resolve`).
+  - Files are addressed by `WopiIds` (`<id>-<hash>`): the office server keys open documents by
+    that id alone, across installations.
+  - The page CSP adds the office origin to `frame-src` / `form-action`; saves (PutFile) may be as
+    large as uploads (`RequestLimits.limitFor`, by path).
+  - Locks are WOPI's (`FileLocks`, 30 min): no uploads, restores or deletes meanwhile (409).
+    Office saves are audited once per version they keep, not when a document is opened.
+  - New documents are empty files; the office server fills them with its German template (an
+    unlocked PutFile, which only empty files allow).
+  - Compose: the optional `office` service (profile `office`), image `:latest`. v9.3.8 needs
+    `EO_LIB` (its entrypoint leaves the data folder root-owned, Euro-Office/DocumentServer#578):
+    the compose file sets it, the Website docs leave it out on purpose — drop it once a release
+    has the fix.
+  - Host names: backend services go under `ivb.` (`office.ivb.<org domain>`) — a host of its
+    own, never a path or port of the app's. `ivb` is a reserved org slug.
+- **Share links** (`file_shares`, `FileShares`): `<org url>/s/<token>` (page `pages/s/[token].vue`,
+  layout `public`, API `/shares/{token}/…`) opens a file or a folder for people without an
+  account; per link read (off: upload-only), upload, edit, delete, an optional password and expiry.
+  - Every request through a link resolves its ids with `FileShares.resolveInShare` (the shared
+    item or something below it); the shared item itself is never renamed or deleted through it.
+  - Only managers of the library create links, so a link never grants more than its creator has.
+    Receipts and chat attachments are never shared.
+  - Unknown, expired and disabled links answer 404; `orgs.file_sharing_enabled` switches them all
+    off. Changes through a link are audited without a user.
+- **Document access lists** (`file_access`, `files.custom_access`, `FileAccess`, `FileAccessLists`):
+  - Managers may do everything, including access and links: the Kernteam for org documents, the
+    Leitung for event documents (`files:manage_all`, so also the Kernteam). Everyone else gets the
+    rights of the nearest list above (read, upload, edit, delete — the share-link presets; files
+    only view or edit); without one, the library default (org: Kernteam-only; event: the whole
+    team views and uploads). No deny rules. Event lists only name the team, its groups or team
+    members; removing someone from the team removes their entries.
+  - An item is visible only when every folder above it can be read. Items with their own list are
+    renamed, moved or deleted by managers only; a folder that holds one is moved or deleted by
+    managers only (`hasCustomAccessBelow`). Own uploads stay theirs while they may upload there.
+  - Folders nest at most `FileService.MAX_DEPTH` deep; `getPath` throws rather than return part of
+    a chain — the access walk must see every list above an item.
+  - What someone may do comes with each item (`permissions`, from the `/files/{fileId}` loader or
+    the listing); pages never derive it from roles. Program items only show and link files the
+    caller can open (`FileAccess.readableIds`). Receipts follow their expense, not access lists.
+  - Migration `0007` kept existing org documents visible ("Alle Mitglieder: ansehen").
+- **Org groups** (`org_groups`, *Administration → Gruppen*): admin-managed, used in org access
+  lists; deleting a group removes its entries.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
   `IVENTWORKS_TIMEZONE` (`server/lib/utils/time.ts`). Wall-clock times (`HH:MM`) become instants
   with `TimeUtils.instantOf`; moving an instant by whole days keeps its time of day across DST

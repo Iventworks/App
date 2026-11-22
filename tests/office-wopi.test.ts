@@ -13,9 +13,12 @@ import { OfficeDiscovery } from "../server/lib/office/discovery";
 import { WopiProof } from "../server/lib/office/proof";
 import { WopiIds } from "../server/lib/office/wopiIds";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
+import { DomainService } from "../server/lib/orgs/domains";
+import { OrgRegistry } from "../server/lib/orgs/registry";
+import { RequestLimits } from "../server/lib/utils/requestLimits";
 import { SecurityHeaders } from "../server/lib/utils/securityHeaders";
 import { makeAPIRequest } from "./helpers/api";
-import { TEST_HOST } from "./helpers/orgs";
+import { SYSTEM_HOST, TEST_HOST } from "./helpers/orgs";
 import { addEventMember, type SeededSession, seedSession, seedUser } from "./helpers/seed";
 
 let privateKey: KeyObject;
@@ -81,15 +84,19 @@ async function wopi(
 		suffix?: string;
 		headers?: Record<string, string>;
 		body?: BodyInit;
-		proof?: "valid" | "wrong" | "old";
+		/** `stale`: a timestamp older than the office server may use. */
+		proof?: "valid" | "wrong" | "stale";
 		/** Call with this id instead of the file's WOPI id. */
 		rawId?: string;
+		/** Call this host (and sign its URL) instead of the test org's. */
+		host?: string;
 	} = {},
 ) {
 	const id = options.rawId ?? (await wopiIdOf(fileId));
 	const path = `/v1/wopi/files/${id}${options.suffix ?? ""}?access_token=${encodeURIComponent(token)}`;
-	const url = `${OrgContext.current().url}/api${path}`;
-	const at = options.proof === "old" ? Date.now() - 30 * 60_000 : Date.now();
+	const host = options.host ?? TEST_HOST;
+	const url = `${options.host ? OrgRegistry.urlForHost(host) : OrgContext.current().url}/api${path}`;
+	const at = options.proof === "stale" ? Date.now() - 30 * 60_000 : Date.now();
 	const timestamp = WopiProof.msToTicks(at);
 	const signed = sign(
 		"RSA-SHA256",
@@ -99,7 +106,7 @@ async function wopi(
 	return await API.getApp().request(path, {
 		method: options.method ?? "GET",
 		headers: {
-			"X-Iventworks-Host": TEST_HOST,
+			"X-Iventworks-Host": host,
 			"X-WOPI-TimeStamp": String(timestamp),
 			"X-WOPI-Proof": signed,
 			...options.headers,
@@ -209,6 +216,17 @@ describe("Opening documents in the office editor", () => {
 		expect((await open(viewer.token)).mode).toBe("view");
 	});
 
+	test("saves to the WOPISrc handed out may be as large as uploads", async () => {
+		// The server entry limits bodies by path before the app sees them (`server/runtime/bun.ts`).
+		const src = decodeURIComponent((await open(staff.token)).url.split("WOPISrc=")[1]);
+		const octets = new Headers({ "content-type": "application/octet-stream" });
+		const upload = 26 * 1024 * 1024;
+		expect(RequestLimits.limitFor(octets, upload, `${new URL(src).pathname}/contents`)).toBe(upload);
+		expect(RequestLimits.limitFor(octets, upload, new URL(src).pathname)).toBe(
+			RequestLimits.DEFAULT_BYTES,
+		);
+	});
+
 	test("only office types, only documents", async () => {
 		const form = new FormData();
 		form.append("file", new File(["# Notiz"], "notiz.md", { type: "text/markdown" }));
@@ -308,12 +326,28 @@ describe("WOPI calls", () => {
 		const view = await (await wopi(docId, tokenOf(await open(viewer.token)))).json();
 		expect((view as any).UserCanWrite).toBe(false);
 		expect((view as any).FileSharingPostMessage).toBe(false);
+
+		// Not while the org has switched share links off.
+		const admin = await seedSession((await seedUser("admin")).id);
+		const sharing = (enabled: boolean) =>
+			makeAPIRequest("/v1/admin/organization", {
+				method: "PUT",
+				authToken: admin.token,
+				body: { file_sharing_enabled: enabled },
+			});
+		await sharing(false);
+		try {
+			const off = await (await wopi(docId, tokenOf(await open(leader.token)))).json();
+			expect((off as any).FileSharingPostMessage).toBe(false);
+		} finally {
+			await sharing(true);
+		}
 	});
 
 	test("calls without a valid proof, token or fresh timestamp are refused", async () => {
 		const token = tokenOf(await open(staff.token));
 		expect((await wopi(docId, token, { proof: "wrong" })).status).toBe(500);
-		expect((await wopi(docId, token, { proof: "old" })).status).toBe(500);
+		expect((await wopi(docId, token, { proof: "stale" })).status).toBe(500);
 		expect((await wopi(docId, "nicht-gültig")).status).toBe(401);
 		const other = await makeAPIRequest(
 			`${base}/folders`,
@@ -400,11 +434,75 @@ describe("WOPI calls", () => {
 		expect((await lock("UNLOCK", "lock-a")).status).toBe(409);
 		expect((await lock("UNLOCK", "lock-c")).status).toBe(200);
 		expect((await lock("GET_LOCK", "")).headers.get("X-WOPI-Lock")).toBe("");
+		// A free file can't be refreshed or unlocked: a conflict with an empty lock (MS-WOPI).
+		for (const operation of ["REFRESH_LOCK", "UNLOCK"]) {
+			const free = await lock(operation, "");
+			expect(free.status).toBe(409);
+			expect(free.headers.get("X-WOPI-Lock")).toBe("");
+		}
+		// UnlockAndRelock needs the old lock to still be there.
+		const relock = await lock("LOCK", "lock-d", { "X-WOPI-OldLock": "lock-c" });
+		expect(relock.status).toBe(409);
+		expect(relock.headers.get("X-WOPI-Lock")).toBe("");
+		// LOCK with the lock it holds refreshes it; another id can't refresh or unlock it.
+		expect((await lock("LOCK", "lock-e")).status).toBe(200);
+		expect((await lock("LOCK", "lock-e")).status).toBe(200);
+		const wrongRefresh = await lock("REFRESH_LOCK", "lock-f");
+		expect(wrongRefresh.status).toBe(409);
+		expect(wrongRefresh.headers.get("X-WOPI-Lock")).toBe("lock-e");
+		expect((await lock("UNLOCK", "lock-e")).status).toBe(200);
 
 		expect(
 			(await wopi(docId, token, { method: "POST", headers: { "X-WOPI-Override": "PUT_RELATIVE" } }))
 				.status,
 		).toBe(501);
+	});
+
+	test("an editing session keeps what was there before it; saves are audited per version", async () => {
+		const versions = async () =>
+			await makeAPIRequest(`/v1/files/${docId}/versions`, { authToken: viewer.token });
+		const audited = () =>
+			DB.instance()
+				.select()
+				.from(DB.Tables.auditLogs)
+				.where(and(inOrg(DB.Tables.auditLogs), eq(DB.Tables.auditLogs.entity_id, docId)))
+				.all()
+				.filter((row) => row.summary.includes("in Office bearbeitet")).length;
+		const before = (await versions()).length;
+		const auditedBefore = audited();
+
+		// A new version uploaded just now …
+		const upload = new FormData();
+		upload.append("file", new File(["vom Leiter"], "Ablauf.docx"));
+		await makeAPIRequest(`/v1/files/${docId}/content`, {
+			authToken: leader.token,
+			additionalOptions: { method: "PUT", body: upload },
+		});
+		expect(await versions()).toHaveLength(before + 1);
+
+		// … stays when Office saves right after: it was there before the editing session.
+		const token = tokenOf(await open(staff.token));
+		const call = (operation: string, body?: string) =>
+			wopi(docId, token, {
+				method: "POST",
+				suffix: body === undefined ? "" : "/contents",
+				headers: { "X-WOPI-Override": operation, "X-WOPI-Lock": "session" },
+				body,
+			});
+		expect((await call("LOCK")).status).toBe(200);
+		// Opening isn't a change.
+		expect(audited()).toBe(auditedBefore);
+		expect((await call("PUT", "aus Office 1")).status).toBe(200);
+		const kept = await versions();
+		expect(kept).toHaveLength(before + 2);
+		expect(kept[0].modified_by.display_name).toBe("Lea");
+		expect(audited()).toBe(auditedBefore + 1);
+
+		// The session's own saves: at most one version (and audit entry) per interval.
+		expect((await call("PUT", "aus Office 2")).status).toBe(200);
+		expect(await versions()).toHaveLength(before + 2);
+		expect(audited()).toBe(auditedBefore + 1);
+		expect((await call("UNLOCK")).status).toBe(200);
 	});
 
 	test("viewers can't lock or save", async () => {
@@ -430,6 +528,29 @@ describe("WOPI calls", () => {
 		// Rights change: write access is taken away → read-only, then no access at all.
 		const folderId = (await makeAPIRequest(`/v1/files/${docId}`, { authToken: leader.token }))
 			.parent_id;
+		const before = await makeAPIRequest(`/v1/files/${folderId}/access`, { authToken: leader.token });
+		const viewOnly = { read: true, upload: false, edit: false, delete: false };
+		await makeAPIRequest(`/v1/files/${folderId}/access`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: {
+				custom: true,
+				entries: before.entries.map((entry: any) => ({
+					principal: entry.principal,
+					id: entry.id,
+					permissions: viewOnly,
+				})),
+			},
+		});
+		const readOnly = (await (await wopi(docId, token)).json()) as any;
+		expect(readOnly.UserCanWrite).toBe(false);
+		const refused = await wopi(docId, token, {
+			method: "POST",
+			suffix: "/contents",
+			headers: { "X-WOPI-Override": "PUT", "X-WOPI-Lock": "x" },
+			body: "nicht erlaubt",
+		});
+		expect(refused.status).toBe(401);
 		await makeAPIRequest(`/v1/files/${folderId}/access`, {
 			method: "PUT",
 			authToken: leader.token,
@@ -455,5 +576,43 @@ describe("WOPI calls", () => {
 		const leaderToken = tokenOf(await open(leader.token));
 		await makeAPIRequest(`/v1/files/${docId}`, { method: "DELETE", authToken: leader.token });
 		expect((await wopi(docId, leaderToken)).status).toBe(401);
+		await makeAPIRequest(`/v1/events/${eventId}/files/trash/${docId}/restore`, {
+			method: "POST",
+			authToken: leader.token,
+		});
+	});
+
+	test("a token only works in its own org", async () => {
+		const { OrgService } = await import("../server/lib/orgs/service");
+		const token = tokenOf(await open(leader.token));
+		const other = await OrgService.create({ slug: "office-other", display_name: "Andere" });
+		try {
+			const res = await wopi(docId, token, { host: `office-other.${SYSTEM_HOST}` });
+			expect(res.status).toBe(401);
+		} finally {
+			await OrgService.delete(other.id);
+		}
+	});
+
+	test("saves keep working when the org's primary address changes meanwhile", async () => {
+		// Opened on the current address: the office server keeps calling that one.
+		const token = tokenOf(await open(leader.token));
+		const domainHost = "office-test.example.org";
+		const domain = await DomainService.add(domainHost, { approved: true });
+		DomainService.useDns({
+			txt: async (name) => (name === domain.dns.txt_name ? [domain.dns.txt_value] : []),
+			cname: async (name) => (name === domainHost ? [TEST_HOST] : []),
+			addresses: async () => [],
+		});
+		try {
+			expect((await DomainService.verify(domain.id)).is_primary).toBe(true);
+			expect(OrgRegistry.get(OrgContext.id())?.url).toContain(domainHost);
+			// The old address, signed as the office server called it.
+			expect((await wopi(docId, token, { host: TEST_HOST })).status).toBe(200);
+		} finally {
+			DomainService.useDns(null);
+			await DomainService.remove(domain.id);
+		}
+		expect(OrgRegistry.get(OrgContext.id())?.url).toContain(TEST_HOST);
 	});
 });
