@@ -13,6 +13,11 @@ const props = defineProps<{
 	/** The questions before this one (conditions may only name those). */
 	earlier: FormField[];
 	problem?: string | null;
+	/**
+	 * The saved type of a question that already has answers: it may only change to a type its
+	 * answers still fit (`FormFields.canChangeType`). Null: any type.
+	 */
+	answeredType?: FormFields.Type | null;
 }>();
 
 const emit = defineEmits<{
@@ -23,15 +28,21 @@ const emit = defineEmits<{
 
 const field = defineModel<FormField>({ required: true });
 
-const typeItems = FORM_FIELD_GROUPS.flat().map((type) => ({
-	label: FORM_FIELD_TYPES[type].label,
-	value: type,
-	icon: FORM_FIELD_TYPES[type].icon,
-}));
+const typeItems = computed(() =>
+	FORM_FIELD_GROUPS.flat().map((type) => ({
+		label: FORM_FIELD_TYPES[type].label,
+		value: type,
+		icon: FORM_FIELD_TYPES[type].icon,
+		disabled: Boolean(props.answeredType && !FormFields.canChangeType(props.answeredType, type)),
+	})),
+);
 
-/** Another type keeps text, help text, condition — and the options between choice types. */
+/**
+ * Another type keeps text, help text, condition — and the options between choice types. Copied
+ * as plain data: the new question must not hold the old one's reactive objects.
+ */
 function changeType(type: FormFields.Type) {
-	const current = field.value;
+	const current = cloneFormFields(field.value);
 	if (type === current.type) return;
 	const next = newFormField(type);
 	next.id = current.id;
@@ -74,7 +85,7 @@ const optionIcon = computed(() =>
 
 function numberOrNull(value: string | number | null | undefined) {
 	if (value === "" || value === null || value === undefined) return null;
-	const parsed = Number(String(value).replace(",", "."));
+	const parsed = typeof value === "number" ? value : parseGermanNumber(value);
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -226,7 +237,7 @@ function setConditionField(fieldId: string) {
 			<div v-else-if="field.type === 'number'" class="grid gap-3 sm:grid-cols-3">
 				<UFormField label="Mindestens">
 					<UInput
-						:model-value="field.min === null ? '' : String(field.min)"
+						:model-value="numberInputText(field.min)"
 						inputmode="decimal"
 						placeholder="beliebig"
 						class="w-full"
@@ -235,7 +246,7 @@ function setConditionField(fieldId: string) {
 				</UFormField>
 				<UFormField label="Höchstens">
 					<UInput
-						:model-value="field.max === null ? '' : String(field.max)"
+						:model-value="numberInputText(field.max)"
 						inputmode="decimal"
 						placeholder="beliebig"
 						class="w-full"

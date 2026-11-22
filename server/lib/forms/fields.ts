@@ -35,6 +35,7 @@ export namespace FormFields {
 	export const CHOICE_TYPES = ["single_choice", "multiple_choice", "dropdown"] as const;
 	export type ChoiceType = (typeof CHOICE_TYPES)[number];
 
+	export const MAX_TITLE = 200;
 	export const MAX_FIELDS = 200;
 	export const MAX_OPTIONS = 100;
 	export const MAX_SHORT_TEXT = 1_000;
@@ -160,9 +161,35 @@ export namespace FormFields {
 	export function questionsOf(fields: Field[]) {
 		return fields.filter((field) => field.type !== "section");
 	}
+
+	/** Types whose answers keep their shape and meaning when one becomes another. */
+	const TYPE_GROUPS: readonly Type[][] = [
+		["short_text", "long_text", "email"],
+		["single_choice", "multiple_choice", "dropdown"],
+	];
+
+	/**
+	 * Whether a question that already has answers may change from `from` to `to`: only within
+	 * text or within choice questions, so the answers still fit the question.
+	 */
+	export function canChangeType(from: Type, to: Type) {
+		return from === to || TYPE_GROUPS.some((group) => group.includes(from) && group.includes(to));
+	}
+
+	/** The questions in `after` whose type changed from `before` in a way answers don't survive. */
+	export function blockedTypeChanges(before: Field[], after: Field[]) {
+		const types = new Map(before.map((field) => [field.id, field.type]));
+		return after.filter((field) => {
+			const type = types.get(field.id);
+			return type !== undefined && !canChangeType(type, field.type);
+		});
+	}
 }
 
 export namespace FormAnswers {
+	/** Answers one form keeps at most: the whole list goes to the browser for the statistics. */
+	export const MAX_PER_FORM = 5_000;
+
 	export const Value = z.union([
 		z.string().max(FormFields.MAX_LONG_TEXT),
 		z.number(),
@@ -209,6 +236,24 @@ export namespace FormAnswers {
 			}
 		}
 		return visible;
+	}
+
+	/**
+	 * Whether a stored answer has the shape the question's type expects (option ids, a number or
+	 * text). Answers from before a type change may not; statistics skip those.
+	 */
+	export function fits(field: FormFields.Field, value: Value) {
+		if (FormFields.isChoice(field)) return Array.isArray(value);
+		switch (field.type) {
+			case "number":
+			case "rating":
+			case "scale":
+				return typeof value === "number";
+			case "section":
+				return false;
+			default:
+				return typeof value === "string";
+		}
 	}
 
 	export function isEmpty(value: Value | undefined | null) {

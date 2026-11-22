@@ -47,7 +47,7 @@ export namespace FormModel {
 	});
 	export type Params = z.infer<typeof Params>;
 
-	export const Title = z.string().trim().min(1).max(200);
+	export const Title = z.string().trim().min(1).max(FormFields.MAX_TITLE);
 }
 
 export namespace FormModel.List {

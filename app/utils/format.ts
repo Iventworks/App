@@ -141,6 +141,25 @@ export function inputToCents(value: string | number | null | undefined): number 
 	return Math.round(normalized * 100);
 }
 
+/**
+ * A number typed the German way: "1,5", "1.000", "1.000,5", "-3". A dot followed by groups of three
+ * digits separates thousands, any other dot is a decimal point ("1.5"). NaN for anything else.
+ */
+export function parseGermanNumber(text: string): number {
+	const value = text.replace(/\s/g, "");
+	const normalized = value.includes(",")
+		? value.replace(/\./g, "").replace(",", ".")
+		: /^[+-]?\d{1,3}(\.\d{3})+$/.test(value)
+			? value.replace(/\./g, "")
+			: value;
+	return /^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(normalized) ? Number(normalized) : Number.NaN;
+}
+
+/** A number for a text input, the German way ("1,5"; no thousands dots, they would read back wrong). */
+export function numberInputText(value: number | null | undefined) {
+	return value === null || value === undefined ? "" : String(value).replace(".", ",");
+}
+
 export function initials(name: string | null | undefined): string {
 	if (!name) return "?";
 	return name

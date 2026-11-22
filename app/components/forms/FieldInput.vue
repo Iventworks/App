@@ -41,13 +41,12 @@ const multiple = computed({
 	},
 });
 
-// Numbers are typed as text ("1,5" too); what isn't a number stays text and is reported.
-const numberText = ref(
-	typeof model.value === "number" ? String(model.value).replace(".", ",") : "",
-);
+// Numbers are typed as text, the German way ("1,5", "1.000"); what isn't a number stays text and
+// is reported.
+const numberText = ref(typeof model.value === "number" ? numberInputText(model.value) : "");
 watch(numberText, (value) => {
 	const trimmed = value.trim();
-	const parsed = Number(trimmed.replace(",", "."));
+	const parsed = parseGermanNumber(trimmed);
 	model.value = trimmed === "" ? undefined : Number.isFinite(parsed) ? parsed : trimmed;
 });
 

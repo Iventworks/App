@@ -18,8 +18,16 @@ function snapshotOf(source: { title: string; description: string; fields: FormFi
 
 const title = ref(form.value.title);
 const description = ref(form.value.description);
-const fields = ref<FormField[]>(structuredClone(toRaw(form.value.fields)));
+const fields = ref<FormField[]>(cloneFormFields(form.value.fields));
 const saved = ref(snapshotOf(form.value));
+
+/** Saved types of the questions once there are answers: those may only change to a fitting type. */
+const answeredTypes = computed(
+	() =>
+		new Map<string, FormFields.Type>(
+			form.value.response_count > 0 ? form.value.fields.map((field) => [field.id, field.type]) : [],
+		),
+);
 
 const dirty = computed(
 	() =>
@@ -128,11 +136,11 @@ async function save() {
 function discard() {
 	title.value = form.value.title;
 	description.value = form.value.description;
-	fields.value = structuredClone(toRaw(form.value.fields));
+	fields.value = cloneFormFields(form.value.fields);
 }
 
 onBeforeRouteLeave(async () => {
-	if (!dirty.value) return true;
+	if (!dirty.value || detail.deleted.value) return true;
 	const choice = await askUnsaved("Die Fragen haben ungespeicherte Änderungen.");
 	if (choice === "save") return await save();
 	return choice === "discard";
@@ -147,7 +155,7 @@ onBeforeRouteLeave(async () => {
 			color="info"
 			variant="subtle"
 			:title="`Es gibt schon ${form.response_count === 1 ? 'eine Antwort' : `${form.response_count} Antworten`}`"
-			description="Änderungen gelten für neue Antworten. Antworten zu gelöschten Fragen werden in der Auswertung nicht mehr angezeigt."
+			description="Änderungen gelten für neue Antworten. Antworten zu gelöschten Fragen werden in der Auswertung nicht mehr angezeigt. Die Art einer Frage lässt sich nur noch so ändern, dass ihre Antworten passen: innerhalb der Text- oder der Auswahlfragen."
 		/>
 
 		<DashboardSectionCard :title="isTemplate ? 'Vorlage' : 'Formular'" icon="i-lucide-clipboard-list">
@@ -170,6 +178,7 @@ onBeforeRouteLeave(async () => {
 				:count="fields.length"
 				:earlier="fields.slice(0, index)"
 				:problem="problems[field.id]"
+				:answered-type="answeredTypes.get(field.id) ?? null"
 				@move="move(index, $event)"
 				@duplicate="duplicate(index)"
 				@remove="remove(index)"

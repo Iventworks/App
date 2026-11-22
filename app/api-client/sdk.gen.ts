@@ -3376,7 +3376,7 @@ export const getFormsByFormId = <TComposable extends Composable = '$fetch', Defa
 /**
  * Update form
  *
- * Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown.
+ * Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit.
  */
 export const putFormsByFormId = <TComposable extends Composable = '$fetch', DefaultT extends PutFormsByFormIdResponse = PutFormsByFormIdResponse>(options: Options<TComposable, PutFormsByFormIdData, PutFormsByFormIdResponse, DefaultT>): RequestResult<TComposable, PutFormsByFormIdResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutFormsByFormIdResponse | DefaultT, PutFormsByFormIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3391,7 +3391,7 @@ export const putFormsByFormId = <TComposable extends Composable = '$fetch', Defa
 /**
  * Publish or close form
  *
- * `open` publishes a draft (it gets its link, which stays the same from then on) or reopens a closed form; a closing time that has passed is dropped then. `closed` stops new answers; the link then says so.
+ * `open` publishes a draft (it gets its link, which stays the same from then on) or reopens a closed form or one past its closing time; a closing time that has passed is dropped then. `closed` stops new answers; the link then says so.
  */
 export const putFormsByFormIdStatus = <TComposable extends Composable = '$fetch', DefaultT extends PutFormsByFormIdStatusResponse = PutFormsByFormIdStatusResponse>(options: Options<TComposable, PutFormsByFormIdStatusData, PutFormsByFormIdStatusResponse, DefaultT>): RequestResult<TComposable, PutFormsByFormIdStatusResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutFormsByFormIdStatusResponse | DefaultT, PutFormsByFormIdStatusError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3432,7 +3432,7 @@ export const deleteFormsByFormIdResponses = <TComposable extends Composable = '$
 /**
  * List form answers
  *
- * Every answer to the form, newest first (at most `FormService.MAX_RESPONSES`, so the statistics and filters work in the browser). `answers` are by question id.
+ * Every answer to the form, newest first (at most `FormAnswers.MAX_PER_FORM`, so the statistics and filters work in the browser). `answers` are by question id.
  */
 export const getFormsByFormIdResponses = <TComposable extends Composable = '$fetch', DefaultT extends GetFormsByFormIdResponsesResponse = GetFormsByFormIdResponsesResponse>(options: Options<TComposable, GetFormsByFormIdResponsesData, GetFormsByFormIdResponsesResponse, DefaultT>): RequestResult<TComposable, GetFormsByFormIdResponsesResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetFormsByFormIdResponsesResponse | DefaultT, GetFormsByFormIdResponsesError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

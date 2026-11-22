@@ -10,15 +10,35 @@ const DEFAULT_CONFIRMATION = "Danke! Deine Antwort wurde gespeichert.";
 const confirmation = ref(form.value.confirmation_message);
 const closesAt = ref(toDateTimeInput(form.value.closes_at));
 
+/** Closing times compare by the minute, as the picker shows them (the API takes any time). */
+function sameClosingTime(input: string, ts: number | null) {
+	return toDateTimeInput(fromDateTimeInput(input)) === toDateTimeInput(ts);
+}
+
 const dirty = computed(
 	() =>
 		confirmation.value.trim() !== form.value.confirmation_message ||
-		fromDateTimeInput(closesAt.value) !== form.value.closes_at,
+		!sameClosingTime(closesAt.value, form.value.closes_at),
 );
 watch(dirty, (value) => (detail.dirty.value = value), { immediate: true });
 onUnmounted(() => {
 	detail.dirty.value = false;
 });
+
+// The header changes these too (reopening drops a closing time that has passed): what wasn't
+// edited here follows the server.
+watch(
+	() => form.value.confirmation_message,
+	(now, before) => {
+		if (confirmation.value.trim() === before) confirmation.value = now;
+	},
+);
+watch(
+	() => form.value.closes_at,
+	(now, before) => {
+		if (sameClosingTime(closesAt.value, before)) closesAt.value = toDateTimeInput(now);
+	},
+);
 
 const closesInPast = computed(() => {
 	const value = fromDateTimeInput(closesAt.value);
@@ -39,7 +59,7 @@ async function save() {
 }
 
 onBeforeRouteLeave(async () => {
-	if (!dirty.value) return true;
+	if (!dirty.value || detail.deleted.value) return true;
 	const choice = await askUnsaved("Die Einstellungen haben ungespeicherte Änderungen.");
 	if (choice === "save") return await save();
 	return choice === "discard";

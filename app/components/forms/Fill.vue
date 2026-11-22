@@ -33,25 +33,32 @@ const given = computed(() => {
 const visible = computed(() => FormAnswers.visibleIds(props.fields, given.value));
 const shown = computed(() => props.fields.filter((field) => visible.value.has(field.id)));
 
-// After the first try, problems update while typing.
-watch(given, () => {
+// After the first try, problems update while typing (and when the questions change).
+watch([given, () => props.fields], () => {
 	if (tried.value) problems.value = FormAnswers.check(props.fields, given.value).problems;
 });
 
 const root = ref<HTMLElement | null>(null);
 
-function submit() {
+/**
+ * Check the answers, mark the problems and scroll to the first one. Returns the accepted answers,
+ * or null when something is missing or wrong.
+ */
+function check() {
 	tried.value = true;
 	const result = FormAnswers.check(props.fields, given.value);
 	problems.value = result.problems;
 	const first = props.fields.find((field) => result.problems[field.id]);
-	if (first) {
-		root.value
-			?.querySelector(`[data-field="${first.id}"]`)
-			?.scrollIntoView({ behavior: "smooth", block: "center" });
-		return;
-	}
-	emit("submit", result.answers);
+	if (!first) return result.answers;
+	root.value
+		?.querySelector(`[data-field="${first.id}"]`)
+		?.scrollIntoView({ behavior: "smooth", block: "center" });
+	return null;
+}
+
+function submit() {
+	const accepted = check();
+	if (accepted) emit("submit", accepted);
 }
 
 function reset() {
@@ -60,7 +67,7 @@ function reset() {
 	tried.value = false;
 }
 
-defineExpose({ reset });
+defineExpose({ reset, check });
 </script>
 
 <template>

@@ -4,7 +4,6 @@
  * questions and answers are the server's (`FormFields` / `FormAnswers`, imported from there).
  */
 import { encode } from "uqr";
-import { toRaw } from "vue";
 import type {
 	GetFormsByFormIdResponses,
 	GetFormsByFormIdResponsesResponses,
@@ -12,6 +11,7 @@ import type {
 	GetPublicFormsByTokenResponses,
 } from "~/api-client";
 import { FormAnswers, FormFields } from "~~/server/lib/forms/fields";
+import { Csv } from "~~/server/lib/utils/csv";
 import { formatDay, parseDay } from "./format";
 
 export type FormSummary = GetOrgFormsResponses["200"]["data"][number];
@@ -43,7 +43,7 @@ export const FORM_FIELD_GROUPS: FormFields.Type[][] = [
 	["section"],
 ];
 
-export type FormState = "draft" | "open" | "expired" | "closed";
+export type FormState = "draft" | "open" | "expired" | "full" | "closed";
 
 export const FORM_STATES: Record<
 	FormState,
@@ -57,13 +57,17 @@ export const FORM_STATES: Record<
 		color: "warning",
 		icon: "i-lucide-timer-off",
 	},
+	full: { label: "Antwortlimit erreicht", short: "Voll", color: "warning", icon: "i-lucide-inbox" },
 	closed: { label: "Geschlossen", short: "Geschlossen", color: "warning", icon: "i-lucide-lock" },
 };
 
-/** Draft, open, past its closing time (still `open`) or closed. */
-export function formStateOf(form: Pick<FormSummary, "status" | "accepting">): FormState {
-	if (form.status === "open") return form.accepting ? "open" : "expired";
-	return form.status;
+/** Draft, open, past its closing time or full (both still `open`) or closed. */
+export function formStateOf(
+	form: Pick<FormSummary, "status" | "accepting" | "response_count">,
+): FormState {
+	if (form.status !== "open") return form.status;
+	if (form.accepting) return "open";
+	return form.response_count >= FormAnswers.MAX_PER_FORM ? "full" : "expired";
 }
 
 /** Ids for new questions and options: short, random, unique within a form. */
@@ -96,9 +100,17 @@ export function newFormField(type: FormFields.Type): FormField {
 	}
 }
 
+/**
+ * A deep, plain copy of questions, also of reactive ones (`structuredClone` throws on proxies, and
+ * `toRaw` only unwraps the top level).
+ */
+export function cloneFormFields<T extends FormField | FormField[]>(value: T): T {
+	return JSON.parse(JSON.stringify(value)) as T;
+}
+
 /** A copy with new ids (its options too); conditions on its options don't follow it. */
 export function duplicateFormField(field: FormField): FormField {
-	const copy = structuredClone(toRaw(field)) as FormField;
+	const copy = cloneFormFields(field);
 	copy.id = newFormId();
 	if (FormFields.isChoice(copy)) {
 		copy.options = copy.options.map((option) => ({ ...option, id: newFormId() }));
@@ -188,6 +200,11 @@ export function optionLabel(field: FormField, optionId: string) {
 /** An answer as text (tables, export, the single answer). */
 export function answerText(field: FormField, value: FormAnswerValue | undefined): string {
 	if (value === undefined || FormAnswers.isEmpty(value)) return "";
+	// Given before the question's type changed: shown as it was stored.
+	if (!FormAnswers.fits(field, value)) {
+		if (Array.isArray(value)) return value.join(", ");
+		return typeof value === "number" ? value.toLocaleString("de-DE") : value;
+	}
 	if (Array.isArray(value)) return value.map((id) => optionLabel(field, id)).join(", ");
 	if (typeof value === "number") {
 		if (field.type === "rating") return `${value} von ${field.max}`;
@@ -215,13 +232,20 @@ export function emptyResponseFilter(): FormResponseFilter {
 	return { from: null, to: null, fieldId: undefined, optionIds: [], search: "" };
 }
 
+/** The start of the day after `day`, local time (not `+ 24 h`: wrong on DST days). */
+function dayAfter(day: string) {
+	const date = parseDay(day);
+	date.setDate(date.getDate() + 1);
+	return date.getTime();
+}
+
 export function filterResponses(
 	fields: FormField[],
 	responses: FormResponse[],
 	filter: FormResponseFilter,
 ): FormResponse[] {
 	const from = filter.from ? parseDay(filter.from).getTime() : null;
-	const to = filter.to ? parseDay(filter.to).getTime() + 86_400_000 : null;
+	const to = filter.to ? dayAfter(filter.to) : null;
 	const search = filter.search.trim().toLowerCase();
 	const byId = new Map(fields.map((field) => [field.id, field]));
 	return responses.filter((response) => {
@@ -258,11 +282,19 @@ export type FieldStats =
 	  }
 	| { kind: "text"; answered: number; latest: { number: number; text: string }[] };
 
-/** What the answers say about one question (`responses` newest first). */
+/**
+ * What the answers say about one question (`responses` newest first). Answers that don't fit its
+ * type (given before the type changed) are left out.
+ */
 export function fieldStats(field: FormField, responses: FormResponse[]): FieldStats {
 	const values = responses
 		.map((response) => ({ number: response.number, value: response.answers[field.id] }))
-		.filter((entry) => !FormAnswers.isEmpty(entry.value));
+		.filter(
+			(entry): entry is { number: number; value: FormAnswerValue } =>
+				entry.value !== undefined &&
+				!FormAnswers.isEmpty(entry.value) &&
+				FormAnswers.fits(field, entry.value),
+		);
 
 	if (FormFields.isChoice(field)) {
 		const counts = new Map<string, number>();
@@ -308,21 +340,12 @@ export function fieldStats(field: FormField, responses: FormResponse[]): FieldSt
 		answered: values.length,
 		latest: values.map(({ number, value }) => ({
 			number,
-			text: answerText(field, value as FormAnswerValue),
+			text: answerText(field, value),
 		})),
 	};
 }
 
 // --- Export -------------------------------------------------------------------------------------
-
-/** A CSV cell (`;`-separated); answers come from anyone, so formulas are defused. */
-function csvCell(value: string | number) {
-	if (typeof value === "number") return value.toLocaleString("de-DE", { useGrouping: false });
-	let text = value;
-	if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-	if (/[";\r\n]/.test(text)) text = `"${text.replace(/"/g, '""')}"`;
-	return text;
-}
 
 /** The answers as CSV for spreadsheets (UTF-8 with BOM, `;`), oldest first. */
 export function responsesCsv(fields: FormField[], responses: FormResponse[]) {
@@ -338,27 +361,7 @@ export function responsesCsv(fields: FormField[], responses: FormResponse[]) {
 				return typeof value === "number" && field.type !== "rating" ? value : answerText(field, value);
 			}),
 		]);
-	return `﻿${[header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n")}\r\n`;
-}
-
-/** A file name from a title: lower case, ASCII, dashes. */
-export function fileSlug(title: string, fallback = "formular") {
-	return (
-		title
-			.toLowerCase()
-			.normalize("NFKD")
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, "") || fallback
-	);
-}
-
-export function downloadBlob(blob: Blob, name: string) {
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = name;
-	link.click();
-	URL.revokeObjectURL(url);
+	return Csv.table([header, ...rows]);
 }
 
 // --- QR code ------------------------------------------------------------------------------------

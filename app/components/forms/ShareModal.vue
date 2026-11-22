@@ -30,13 +30,13 @@ async function downloadPng() {
 		toast.add({ title: "Das Bild konnte nicht erstellt werden", color: "error" });
 		return;
 	}
-	downloadBlob(blob, `qr-${fileSlug(props.title)}.png`);
+	downloadBlob(blob, `qr-${fileSlug(props.title, "formular")}.png`);
 }
 
 function downloadSvg() {
 	downloadBlob(
 		new Blob([qrSvg(props.url)], { type: "image/svg+xml" }),
-		`qr-${fileSlug(props.title)}.svg`,
+		`qr-${fileSlug(props.title, "formular")}.svg`,
 	);
 }
 </script>

@@ -4,7 +4,7 @@ import type { FormModel } from "../api/utils/shared-models/forms";
 import { UserSummary } from "../api/utils/shared-models/userSummary";
 import { DB } from "../db";
 import { inOrg, OrgContext } from "../orgs/context";
-import { type FormAnswers, FormFields } from "./fields";
+import { FormAnswers, FormFields } from "./fields";
 
 /**
  * Forms ("Formulare", `forms` / `form_responses`): the lists, creating (also from a template),
@@ -12,7 +12,7 @@ import { type FormAnswers, FormFields } from "./fields";
  */
 export namespace FormService {
 	/** Answers one form keeps at most: the whole list goes to the browser for the statistics. */
-	export const MAX_RESPONSES = 5_000;
+	export const MAX_RESPONSES = FormAnswers.MAX_PER_FORM;
 
 	type Where = { scope: "org" | "template" } | { scope: "event"; eventId: number };
 
@@ -32,9 +32,27 @@ export namespace FormService {
 		return form?.scope === "template" ? form : null;
 	}
 
-	/** Takes answers: open and not past its closing time. */
-	export function accepting(form: DB.Models.Form, now = Date.now()) {
+	/** Open and not past its closing time (it may still be full, see `accepting`). */
+	export function isOpen(form: DB.Models.Form, now = Date.now()) {
 		return form.status === "open" && (form.closes_at === null || form.closes_at > now);
+	}
+
+	/** Takes answers: open, not past its closing time and below `MAX_RESPONSES`. */
+	export function accepting(form: DB.Models.Form, responseCount: number, now = Date.now()) {
+		return isOpen(form, now) && responseCount < MAX_RESPONSES;
+	}
+
+	export async function responseCount(formId: number) {
+		const T = DB.Tables;
+		return (
+			(
+				await DB.instance()
+					.select({ value: count() })
+					.from(T.formResponses)
+					.where(and(inOrg(T.formResponses), eq(T.formResponses.form_id, formId)))
+					.get()
+			)?.value ?? 0
+		);
 	}
 
 	export function publicUrl(token: string) {
@@ -84,25 +102,28 @@ export namespace FormService {
 			responseStats(forms.map((form) => form.id)),
 			UserSummary.fetchMap(forms.map((form) => form.created_by)),
 		]);
-		return forms.map((form) => ({
-			id: form.id,
-			scope: form.scope,
-			event_id: form.event_id,
-			title: form.title,
-			description: form.description,
-			status: form.status,
-			accepting: accepting(form),
-			closes_at: form.closes_at,
-			published_at: form.published_at,
-			closed_at: form.closed_at,
-			public_url: form.token && form.scope !== "template" ? publicUrl(form.token) : null,
-			question_count: FormFields.questionsOf(form.fields).length,
-			response_count: stats.get(form.id)?.count ?? 0,
-			last_response_at: stats.get(form.id)?.last ?? null,
-			created_by: form.created_by ? (users.get(form.created_by) ?? null) : null,
-			created_at: form.created_at,
-			updated_at: form.updated_at,
-		}));
+		return forms.map((form) => {
+			const responses = stats.get(form.id);
+			return {
+				id: form.id,
+				scope: form.scope,
+				event_id: form.event_id,
+				title: form.title,
+				description: form.description,
+				status: form.status,
+				accepting: accepting(form, responses?.count ?? 0),
+				closes_at: form.closes_at,
+				published_at: form.published_at,
+				closed_at: form.closed_at,
+				public_url: form.token && form.scope !== "template" ? publicUrl(form.token) : null,
+				question_count: FormFields.questionsOf(form.fields).length,
+				response_count: responses?.count ?? 0,
+				last_response_at: responses?.last ?? null,
+				created_by: form.created_by ? (users.get(form.created_by) ?? null) : null,
+				created_at: form.created_at,
+				updated_at: form.updated_at,
+			};
+		});
 	}
 
 	export async function details(form: DB.Models.Form): Promise<FormModel.Details> {
@@ -162,13 +183,14 @@ export namespace FormService {
 	}
 
 	/**
-	 * Publish a draft (it gets its link), reopen a closed form (a closing time that has passed is
-	 * dropped, or it would close again at once) or close it. Returns the form unchanged when it
-	 * already has that status.
+	 * Publish a draft (it gets its link), reopen a closed form or one past its closing time (a
+	 * closing time that has passed is dropped, or it would close again at once) or close it.
+	 * Returns the form unchanged when there is nothing to do.
 	 */
 	export async function setStatus(form: DB.Models.Form, status: "open" | "closed", userId: number) {
-		if (form.status === status) return form;
 		const now = Date.now();
+		const expired = form.closes_at !== null && form.closes_at <= now;
+		if (form.status === status && !(status === "open" && expired)) return form;
 		const set: Partial<typeof DB.Tables.forms.$inferInsert> = {
 			status,
 			updated_by: userId,
@@ -178,7 +200,7 @@ export namespace FormService {
 			set.token = form.token ?? FileShares.createToken();
 			set.published_at = form.published_at ?? now;
 			set.closed_at = null;
-			if (form.closes_at !== null && form.closes_at <= now) set.closes_at = null;
+			if (expired) set.closes_at = null;
 		} else {
 			set.closed_at = now;
 		}

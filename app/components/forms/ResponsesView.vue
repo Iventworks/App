@@ -146,7 +146,7 @@ function exportCsv() {
 	const csv = responsesCsv(form.value.fields, filtered.value);
 	downloadBlob(
 		new Blob([csv], { type: "text/csv;charset=utf-8" }),
-		`antworten-${fileSlug(form.value.title)}.csv`,
+		`antworten-${fileSlug(form.value.title, "formular")}.csv`,
 	);
 }
 

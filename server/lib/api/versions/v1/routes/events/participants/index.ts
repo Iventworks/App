@@ -5,6 +5,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
+import { Csv } from "../../../../../../utils/csv";
 import { Logger } from "../../../../../../utils/logger";
 import { TimeUtils } from "../../../../../../utils/time";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -240,15 +241,6 @@ async function toDetailResponse(
 		.all();
 
 	return { ...base!, staff_notes: await toNotesResponse(c, staffNotes) };
-}
-
-/** Escape a CSV cell (`;`-separated) and defuse spreadsheet formula injection. */
-function csvCell(value: string | number | boolean | null | undefined) {
-	if (value === null || value === undefined) return "";
-	let text = typeof value === "boolean" ? (value ? "ja" : "nein") : String(value);
-	if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-	if (/[";\r\n]/.test(text)) text = `"${text.replace(/"/g, '""')}"`;
-	return text;
 }
 
 router.get(
@@ -502,7 +494,7 @@ router.get(
 			participant.notes,
 		]);
 
-		const csv = `﻿${[header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n")}\r\n`;
+		const csv = Csv.table([header, ...rows]);
 
 		const asciiName =
 			event.name
