@@ -26,7 +26,7 @@ useSeoMeta({
 	robots: "noindex, nofollow",
 });
 
-const fill = ref<{ reset: () => void } | null>(null);
+const fill = ref<{ reset: () => void; check: () => FormAnswers.Answers | null } | null>(null);
 const sending = ref(false);
 const confirmation = ref<string | null>(null);
 /** The honeypot: hidden from people, filled in by bots. */
@@ -53,14 +53,40 @@ async function send(answers: FormAnswers.Answers) {
 		form.value = { ...form.value, accepting: false, fields: [] };
 		return;
 	}
+	if (code === 400) {
+		await recheck();
+		return;
+	}
 	toast.add({
 		title: "Senden fehlgeschlagen",
 		description:
 			code === 429
 				? "Von hier kamen gerade sehr viele Antworten. Bitte versuch es in ein paar Minuten noch einmal."
-				: code === 400
-					? "Bitte prüfe deine Antworten."
-					: "Bitte versuch es noch einmal.",
+				: "Bitte versuch es noch einmal.",
+		color: "error",
+	});
+}
+
+/**
+ * The server didn't accept the answers: the form was most likely changed since the page opened.
+ * Load it again and mark what doesn't fit the questions now.
+ */
+async function recheck() {
+	const fresh = await useAPI((api) => api.getPublicFormsByToken({ path: { token } }), true);
+	const changed =
+		fresh.success && JSON.stringify(fresh.data.fields) !== JSON.stringify(form.value?.fields);
+	if (fresh.success) form.value = fresh.data;
+	// Closed meanwhile: the page now says so.
+	if (fresh.success && !fresh.data.accepting) return;
+	await nextTick();
+	const marked = fill.value?.check() === null;
+	toast.add({
+		title: "Senden fehlgeschlagen",
+		description: !changed
+			? "Bitte prüfe deine Antworten."
+			: marked
+				? "Das Formular wurde gerade geändert. Bitte prüfe die markierten Fragen."
+				: "Das Formular wurde gerade geändert. Bitte prüfe deine Antworten und sende sie noch einmal.",
 		color: "error",
 	});
 }

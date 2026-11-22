@@ -97,7 +97,7 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Update form",
 		description:
-			"Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown.",
+			"Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -112,6 +112,15 @@ router.put(
 	async (c) => {
 		const form = c.get("form");
 		const body = c.req.valid("json") as FormModel.Update.Body;
+		if (body.fields) {
+			const blocked = FormFields.blockedTypeChanges(form.fields, body.fields);
+			if (blocked.length && (await FormService.responseCount(form.id)) > 0) {
+				return APIResponse.badRequest(
+					c,
+					`The form has answers, so these questions can't change their type that way: ${blocked.map((field) => field.id).join(", ")}`,
+				);
+			}
+		}
 		const updated = await FormService.update(form, body, getAuthUserId(c));
 
 		await AuditLog.record({
@@ -134,7 +143,7 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Publish or close form",
 		description:
-			"`open` publishes a draft (it gets its link, which stays the same from then on) or reopens a closed form; a closing time that has passed is dropped then. `closed` stops new answers; the link then says so.",
+			"`open` publishes a draft (it gets its link, which stays the same from then on) or reopens a closed form or one past its closing time; a closing time that has passed is dropped then. `closed` stops new answers; the link then says so.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeBasic(
@@ -158,7 +167,8 @@ router.put(
 		}
 
 		const updated = await FormService.setStatus(form, status, getAuthUserId(c));
-		if (updated.status !== form.status) {
+		// The same object: nothing to do.
+		if (updated !== form) {
 			const word =
 				status === "closed"
 					? STATUS_WORDS.closed
@@ -275,7 +285,7 @@ router.get(
 	APIRouteSpec.authenticated({
 		summary: "List form answers",
 		description:
-			"Every answer to the form, newest first (at most `FormService.MAX_RESPONSES`, so the statistics and filters work in the browser). `answers` are by question id.",
+			"Every answer to the form, newest first (at most `FormAnswers.MAX_PER_FORM`, so the statistics and filters work in the browser). `answers` are by question id.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeWithWrongInputs(

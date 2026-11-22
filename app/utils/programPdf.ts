@@ -11,6 +11,7 @@ import type {
 	GetEventsByEventIdProgramResponses,
 	GetEventsByEventIdSmallGroupsResponses,
 } from "~/api-client";
+import { fileSlug } from "./download";
 import {
 	formatDate,
 	formatDayRange,
@@ -787,29 +788,8 @@ export async function buildProgramPdf(options: ProgramPdfOptions): Promise<Blob>
 
 /** `programm-sommerfreizeit-2027-liste.pdf` */
 export function programPdfFileName(eventName: string, layout: ProgramPdfLayout): string {
-	const slug =
-		eventName
-			.toLowerCase()
-			.replace(/ä/g, "ae")
-			.replace(/ö/g, "oe")
-			.replace(/ü/g, "ue")
-			.replace(/ß/g, "ss")
-			.normalize("NFKD")
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, "") || "event";
+	const slug = fileSlug(eventName, "event");
 	return `programm-${slug}-${layout === "grid" ? "wochenraster" : "liste"}.pdf`;
-}
-
-/** Save a Blob as a file. */
-export function downloadPdfBlob(blob: Blob, fileName: string) {
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = fileName;
-	document.body.appendChild(link);
-	link.click();
-	link.remove();
-	setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**

@@ -222,8 +222,8 @@ email, number, date, single and multiple choice, dropdown, star rating, scale, a
 questions can be required and shown only for an earlier answer.
 
 Publishing gives the form a link (`<org address>/s/form/<token>`) and a QR code (PNG or SVG, e.g. for a
-slide); anyone with it can answer, without an account. Closing it (or a closing time) stops new
-answers, the link stays. *Antworten* shows statistics per question and the single answers, both
+slide); anyone with it can answer, without an account. Closing it (or a closing time, or 5,000
+answers) stops new answers, the link stays. *Antworten* shows statistics per question and the single answers, both
 filtered by period, an answer or text, and exports them as CSV.
 
 ## Configuration

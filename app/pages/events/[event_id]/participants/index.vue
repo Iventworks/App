@@ -258,18 +258,7 @@ async function exportCsv() {
 		return;
 	}
 
-	const slug =
-		event.value.name
-			.toLowerCase()
-			.normalize("NFKD")
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, "") || "event";
-	const url = URL.createObjectURL(result);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = `teilnehmende-${slug}.csv`;
-	link.click();
-	URL.revokeObjectURL(url);
+	downloadBlob(result, `teilnehmende-${fileSlug(event.value.name, "event")}.csv`);
 }
 </script>
 

@@ -1,10 +1,13 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
+import { fileSlug } from "../app/utils/download";
+import { numberInputText, parseGermanNumber } from "../app/utils/format";
 import { DB } from "../server/lib/db";
 import { FormAnswers, FormFields } from "../server/lib/forms/fields";
 import { FormStarters } from "../server/lib/forms/starters";
 import { inOrg, OrgContext } from "../server/lib/orgs/context";
 import { OrgService } from "../server/lib/orgs/service";
+import { Csv } from "../server/lib/utils/csv";
 import { makeAPIRequest } from "./helpers/api";
 import { SYSTEM_HOST } from "./helpers/orgs";
 import { addEventMember, type SeededSession, seedSession, seedUser } from "./helpers/seed";
@@ -189,6 +192,59 @@ describe("Questions and answers (FormFields / FormAnswers)", () => {
 			"Anmeldung",
 			"Veranstaltungsbewertung",
 		]);
+	});
+
+	test("type changes keep answers fitting; answers from before don't count", () => {
+		expect(FormFields.canChangeType("short_text", "long_text")).toBe(true);
+		expect(FormFields.canChangeType("email", "short_text")).toBe(true);
+		expect(FormFields.canChangeType("single_choice", "multiple_choice")).toBe(true);
+		expect(FormFields.canChangeType("short_text", "number")).toBe(false);
+		expect(FormFields.canChangeType("rating", "scale")).toBe(false);
+		expect(FormFields.canChangeType("section", "short_text")).toBe(false);
+		const [name, allergies, , stars] = fields;
+		expect(FormAnswers.fits(name!, "Anna")).toBe(true);
+		expect(FormAnswers.fits(allergies!, "Anna")).toBe(false);
+		expect(FormAnswers.fits(stars!, 3)).toBe(true);
+		expect(FormAnswers.fits(stars!, ["yes"])).toBe(false);
+	});
+});
+
+describe("Browser helpers", () => {
+	test("numbers are read the German way", () => {
+		expect(parseGermanNumber("1.000")).toBe(1000);
+		expect(parseGermanNumber("12.345.678")).toBe(12345678);
+		expect(parseGermanNumber("1.000,5")).toBe(1000.5);
+		expect(parseGermanNumber("1,5")).toBe(1.5);
+		expect(parseGermanNumber("1.5")).toBe(1.5);
+		expect(parseGermanNumber(" -3 ")).toBe(-3);
+		expect(parseGermanNumber("1,5,3")).toBeNaN();
+		expect(parseGermanNumber("abc")).toBeNaN();
+		expect(parseGermanNumber("0x10")).toBeNaN();
+		expect(parseGermanNumber(numberInputText(1234.5))).toBe(1234.5);
+	});
+
+	test("CSV cells keep every digit and defuse formulas", () => {
+		expect(Csv.cell(3.14159)).toBe("3,14159");
+		expect(Csv.cell(0.0005)).toBe("0,0005");
+		expect(Csv.cell(-5)).toBe("-5");
+		expect(Csv.cell("=1+1")).toBe("'=1+1");
+		expect(Csv.cell("-1")).toBe("'-1");
+		expect(Csv.cell('a;"b"')).toBe('"a;""b"""');
+		expect(Csv.cell(true)).toBe("ja");
+		expect(Csv.cell(null)).toBe("");
+		expect(
+			Csv.table([
+				["Nr.", "Wert"],
+				[1, 2.5],
+			]),
+		).toBe("﻿Nr.;Wert\r\n1;2,5\r\n");
+	});
+
+	test("file names spell out umlauts", () => {
+		expect(fileSlug("Rückmeldung für Teamer", "formular")).toBe("rueckmeldung-fuer-teamer");
+		expect(fileSlug("Größe & Maße", "x")).toBe("groesse-masse");
+		expect(fileSlug("Café", "x")).toBe("cafe");
+		expect(fileSlug("???", "formular")).toBe("formular");
 	});
 });
 
@@ -394,6 +450,84 @@ describe("Publishing and answering", () => {
 		const reopened = await setStatus(id, "open");
 		expect(reopened.closes_at).toBeNull();
 		expect(reopened.accepting).toBe(true);
+	});
+
+	test("a form past its closing time reopens directly, without closing first", async () => {
+		const { id, token } = await publishedForm("Abgelaufen");
+		await makeAPIRequest(`/v1/forms/${id}`, {
+			method: "PUT",
+			authToken: core.token,
+			body: { closes_at: Date.now() - 1000 },
+		});
+		const reopened = await setStatus(id, "open");
+		expect(reopened.closes_at).toBeNull();
+		expect(reopened.accepting).toBe(true);
+		await send(token, { name: "X", allergies: ["no"] });
+		// Open and in time: nothing to do, nothing audited.
+		await setStatus(id, "open");
+		const reopenings = auditSummaries(id).filter((summary) => summary.endsWith("wieder geöffnet"));
+		expect(reopenings).toEqual(["Formular „Abgelaufen“ wieder geöffnet"]);
+	});
+
+	test("once there are answers, a question's type only changes to one they fit", async () => {
+		const { id, token } = await publishedForm("Typen");
+		const change = (changes: Record<string, object>) =>
+			QUESTIONS.map((question) => ({ ...question, ...changes[question.id] }));
+		const asNumber = { type: "number", min: null, max: null, integer: false };
+		// Without answers anything goes.
+		await setFields(id, change({ name: asNumber }));
+		await setFields(id, QUESTIONS);
+
+		await send(token, { name: "Anna", allergies: ["no"], stars: 4 });
+		await setFields(id, change({ name: { type: "long_text" }, allergies: { type: "dropdown" } }));
+		await setFields(id, change({ name: asNumber }), 400);
+		await setFields(id, change({ stars: asNumber }), 400);
+		await setFields(
+			id,
+			change({ stars: { type: "scale", min: 1, max: 5, min_label: "", max_label: "" } }),
+			400,
+		);
+		// New questions (new ids) are free.
+		await setFields(id, [...QUESTIONS, { id: "when", type: "date", label: "Wann?" }]);
+	});
+
+	test("a full form says so and takes no answers until some are deleted", async () => {
+		const { id, token } = await publishedForm("Voll");
+		const now = Date.now();
+		const rows = Array.from({ length: FormAnswers.MAX_PER_FORM }, (_, index) => ({
+			form_id: id,
+			number: index + 1,
+			answers: { name: `P${index}`, allergies: ["no"] },
+			created_at: now,
+			org_id: OrgContext.id(),
+		}));
+		for (let at = 0; at < rows.length; at += 500) {
+			DB.instance()
+				.insert(DB.Tables.formResponses)
+				.values(rows.slice(at, at + 500))
+				.run();
+		}
+		DB.instance()
+			.update(DB.Tables.forms)
+			.set({ last_response_number: rows.length })
+			.where(and(inOrg(DB.Tables.forms), eq(DB.Tables.forms.id, id)))
+			.run();
+
+		const publicForm = await makeAPIRequest(`/v1/public/forms/${token}`);
+		expect(publicForm.accepting).toBe(false);
+		expect(publicForm.fields).toEqual([]);
+		const managed = await makeAPIRequest(`/v1/forms/${id}`, { authToken: core.token });
+		expect(managed.status).toBe("open");
+		expect(managed.accepting).toBe(false);
+		await send(token, { name: "X", allergies: ["no"] }, 409);
+
+		const [newest] = await makeAPIRequest(`/v1/forms/${id}/responses`, { authToken: core.token });
+		await makeAPIRequest(`/v1/forms/${id}/responses/${newest.id}`, {
+			method: "DELETE",
+			authToken: core.token,
+		});
+		expect((await makeAPIRequest(`/v1/public/forms/${token}`)).accepting).toBe(true);
+		await send(token, { name: "Y", allergies: ["no"] });
 	});
 
 	test("the honeypot gets a thank-you and nothing is stored", async () => {

@@ -16,6 +16,8 @@ export interface FormDetail {
 	canManageTemplates: boolean;
 	/** Unsaved edits on the open tab (the header asks before publishing). */
 	dirty: Ref<boolean>;
+	/** The form was just deleted: leaving its pages doesn't ask about unsaved edits. */
+	deleted: Ref<boolean>;
 	/** The questions as they are being edited, for the preview; null: the saved ones. */
 	draftFields: Ref<FormField[] | null>;
 	refresh: () => Promise<void>;
@@ -88,6 +90,7 @@ export async function createFormDetail(options: {
 		isTemplate: computed(() => form.value.scope === "template"),
 		canManageTemplates: options.canManageTemplates,
 		dirty: ref(false),
+		deleted: ref(false),
 		draftFields: ref(null),
 		refresh,
 		save,

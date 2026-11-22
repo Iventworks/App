@@ -238,9 +238,13 @@ CMP (Crossover Management Portal) before; the repository still is.
     frontend too, so the form people fill in checks exactly what the server accepts (types,
     conditions: a question or section shown only for options of an earlier choice question; hidden
     questions are never required and their answers are dropped).
-  - Draft → `open` (publishing sets the token, kept from then on) ↔ `closed`; `closes_at` stops
-    answers without changing the status (`FormService.accepting`). Questions may change after
-    publishing (answers keep their ids). Templates are never published.
+  - Draft → `open` (publishing sets the token, kept from then on) ↔ `closed`; `closes_at` and
+    the answer limit (`FormAnswers.MAX_PER_FORM`) stop answers without changing the status
+    (`FormService.accepting`); `open` on a form past its closing time drops that time. Questions may
+    change after publishing (answers keep their ids); once there are answers, a question's type only
+    changes within text or choice types (`FormFields.canChangeType`, checked by the API too), and
+    the statistics skip answers that don't fit their question (`FormAnswers.fits`). Templates are
+    never published.
   - Rights: `org_forms:manage` (Kernteam) for org forms and templates — templates are readable by
     everyone in the portal so leaders can pick one; `forms:manage` (Leitung, so also the Kernteam)
     for event forms: answers may hold personal data, the rest of the team doesn't see them.
@@ -250,13 +254,14 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Public side: unknown links, drafts and templates 404; closed forms open without their
     questions and refuse answers (409). A honeypot field (`website`) gets a thank-you and nothing
     is stored; 300 answers per form and client address in 10 minutes (a room scanning a QR code
-    shares one address); at most `FormService.MAX_RESPONSES` per form. Sending isn't audited;
+    shares one address); at most `FormAnswers.MAX_PER_FORM` per form. Sending isn't audited;
     managing forms and deleting answers is (`entity_type = form`).
   - Answers are numbered per form; `forms.last_response_number` keeps a deleted answer's number
     from being given again (deleting all starts at 1).
   - Statistics, filters and the CSV export run in the browser over all answers (`app/utils/forms.ts`;
-    the CSV defuses formulas like the participant export). The QR code is drawn in the browser
-    (`uqr`), downloadable as PNG and SVG.
+    the CSV comes from `Csv` in `server/lib/utils/csv.ts`, shared with the participant export, which
+    defuses formulas). The QR code is drawn in the browser (`uqr`), downloadable as PNG and SVG
+    (`downloadBlob` / `fileSlug` in `app/utils/download.ts`, used for every file the browser saves).
   - Starter templates (`FormStarters`: Feedback, Anmeldung, Veranstaltungsbewertung) are added once
     per org (`orgs.form_starters_added`: at startup and when an org is created); after that they
     are ordinary templates. Copying an event takes its forms as drafts (`forms` part).

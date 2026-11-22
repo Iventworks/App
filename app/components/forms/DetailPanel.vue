@@ -145,13 +145,19 @@ async function reopen() {
 const previewOpen = ref(false);
 const previewFields = computed(() => detail.draftFields.value ?? form.value.fields);
 
+/** "Titel (Kopie)", shortened to fit the title limit. */
+function copyTitle(title: string) {
+	const suffix = " (Kopie)";
+	return `${title.slice(0, FormFields.MAX_TITLE - suffix.length).trimEnd()}${suffix}`;
+}
+
 async function copy(asTemplate: boolean) {
 	if (needsSaving()) return;
 	const result = await useAPI((api) =>
 		api.postFormsByFormIdCopy({
 			path: { formId: form.value.id },
 			body: {
-				title: asTemplate ? form.value.title : `${form.value.title} (Kopie)`,
+				title: asTemplate ? form.value.title : copyTitle(form.value.title),
 				as_template: asTemplate,
 			},
 		}),
@@ -193,6 +199,7 @@ async function onDelete() {
 		title: isTemplate.value ? "Vorlage gelöscht" : "Formular gelöscht",
 		color: "success",
 	});
+	detail.deleted.value = true;
 	detail.dirty.value = false;
 	await router.push(isTemplate.value ? `${listPath}?type=templates` : listPath);
 }
@@ -202,7 +209,8 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 		...(!isTemplate.value && form.value.status === "open"
 			? [{ label: "Schließen", icon: "i-lucide-lock", onSelect: close }]
 			: []),
-		...(!isTemplate.value && form.value.status === "closed"
+		// Past its closing time it is still `open`: reopening drops the closing time.
+		...(!isTemplate.value && (form.value.status === "closed" || formStateOf(form.value) === "expired")
 			? [{ label: "Wieder öffnen", icon: "i-lucide-radio", onSelect: reopen }]
 			: []),
 		{ label: "Vorschau", icon: "i-lucide-eye", onSelect: () => (previewOpen.value = true) },

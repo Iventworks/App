@@ -18,8 +18,9 @@ type PublicFormsEnv = {
 
 /**
  * Filling in a form, for anyone with its link (page `/s/form/<token>`, no account):
- * `/public/forms/{token}`. The token is the only key. Drafts and templates have none; unknown links answer 404. A closed form (or one
- * past its closing time) still opens, without its questions, and takes no answers (409).
+ * `/public/forms/{token}`. The token is the only key. Drafts and templates have none; unknown links
+ * answer 404. A closed form (or one past its closing time, or full) still opens, without its
+ * questions, and takes no answers (409).
  */
 export const router = new Hono<PublicFormsEnv>().basePath("/forms");
 
@@ -83,7 +84,7 @@ router.get(
 
 	async (c) => {
 		const form = c.get("form");
-		const accepting = FormService.accepting(form);
+		const accepting = FormService.accepting(form, await FormService.responseCount(form.id));
 		return APIResponse.success(c, "Form retrieved successfully", {
 			title: form.title,
 			description: form.description,
@@ -120,7 +121,7 @@ router.post(
 		const confirmation = {
 			confirmation_message: form.confirmation_message || DEFAULT_CONFIRMATION,
 		} satisfies FormModel.Public.Submitted;
-		if (!FormService.accepting(form)) {
+		if (!FormService.isOpen(form)) {
 			return APIResponse.conflict(c, "This form doesn't take answers anymore");
 		}
 		if (!allowSend(c)) {
@@ -141,6 +142,7 @@ router.post(
 			);
 		}
 
+		// Null: full (the count is checked in the same transaction).
 		if (!FormService.submit(form, answers)) {
 			return APIResponse.conflict(c, "This form doesn't take answers anymore");
 		}

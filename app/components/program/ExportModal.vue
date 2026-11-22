@@ -139,7 +139,7 @@ async function download() {
 	busy.value = "download";
 	try {
 		const blob = await build(false);
-		downloadPdfBlob(blob, fileName());
+		downloadBlob(blob, fileName());
 		open.value = false;
 	} catch (error) {
 		failed(error);
@@ -166,7 +166,7 @@ async function print() {
 		open.value = false;
 
 		const downloadInstead = () => {
-			downloadPdfBlob(blob, fileName());
+			downloadBlob(blob, fileName());
 			toast.add({
 				title: "Drucken nicht möglich",
 				description: "Das PDF wurde stattdessen heruntergeladen – öffne und drucke es von dort.",

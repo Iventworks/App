@@ -23,7 +23,7 @@ const rows = computed<Row[]>(() =>
 );
 
 const counts = computed(() => {
-	const result: Record<FormState, number> = { draft: 0, open: 0, expired: 0, closed: 0 };
+	const result: Record<FormState, number> = { draft: 0, open: 0, expired: 0, full: 0, closed: 0 };
 	for (const row of rows.value) result[row.state]++;
 	return result;
 });
@@ -43,10 +43,13 @@ const filters = computed(() => [
 					type: "multi-select" as const,
 					placeholder: "Alle Status",
 					icon: "i-lucide-filter",
-					options: (Object.keys(FORM_STATES) as FormState[]).map((state) => ({
-						label: `${FORM_STATES[state].label} (${counts.value[state]})`,
-						value: state,
-					})),
+					// "Antwortlimit erreicht" only when a form is full: it is rare.
+					options: (Object.keys(FORM_STATES) as FormState[])
+						.filter((state) => state !== "full" || counts.value.full > 0)
+						.map((state) => ({
+							label: `${FORM_STATES[state].label} (${counts.value[state]})`,
+							value: state,
+						})),
 				},
 			]),
 ]);
