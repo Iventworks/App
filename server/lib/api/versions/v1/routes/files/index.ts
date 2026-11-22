@@ -49,7 +49,6 @@ const LOCATION_LABELS: Record<DB.Models.File["scope"], string> = {
 
 const CUSTOM_ACCESS_BELOW =
 	"Only managers can delete or move a folder that holds items with their own access";
-const TOO_DEEP = FileService.TOO_DEEP;
 
 function describeItem(file: DB.Models.File) {
 	return `${file.kind === "folder" ? "Ordner" : LOCATION_LABELS[file.scope]} „${file.name}“`;
@@ -178,7 +177,7 @@ router.put(
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.success("File updated successfully", FilesModel.Update.Response),
 			APIResponseSpec.badRequest(
-				`Parent folder not found / A folder cannot be moved into itself / ${TOO_DEEP} / Syntax or validation error in request`,
+				`Parent folder not found / A folder cannot be moved into itself / ${FileService.TOO_DEEP} / Syntax or validation error in request`,
 			),
 			APIResponseSpec.notFound("File not found"),
 			APIResponseSpec.forbidden(`You are not allowed to change this file / ${CUSTOM_ACCESS_BELOW}`),
@@ -219,7 +218,7 @@ router.put(
 					await FileService.folderLevelsBelow(file),
 				))
 			) {
-				return APIResponse.badRequest(c, TOO_DEEP);
+				return APIResponse.badRequest(c, FileService.TOO_DEEP);
 			}
 
 			// Documents: the target must be a place the caller may add things to.
@@ -250,7 +249,7 @@ router.put(
 				entityType: "file",
 				entityId: file.id,
 				summary: renames
-					? `${LOCATION_LABELS[file.scope]} „${file.name}“ in „${updated.name}“ umbenannt`
+					? `${LOCATION_LABELS[file.scope]} „${file.name}“ in „${updated.name}“ umbenannt${moves ? " und verschoben" : ""}`
 					: `${LOCATION_LABELS[file.scope]} „${updated.name}“ verschoben`,
 			});
 		}

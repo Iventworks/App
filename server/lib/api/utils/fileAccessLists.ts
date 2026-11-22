@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { DB } from "../../db";
 import { inOrg, OrgContext } from "../../orgs/context";
 import type { FileService } from "./fileService";
@@ -23,6 +23,16 @@ const MEMBERS_LABEL = "Alle Mitglieder";
 const TEAM_LABEL = "Alle im Team";
 
 type NewEntry = Omit<typeof DB.Tables.fileAccess.$inferInsert, "org_id" | "file_id">;
+
+/**
+ * Org roles that always have full access (the Kernteam, admins) — never listed. A function: the
+ * role ranks are read when it is called, not while modules load.
+ */
+function managerRoles() {
+	return (Object.keys(PermissionHelper.ORG_ROLE_RANK) as DB.Models.User["role"][]).filter((role) =>
+		PermissionHelper.hasOrgRole(role, "core_team"),
+	);
+}
 
 /**
  * Access lists of org and event documents (`file_access`): labels for the UI, the library
@@ -261,37 +271,47 @@ export namespace FileAccessLists {
 			if (found.length !== eventGroupIds.length) return { ok: false, message: "Group not found" };
 		}
 
+		// The same people `candidates` offers: active accounts, not the managers (they always have
+		// full access); in an event only its staff.
 		const userIds = idsOf("user");
 		if (userIds.length) {
+			const listable = and(
+				inOrg(DB.Tables.users),
+				inArray(DB.Tables.users.id, userIds),
+				ne(DB.Tables.users.role, "unverified"),
+				notInArray(DB.Tables.users.role, managerRoles()),
+				isNull(DB.Tables.users.suspended_at),
+			);
 			const found =
 				file.scope === "event"
 					? await DB.instance()
-							.select({ id: DB.Tables.eventMembers.user_id })
+							.select({ id: DB.Tables.users.id })
 							.from(DB.Tables.eventMembers)
+							.innerJoin(
+								DB.Tables.users,
+								and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, DB.Tables.eventMembers.user_id)),
+							)
 							.where(
 								and(
 									inOrg(DB.Tables.eventMembers),
 									eq(DB.Tables.eventMembers.event_id, file.event_id ?? -1),
-									inArray(DB.Tables.eventMembers.user_id, userIds),
+									eq(DB.Tables.eventMembers.role, "staff"),
+									listable,
 								),
 							)
 							.all()
 					: await DB.instance()
 							.select({ id: DB.Tables.users.id })
 							.from(DB.Tables.users)
-							.where(
-								and(
-									inOrg(DB.Tables.users),
-									inArray(DB.Tables.users.id, userIds),
-									ne(DB.Tables.users.role, "unverified"),
-								),
-							)
+							.where(listable)
 							.all();
 			if (found.length !== userIds.length) {
 				return {
 					ok: false,
 					message:
-						file.scope === "event" ? "Only people on the event's team can be added" : "User not found",
+						file.scope === "event"
+							? "Only people on the event's team can be added (the Leitung always has full access)"
+							: "User not found (or always has full access as Kernteam)",
 				};
 			}
 		}
@@ -346,9 +366,7 @@ export namespace FileAccessLists {
 	export async function candidates(
 		location: FileService.Location,
 	): Promise<FileAccessModel.Candidate[]> {
-		const managerRoles = (
-			Object.keys(PermissionHelper.ORG_ROLE_RANK) as DB.Models.User["role"][]
-		).filter((role) => PermissionHelper.hasOrgRole(role, "core_team"));
+		const managers = managerRoles();
 		const plural = (n: number) => `${n} ${n === 1 ? "Person" : "Personen"}`;
 
 		if (location.scope === "event" && location.eventId !== null) {
@@ -405,7 +423,7 @@ export namespace FileAccessLists {
 					color: group.color,
 				})),
 				...staff
-					.filter((row) => !managerRoles.includes(row.user.role))
+					.filter((row) => !managers.includes(row.user.role))
 					.map((row) => ({
 						principal: "user" as const,
 						id: row.user.id,

@@ -21,9 +21,8 @@ function outsideTrash<T extends { id: number; parent_id: number | null }>(rows: 
 		const known = kept.get(row.id);
 		if (known !== undefined) return known;
 		kept.set(row.id, false);
-		const parent = row.parent_id === null ? null : byId.get(row.parent_id);
-		const result =
-			row.parent_id === null || (parent !== undefined && parent !== null && keep(parent));
+		const parent = row.parent_id === null ? undefined : byId.get(row.parent_id);
+		const result = row.parent_id === null || (parent !== undefined && keep(parent));
 		kept.set(row.id, result);
 		return result;
 	};
@@ -443,16 +442,20 @@ export class EventCopier {
 								)
 								.all()
 						: [];
-					for (const entry of entries) {
-						if (entry.principal === "event_group" && !groupIds.has(entry.event_group_id ?? -1)) continue;
-						if (entry.principal === "user" && !team.has(entry.user_id ?? -1)) continue;
-						if (
-							entry.principal !== "team" &&
-							entry.principal !== "event_group" &&
-							entry.principal !== "user"
-						) {
-							continue;
+					const comesAlong = (entry: DB.Models.FileAccessEntry) => {
+						switch (entry.principal) {
+							case "team":
+								return true;
+							case "event_group":
+								return groupIds.has(entry.event_group_id ?? -1);
+							case "user":
+								return team.has(entry.user_id ?? -1);
+							default:
+								return false;
 						}
+					};
+					for (const entry of entries) {
+						if (!comesAlong(entry)) continue;
 						tx
 							.insert(T.fileAccess)
 							.values({

@@ -84,8 +84,8 @@ export namespace OfficeDiscovery {
 
 	/** The public origin of the office server (CSP `frame-src` / `form-action`). */
 	export function publicOrigin(): string | null {
-		const url = ConfigHandler.getConfig()?.OFFICE_URL;
-		if (!url) return override ? "https://office.test" : null;
+		const url = ConfigHandler.getConfig()?.OFFICE_URL ?? override?.actions[0]?.urlsrc;
+		if (!url) return null;
 		try {
 			return new URL(url).origin;
 		} catch {

@@ -8,6 +8,7 @@ import { FileLocks } from "../server/lib/api/utils/fileLocks";
 import { FileVersions } from "../server/lib/api/utils/fileVersions";
 import { DB } from "../server/lib/db";
 import { OrgContext } from "../server/lib/orgs/context";
+import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
 import { type SeededSession, type SeededUser, seedSession, seedUser } from "./helpers/seed";
 
@@ -260,19 +261,20 @@ describe("Housekeeping", () => {
 	test("thins out old versions and keeps the blobs of the rest", async () => {
 		const { Housekeeping } = await import("../server/lib/utils/housekeeping");
 		const old = Date.now() - (FileVersions.KEEP_DAYS + 5) * 86_400_000;
-		const blob = (await DB.instance().select().from(DB.Tables.fileVersions).all()).find(
-			(row) => row.file_id === docId,
-		)!;
+		// 60 old versions, each with its own stored file as in real life.
+		const blobs = await Promise.all(
+			Array.from({ length: 60 }, (_, index) => FileStorage.save(new Blob([`Fassung ${index}`]))),
+		);
 		DB.instance()
 			.insert(DB.Tables.fileVersions)
 			.values(
-				Array.from({ length: 60 }, () => ({
+				blobs.map((blob, index) => ({
 					org_id: OrgContext.id(),
 					file_id: docId,
-					storage_key: blob.storage_key,
+					storage_key: blob.storageKey,
 					size: blob.size,
-					modified_at: old,
-					created_at: old,
+					modified_at: old + index,
+					created_at: old + index,
 				})),
 			)
 			.run();
@@ -284,7 +286,11 @@ describe("Housekeeping", () => {
 			(row) => row.file_id === docId,
 		);
 		expect(left.length).toBe(FileVersions.KEEP_MIN);
-		// Version blobs are not orphans.
+		// The files of the versions that went are removed; those of the kept ones aren't orphans.
+		const kept = new Set(left.map((row) => row.storage_key));
+		for (const blob of blobs) {
+			expect(await FileStorage.open(blob.storageKey).exists()).toBe(kept.has(blob.storageKey));
+		}
 		const versions = await versionsOf(docId);
 		await text(docId, reader.token, versions[0].content_url.replace("/api", ""));
 	});

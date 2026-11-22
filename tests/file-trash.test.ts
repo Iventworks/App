@@ -123,6 +123,28 @@ describe("Papierkorb", () => {
 		expect(all[0].purge_at - all[0].deleted_at).toBe(FileTrash.RETENTION_DAYS * 86_400_000);
 	});
 
+	test("the folder names show only to those who may still open the folder", async () => {
+		const secret = await folder(anna.token, "Geheim");
+		const memo = await upload(anna.token, "memo.txt", secret.id);
+		await remove(anna.token, memo.id);
+		const own = async () =>
+			(await makeAPIRequest(`${base}/trash`, { authToken: anna.token })).find(
+				(item: any) => item.id === memo.id,
+			);
+		expect((await own()).location).toEqual(["Geheim"]);
+		// Contents in the Papierkorb aren't served: no link to them.
+		expect((await own()).content_url).toBeNull();
+
+		await makeAPIRequest(`/v1/files/${secret.id}/access`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { custom: true, entries: [] },
+		});
+		expect((await own()).location).toEqual([]);
+		const all = await makeAPIRequest(`${base}/trash`, { authToken: leader.token });
+		expect(all.find((item: any) => item.id === memo.id).location).toEqual(["Geheim"]);
+	});
+
 	test("restoring puts items back — to the top level when their folder is gone", async () => {
 		await makeAPIRequest(
 			`${base}/trash/${plans.id}/restore`,

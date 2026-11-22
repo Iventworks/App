@@ -40,11 +40,22 @@ export namespace WopiProof {
 
 	const base64url = (base64: string) => Buffer.from(base64, "base64").toString("base64url");
 
+	/** Key objects of the keys seen so far (the office server has one or two at a time). */
+	const keys = new Map<string, KeyObject>();
+
 	export function keyFrom(key: OfficeDiscovery.ProofKey): KeyObject {
-		return createPublicKey({
-			key: { kty: "RSA", n: base64url(key.modulus), e: base64url(key.exponent) },
-			format: "jwk",
-		});
+		const id = `${key.modulus}.${key.exponent}`;
+		let object = keys.get(id);
+		if (!object) {
+			object = createPublicKey({
+				key: { kty: "RSA", n: base64url(key.modulus), e: base64url(key.exponent) },
+				format: "jwk",
+			});
+			// New keys after an update: the old ones aren't needed for long.
+			if (keys.size >= 8) keys.clear();
+			keys.set(id, object);
+		}
+		return object;
 	}
 
 	function matches(data: Buffer, signature: string | undefined, key: KeyObject | null) {

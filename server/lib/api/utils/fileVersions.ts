@@ -31,7 +31,7 @@ export namespace FileVersions {
 	 * several people save in turns — what was there before the session is kept, the session's own
 	 * saves at most once per interval, whoever saves.
 	 */
-	export function shouldKeep(
+	function shouldKeep(
 		tx: DrizzleDB.Sync,
 		file: DB.Models.File,
 		userId: number | null,
@@ -58,7 +58,7 @@ export namespace FileVersions {
 	}
 
 	/** Store the current contents of `file` as a version (inside the caller's transaction). */
-	export function archive(tx: DrizzleDB.Sync, file: DB.Models.File, now: number) {
+	function archive(tx: DrizzleDB.Sync, file: DB.Models.File, now: number) {
 		if (!file.storage_key) return;
 		tx
 			.insert(DB.Tables.fileVersions)

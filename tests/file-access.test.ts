@@ -4,9 +4,10 @@
  * org and event groups, the member view, validation, program attachments and event copies.
  */
 import { beforeAll, describe, expect, test } from "bun:test";
+import { and, eq } from "drizzle-orm";
 import { FileService } from "../server/lib/api/utils/fileService";
 import { DB } from "../server/lib/db";
-import { OrgContext } from "../server/lib/orgs/context";
+import { inOrg, OrgContext } from "../server/lib/orgs/context";
 import { makeAPIRequest } from "./helpers/api";
 import {
 	addEventMember,
@@ -299,6 +300,62 @@ describe("Org documents", () => {
 		expect(labels).toContain("org_group:Technik");
 		expect(labels).toContain("user:Alice");
 		expect(candidates.some((candidate: any) => candidate.id === admin.user_id)).toBe(false);
+
+		// Only who the list offers: not unverified or suspended accounts, not the Kernteam (it
+		// always has full access).
+		const unverified = await seedUser("unverified");
+		const suspended = await seedUser("volunteer");
+		DB.instance()
+			.update(DB.Tables.users)
+			.set({ suspended_at: Date.now() })
+			.where(and(inOrg(DB.Tables.users), eq(DB.Tables.users.id, suspended.id)))
+			.run();
+		const kernteam = await seedUser("core_team");
+		for (const user of [unverified, suspended, kernteam]) {
+			await setAccess(
+				guidesId,
+				core.token,
+				[{ principal: "user", id: user.id, permissions: VIEW }],
+				400,
+			);
+		}
+	});
+
+	test("Bearbeiten: rename and new contents, but not delete or move", async () => {
+		const desk = await folder(ORG, core.token, "Redaktion", guidesId);
+		await setAccess(desk.id, core.token, [
+			{ principal: "user", id: aliceUser.id, permissions: { ...UPLOAD, edit: true } },
+		]);
+		const text = await upload(ORG, core.token, "artikel.txt", desk.id);
+		const change = (body: object, code = 200) =>
+			makeAPIRequest(`/v1/files/${text.id}`, { method: "PUT", authToken: alice.token, body }, code);
+
+		await change({ name: "artikel-neu.txt" });
+		const contents = new FormData();
+		contents.append("file", new File(["neue Fassung"], "artikel-neu.txt", { type: "text/plain" }));
+		await makeAPIRequest(`/v1/files/${text.id}/content`, {
+			authToken: alice.token,
+			additionalOptions: { method: "PUT", body: contents },
+		});
+		await change({ parent_id: null }, 403);
+		await makeAPIRequest(`/v1/files/${text.id}`, { method: "DELETE", authToken: alice.token }, 403);
+	});
+
+	test("renaming and moving at once is audited as both", async () => {
+		const file = await upload(ORG, core.token, "entwurf.txt", guidesId);
+		await makeAPIRequest(`/v1/files/${file.id}`, {
+			method: "PUT",
+			authToken: core.token,
+			body: { name: "fertig.txt", parent_id: techId },
+		});
+		const entries = DB.instance()
+			.select()
+			.from(DB.Tables.auditLogs)
+			.where(and(inOrg(DB.Tables.auditLogs), eq(DB.Tables.auditLogs.entity_id, file.id)))
+			.all();
+		expect(entries.map((entry) => entry.summary)).toContain(
+			"Organisationsdokument „entwurf.txt“ in „fertig.txt“ umbenannt und verschoben",
+		);
 	});
 
 	test("files only take view or edit; inheriting again removes the list", async () => {
@@ -436,6 +493,14 @@ describe("Event documents", () => {
 			400,
 		);
 		await setAccess(kitchen.id, leader.token, [{ principal: "members", permissions: VIEW }], 400);
+		// The Leitung always has full access: not listed.
+		const leaderId = (await makeAPIRequest("/v1/account", { authToken: leader.token })).id;
+		await setAccess(
+			kitchen.id,
+			leader.token,
+			[{ principal: "user", id: leaderId, permissions: VIEW }],
+			400,
+		);
 	});
 
 	test("leaving the team takes a person off the access lists", async () => {

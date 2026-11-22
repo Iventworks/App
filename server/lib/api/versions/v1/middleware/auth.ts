@@ -34,10 +34,12 @@ function cookieAuthHeader(c: Context): string | undefined {
 // The office server's WOPI calls (`routes/wopi`): authenticated by their access token and the
 // office server's signature, never by a login — some office servers also send the access token as
 // `Authorization: Bearer …`, which must not be taken for (and rejected as) a session token.
-const WOPI_PATH = /\/v1\/wopi\//;
+function isWopiPath(fullPath: string) {
+	return fullPath.slice(Math.max(fullPath.indexOf("/v1/"), 0)).startsWith("/v1/wopi/");
+}
 
 export const authMiddlewareV1 = createMiddleware(async (c, next) => {
-	if (WOPI_PATH.test(c.req.path)) {
+	if (isWopiPath(c.req.path)) {
 		AuthHandler.AuthContext.set(c, {
 			type: "unauthenticated",
 		} satisfies AuthHandler.UnauthenticatedAuthContext);

@@ -187,7 +187,6 @@ router.post("/files/:fileId/contents", async (c) => {
 	if (current === "" && file.size > 0) return c.body(null, 409, { [LOCK_HEADER]: "" });
 
 	const data = await c.req.arrayBuffer();
-	if (data.byteLength > FileStorage.maxUploadBytes) return c.body(null, 413);
 	const replaced = await FileService.replaceContent(
 		file,
 		new Blob([data], { type: file.mime_type ?? "application/octet-stream" }),

@@ -78,8 +78,9 @@ async function validateRefs(
 	return null;
 }
 
-async function replaceResponsibles(programItemId: number, userIds: number[], tx: DrizzleDB) {
-	await tx
+/** Replace the responsible people (synchronous: part of the caller's transaction). */
+function replaceResponsibles(programItemId: number, userIds: number[], tx: DrizzleDB.Sync) {
+	tx
 		.delete(DB.Tables.programItemResponsibles)
 		.where(
 			and(
@@ -90,7 +91,7 @@ async function replaceResponsibles(programItemId: number, userIds: number[], tx:
 		.run();
 	const unique = [...new Set(userIds)];
 	if (unique.length > 0) {
-		await tx
+		tx
 			.insert(DB.Tables.programItemResponsibles)
 			.values(
 				unique.map((user_id) => ({ org_id: OrgContext.id(), program_item_id: programItemId, user_id })),
@@ -125,8 +126,9 @@ async function hiddenFileIds(c: Context<ProgramEnv>, programItemId: number) {
 	return files.filter((file) => !readable.has(file.id)).map((file) => file.id);
 }
 
-async function replaceFiles(programItemId: number, fileIds: number[], tx: DrizzleDB) {
-	await tx
+/** Replace the linked documents (synchronous: part of the caller's transaction). */
+function replaceFiles(programItemId: number, fileIds: number[], tx: DrizzleDB.Sync) {
+	tx
 		.delete(DB.Tables.programItemFiles)
 		.where(
 			and(
@@ -137,7 +139,7 @@ async function replaceFiles(programItemId: number, fileIds: number[], tx: Drizzl
 		.run();
 	const unique = [...new Set(fileIds)];
 	if (unique.length > 0) {
-		await tx
+		tx
 			.insert(DB.Tables.programItemFiles)
 			.values(
 				unique.map((file_id) => ({ org_id: OrgContext.id(), program_item_id: programItemId, file_id })),
@@ -333,14 +335,14 @@ router.post(
 
 		let item: DB.Models.ProgramItem;
 		try {
-			item = await DB.instance().transaction(async (tx: DrizzleDB) => {
-				const created = await tx
+			item = DB.instance().transaction((tx) => {
+				const created = tx
 					.insert(DB.Tables.programItems)
 					.values({ ...body, event_id: event.id, created_by: userId, org_id: OrgContext.id() })
 					.returning()
 					.get();
-				await replaceResponsibles(created.id, responsible_user_ids, tx);
-				await replaceFiles(created.id, file_ids, tx);
+				replaceResponsibles(created.id, responsible_user_ids, tx);
+				replaceFiles(created.id, file_ids, tx);
 				return created;
 			});
 		} catch (error: any) {
@@ -434,18 +436,18 @@ router.put(
 
 		let updated: DB.Models.ProgramItem;
 		try {
-			updated = await DB.instance().transaction(async (tx: DrizzleDB) => {
-				const row = await tx
+			updated = DB.instance().transaction((tx) => {
+				const row = tx
 					.update(DB.Tables.programItems)
 					.set({ ...body, updated_at: Date.now() })
 					.where(and(inOrg(DB.Tables.programItems), eq(DB.Tables.programItems.id, item.id)))
 					.returning()
 					.get();
 				if (responsible_user_ids !== undefined) {
-					await replaceResponsibles(item.id, responsible_user_ids, tx);
+					replaceResponsibles(item.id, responsible_user_ids, tx);
 				}
 				if (file_ids !== undefined) {
-					await replaceFiles(item.id, [...file_ids, ...keptFiles], tx);
+					replaceFiles(item.id, [...file_ids, ...keptFiles], tx);
 				}
 				return row;
 			});
@@ -569,8 +571,8 @@ router.post(
 
 		let copy: DB.Models.ProgramItem;
 		try {
-			copy = await DB.instance().transaction(async (tx: DrizzleDB) => {
-				const created = await tx
+			copy = DB.instance().transaction((tx) => {
+				const created = tx
 					.insert(DB.Tables.programItems)
 					.values({
 						org_id: OrgContext.id(),
@@ -587,8 +589,8 @@ router.post(
 					})
 					.returning()
 					.get();
-				await replaceResponsibles(created.id, responsibleIds, tx);
-				await replaceFiles(created.id, fileIds, tx);
+				replaceResponsibles(created.id, responsibleIds, tx);
+				replaceFiles(created.id, fileIds, tx);
 				return created;
 			});
 		} catch (error: any) {

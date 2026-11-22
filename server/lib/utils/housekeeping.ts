@@ -18,9 +18,9 @@ export class Housekeeping {
 	static readonly EXPIRED_SHARE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 	/**
-	 * Stored files no `files` or `file_versions` row points at (an upload interrupted between writing the blob and the
-	 * row, a crash during a delete) are removed once they are this old — the grace period keeps
-	 * uploads that are still being written.
+	 * Stored files no `files` or `file_versions` row points at (an upload interrupted between
+	 * writing the blob and the row, a crash during a delete) are removed once they are this old —
+	 * the grace period keeps uploads that are still being written.
 	 */
 	static readonly ORPHAN_BLOB_GRACE_MS = 24 * 60 * 60 * 1000;
 

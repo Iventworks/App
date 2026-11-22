@@ -18,5 +18,5 @@ export const router = createFileLibraryRouter({
 	viewerOf: (c, { asMember }) =>
 		FileAccess.viewer(AuthHandler.AuthContext.get(c), { scope: "org", eventId: null }, { asMember }),
 	actor: (c) => ({ userId: getAuthUserId(c), eventId: null }),
-	auditPlace: { into: " in die Organisationsablage", at: " in der Organisationsablage" },
+	auditPlace: { into: " in die Bibliothek", at: " in der Bibliothek" },
 });
