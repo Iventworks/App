@@ -2,11 +2,11 @@ import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { AnySQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { DB } from "../../db";
+import { Inventory } from "../../materials/inventory";
 import { inOrg, OrgContext } from "../../orgs/context";
 import { FileStorage } from "../../utils/fileStorage";
 import { Logger } from "../../utils/logger";
 import { TimeUtils } from "../../utils/time";
-import { EventSchedule } from "./eventSchedule";
 import { FileService } from "./fileService";
 import { Occurrences } from "./occurrences";
 
@@ -91,7 +91,18 @@ export class EventCopier {
 			budget: countOf(T.budgetItems),
 			documents: documents.value,
 			documents_size: documents.size,
-			resources: countOf(T.resourceBookings),
+			resources:
+				db
+					.select({ value: count() })
+					.from(T.eventMaterials)
+					.where(
+						and(
+							inOrg(T.eventMaterials),
+							eq(T.eventMaterials.event_id, event.id),
+							eq(T.eventMaterials.kind, "inventory"),
+						),
+					)
+					.get()?.value ?? 0,
 			participants:
 				db
 					.select({ value: count() })
@@ -144,6 +155,8 @@ export class EventCopier {
 		let skippedFiles = 0;
 
 		let created: DB.Models.Event;
+		// Program item ids of the source → of the copy (material links follow them).
+		const programIds = new Map<number, number>();
 		const notify: { user_id: number; role: DB.Models.EventMember["role"] }[] = [];
 
 		try {
@@ -172,6 +185,8 @@ export class EventCopier {
 						max_participants: source.max_participants,
 						participant_fee_cents: source.participant_fee_cents,
 						budget_cents: source.budget_cents,
+						material_days_before: source.material_days_before,
+						material_days_after: source.material_days_after,
 						created_by: options.userId,
 					})
 					.returning()
@@ -524,6 +539,7 @@ export class EventCopier {
 							})
 							.returning()
 							.get();
+						programIds.set(item.id, copy.id);
 						for (const row of responsibles) {
 							if (row.program_item_id !== item.id || !team.has(row.user_id)) continue;
 							tx
@@ -751,17 +767,23 @@ export class EventCopier {
 		let skippedBookings: string[] = [];
 		if (include.resources) {
 			try {
-				skippedBookings = await EventCopier.copyBookings(source, created);
+				skippedBookings = await EventCopier.copyBookings(source, created, programIds);
 			} catch (error) {
 				Logger.error("Failed to copy the resource bookings:", error);
 				const names = await DB.instance()
 					.select({ name: T.orgResources.name })
-					.from(T.resourceBookings)
+					.from(T.eventMaterials)
 					.innerJoin(
 						T.orgResources,
-						and(inOrg(T.orgResources), eq(T.orgResources.id, T.resourceBookings.resource_id)),
+						and(inOrg(T.orgResources), eq(T.orgResources.id, T.eventMaterials.resource_id)),
 					)
-					.where(and(inOrg(T.resourceBookings), eq(T.resourceBookings.event_id, source.id)))
+					.where(
+						and(
+							inOrg(T.eventMaterials),
+							eq(T.eventMaterials.event_id, source.id),
+							eq(T.eventMaterials.kind, "inventory"),
+						),
+					)
 					.all();
 				skippedBookings = names.map((row) => row.name);
 			}
@@ -776,50 +798,84 @@ export class EventCopier {
 	}
 
 	/**
-	 * Book what the source had booked — each resource only if enough units are free on the days of
-	 * the copy. Returns the names of the resources that were not.
+	 * Book what the source had booked from the inventory — each item only if enough units are free
+	 * in the copy's material period — with its place and its links to copied program items. Returns
+	 * the names of the items that were not. Things to buy, things people bring and requests stay
+	 * with the source.
 	 */
-	protected static async copyBookings(source: DB.Models.Event, target: DB.Models.Event) {
+	protected static async copyBookings(
+		source: DB.Models.Event,
+		target: DB.Models.Event,
+		programIds: Map<number, number>,
+	) {
 		const T = DB.Tables;
 		const db = DB.instance();
 		const skipped: string[] = [];
 
 		const bookings = await db
-			.select({ booking: T.resourceBookings, resource: T.orgResources })
-			.from(T.resourceBookings)
+			.select({ booking: T.eventMaterials, resource: T.orgResources })
+			.from(T.eventMaterials)
 			.innerJoin(
 				T.orgResources,
-				and(inOrg(T.orgResources), eq(T.orgResources.id, T.resourceBookings.resource_id)),
+				and(inOrg(T.orgResources), eq(T.orgResources.id, T.eventMaterials.resource_id)),
 			)
-			.where(and(inOrg(T.resourceBookings), eq(T.resourceBookings.event_id, source.id)))
+			.where(
+				and(
+					inOrg(T.eventMaterials),
+					eq(T.eventMaterials.event_id, source.id),
+					eq(T.eventMaterials.kind, "inventory"),
+				),
+			)
+			.orderBy(T.eventMaterials.id)
 			.all();
+		const links = bookings.length
+			? await db
+					.select()
+					.from(T.materialLinks)
+					.where(
+						and(
+							inOrg(T.materialLinks),
+							inArray(
+								T.materialLinks.material_id,
+								bookings.map((row) => row.booking.id),
+							),
+						),
+					)
+					.all()
+			: [];
 
 		for (const { booking, resource } of bookings) {
-			const others = await db
-				.select({ quantity: T.resourceBookings.quantity, event: T.events })
-				.from(T.resourceBookings)
-				.innerJoin(T.events, and(inOrg(T.events), eq(T.events.id, T.resourceBookings.event_id)))
-				.where(and(inOrg(T.resourceBookings), eq(T.resourceBookings.resource_id, resource.id)))
-				.all();
-			const schedule = await EventSchedule.load([target, ...others.map((row) => row.event)]);
-			const taken = others
-				.filter((row) => schedule.overlap(row.event, target))
-				.reduce((total, row) => total + row.quantity, 0);
-
-			if (taken + booking.quantity > resource.quantity) {
+			if (!(await Inventory.fits(target, resource, booking.quantity))) {
 				skipped.push(resource.name);
 				continue;
 			}
-			await db
-				.insert(T.resourceBookings)
+			const copy = await db
+				.insert(T.eventMaterials)
 				.values({
 					org_id: OrgContext.id(),
-					resource_id: resource.id,
 					event_id: target.id,
+					kind: "inventory",
+					resource_id: resource.id,
 					quantity: booking.quantity,
+					location: booking.location,
 					notes: booking.notes,
+					created_by: target.created_by,
 				})
-				.run();
+				.returning()
+				.get();
+			for (const link of links) {
+				const programItemId = link.program_item_id ? programIds.get(link.program_item_id) : undefined;
+				if (link.material_id !== booking.id || programItemId === undefined) continue;
+				await db
+					.insert(T.materialLinks)
+					.values({
+						org_id: OrgContext.id(),
+						material_id: copy.id,
+						program_item_id: programItemId,
+						quantity: link.quantity,
+					})
+					.run();
+			}
 		}
 		return skipped;
 	}
@@ -869,7 +925,8 @@ export namespace EventCopier {
 		budget: z.boolean().default(true),
 		/** Folders and files of the event's documents. */
 		documents: z.boolean().default(false),
-		/** Resource bookings, where the resource is free on the new days. */
+		/** Inventory bookings of the material list, where the units are free on the new days (with
+		 * their place and their links to copied program items). */
 		resources: z.boolean().default(false),
 		/** Participants (not cancelled) with their details, registered again and unpaid. */
 		participants: z.boolean().default(false),

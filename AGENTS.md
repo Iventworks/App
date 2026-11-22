@@ -265,6 +265,36 @@ CMP (Crossover Management Portal) before; the repository still is.
   - Starter templates (`FormStarters`: Feedback, Anmeldung, Veranstaltungsbewertung) are added once
     per org (`orgs.form_starters_added`: at startup and when an org is created); after that they
     are ordinary templates. Copying an event takes its forms as drafts (`forms` part).
+- **Material** (`org_resources`, `resource_purchases`, `event_materials`, `material_requests`,
+  `material_links`; `server/lib/materials/`):
+  - The inventory is the Kernteam's (`org_resources:read`/`write`, `/core-team/resources`): stock,
+    details (brand, size, condition), `consumable`. Units to buy are `resource_purchases` — not
+    bookable until marked bought (then added to the stock, row deleted).
+  - An event's list is `event_materials` by `kind`: `inventory` (a booking: `resource_id`, name from
+    the item), `purchase` (to buy / `bought_at`), `own` (`owner_id` brings it). There is no separate
+    bookings table; the Kernteam's `/org/resources/…/bookings` routes work on `inventory` entries.
+  - Availability goes through `Inventory` (`server/lib/materials/inventory.ts`): bookings hold the
+    units for the event's **material period** (`MaterialPeriod.of`: dates widened by
+    `events.material_days_before/after`; recurring events: their dates via `EventSchedule`);
+    cancelled events hold nothing. Over the limit = 409. Entries that end up over it later (dates
+    or stock changed) are flagged `overbooked`, not removed.
+  - Rights (`materials:view`/`contribute` = staff, `materials:manage` = Leitung): the Leitung books
+    (directly, no approval), plans purchases, answers requests, changes anything; it sees the
+    inventory only through `GET /events/{id}/materials/catalog` — free counts, never other events'
+    names. Staff add `own` entries, ask (`material_requests`), set `location`, link to the program
+    (`material_links`: program items or a Regeltermin's dates, optional quantity — overlapping
+    items needing more only warn) and tick the packing list (`packed_at`/`returned_at`).
+  - Requests are answered by entries with `request_id`; `MaterialService.settle` makes a request
+    `done` once they cover it and opens an automatically settled one again when they no longer do
+    (one the Leitung decided stays). Notifications: `material_requested` (Leitung),
+    `material_answered` (who asked), `material_assigned` (owner/buyer set by someone else).
+  - Bought purchases stay with the event or move into the inventory (`POST …/bought` with
+    `to_inventory`: stock added, entry becomes `inventory`). An expense can name the purchase
+    (`material_id`, buyer or Leitung, once). Consumables: `used_quantity` changes the stock by the
+    difference.
+  - Leaving the team deletes the person's `own` entries and clears them as buyer. Copying takes
+    `inventory` entries (where free) with place and links to copied program items; duplicating a
+    program item keeps its links.
 - **Org groups** (`org_groups`, *Administration → Gruppen*): admin-managed, used in org access
   lists; deleting a group removes its entries.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in
@@ -293,8 +323,8 @@ CMP (Crossover Management Portal) before; the repository still is.
   dates move with the new start (`TimeUtils.shiftDays`), tasks are open again, participants are
   registered again and unpaid, documents are real copies (`FileStorage.copy`) with their access
   lists (group entries with the groups, people with the team; what can't come along is dropped, so
-  a restricted folder stays restricted), resource bookings
-  only where the resource is free on the new days. Never copied: expenses, chats, audit log, the
+  a restricted folder stays restricted), inventory bookings of the material list
+  only where the units are free on the new days. Never copied: expenses, chats, audit log, the
   leaders' notes about staff, notes about participants, the dates of a series (they come from the
   rule). A new event table or column that belongs to an event must be added to `EventCopier` (or
   consciously left out) and to its `summary`.

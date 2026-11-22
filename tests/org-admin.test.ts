@@ -856,8 +856,12 @@ describe("Organisation resources", () => {
 			201,
 		);
 
+		// Only the core team sees the inventory and who booked what.
+		await makeAPIRequest("/v1/org/resources", { authToken: volunteerSession.token }, 403);
+		await makeAPIRequest("/v1/org/resources/bookings", { authToken: volunteerSession.token }, 403);
+
 		const list = await makeAPIRequest("/v1/org/resources", {
-			authToken: volunteerSession.token,
+			authToken: coreSession.token,
 			expectedBodySchema: OrgResourcesModel.GetAll.Response,
 		});
 		const resource = list.find((entry) => entry.id === resourceId)!;
@@ -867,7 +871,7 @@ describe("Organisation resources", () => {
 		expect(resource.booked_now).toBe(0);
 
 		const forEvent = await makeAPIRequest(`/v1/org/resources/bookings?event_id=${eventC.id}`, {
-			authToken: volunteerSession.token,
+			authToken: coreSession.token,
 			expectedBodySchema: OrgResourcesModel.GetBookings.Response,
 		});
 		expect(forEvent.map((booking) => booking.resource.id)).toEqual([resourceId]);

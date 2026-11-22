@@ -35,13 +35,15 @@ export class PermissionHelper {
 		"users:directory": "volunteer",
 		"org_documents:read": "volunteer",
 		"org_announcements:read": "volunteer",
-		"org_resources:read": "volunteer",
 
 		"events:create": "core_team",
 		"events:view_all": "core_team",
 		"events:delete": "core_team",
 		"org_documents:write": "core_team",
 		"org_announcements:write": "core_team",
+		/** The whole inventory with every booking. A Leitung sees items and what is free on its
+		 * dates through its event (`materials:manage`), never which other events booked them. */
+		"org_resources:read": "core_team",
 		"org_resources:write": "core_team",
 		"org_finances:read": "core_team",
 		"org_stats:read": "core_team",
@@ -104,6 +106,14 @@ export class PermissionHelper {
 		"files:view": "staff",
 		"files:upload": "staff",
 		"files:manage_all": "leader",
+
+		/** The event's material list and the open requests. */
+		"materials:view": "staff",
+		/** Bring own things, ask for something, note where things are, link them to the program,
+		 * tick the packing list. */
+		"materials:contribute": "staff",
+		/** Book from the inventory, buy, answer requests, change or remove any entry. */
+		"materials:manage": "leader",
 
 		/** Forms, their link and their answers (which may hold personal data): the Leitung only. */
 		"forms:manage": "leader",

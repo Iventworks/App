@@ -361,10 +361,54 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.returning()
 			.get();
 		const booking = db
-			.insert(DB.Tables.resourceBookings)
-			.values({ org_id, resource_id: resource.id, event_id: event.id, notes: text("Buchung") })
+			.insert(DB.Tables.eventMaterials)
+			.values({
+				org_id,
+				event_id: event.id,
+				kind: "inventory",
+				resource_id: resource.id,
+				location: text("Materialzelt"),
+				notes: text("Buchung"),
+			})
 			.returning()
 			.get();
+		const purchase = db
+			.insert(DB.Tables.resourcePurchases)
+			.values({ org_id, resource_id: resource.id, quantity: 2, notes: text("Einkauf") })
+			.returning()
+			.get();
+		const materialRequest = db
+			.insert(DB.Tables.materialRequests)
+			.values({
+				org_id,
+				event_id: event.id,
+				name: text("Anfrage"),
+				notes: text("Wofür"),
+				program_item_id: programItem.id,
+				requested_by: volunteer.id,
+			})
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.eventMaterials)
+			.values({
+				org_id,
+				event_id: event.id,
+				kind: "own",
+				name: text("Beamer"),
+				owner_id: volunteer.id,
+				request_id: materialRequest.id,
+			})
+			.run();
+		const materialLink = db
+			.insert(DB.Tables.materialLinks)
+			.values({ org_id, material_id: booking.id, program_item_id: programItem.id, quantity: 1 })
+			.returning()
+			.get();
+		db
+			.insert(DB.Tables.materialLinks)
+			.values({ org_id, material_id: booking.id, occurrence_id: occurrence.id })
+			.run();
 		const conversation = db
 			.insert(DB.Tables.conversations)
 			.values({
@@ -570,6 +614,10 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				budgetItemId: budgetItem.id,
 				resourceId: resource.id,
 				bookingId: booking.id,
+				materialId: booking.id,
+				requestId: materialRequest.id,
+				purchaseId: purchase.id,
+				linkId: materialLink.id,
 				conversationId: conversation.id,
 				messageId: message.id,
 				entryId: entry.id,

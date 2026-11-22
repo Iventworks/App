@@ -51,6 +51,11 @@ export namespace EventExpensesModel.Create {
 		category: EventExpensesModel.ExpenseFields.category.default("Sonstiges"),
 		amount_cents: EventExpensesModel.ExpenseFields.amount_cents,
 		spent_on: EventExpensesModel.ExpenseFields.spent_on,
+		/**
+		 * The purchase on the event's material list this pays for (the buyer or the Leitung; one
+		 * expense per purchase).
+		 */
+		material_id: z.number().int().positive().nullable().default(null),
 	});
 	export type Body = z.infer<typeof Body>;
 

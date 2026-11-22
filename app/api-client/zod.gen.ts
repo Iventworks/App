@@ -5567,6 +5567,8 @@ export const zGetEventsResponse = z.object({
         max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -5606,6 +5608,9 @@ export const zGetEventsResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'materials:view',
+            'materials:contribute',
+            'materials:manage',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -5710,6 +5715,8 @@ export const zPostEventsResponse = z.object({
         max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -5749,6 +5756,9 @@ export const zPostEventsResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'materials:view',
+            'materials:contribute',
+            'materials:manage',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -5839,6 +5849,8 @@ export const zGetEventsByEventIdResponse = z.object({
         max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -5878,6 +5890,9 @@ export const zGetEventsByEventIdResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'materials:view',
+            'materials:contribute',
+            'materials:manage',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -5985,6 +6000,8 @@ export const zPutEventsByEventIdResponse = z.object({
         max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+        material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6024,6 +6041,9 @@ export const zPutEventsByEventIdResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'materials:view',
+            'materials:contribute',
+            'materials:manage',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -6101,6 +6121,8 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
             max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+            material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+            material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
             created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
             updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -6140,6 +6162,9 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
                 'files:view',
                 'files:upload',
                 'files:manage_all',
+                'materials:view',
+                'materials:contribute',
+                'materials:manage',
                 'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
@@ -9573,7 +9598,8 @@ export const zPostEventsByEventIdExpensesBody = z.object({
     description: z.string().max(5000).optional().default(''),
     category: z.string().min(1).max(60).optional().default('Sonstiges'),
     amount_cents: z.int().gt(0).lte(100000000),
-    spent_on: z.iso.date().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$/)
+    spent_on: z.iso.date().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$/),
+    material_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
 });
 
 export const zPostEventsByEventIdExpensesPath = z.object({
@@ -10818,6 +10844,8 @@ export const zPostEventsByEventIdCopyResponse = z.object({
             max_participants: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             participant_fee_cents: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             budget_cents: z.int().gte(-9007199254740991).lte(9007199254740991),
+            material_days_before: z.int().gte(-9007199254740991).lte(9007199254740991),
+            material_days_after: z.int().gte(-9007199254740991).lte(9007199254740991),
             created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
             created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
             updated_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -10857,6 +10885,9 @@ export const zPostEventsByEventIdCopyResponse = z.object({
                 'files:view',
                 'files:upload',
                 'files:manage_all',
+                'materials:view',
+                'materials:contribute',
+                'materials:manage',
                 'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
@@ -11158,6 +11189,957 @@ export const zPostEventsByEventIdFormsResponse = z.object({
                 'unverified'
             ])
         }).nullable()
+    })
+});
+
+export const zGetEventsByEventIdMaterialsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Material retrieved successfully
+ */
+export const zGetEventsByEventIdMaterialsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Material retrieved successfully'),
+    data: z.object({
+        period: z.object({
+            days_before: z.number(),
+            days_after: z.number(),
+            from: z.string(),
+            until: z.string()
+        }).nullable(),
+        items: z.array(z.object({
+            id: z.number(),
+            kind: z.enum([
+                'inventory',
+                'purchase',
+                'own'
+            ]),
+            name: z.string(),
+            quantity: z.number(),
+            location: z.string().nullable(),
+            notes: z.string(),
+            resource: z.object({
+                id: z.number(),
+                name: z.string(),
+                category: z.string(),
+                brand: z.string().nullable(),
+                size: z.string().nullable(),
+                condition: z.enum([
+                    'new',
+                    'good',
+                    'worn',
+                    'damaged'
+                ]).nullable(),
+                consumable: z.boolean(),
+                location: z.string().nullable(),
+                notes: z.string()
+            }).nullable(),
+            owner: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            request_id: z.number().nullable(),
+            bought_at: z.number().nullable(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            has_expense: z.boolean(),
+            used_quantity: z.number().nullable(),
+            packed_at: z.number().nullable(),
+            returned_at: z.number().nullable(),
+            links: z.array(z.object({
+                id: z.number(),
+                program_item_id: z.number().nullable(),
+                occurrence_id: z.number().nullable(),
+                quantity: z.number().nullable(),
+                title: z.string().nullable(),
+                start_at: z.number().nullable(),
+                end_at: z.number().nullable(),
+                date: z.string().nullable()
+            })),
+            overbooked: z.boolean(),
+            creator: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            created_at: z.number(),
+            updated_at: z.number(),
+            can_edit: z.boolean(),
+            can_delete: z.boolean(),
+            can_mark_bought: z.boolean()
+        })),
+        requests: z.array(z.object({
+            id: z.number(),
+            name: z.string(),
+            quantity: z.number(),
+            notes: z.string(),
+            program_item: z.object({
+                id: z.number(),
+                title: z.string(),
+                start_at: z.number()
+            }).nullable(),
+            status: z.enum([
+                'open',
+                'done',
+                'rejected'
+            ]),
+            answer: z.string().nullable(),
+            requested_by: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            decided_by: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            decided_at: z.number().nullable(),
+            created_at: z.number(),
+            covered: z.number(),
+            can_edit: z.boolean(),
+            can_delete: z.boolean()
+        }))
+    })
+});
+
+export const zPostEventsByEventIdMaterialsBody = z.object({
+    kind: z.enum([
+        'inventory',
+        'purchase',
+        'own'
+    ]),
+    resource_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    name: z.string().min(1).max(120).nullish().default(null),
+    quantity: z.int().gte(1).lte(1000000).optional().default(1),
+    location: z.string().max(200).nullish().default(null),
+    notes: z.string().max(2000).optional().default(''),
+    owner_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    estimated_cents: z.int().gte(0).lte(100000000).nullish().default(null),
+    buyer_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    request_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+});
+
+export const zPostEventsByEventIdMaterialsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Material added successfully
+ */
+export const zPostEventsByEventIdMaterialsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Material added successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum([
+            'inventory',
+            'purchase',
+            'own'
+        ]),
+        name: z.string(),
+        quantity: z.number(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        resource: z.object({
+            id: z.number(),
+            name: z.string(),
+            category: z.string(),
+            brand: z.string().nullable(),
+            size: z.string().nullable(),
+            condition: z.enum([
+                'new',
+                'good',
+                'worn',
+                'damaged'
+            ]).nullable(),
+            consumable: z.boolean(),
+            location: z.string().nullable(),
+            notes: z.string()
+        }).nullable(),
+        owner: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        request_id: z.number().nullable(),
+        bought_at: z.number().nullable(),
+        estimated_cents: z.number().nullable(),
+        buyer: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        has_expense: z.boolean(),
+        used_quantity: z.number().nullable(),
+        packed_at: z.number().nullable(),
+        returned_at: z.number().nullable(),
+        links: z.array(z.object({
+            id: z.number(),
+            program_item_id: z.number().nullable(),
+            occurrence_id: z.number().nullable(),
+            quantity: z.number().nullable(),
+            title: z.string().nullable(),
+            start_at: z.number().nullable(),
+            end_at: z.number().nullable(),
+            date: z.string().nullable()
+        })),
+        overbooked: z.boolean(),
+        creator: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean(),
+        can_mark_bought: z.boolean()
+    })
+});
+
+export const zGetEventsByEventIdMaterialsCatalogPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Inventory retrieved successfully
+ */
+export const zGetEventsByEventIdMaterialsCatalogResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Inventory retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        name: z.string(),
+        category: z.string(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        quantity: z.number(),
+        taken: z.number(),
+        booked_here: z.number(),
+        free: z.number(),
+        on_order: z.number()
+    }))
+});
+
+export const zPutEventsByEventIdMaterialsPeriodBody = z.object({
+    days_before: z.int().gte(0).lte(14),
+    days_after: z.int().gte(0).lte(14)
+});
+
+export const zPutEventsByEventIdMaterialsPeriodPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Period updated successfully
+ */
+export const zPutEventsByEventIdMaterialsPeriodResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Period updated successfully'),
+    data: z.object({
+        days_before: z.number(),
+        days_after: z.number(),
+        from: z.string(),
+        until: z.string()
+    })
+});
+
+export const zPostEventsByEventIdMaterialsRequestsBody = z.object({
+    name: z.string().min(1).max(120),
+    quantity: z.int().gte(1).lte(1000000).optional().default(1),
+    notes: z.string().max(2000).optional().default(''),
+    program_item_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+});
+
+export const zPostEventsByEventIdMaterialsRequestsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Request created successfully
+ */
+export const zPostEventsByEventIdMaterialsRequestsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Request created successfully'),
+    data: z.object({
+        id: z.number(),
+        name: z.string(),
+        quantity: z.number(),
+        notes: z.string(),
+        program_item: z.object({
+            id: z.number(),
+            title: z.string(),
+            start_at: z.number()
+        }).nullable(),
+        status: z.enum([
+            'open',
+            'done',
+            'rejected'
+        ]),
+        answer: z.string().nullable(),
+        requested_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        decided_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        decided_at: z.number().nullable(),
+        created_at: z.number(),
+        covered: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean()
+    })
+});
+
+export const zDeleteEventsByEventIdMaterialsRequestsByRequestIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    requestId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Request deleted successfully
+ */
+export const zDeleteEventsByEventIdMaterialsRequestsByRequestIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Request deleted successfully'),
+    data: z.null()
+});
+
+export const zPutEventsByEventIdMaterialsRequestsByRequestIdBody = z.object({
+    name: z.string().min(1).max(120).optional(),
+    quantity: z.int().gte(1).lte(1000000).optional(),
+    notes: z.string().max(2000).optional(),
+    program_item_id: z.int().gt(0).lte(9007199254740991).nullish(),
+    status: z.enum([
+        'open',
+        'done',
+        'rejected'
+    ]).optional(),
+    answer: z.string().max(2000).nullish()
+});
+
+export const zPutEventsByEventIdMaterialsRequestsByRequestIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    requestId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Request updated successfully
+ */
+export const zPutEventsByEventIdMaterialsRequestsByRequestIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Request updated successfully'),
+    data: z.object({
+        id: z.number(),
+        name: z.string(),
+        quantity: z.number(),
+        notes: z.string(),
+        program_item: z.object({
+            id: z.number(),
+            title: z.string(),
+            start_at: z.number()
+        }).nullable(),
+        status: z.enum([
+            'open',
+            'done',
+            'rejected'
+        ]),
+        answer: z.string().nullable(),
+        requested_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        decided_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        decided_at: z.number().nullable(),
+        created_at: z.number(),
+        covered: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean()
+    })
+});
+
+export const zDeleteEventsByEventIdMaterialsByMaterialIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    materialId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Material removed successfully
+ */
+export const zDeleteEventsByEventIdMaterialsByMaterialIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Material removed successfully'),
+    data: z.null()
+});
+
+export const zPutEventsByEventIdMaterialsByMaterialIdBody = z.object({
+    name: z.string().min(1).max(120).optional(),
+    quantity: z.int().gte(1).lte(1000000).optional(),
+    notes: z.string().max(2000).optional(),
+    location: z.string().max(200).nullish(),
+    estimated_cents: z.int().gte(0).lte(100000000).nullish(),
+    buyer_id: z.int().gt(0).lte(9007199254740991).nullish(),
+    used_quantity: z.int().gte(0).lte(1000000).nullish(),
+    packed: z.boolean().optional(),
+    returned: z.boolean().optional()
+});
+
+export const zPutEventsByEventIdMaterialsByMaterialIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    materialId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Material updated successfully
+ */
+export const zPutEventsByEventIdMaterialsByMaterialIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Material updated successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum([
+            'inventory',
+            'purchase',
+            'own'
+        ]),
+        name: z.string(),
+        quantity: z.number(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        resource: z.object({
+            id: z.number(),
+            name: z.string(),
+            category: z.string(),
+            brand: z.string().nullable(),
+            size: z.string().nullable(),
+            condition: z.enum([
+                'new',
+                'good',
+                'worn',
+                'damaged'
+            ]).nullable(),
+            consumable: z.boolean(),
+            location: z.string().nullable(),
+            notes: z.string()
+        }).nullable(),
+        owner: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        request_id: z.number().nullable(),
+        bought_at: z.number().nullable(),
+        estimated_cents: z.number().nullable(),
+        buyer: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        has_expense: z.boolean(),
+        used_quantity: z.number().nullable(),
+        packed_at: z.number().nullable(),
+        returned_at: z.number().nullable(),
+        links: z.array(z.object({
+            id: z.number(),
+            program_item_id: z.number().nullable(),
+            occurrence_id: z.number().nullable(),
+            quantity: z.number().nullable(),
+            title: z.string().nullable(),
+            start_at: z.number().nullable(),
+            end_at: z.number().nullable(),
+            date: z.string().nullable()
+        })),
+        overbooked: z.boolean(),
+        creator: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean(),
+        can_mark_bought: z.boolean()
+    })
+});
+
+export const zPostEventsByEventIdMaterialsByMaterialIdBoughtBody = z.object({
+    to_inventory: z.boolean().optional().default(false),
+    resource_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    category: z.string().min(1).max(60).nullish().default(null)
+});
+
+export const zPostEventsByEventIdMaterialsByMaterialIdBoughtPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    materialId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Purchase updated successfully
+ */
+export const zPostEventsByEventIdMaterialsByMaterialIdBoughtResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Purchase updated successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum([
+            'inventory',
+            'purchase',
+            'own'
+        ]),
+        name: z.string(),
+        quantity: z.number(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        resource: z.object({
+            id: z.number(),
+            name: z.string(),
+            category: z.string(),
+            brand: z.string().nullable(),
+            size: z.string().nullable(),
+            condition: z.enum([
+                'new',
+                'good',
+                'worn',
+                'damaged'
+            ]).nullable(),
+            consumable: z.boolean(),
+            location: z.string().nullable(),
+            notes: z.string()
+        }).nullable(),
+        owner: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        request_id: z.number().nullable(),
+        bought_at: z.number().nullable(),
+        estimated_cents: z.number().nullable(),
+        buyer: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        has_expense: z.boolean(),
+        used_quantity: z.number().nullable(),
+        packed_at: z.number().nullable(),
+        returned_at: z.number().nullable(),
+        links: z.array(z.object({
+            id: z.number(),
+            program_item_id: z.number().nullable(),
+            occurrence_id: z.number().nullable(),
+            quantity: z.number().nullable(),
+            title: z.string().nullable(),
+            start_at: z.number().nullable(),
+            end_at: z.number().nullable(),
+            date: z.string().nullable()
+        })),
+        overbooked: z.boolean(),
+        creator: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean(),
+        can_mark_bought: z.boolean()
+    })
+});
+
+export const zPostEventsByEventIdMaterialsByMaterialIdLinksBody = z.object({
+    program_item_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    occurrence_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    quantity: z.int().gte(1).lte(1000000).nullish().default(null)
+});
+
+export const zPostEventsByEventIdMaterialsByMaterialIdLinksPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    materialId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Link saved successfully
+ */
+export const zPostEventsByEventIdMaterialsByMaterialIdLinksResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Link saved successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum([
+            'inventory',
+            'purchase',
+            'own'
+        ]),
+        name: z.string(),
+        quantity: z.number(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        resource: z.object({
+            id: z.number(),
+            name: z.string(),
+            category: z.string(),
+            brand: z.string().nullable(),
+            size: z.string().nullable(),
+            condition: z.enum([
+                'new',
+                'good',
+                'worn',
+                'damaged'
+            ]).nullable(),
+            consumable: z.boolean(),
+            location: z.string().nullable(),
+            notes: z.string()
+        }).nullable(),
+        owner: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        request_id: z.number().nullable(),
+        bought_at: z.number().nullable(),
+        estimated_cents: z.number().nullable(),
+        buyer: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        has_expense: z.boolean(),
+        used_quantity: z.number().nullable(),
+        packed_at: z.number().nullable(),
+        returned_at: z.number().nullable(),
+        links: z.array(z.object({
+            id: z.number(),
+            program_item_id: z.number().nullable(),
+            occurrence_id: z.number().nullable(),
+            quantity: z.number().nullable(),
+            title: z.string().nullable(),
+            start_at: z.number().nullable(),
+            end_at: z.number().nullable(),
+            date: z.string().nullable()
+        })),
+        overbooked: z.boolean(),
+        creator: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean(),
+        can_mark_bought: z.boolean()
+    })
+});
+
+export const zDeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991),
+    materialId: z.int().gt(0).lte(9007199254740991),
+    linkId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Link removed successfully
+ */
+export const zDeleteEventsByEventIdMaterialsByMaterialIdLinksByLinkIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Link removed successfully'),
+    data: z.object({
+        id: z.number(),
+        kind: z.enum([
+            'inventory',
+            'purchase',
+            'own'
+        ]),
+        name: z.string(),
+        quantity: z.number(),
+        location: z.string().nullable(),
+        notes: z.string(),
+        resource: z.object({
+            id: z.number(),
+            name: z.string(),
+            category: z.string(),
+            brand: z.string().nullable(),
+            size: z.string().nullable(),
+            condition: z.enum([
+                'new',
+                'good',
+                'worn',
+                'damaged'
+            ]).nullable(),
+            consumable: z.boolean(),
+            location: z.string().nullable(),
+            notes: z.string()
+        }).nullable(),
+        owner: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        request_id: z.number().nullable(),
+        bought_at: z.number().nullable(),
+        estimated_cents: z.number().nullable(),
+        buyer: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        has_expense: z.boolean(),
+        used_quantity: z.number().nullable(),
+        packed_at: z.number().nullable(),
+        returned_at: z.number().nullable(),
+        links: z.array(z.object({
+            id: z.number(),
+            program_item_id: z.number().nullable(),
+            occurrence_id: z.number().nullable(),
+            quantity: z.number().nullable(),
+            title: z.string().nullable(),
+            start_at: z.number().nullable(),
+            end_at: z.number().nullable(),
+            date: z.string().nullable()
+        })),
+        overbooked: z.boolean(),
+        creator: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        can_edit: z.boolean(),
+        can_delete: z.boolean(),
+        can_mark_bought: z.boolean()
     })
 });
 
@@ -11891,12 +12873,22 @@ export const zGetOrgResourcesResponse = z.object({
         category: z.string(),
         quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
         location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
         notes: z.string(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         bookings: z.array(z.object({
             id: z.number(),
             quantity: z.number(),
             notes: z.string(),
+            used_quantity: z.number().nullable(),
             created_at: z.number(),
             event: z.object({
                 id: z.number(),
@@ -11907,10 +12899,34 @@ export const zGetOrgResourcesResponse = z.object({
                     'recurring'
                 ]),
                 start_date: z.string(),
-                end_date: z.string()
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
             })
         })),
-        booked_now: z.number()
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
     }))
 });
 
@@ -11919,7 +12935,22 @@ export const zPostOrgResourcesBody = z.object({
     category: z.string().min(1).max(60).optional().default('Allgemein'),
     quantity: z.int().gte(0).lte(1000000).optional().default(1),
     location: z.string().max(200).nullish().default(null),
-    notes: z.string().max(5000).optional().default('')
+    brand: z.string().max(120).nullish().default(null),
+    size: z.string().max(120).nullish().default(null),
+    condition: z.enum([
+        'new',
+        'good',
+        'worn',
+        'damaged'
+    ]).nullish().default(null),
+    consumable: z.boolean().optional().default(false),
+    notes: z.string().max(5000).optional().default(''),
+    purchase: z.object({
+        quantity: z.int().gte(1).lte(1000000),
+        estimated_cents: z.int().gte(0).lte(100000000).nullish().default(null),
+        buyer_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+        notes: z.string().max(2000).optional().default('')
+    }).nullish().default(null)
 });
 
 /**
@@ -11935,12 +12966,22 @@ export const zPostOrgResourcesResponse = z.object({
         category: z.string(),
         quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
         location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
         notes: z.string(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         bookings: z.array(z.object({
             id: z.number(),
             quantity: z.number(),
             notes: z.string(),
+            used_quantity: z.number().nullable(),
             created_at: z.number(),
             event: z.object({
                 id: z.number(),
@@ -11951,10 +12992,34 @@ export const zPostOrgResourcesResponse = z.object({
                     'recurring'
                 ]),
                 start_date: z.string(),
-                end_date: z.string()
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
             })
         })),
-        booked_now: z.number()
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
     })
 });
 
@@ -11973,6 +13038,7 @@ export const zGetOrgResourcesBookingsResponse = z.object({
         id: z.number(),
         quantity: z.number(),
         notes: z.string(),
+        used_quantity: z.number().nullable(),
         created_at: z.number(),
         event: z.object({
             id: z.number(),
@@ -11983,7 +13049,9 @@ export const zGetOrgResourcesBookingsResponse = z.object({
                 'recurring'
             ]),
             start_date: z.string(),
-            end_date: z.string()
+            end_date: z.string(),
+            from: z.string(),
+            until: z.string()
         }),
         resource: z.object({
             id: z.number(),
@@ -12008,6 +13076,175 @@ export const zDeleteOrgResourcesBookingsByBookingIdResponse = z.object({
     data: z.null()
 });
 
+export const zDeleteOrgResourcesPurchasesByPurchaseIdPath = z.object({
+    purchaseId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Purchase deleted successfully
+ */
+export const zDeleteOrgResourcesPurchasesByPurchaseIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Purchase deleted successfully'),
+    data: z.null()
+});
+
+export const zPutOrgResourcesPurchasesByPurchaseIdBody = z.object({
+    quantity: z.int().gte(1).lte(1000000).optional(),
+    estimated_cents: z.int().gte(0).lte(100000000).nullish(),
+    buyer_id: z.int().gt(0).lte(9007199254740991).nullish(),
+    notes: z.string().max(2000).optional()
+});
+
+export const zPutOrgResourcesPurchasesByPurchaseIdPath = z.object({
+    purchaseId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Purchase updated successfully
+ */
+export const zPutOrgResourcesPurchasesByPurchaseIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Purchase updated successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        category: z.string(),
+        quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
+        location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
+        notes: z.string(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        bookings: z.array(z.object({
+            id: z.number(),
+            quantity: z.number(),
+            notes: z.string(),
+            used_quantity: z.number().nullable(),
+            created_at: z.number(),
+            event: z.object({
+                id: z.number(),
+                name: z.string(),
+                type: z.enum([
+                    'camp',
+                    'event',
+                    'recurring'
+                ]),
+                start_date: z.string(),
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
+            })
+        })),
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
+    })
+});
+
+export const zPostOrgResourcesPurchasesByPurchaseIdBoughtPath = z.object({
+    purchaseId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Purchase bought successfully
+ */
+export const zPostOrgResourcesPurchasesByPurchaseIdBoughtResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Purchase bought successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        category: z.string(),
+        quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
+        location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
+        notes: z.string(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        bookings: z.array(z.object({
+            id: z.number(),
+            quantity: z.number(),
+            notes: z.string(),
+            used_quantity: z.number().nullable(),
+            created_at: z.number(),
+            event: z.object({
+                id: z.number(),
+                name: z.string(),
+                type: z.enum([
+                    'camp',
+                    'event',
+                    'recurring'
+                ]),
+                start_date: z.string(),
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
+            })
+        })),
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
+    })
+});
+
 export const zDeleteOrgResourcesByResourceIdPath = z.object({
     resourceId: z.int().gt(0).lte(9007199254740991)
 });
@@ -12027,6 +13264,15 @@ export const zPutOrgResourcesByResourceIdBody = z.object({
     category: z.string().min(1).max(60).optional(),
     quantity: z.int().gte(0).lte(1000000).optional(),
     location: z.string().max(200).nullish(),
+    brand: z.string().max(120).nullish(),
+    size: z.string().max(120).nullish(),
+    condition: z.enum([
+        'new',
+        'good',
+        'worn',
+        'damaged'
+    ]).nullish(),
+    consumable: z.boolean().optional(),
     notes: z.string().max(5000).optional()
 });
 
@@ -12047,12 +13293,22 @@ export const zPutOrgResourcesByResourceIdResponse = z.object({
         category: z.string(),
         quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
         location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
         notes: z.string(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
         bookings: z.array(z.object({
             id: z.number(),
             quantity: z.number(),
             notes: z.string(),
+            used_quantity: z.number().nullable(),
             created_at: z.number(),
             event: z.object({
                 id: z.number(),
@@ -12063,10 +13319,115 @@ export const zPutOrgResourcesByResourceIdResponse = z.object({
                     'recurring'
                 ]),
                 start_date: z.string(),
-                end_date: z.string()
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
             })
         })),
-        booked_now: z.number()
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
+    })
+});
+
+export const zPostOrgResourcesByResourceIdPurchasesBody = z.object({
+    quantity: z.int().gte(1).lte(1000000),
+    estimated_cents: z.int().gte(0).lte(100000000).nullish().default(null),
+    buyer_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    notes: z.string().max(2000).optional().default('')
+});
+
+export const zPostOrgResourcesByResourceIdPurchasesPath = z.object({
+    resourceId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Purchase created successfully
+ */
+export const zPostOrgResourcesByResourceIdPurchasesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Purchase created successfully'),
+    data: z.object({
+        id: z.int().gte(-9007199254740991).lte(9007199254740991),
+        name: z.string(),
+        category: z.string(),
+        quantity: z.int().gte(-9007199254740991).lte(9007199254740991),
+        location: z.string().nullable(),
+        brand: z.string().nullable(),
+        size: z.string().nullable(),
+        condition: z.enum([
+            'new',
+            'good',
+            'worn',
+            'damaged'
+        ]).nullable(),
+        consumable: z.boolean(),
+        notes: z.string(),
+        created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
+        bookings: z.array(z.object({
+            id: z.number(),
+            quantity: z.number(),
+            notes: z.string(),
+            used_quantity: z.number().nullable(),
+            created_at: z.number(),
+            event: z.object({
+                id: z.number(),
+                name: z.string(),
+                type: z.enum([
+                    'camp',
+                    'event',
+                    'recurring'
+                ]),
+                start_date: z.string(),
+                end_date: z.string(),
+                from: z.string(),
+                until: z.string()
+            })
+        })),
+        booked_now: z.number(),
+        purchases: z.array(z.object({
+            id: z.number(),
+            resource_id: z.number(),
+            quantity: z.number(),
+            estimated_cents: z.number().nullable(),
+            buyer: z.object({
+                id: z.number(),
+                username: z.string(),
+                display_name: z.string(),
+                email: z.string(),
+                phone: z.string().nullable(),
+                role: z.enum([
+                    'admin',
+                    'core_team',
+                    'volunteer',
+                    'unverified'
+                ])
+            }).nullable(),
+            notes: z.string(),
+            created_at: z.number()
+        })),
+        on_order: z.number()
     })
 });
 
@@ -12091,6 +13452,7 @@ export const zPostOrgResourcesByResourceIdBookingsResponse = z.object({
         id: z.number(),
         quantity: z.number(),
         notes: z.string(),
+        used_quantity: z.number().nullable(),
         created_at: z.number(),
         event: z.object({
             id: z.number(),
@@ -12101,7 +13463,9 @@ export const zPostOrgResourcesByResourceIdBookingsResponse = z.object({
                 'recurring'
             ]),
             start_date: z.string(),
-            end_date: z.string()
+            end_date: z.string(),
+            from: z.string(),
+            until: z.string()
         }),
         resource: z.object({
             id: z.number(),

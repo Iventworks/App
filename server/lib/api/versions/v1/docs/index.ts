@@ -47,6 +47,7 @@ export const DOCS_TAGS = {
 		ANNOUNCEMENTS: "Events / Announcements",
 		DOCUMENTS: "Events / Documents",
 		FORMS: "Events / Forms",
+		MATERIALS: "Events / Material",
 		EXPENSES: "Events / Expenses",
 		BUDGET: "Events / Budget",
 		INSIGHTS: "Events / Statistics & Audit Log",

@@ -16,7 +16,30 @@ const {
 	pickReceiptFor,
 	rowActions,
 	openCreateExpense,
+	openCreateExpenseFor,
 } = finances;
+
+// From the material list ("Auslage einreichen"): open the form filled in from the purchase.
+const route = useRoute();
+const router = useRouter();
+const { eventId } = finances;
+onMounted(async () => {
+	const materialId = Number(route.query.material);
+	if (!allowed || !Number.isInteger(materialId) || materialId <= 0) return;
+	await router.replace({ query: { ...route.query, material: undefined } });
+	const result = await useAPI((api) =>
+		api.getEventsByEventIdMaterials({ path: { eventId: eventId.value } }),
+	);
+	const purchase = result.success
+		? result.data.items.find((item) => item.id === materialId)
+		: undefined;
+	if (!purchase || purchase.kind !== "purchase" || purchase.has_expense) return;
+	openCreateExpenseFor({
+		material_id: purchase.id,
+		title: materialLabel(purchase),
+		amount_cents: purchase.estimated_cents,
+	});
+});
 
 const fileURL = useFileURL();
 

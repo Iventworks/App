@@ -17,6 +17,8 @@ import type {
 	GetConversationsResponses,
 	GetConversationsSearchResponses,
 	GetEventsByEventIdFilesResponses,
+	GetEventsByEventIdMaterialsCatalogResponses,
+	GetEventsByEventIdMaterialsResponses,
 	GetEventsByEventIdMembersResponses,
 	GetEventsByEventIdOccurrencesResponses,
 	GetEventsByEventIdTasksResponses,
@@ -75,6 +77,16 @@ export type EventOccurrence =
 	GetEventsByEventIdOccurrencesResponses["200"]["data"]["occurrences"][number];
 export type OccurrenceResponsibility =
 	GetEventsByEventIdOccurrencesResponses["200"]["data"]["responsibilities"][number];
+
+/** An event's material list, one entry of it, a request, and the inventory as the Leitung sees it. */
+export type EventMaterials = GetEventsByEventIdMaterialsResponses["200"]["data"];
+export type EventMaterial = EventMaterials["items"][number];
+export type MaterialKind = EventMaterial["kind"];
+export type MaterialLink = EventMaterial["links"][number];
+export type MaterialRequest = EventMaterials["requests"][number];
+export type MaterialPeriod = NonNullable<EventMaterials["period"]>;
+export type MaterialCatalogItem =
+	GetEventsByEventIdMaterialsCatalogResponses["200"]["data"][number];
 
 export type EventTask = GetEventsByEventIdTasksResponses["200"]["data"][number];
 export type TaskStatus = EventTask["status"];

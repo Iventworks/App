@@ -58,6 +58,12 @@ export namespace Notifier {
 		| "expense_reviewed"
 		| "expense_submitted"
 		| "document_shared"
+		/** To the Leitung: someone asked for material. */
+		| "material_requested"
+		/** To who asked: how the request was answered. */
+		| "material_answered"
+		/** Someone else made you bring or buy something. */
+		| "material_assigned"
 		| "system";
 
 	export interface Payload {

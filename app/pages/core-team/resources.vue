@@ -1,24 +1,27 @@
 <script setup lang="ts">
 /**
- * Kernteam inventory: material and equipment of the organisation and which event has booked
- * how many units. Overlapping bookings beyond the available quantity are rejected by the API.
+ * Kernteam inventory: material and equipment of the organisation, what still has to be bought,
+ * and which event has booked how many units. Overlapping bookings beyond the available quantity
+ * are rejected by the API. Events book through their material list, which only shows what is free.
  */
-import type { TableColumn } from "@nuxt/ui";
+import type { DropdownMenuItem, TableColumn } from "@nuxt/ui";
 import type { GetOrgResourcesResponses } from "~/api-client";
 import {
 	zPostOrgResourcesBody,
 	zPostOrgResourcesByResourceIdBookingsBody,
 } from "~/api-client/zod.gen";
-import type { EventWithAccess } from "~/utils/types";
+import type { EventWithAccess, UserSummary } from "~/utils/types";
 
 type Resource = GetOrgResourcesResponses["200"]["data"][number];
 type Booking = Resource["bookings"][number];
+type Purchase = Resource["purchases"][number];
 
 definePageMeta({ layout: "dashboard" });
 
 useSeoMeta({ title: "Material & Ressourcen | Kernteam" });
 
 const toast = useToast();
+const confirm = useConfirmDialog();
 
 const {
 	data: resources,
@@ -43,6 +46,18 @@ const { data: events } = await useAPIAsyncData("core-team-resources-events", asy
 	);
 	return result.success ? result.data : ([] as EventWithAccess[]);
 });
+
+const { data: users } = await useAPIAsyncData("core-team-resources-users", async () => {
+	const result = await useAPI((api) => api.getUsers({}));
+	return result.success ? result.data : ([] as UserSummary[]);
+});
+
+/** Purchases are bought by someone from the core team. */
+const buyerOptions = computed(() =>
+	(users.value ?? [])
+		.filter((user) => user.role === "core_team" || user.role === "admin")
+		.map((user) => ({ label: user.display_name, value: user.id })),
+);
 
 const today = toDayString();
 
@@ -71,21 +86,30 @@ const columns: TableColumn<Resource>[] = [
 	{ id: "actions", header: "" },
 ];
 
+const categories = computed(() => [
+	...new Set((resources.value ?? []).map((resource) => resource.category)),
+]);
+
 const filters = computed(() => [
 	{ column: "name" as const, type: "text" as const, placeholder: "Material suchen …" },
 	{
 		column: "category" as const,
 		type: "multi-select" as const,
 		placeholder: "Alle Kategorien",
-		options: [...new Set((resources.value ?? []).map((resource) => resource.category))].map(
-			(value) => ({ label: value, value }),
-		),
+		options: categories.value.map((value) => ({ label: value, value })),
 	},
 ]);
 
 function upcomingBookings(resource: Resource) {
-	return resource.bookings.filter((booking) => booking.event.end_date >= today);
+	return resource.bookings.filter((booking) => booking.event.until >= today);
 }
+
+/** Every open purchase with its item, oldest first. */
+const purchases = computed(() =>
+	(resources.value ?? [])
+		.flatMap((resource) => resource.purchases.map((purchase) => ({ purchase, resource })))
+		.sort((a, b) => a.purchase.created_at - b.purchase.created_at),
+);
 
 // --- resource form ------------------------------------------------------------------------
 
@@ -94,27 +118,41 @@ const resourceSchema = zPostOrgResourcesBody;
 const formOpen = ref(false);
 const editing = ref<Resource | null>(null);
 const saving = ref(false);
-const form = reactive({
+const emptyForm = () => ({
 	name: "",
 	category: "Allgemein",
 	quantity: 1,
 	location: "",
+	brand: "",
+	size: "",
+	condition: undefined as keyof typeof RESOURCE_CONDITION_LABELS | undefined,
+	consumable: false,
 	notes: "",
+	toBuy: false,
+	purchaseQuantity: 1,
+	estimate: "",
+	buyer_id: undefined as number | undefined,
 });
+const form = reactive(emptyForm());
 
 function openCreate() {
 	editing.value = null;
-	Object.assign(form, { name: "", category: "Allgemein", quantity: 1, location: "", notes: "" });
+	Object.assign(form, emptyForm());
 	formOpen.value = true;
 }
 
 function openEdit(resource: Resource) {
 	editing.value = resource;
 	Object.assign(form, {
+		...emptyForm(),
 		name: resource.name,
 		category: resource.category,
 		quantity: resource.quantity,
 		location: resource.location ?? "",
+		brand: resource.brand ?? "",
+		size: resource.size ?? "",
+		condition: resource.condition ?? undefined,
+		consumable: resource.consumable,
 		notes: resource.notes,
 	});
 	formOpen.value = true;
@@ -127,6 +165,10 @@ async function submit() {
 		category: form.category || "Allgemein",
 		quantity: form.quantity,
 		location: form.location.trim() || null,
+		brand: form.brand.trim() || null,
+		size: form.size.trim() || null,
+		condition: form.condition ?? null,
+		consumable: form.consumable,
 		notes: form.notes,
 	};
 	const target = editing.value;
@@ -134,7 +176,21 @@ async function submit() {
 		? await useAPI((api) =>
 				api.putOrgResourcesByResourceId({ path: { resourceId: target.id }, body }),
 			)
-		: await useAPI((api) => api.postOrgResources({ body }));
+		: await useAPI((api) =>
+				api.postOrgResources({
+					body: {
+						...body,
+						purchase: form.toBuy
+							? {
+									quantity: form.purchaseQuantity,
+									estimated_cents: form.estimate.trim() ? inputToCents(form.estimate) : null,
+									buyer_id: form.buyer_id ?? null,
+									notes: "",
+								}
+							: null,
+					},
+				}),
+			);
 	saving.value = false;
 	if (!result.success) {
 		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
@@ -160,6 +216,116 @@ async function confirmDelete() {
 	}
 	toast.add({ title: `„${target.name}“ gelöscht`, color: "success" });
 	await refresh();
+}
+
+// --- purchases ----------------------------------------------------------------------------
+
+const purchaseOpen = ref(false);
+const purchaseResource = ref<Resource | null>(null);
+const editingPurchase = ref<Purchase | null>(null);
+const savingPurchase = ref(false);
+const purchaseForm = reactive({
+	quantity: 1,
+	estimate: "",
+	buyer_id: undefined as number | undefined,
+	notes: "",
+});
+
+function openPurchase(resource: Resource, purchase: Purchase | null = null) {
+	purchaseResource.value = resource;
+	editingPurchase.value = purchase;
+	Object.assign(purchaseForm, {
+		quantity: purchase?.quantity ?? 1,
+		estimate: centsToInput(purchase?.estimated_cents ?? null),
+		buyer_id: purchase?.buyer?.id,
+		notes: purchase?.notes ?? "",
+	});
+	purchaseOpen.value = true;
+}
+
+async function submitPurchase() {
+	const resource = purchaseResource.value;
+	if (!resource) return;
+	savingPurchase.value = true;
+	const body = {
+		quantity: purchaseForm.quantity,
+		estimated_cents: purchaseForm.estimate.trim() ? inputToCents(purchaseForm.estimate) : null,
+		buyer_id: purchaseForm.buyer_id ?? null,
+		notes: purchaseForm.notes,
+	};
+	const target = editingPurchase.value;
+	const result = target
+		? await useAPI((api) =>
+				api.putOrgResourcesPurchasesByPurchaseId({ path: { purchaseId: target.id }, body }),
+			)
+		: await useAPI((api) =>
+				api.postOrgResourcesByResourceIdPurchases({ path: { resourceId: resource.id }, body }),
+			);
+	savingPurchase.value = false;
+	if (!result.success) {
+		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	toast.add({ title: "Gespeichert", color: "success", icon: "i-lucide-check" });
+	purchaseOpen.value = false;
+	await refresh();
+}
+
+async function markBought(purchase: Purchase, resource: Resource) {
+	const result = await useAPI((api) =>
+		api.postOrgResourcesPurchasesByPurchaseIdBought({ path: { purchaseId: purchase.id } }),
+	);
+	if (!result.success) {
+		toast.add({ title: "Speichern fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	toast.add({
+		title: `${purchase.quantity}× „${resource.name}“ gekauft`,
+		description: `Jetzt ${result.data.quantity} im Bestand.`,
+		color: "success",
+		icon: "i-lucide-check",
+	});
+	await refresh();
+}
+
+async function cancelPurchase(purchase: Purchase, resource: Resource) {
+	const choice = await confirm({
+		title: "Einkauf streichen?",
+		description: `${purchase.quantity}× „${resource.name}“ werden doch nicht gekauft.`,
+		icon: "i-lucide-trash-2",
+		iconColor: "error",
+		confirmLabel: "Streichen",
+		confirmColor: "error",
+	});
+	if (choice !== "confirm") return;
+	const result = await useAPI((api) =>
+		api.deleteOrgResourcesPurchasesByPurchaseId({ path: { purchaseId: purchase.id } }),
+	);
+	if (!result.success) {
+		toast.add({ title: "Streichen fehlgeschlagen", description: result.message, color: "error" });
+		return;
+	}
+	await refresh();
+}
+
+function purchaseActions(purchase: Purchase, resource: Resource): DropdownMenuItem[][] {
+	return [
+		[
+			{
+				label: "Bearbeiten",
+				icon: "i-lucide-pencil",
+				onSelect: () => openPurchase(resource, purchase),
+			},
+		],
+		[
+			{
+				label: "Streichen",
+				icon: "i-lucide-trash-2",
+				color: "error" as const,
+				onSelect: () => cancelPurchase(purchase, resource),
+			},
+		],
+	];
 }
 
 // --- bookings -------------------------------------------------------------------------------
@@ -227,6 +393,13 @@ async function removeBooking(entry: Booking) {
 	toast.add({ title: "Buchung entfernt", color: "success" });
 	await refresh();
 }
+
+/** The booked days, when the event's material days widen its dates. */
+function bookedDays(entry: Booking) {
+	if (entry.event.from === entry.event.start_date && entry.event.until === entry.event.end_date)
+		return null;
+	return `Material: ${formatDayRange(entry.event.from, entry.event.until)}`;
+}
 </script>
 
 <template>
@@ -235,12 +408,48 @@ async function removeBooking(entry: Booking) {
 			<DashboardPageHeader
 				title="Material & Ressourcen"
 				icon="i-lucide-package"
-				description="Inventar der Organisation und Buchungen für Events"
+				description="Inventar der Organisation, Einkäufe und Buchungen für Events"
 			/>
 		</template>
 
 		<template #body>
 			<DashboardPageBody>
+				<DashboardSectionCard
+					v-if="purchases.length"
+					title="Zu kaufen"
+					description="Wird erst buchbar, wenn es als gekauft markiert ist."
+					icon="i-lucide-shopping-cart"
+				>
+					<ul class="divide-y divide-slate-800">
+						<li
+							v-for="{ purchase, resource } in purchases"
+							:key="purchase.id"
+							class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5"
+						>
+							<div class="min-w-0 flex-1">
+								<p class="font-medium text-white">{{ purchase.quantity }}× {{ resource.name }}</p>
+								<p class="text-xs text-slate-400">
+									{{ resource.category }}
+									<template v-if="purchase.estimated_cents !== null"> · ca. {{ formatCents(purchase.estimated_cents) }}</template>
+									<template v-if="purchase.buyer"> · kauft: {{ purchase.buyer.display_name }}</template>
+								</p>
+								<p v-if="purchase.notes" class="text-xs text-slate-500">{{ purchase.notes }}</p>
+							</div>
+							<UButton
+								label="Gekauft"
+								icon="i-lucide-shopping-bag"
+								size="sm"
+								color="neutral"
+								variant="subtle"
+								@click="markBought(purchase, resource)"
+							/>
+							<UDropdownMenu :items="purchaseActions(purchase, resource)" :ui="{ viewport: 'main-bg-color' }">
+								<UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aktionen" />
+							</UDropdownMenu>
+						</li>
+					</ul>
+				</DashboardSectionCard>
+
 				<DashboardDataTable
 					:data="resources ?? []"
 					:columns="columns"
@@ -257,7 +466,20 @@ async function removeBooking(entry: Booking) {
 
 					<template #name-cell="{ row }">
 						<div class="min-w-40">
-							<p class="font-medium text-white">{{ row.original.name }}</p>
+							<p class="flex items-center gap-1.5 font-medium text-white">
+								{{ row.original.name }}
+								<UBadge
+									v-if="row.original.consumable"
+									label="Verbrauch"
+									icon="i-lucide-flame"
+									color="neutral"
+									variant="outline"
+									size="sm"
+								/>
+							</p>
+							<p v-if="resourceDetails(row.original)" class="text-xs text-slate-400">
+								{{ resourceDetails(row.original) }}
+							</p>
 							<p v-if="row.original.notes" class="line-clamp-1 text-xs text-slate-500">{{ row.original.notes }}</p>
 						</div>
 					</template>
@@ -266,6 +488,7 @@ async function removeBooking(entry: Booking) {
 					</template>
 					<template #quantity-cell="{ row }">
 						<span class="tabular-nums text-white">{{ row.original.quantity }}</span>
+						<p v-if="row.original.on_order" class="text-xs text-amber-400">+{{ row.original.on_order }} zu kaufen</p>
 					</template>
 					<template #booked_now-cell="{ row }">
 						<span
@@ -303,6 +526,7 @@ async function removeBooking(entry: Booking) {
 								:items="[
 									[
 										{ label: 'Buchungen', icon: 'i-lucide-calendar-check', onSelect: () => openBookings(row.original) },
+										{ label: 'Nachkaufen', icon: 'i-lucide-shopping-cart', onSelect: () => openPurchase(row.original) },
 										{ label: 'Bearbeiten', icon: 'i-lucide-pencil', onSelect: () => openEdit(row.original) },
 									],
 									[
@@ -344,23 +568,104 @@ async function removeBooking(entry: Booking) {
 			</UFormField>
 			<div class="grid gap-4 sm:grid-cols-2">
 				<UFormField label="Kategorie" name="category">
-					<UInput v-model="form.category" placeholder="z. B. Zelte, Technik" class="w-full" />
+					<UInput v-model="form.category" list="resource-categories" placeholder="z. B. Zelte, Technik" class="w-full" />
+					<datalist id="resource-categories">
+						<option v-for="category in categories" :key="category" :value="category" />
+					</datalist>
 				</UFormField>
-				<UFormField label="Bestand (Stück)" name="quantity">
+				<UFormField label="Bestand (Stück)" name="quantity" :description="!editing && form.toBuy ? 'Was schon da ist' : undefined">
 					<UInputNumber v-model="form.quantity" :min="0" class="w-full" />
 				</UFormField>
+				<UFormField label="Marke" name="brand">
+					<UInput v-model="form.brand" placeholder="z. B. Tatonka" class="w-full" />
+				</UFormField>
+				<UFormField label="Größe / Maße" name="size">
+					<UInput v-model="form.size" placeholder="z. B. 4 × 6 m" class="w-full" />
+				</UFormField>
+				<UFormField label="Zustand" name="condition">
+					<USelect
+						v-model="form.condition"
+						:items="RESOURCE_CONDITION_OPTIONS"
+						placeholder="Nicht angegeben"
+						class="w-full"
+					/>
+				</UFormField>
+				<UFormField label="Lagerort" name="location">
+					<UInput v-model="form.location" placeholder="z. B. Keller Gemeindehaus" class="w-full" />
+				</UFormField>
 			</div>
-			<UFormField label="Lagerort" name="location">
-				<UInput v-model="form.location" placeholder="z. B. Keller Gemeindehaus" class="w-full" />
+			<UFormField name="consumable" description="Was ein Event als verbraucht einträgt, geht vom Bestand ab.">
+				<USwitch v-model="form.consumable" label="Verbrauchsmaterial" />
 			</UFormField>
 			<UFormField label="Notizen" name="notes">
 				<UTextarea v-model="form.notes" :rows="2" autoresize class="w-full" />
 			</UFormField>
+
+			<div v-if="!editing" class="space-y-3 rounded-lg border border-slate-800 p-3">
+				<USwitch v-model="form.toBuy" label="Muss noch gekauft werden" />
+				<div v-if="form.toBuy" class="grid gap-4 sm:grid-cols-3">
+					<UFormField label="Anzahl">
+						<UInputNumber v-model="form.purchaseQuantity" :min="1" class="w-full" />
+					</UFormField>
+					<UFormField label="Geschätzter Preis">
+						<UInput v-model="form.estimate" inputmode="decimal" placeholder="0,00" class="w-full">
+							<template #trailing><span class="text-xs text-slate-500">€</span></template>
+						</UInput>
+					</UFormField>
+					<UFormField label="Wer kauft es">
+						<USelectMenu
+							v-model="form.buyer_id"
+							:items="buyerOptions"
+							value-key="value"
+							placeholder="Noch offen"
+							class="w-full"
+						/>
+					</UFormField>
+				</div>
+				<p v-if="form.toBuy" class="text-xs text-slate-500">Buchbar wird es erst, wenn es als gekauft markiert ist.</p>
+			</div>
+
 			<div class="flex justify-end gap-2 pt-2">
 				<UButton label="Abbrechen" color="neutral" variant="ghost" @click="formOpen = false" />
 				<UButton type="submit" :label="editing ? 'Speichern' : 'Anlegen'" :loading="saving" />
 			</div>
 		</UForm>
+	</DashboardModal>
+
+	<DashboardModal
+		v-model:open="purchaseOpen"
+		:title="editingPurchase ? 'Einkauf bearbeiten' : 'Nachkaufen'"
+		:description="purchaseResource?.name"
+		icon="i-lucide-shopping-cart"
+	>
+		<form class="space-y-4" @submit.prevent="submitPurchase">
+			<div class="grid gap-4 sm:grid-cols-3">
+				<UFormField label="Anzahl" required>
+					<UInputNumber v-model="purchaseForm.quantity" :min="1" class="w-full" />
+				</UFormField>
+				<UFormField label="Geschätzter Preis">
+					<UInput v-model="purchaseForm.estimate" inputmode="decimal" placeholder="0,00" class="w-full">
+						<template #trailing><span class="text-xs text-slate-500">€</span></template>
+					</UInput>
+				</UFormField>
+				<UFormField label="Wer kauft es">
+					<USelectMenu
+						v-model="purchaseForm.buyer_id"
+						:items="buyerOptions"
+						value-key="value"
+						placeholder="Noch offen"
+						class="w-full"
+					/>
+				</UFormField>
+			</div>
+			<UFormField label="Notizen">
+				<UTextarea v-model="purchaseForm.notes" :rows="2" autoresize class="w-full" placeholder="z. B. Händler, Link" />
+			</UFormField>
+			<div class="flex justify-end gap-2 pt-2">
+				<UButton label="Abbrechen" color="neutral" variant="ghost" @click="purchaseOpen = false" />
+				<UButton type="submit" :label="editingPurchase ? 'Speichern' : 'Vormerken'" :loading="savingPurchase" />
+			</div>
+		</form>
 	</DashboardModal>
 
 	<USlideover
@@ -408,16 +713,20 @@ async function removeBooking(entry: Booking) {
 							:key="entry.id"
 							:class="[
 								'flex items-start gap-3 rounded-lg border border-slate-800 p-3',
-								entry.event.end_date < today ? 'opacity-60' : '',
+								entry.event.until < today ? 'opacity-60' : '',
 							]"
 						>
 							<div class="min-w-0 flex-1">
-								<NuxtLink :to="`/events/${entry.event.id}`" class="font-medium text-white hover:text-primary-400">
+								<NuxtLink :to="`/events/${entry.event.id}/materials`" class="font-medium text-white hover:text-primary-400">
 									{{ entry.event.name }}
 								</NuxtLink>
 								<p class="text-xs text-slate-400">
 									{{ formatDayRange(entry.event.start_date, entry.event.end_date) }}
 									<template v-if="entry.event.type === 'recurring'"> · an den Terminen</template>
+								</p>
+								<p v-if="bookedDays(entry)" class="text-xs text-slate-400">{{ bookedDays(entry) }}</p>
+								<p v-if="entry.used_quantity !== null" class="text-xs text-slate-400">
+									{{ entry.used_quantity }} verbraucht
 								</p>
 								<p v-if="entry.notes" class="mt-1 text-xs text-slate-500">{{ entry.notes }}</p>
 							</div>
@@ -440,7 +749,7 @@ async function removeBooking(entry: Booking) {
 	<DashboardDeleteModal
 		v-model:open="deleteOpen"
 		title="Material löschen"
-		:warning-text="`„${deleteTarget?.name}“ und alle Buchungen dafür werden gelöscht.`"
+		:warning-text="`„${deleteTarget?.name}“ wird gelöscht – mit allen Buchungen (es verschwindet von den Materiallisten der Events) und geplanten Einkäufen.`"
 		:require-confirm-text="false"
 		:on-delete="confirmDelete"
 	/>

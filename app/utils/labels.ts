@@ -139,6 +139,49 @@ export const EXPENSE_CATEGORIES = [
 	"Sonstiges",
 ] as const;
 
+// --- material ---------------------------------------------------------------------------------
+
+export const MATERIAL_KIND_LABELS = {
+	inventory: "Aus dem Lager",
+	purchase: "Zu kaufen",
+	own: "Mitgebracht",
+} as const;
+export const MATERIAL_KIND_ICONS = {
+	inventory: "i-lucide-warehouse",
+	purchase: "i-lucide-shopping-cart",
+	own: "i-lucide-hand-heart",
+} as const;
+export const MATERIAL_KIND_OPTIONS = toOptions(MATERIAL_KIND_LABELS);
+
+export const RESOURCE_CONDITION_LABELS = {
+	new: "Neu",
+	good: "Gut",
+	worn: "Abgenutzt",
+	damaged: "Beschädigt",
+} as const;
+export const RESOURCE_CONDITION_COLORS: Record<keyof typeof RESOURCE_CONDITION_LABELS, BadgeColor> =
+	{
+		new: "success",
+		good: "neutral",
+		worn: "warning",
+		damaged: "error",
+	};
+export const RESOURCE_CONDITION_OPTIONS = toOptions(RESOURCE_CONDITION_LABELS);
+
+export const MATERIAL_REQUEST_STATUS_LABELS = {
+	open: "Offen",
+	done: "Erledigt",
+	rejected: "Abgelehnt",
+} as const;
+export const MATERIAL_REQUEST_STATUS_COLORS: Record<
+	keyof typeof MATERIAL_REQUEST_STATUS_LABELS,
+	BadgeColor
+> = {
+	open: "warning",
+	done: "success",
+	rejected: "neutral",
+};
+
 // --- announcements ----------------------------------------------------------------------------
 
 export const ANNOUNCEMENT_PRIORITY_LABELS = { normal: "Normal", important: "Wichtig" } as const;

@@ -33,6 +33,9 @@ const TYPE_ICONS: Record<string, string> = {
 	expense_reviewed: "i-lucide-receipt",
 	expense_submitted: "i-lucide-receipt",
 	document_shared: "i-lucide-folder-lock",
+	material_requested: "i-lucide-package-search",
+	material_answered: "i-lucide-package-check",
+	material_assigned: "i-lucide-package",
 	system: "i-lucide-info",
 };
 

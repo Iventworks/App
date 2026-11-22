@@ -64,6 +64,11 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
   are one-line pages around `FormsQuestionsEditor` / `FormsSettingsEditor` /
   `FormsResponsesView`, which use `useFormDetail()`. The form components live in
   `components/forms/` (`Forms*`); `components/form/` holds input fields (`FormDatePicker`, …).
+- Material pages (`/events/[event_id]/materials` with `/requests` and `/packing`): the parent page
+  calls `createEventMaterials({ … })` and `provideEventMaterials(…)` and renders
+  `<MaterialsDialogs />`; the sub-pages open the dialogs through `useEventMaterials()`. The
+  components live in `components/materials/` (`Materials*`); `MaterialsProgramBlock` shows the
+  material of a program item in `ProgramItemModal`.
 - Use the theme colour tokens (`primary`, `text-primary-400`, …), never hard-coded `sky-*`.
 - `UDashboardToolbar` is only for sub-route navigation
   (`<UNavigationMenu :items="subrouterPathDynamics.links.value" highlight class="-mx-1 flex-1" />`,

@@ -2,9 +2,9 @@
 
 Planning and running camps ("Freizeiten"), one-time events and recurring events ("Regeltermine",
 e.g. a weekly youth group) for organisations: personal dashboard, tasks, messaging, calendar and
-notes for every volunteer; participants, schedule, rooms, responsibilities, documents and finances
-per event, dates and a duty roster for recurring events; finances, statistics, staff planning,
-resources and copying events ("the same camp next year") for the core team ("Kernteam"); users,
+notes for every volunteer; participants, schedule, rooms, responsibilities, material, documents and
+finances per event, dates and a duty roster for recurring events; finances, statistics, staff planning,
+the inventory and copying events ("the same camp next year") for the core team ("Kernteam"); users,
 invitations and the audit log for admins. One installation serves one organisation, or — in multi-org mode — many, each with its
 own users, data, branding and domains (see [Organisations](#organisations-single--and-multi-org-mode)).
 
@@ -94,8 +94,8 @@ Organisation roles (`users.role`, per org), highest first:
 
 Event roles (`event_members.role`): `leader` ("Leitung") and `staff` ("Mitarbeiter:in"). Leaders
 manage the event (participants, program, rooms, staff, groups, budget, expense review, forms,
-stats, audit log); staff see everything operational (incl. participants' medical info), add participant
-notes, create tasks/notes, upload documents and submit expenses.
+material from the inventory, stats, audit log); staff see everything operational (incl. participants' medical info), add participant
+notes, create tasks/notes, upload documents, submit expenses, and add or ask for material.
 
 Documents (org library and event documents) also have access lists per folder or file, like
 Nextcloud Team folders: org documents are Kernteam-only until opened to all members, org groups or
@@ -158,8 +158,30 @@ shows the number of unread messages and notifications where the system supports 
 - **Copying** (core team: event page, event settings, *Kernteam → Freizeiten & Events*) creates a
   new event in planning from an existing one. You pick what comes along: team, groups, rooms,
   responsibilities, program, tasks, budget plan, notes, news, forms (as drafts), documents,
-  resource bookings, participants. Program and due dates move with the new start date; expenses, chats and the audit
+  inventory bookings, participants. Program and due dates move with the new start date; expenses, chats and the audit
   log stay with the original.
+
+## Material
+
+The Kernteam keeps the organisation's inventory (*Kernteam → Material & Ressourcen*): items with
+stock, category, storage place, brand, size, condition and notes; consumables ("Verbrauchsmaterial")
+lose what events record as used. Units still to be bought are planned purchases (with an estimate
+and a buyer) and only become bookable once marked bought. Only the Kernteam sees this page.
+
+Every event has a **Material** list:
+
+- The Leitung books items from the inventory — it sees what is free on the event's days, never
+  which other events booked the rest. A camp can hold its bookings a few days longer
+  ("Materialzeitraum": fetching before, bringing back after).
+- The Leitung plans purchases. When one is bought it stays with the event or moves into the
+  inventory (and stays booked); the buyer can file the Auslage straight from it.
+- Everyone on the team adds what they bring themselves, notes where things are, plans material for
+  program items (or the dates of a Regeltermin) and ticks the optional packing list.
+- Team members who don't see the inventory ask for things ("Anfragen"). The Leitung answers in
+  parts — from the inventory, to buy, someone brings it — or rejects; anyone can answer "Bringe ich
+  mit". Leaders hear about new requests, who asked hears the answers.
+
+Copying an event takes its inventory bookings along where the units are free on the new days.
 
 ## Files
 

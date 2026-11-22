@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import type { DrizzleDB } from "../../../../../../db/utils";
+import { MaterialService } from "../../../../../../materials/service";
 import { inOrg, OrgContext } from "../../../../../../orgs/context";
 import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
@@ -337,6 +338,23 @@ router.delete(
 		const event = c.get("event");
 		const member = c.get("member");
 		const users = await UserSummary.fetchMap([member.user_id]);
+		// Requests their own things answered may be open again afterwards.
+		const answeredRequests = (
+			await DB.instance()
+				.select({ request_id: DB.Tables.eventMaterials.request_id })
+				.from(DB.Tables.eventMaterials)
+				.where(
+					and(
+						inOrg(DB.Tables.eventMaterials),
+						eq(DB.Tables.eventMaterials.event_id, event.id),
+						eq(DB.Tables.eventMaterials.kind, "own"),
+						eq(DB.Tables.eventMaterials.owner_id, member.user_id),
+					),
+				)
+				.all()
+		)
+			.map((row) => row.request_id)
+			.filter((id): id is number => id !== null);
 
 		try {
 			await DB.instance().transaction(async (tx: DrizzleDB) => {
@@ -466,6 +484,31 @@ router.delete(
 				// Recurring events: off the duty roster of every date that is still to come.
 				await Occurrences.removeUpcomingDuties(event.id, member.user_id, tx);
 
+				// What they would have brought leaves the material list; what they were to buy
+				// has no buyer any more.
+				await tx
+					.delete(DB.Tables.eventMaterials)
+					.where(
+						and(
+							inOrg(DB.Tables.eventMaterials),
+							eq(DB.Tables.eventMaterials.event_id, event.id),
+							eq(DB.Tables.eventMaterials.kind, "own"),
+							eq(DB.Tables.eventMaterials.owner_id, member.user_id),
+						),
+					)
+					.run();
+				await tx
+					.update(DB.Tables.eventMaterials)
+					.set({ buyer_id: null, updated_at: Date.now() })
+					.where(
+						and(
+							inOrg(DB.Tables.eventMaterials),
+							eq(DB.Tables.eventMaterials.event_id, event.id),
+							eq(DB.Tables.eventMaterials.buyer_id, member.user_id),
+						),
+					)
+					.run();
+
 				await tx
 					.update(DB.Tables.tasks)
 					.set({ assignee_id: null, updated_at: Date.now() })
@@ -487,6 +530,7 @@ router.delete(
 			Logger.error("Failed to remove event member", error.stack || error.message || error);
 			return APIResponse.serverError(c, "Failed to remove member");
 		}
+		for (const requestId of new Set(answeredRequests)) await MaterialService.settle(requestId);
 
 		await AuditLog.record({
 			userId: c.get("eventAccess").userId,

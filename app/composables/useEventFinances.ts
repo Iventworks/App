@@ -162,9 +162,12 @@ export async function createEventFinances(context: {
 		description: "",
 	});
 	const receiptFile = ref<File | null>(null);
+	/** The purchase on the material list a new expense pays for. */
+	const expenseMaterialId = ref<number | null>(null);
 
 	function openCreateExpense() {
 		editingExpense.value = null;
+		expenseMaterialId.value = null;
 		Object.assign(expenseForm, {
 			title: "",
 			amount: "",
@@ -174,6 +177,21 @@ export async function createEventFinances(context: {
 		});
 		receiptFile.value = null;
 		expenseFormOpen.value = true;
+	}
+
+	/** A new expense for a purchase on the material list, filled in from it. */
+	function openCreateExpenseFor(purchase: {
+		material_id: number;
+		title: string;
+		amount_cents: number | null;
+	}) {
+		openCreateExpense();
+		expenseMaterialId.value = purchase.material_id;
+		Object.assign(expenseForm, {
+			title: purchase.title,
+			amount: centsToInput(purchase.amount_cents),
+			category: "Material",
+		});
 	}
 
 	function openEditExpense(expense: EventExpense) {
@@ -241,7 +259,10 @@ export async function createEventFinances(context: {
 					}),
 				)
 			: await useAPI((api) =>
-					api.postEventsByEventIdExpenses({ path: { eventId: eventId.value }, body }),
+					api.postEventsByEventIdExpenses({
+						path: { eventId: eventId.value },
+						body: { ...body, material_id: expenseMaterialId.value },
+					}),
 				);
 
 		if (!result.success) {
@@ -536,6 +557,7 @@ export async function createEventFinances(context: {
 		expenseForm,
 		receiptFile,
 		openCreateExpense,
+		openCreateExpenseFor,
 		openEditExpense,
 		onCategoryCreate,
 		onReceiptPicked,

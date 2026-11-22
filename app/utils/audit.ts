@@ -44,6 +44,8 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	budget_item: { label: "Budgetposten", icon: "i-lucide-wallet" },
 	resource: { label: "Ressource", icon: "i-lucide-package" },
 	resource_booking: { label: "Reservierung", icon: "i-lucide-calendar-check" },
+	material: { label: "Material", icon: "i-lucide-package" },
+	material_request: { label: "Materialanfrage", icon: "i-lucide-message-circle-question" },
 	user: { label: "Benutzer", icon: "i-lucide-user" },
 	invitation: { label: "Einladung", icon: "i-lucide-mail" },
 	organization: { label: "Organisation", icon: "i-lucide-building" },
@@ -108,6 +110,10 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 		case "resource":
 		case "resource_booking":
 			return "/core-team/resources";
+		case "material":
+			return eventPath ? `${eventPath}/materials` : "/core-team/resources";
+		case "material_request":
+			return eventPath ? `${eventPath}/materials/requests` : null;
 		case "organization":
 			return options.isAdmin ? "/admin/organization" : null;
 		case "file_share":
