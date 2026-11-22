@@ -46,6 +46,8 @@ export class PermissionHelper {
 		"org_finances:read": "core_team",
 		"org_stats:read": "core_team",
 		"core_team:space": "core_team",
+		/** The Kernteam's forms and the form templates (reading templates: `portal:use`). */
+		"org_forms:manage": "core_team",
 
 		"admin:users": "admin",
 		"admin:invitations": "admin",
@@ -102,6 +104,9 @@ export class PermissionHelper {
 		"files:view": "staff",
 		"files:upload": "staff",
 		"files:manage_all": "leader",
+
+		/** Forms, their link and their answers (which may hold personal data): the Leitung only. */
+		"forms:manage": "leader",
 
 		"expenses:submit": "staff",
 		"expenses:view_all": "leader",

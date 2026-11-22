@@ -5069,14 +5069,14 @@ export const zPutFilesByFileIdSharesByShareIdResponse = z.object({
     })
 });
 
-export const zGetSharesByTokenPath = z.object({
+export const zGetPublicDocsByTokenPath = z.object({
     token: z.string().min(1).max(64)
 });
 
 /**
  * Share link retrieved successfully
  */
-export const zGetSharesByTokenResponse = z.object({
+export const zGetPublicDocsByTokenResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('Share link retrieved successfully'),
@@ -5103,18 +5103,18 @@ export const zGetSharesByTokenResponse = z.object({
     })
 });
 
-export const zPostSharesByTokenUnlockBody = z.object({
+export const zPostPublicDocsByTokenUnlockBody = z.object({
     password: z.string().min(1).max(128)
 });
 
-export const zPostSharesByTokenUnlockPath = z.object({
+export const zPostPublicDocsByTokenUnlockPath = z.object({
     token: z.string().min(1).max(64)
 });
 
 /**
  * Share link unlocked
  */
-export const zPostSharesByTokenUnlockResponse = z.object({
+export const zPostPublicDocsByTokenUnlockResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('Share link unlocked'),
@@ -5141,18 +5141,18 @@ export const zPostSharesByTokenUnlockResponse = z.object({
     })
 });
 
-export const zGetSharesByTokenItemsPath = z.object({
+export const zGetPublicDocsByTokenItemsPath = z.object({
     token: z.string().min(1).max(64)
 });
 
-export const zGetSharesByTokenItemsQuery = z.object({
+export const zGetPublicDocsByTokenItemsQuery = z.object({
     folder_id: z.int().gt(0).lte(9007199254740991).optional()
 });
 
 /**
  * Folder retrieved successfully
  */
-export const zGetSharesByTokenItemsResponse = z.object({
+export const zGetPublicDocsByTokenItemsResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('Folder retrieved successfully'),
@@ -5187,25 +5187,25 @@ export const zGetSharesByTokenItemsResponse = z.object({
     })
 });
 
-export const zGetSharesByTokenFilesByFileIdContentPath = z.object({
+export const zGetPublicDocsByTokenFilesByFileIdContentPath = z.object({
     token: z.string().min(1).max(64),
     fileId: z.int().gt(0).lte(9007199254740991)
 });
 
-export const zGetSharesByTokenFilesByFileIdContentQuery = z.object({
+export const zGetPublicDocsByTokenFilesByFileIdContentQuery = z.object({
     download: z.enum(['0', '1']).optional()
 });
 
 /**
  * The file content
  */
-export const zGetSharesByTokenFilesByFileIdContentResponse = z.string();
+export const zGetPublicDocsByTokenFilesByFileIdContentResponse = z.string();
 
-export const zPutSharesByTokenFilesByFileIdContentBody = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdContentBody = z.object({
     file: z.string()
 });
 
-export const zPutSharesByTokenFilesByFileIdContentPath = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdContentPath = z.object({
     token: z.string().min(1).max(64),
     fileId: z.int().gt(0).lte(9007199254740991)
 });
@@ -5213,7 +5213,7 @@ export const zPutSharesByTokenFilesByFileIdContentPath = z.object({
 /**
  * File replaced successfully
  */
-export const zPutSharesByTokenFilesByFileIdContentResponse = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdContentResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('File replaced successfully'),
@@ -5228,34 +5228,34 @@ export const zPutSharesByTokenFilesByFileIdContentResponse = z.object({
     })
 });
 
-export const zGetSharesByTokenFilesByFileIdContentByFilenamePath = z.object({
+export const zGetPublicDocsByTokenFilesByFileIdContentByFilenamePath = z.object({
     token: z.string().min(1).max(64),
     fileId: z.int().gt(0).lte(9007199254740991),
     filename: z.string().max(255)
 });
 
-export const zGetSharesByTokenFilesByFileIdContentByFilenameQuery = z.object({
+export const zGetPublicDocsByTokenFilesByFileIdContentByFilenameQuery = z.object({
     download: z.enum(['0', '1']).optional()
 });
 
 /**
  * The file content
  */
-export const zGetSharesByTokenFilesByFileIdContentByFilenameResponse = z.string();
+export const zGetPublicDocsByTokenFilesByFileIdContentByFilenameResponse = z.string();
 
-export const zPostSharesByTokenFilesBody = z.object({
+export const zPostPublicDocsByTokenFilesBody = z.object({
     file: z.string(),
     parent_id: z.int().gt(0).lte(9007199254740991).optional()
 });
 
-export const zPostSharesByTokenFilesPath = z.object({
+export const zPostPublicDocsByTokenFilesPath = z.object({
     token: z.string().min(1).max(64)
 });
 
 /**
  * File uploaded successfully
  */
-export const zPostSharesByTokenFilesResponse = z.object({
+export const zPostPublicDocsByTokenFilesResponse = z.object({
     success: z.literal(true),
     code: z.literal(201),
     message: z.literal('File uploaded successfully'),
@@ -5270,19 +5270,19 @@ export const zPostSharesByTokenFilesResponse = z.object({
     })
 });
 
-export const zPostSharesByTokenFoldersBody = z.object({
+export const zPostPublicDocsByTokenFoldersBody = z.object({
     name: z.string().min(1).max(200),
     parent_id: z.int().gt(0).lte(9007199254740991).optional()
 });
 
-export const zPostSharesByTokenFoldersPath = z.object({
+export const zPostPublicDocsByTokenFoldersPath = z.object({
     token: z.string().min(1).max(64)
 });
 
 /**
  * Folder created successfully
  */
-export const zPostSharesByTokenFoldersResponse = z.object({
+export const zPostPublicDocsByTokenFoldersResponse = z.object({
     success: z.literal(true),
     code: z.literal(201),
     message: z.literal('Folder created successfully'),
@@ -5297,7 +5297,7 @@ export const zPostSharesByTokenFoldersResponse = z.object({
     })
 });
 
-export const zDeleteSharesByTokenFilesByFileIdPath = z.object({
+export const zDeletePublicDocsByTokenFilesByFileIdPath = z.object({
     token: z.string().min(1).max(64),
     fileId: z.int().gt(0).lte(9007199254740991)
 });
@@ -5305,18 +5305,18 @@ export const zDeleteSharesByTokenFilesByFileIdPath = z.object({
 /**
  * Deleted successfully
  */
-export const zDeleteSharesByTokenFilesByFileIdResponse = z.object({
+export const zDeletePublicDocsByTokenFilesByFileIdResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('Deleted successfully'),
     data: z.null()
 });
 
-export const zPutSharesByTokenFilesByFileIdBody = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdBody = z.object({
     name: z.string().min(1).max(200)
 });
 
-export const zPutSharesByTokenFilesByFileIdPath = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdPath = z.object({
     token: z.string().min(1).max(64),
     fileId: z.int().gt(0).lte(9007199254740991)
 });
@@ -5324,7 +5324,7 @@ export const zPutSharesByTokenFilesByFileIdPath = z.object({
 /**
  * Renamed successfully
  */
-export const zPutSharesByTokenFilesByFileIdResponse = z.object({
+export const zPutPublicDocsByTokenFilesByFileIdResponse = z.object({
     success: z.literal(true),
     code: z.literal(200),
     message: z.literal('Renamed successfully'),
@@ -5336,6 +5336,192 @@ export const zPutSharesByTokenFilesByFileIdResponse = z.object({
         size: z.number(),
         updated_at: z.number(),
         content_url: z.string().nullable()
+    })
+});
+
+export const zGetPublicFormsByTokenPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * Form retrieved successfully
+ */
+export const zGetPublicFormsByTokenResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Form retrieved successfully'),
+    data: z.object({
+        title: z.string(),
+        description: z.string(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        accepting: z.boolean()
+    })
+});
+
+export const zPostPublicFormsByTokenResponsesBody = z.object({
+    answers: z.record(z.string(), z.union([
+        z.string().max(10000),
+        z.number(),
+        z.array(z.string().max(40)).max(100)
+    ])),
+    website: z.string().max(500).optional()
+});
+
+export const zPostPublicFormsByTokenResponsesPath = z.object({
+    token: z.string().min(1).max(64)
+});
+
+/**
+ * Answers saved
+ */
+export const zPostPublicFormsByTokenResponsesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Answers saved'),
+    data: z.object({
+        confirmation_message: z.string()
     })
 });
 
@@ -5420,6 +5606,7 @@ export const zGetEventsResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'forms:manage',
             'expenses:submit',
             'expenses:view_all',
             'expenses:review',
@@ -5562,6 +5749,7 @@ export const zPostEventsResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'forms:manage',
             'expenses:submit',
             'expenses:view_all',
             'expenses:review',
@@ -5690,6 +5878,7 @@ export const zGetEventsByEventIdResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'forms:manage',
             'expenses:submit',
             'expenses:view_all',
             'expenses:review',
@@ -5835,6 +6024,7 @@ export const zPutEventsByEventIdResponse = z.object({
             'files:view',
             'files:upload',
             'files:manage_all',
+            'forms:manage',
             'expenses:submit',
             'expenses:view_all',
             'expenses:review',
@@ -5950,6 +6140,7 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
                 'files:view',
                 'files:upload',
                 'files:manage_all',
+                'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
                 'expenses:review',
@@ -10539,6 +10730,7 @@ export const zGetEventsByEventIdCopyResponse = z.object({
         tasks: z.number(),
         notes: z.number(),
         announcements: z.number(),
+        forms: z.number(),
         budget: z.number(),
         documents: z.number(),
         documents_size: z.number(),
@@ -10561,6 +10753,7 @@ export const zPostEventsByEventIdCopyBody = z.object({
         tasks: z.boolean().optional().default(true),
         notes: z.boolean().optional().default(false),
         announcements: z.boolean().optional().default(false),
+        forms: z.boolean().optional().default(true),
         budget: z.boolean().optional().default(true),
         documents: z.boolean().optional().default(false),
         resources: z.boolean().optional().default(false),
@@ -10575,6 +10768,7 @@ export const zPostEventsByEventIdCopyBody = z.object({
         tasks: true,
         notes: false,
         announcements: false,
+        forms: true,
         budget: true,
         documents: false,
         resources: false,
@@ -10663,6 +10857,7 @@ export const zPostEventsByEventIdCopyResponse = z.object({
                 'files:view',
                 'files:upload',
                 'files:manage_all',
+                'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
                 'expenses:review',
@@ -10697,6 +10892,272 @@ export const zPostEventsByEventIdCopyResponse = z.object({
         }),
         skipped_bookings: z.array(z.string()),
         skipped_files: z.number()
+    })
+});
+
+export const zGetEventsByEventIdFormsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Forms retrieved successfully
+ */
+export const zGetEventsByEventIdFormsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Forms retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number()
+    }))
+});
+
+export const zPostEventsByEventIdFormsBody = z.object({
+    title: z.string().min(1).max(200),
+    template_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+});
+
+export const zPostEventsByEventIdFormsPath = z.object({
+    eventId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form created successfully
+ */
+export const zPostEventsByEventIdFormsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Form created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
     })
 });
 
@@ -12090,4 +12551,1581 @@ export const zPutOrgCoreTeamNotesByNoteIdResponse = z.object({
         }).nullable(),
         can_delete: z.boolean()
     })
+});
+
+/**
+ * Forms retrieved successfully
+ */
+export const zGetOrgFormsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Forms retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number()
+    }))
+});
+
+export const zPostOrgFormsBody = z.object({
+    title: z.string().min(1).max(200),
+    template_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+});
+
+/**
+ * Form created successfully
+ */
+export const zPostOrgFormsResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Form created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+/**
+ * Templates retrieved successfully
+ */
+export const zGetOrgFormTemplatesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Templates retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number()
+    }))
+});
+
+export const zPostOrgFormTemplatesBody = z.object({
+    title: z.string().min(1).max(200),
+    template_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+});
+
+/**
+ * Template created successfully
+ */
+export const zPostOrgFormTemplatesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Template created successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+export const zDeleteFormsByFormIdPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form deleted successfully
+ */
+export const zDeleteFormsByFormIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Form deleted successfully'),
+    data: z.null()
+});
+
+export const zGetFormsByFormIdPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form retrieved successfully
+ */
+export const zGetFormsByFormIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Form retrieved successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+export const zPutFormsByFormIdBody = z.object({
+    title: z.string().min(1).max(200).optional(),
+    description: z.string().max(10000).optional(),
+    confirmation_message: z.string().max(2000).optional(),
+    closes_at: z.int().gt(0).lte(9007199254740991).nullish(),
+    fields: z.array(z.union([
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('short_text')
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('long_text')
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('single_choice'),
+            options: z.array(z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().min(1).max(200)
+            })).min(1).max(100)
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('multiple_choice'),
+            options: z.array(z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().min(1).max(200)
+            })).min(1).max(100)
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('dropdown'),
+            options: z.array(z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().min(1).max(200)
+            })).min(1).max(100)
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('number'),
+            min: z.number().nullish().default(null),
+            max: z.number().nullish().default(null),
+            integer: z.boolean().optional().default(false)
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('date')
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('email')
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('rating'),
+            max: z.int().gte(3).lte(10).optional().default(5)
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('scale'),
+            min: z.int().gte(0).lte(1).optional().default(1),
+            max: z.int().gte(2).lte(10).optional().default(5),
+            min_label: z.string().max(100).optional().default(''),
+            max_label: z.string().max(100).optional().default('')
+        }),
+        z.object({
+            id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+            label: z.string().max(500),
+            description: z.string().max(2000).optional().default(''),
+            required: z.boolean().optional().default(false),
+            condition: z.object({
+                field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+            }).nullish().default(null),
+            type: z.literal('section')
+        })
+    ])).max(200).optional()
+});
+
+export const zPutFormsByFormIdPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form updated successfully
+ */
+export const zPutFormsByFormIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Form updated successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+export const zPutFormsByFormIdStatusBody = z.object({
+    status: z.enum(['open', 'closed'])
+});
+
+export const zPutFormsByFormIdStatusPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form status changed successfully
+ */
+export const zPutFormsByFormIdStatusResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Form status changed successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+export const zPostFormsByFormIdCopyBody = z.object({
+    title: z.string().min(1).max(200),
+    as_template: z.boolean().optional().default(false)
+});
+
+export const zPostFormsByFormIdCopyPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Form copied successfully
+ */
+export const zPostFormsByFormIdCopyResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(201),
+    message: z.literal('Form copied successfully'),
+    data: z.object({
+        id: z.number(),
+        scope: z.enum([
+            'org',
+            'event',
+            'template'
+        ]),
+        event_id: z.number().nullable(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum([
+            'draft',
+            'open',
+            'closed'
+        ]),
+        accepting: z.boolean(),
+        closes_at: z.number().nullable(),
+        published_at: z.number().nullable(),
+        closed_at: z.number().nullable(),
+        public_url: z.string().nullable(),
+        question_count: z.number(),
+        response_count: z.number(),
+        last_response_at: z.number().nullable(),
+        created_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable(),
+        created_at: z.number(),
+        updated_at: z.number(),
+        fields: z.array(z.union([
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('short_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('long_text')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('single_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('multiple_choice'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('dropdown'),
+                options: z.array(z.object({
+                    id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    label: z.string().min(1).max(200)
+                })).min(1).max(100)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('number'),
+                min: z.number().nullable().default(null),
+                max: z.number().nullable().default(null),
+                integer: z.boolean().default(false)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('date')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('email')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('rating'),
+                max: z.int().gte(3).lte(10).default(5)
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('scale'),
+                min: z.int().gte(0).lte(1).default(1),
+                max: z.int().gte(2).lte(10).default(5),
+                min_label: z.string().max(100).default(''),
+                max_label: z.string().max(100).default('')
+            }),
+            z.object({
+                id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                label: z.string().max(500),
+                description: z.string().max(2000).default(''),
+                required: z.boolean().default(false),
+                condition: z.object({
+                    field_id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+                    option_ids: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,40}$/)).min(1).max(100)
+                }).nullable().default(null),
+                type: z.literal('section')
+            })
+        ])),
+        confirmation_message: z.string(),
+        updated_by: z.object({
+            id: z.number(),
+            username: z.string(),
+            display_name: z.string(),
+            email: z.string(),
+            phone: z.string().nullable(),
+            role: z.enum([
+                'admin',
+                'core_team',
+                'volunteer',
+                'unverified'
+            ])
+        }).nullable()
+    })
+});
+
+export const zDeleteFormsByFormIdResponsesPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Answers deleted successfully
+ */
+export const zDeleteFormsByFormIdResponsesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Answers deleted successfully'),
+    data: z.null()
+});
+
+export const zGetFormsByFormIdResponsesPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Answers retrieved successfully
+ */
+export const zGetFormsByFormIdResponsesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Answers retrieved successfully'),
+    data: z.array(z.object({
+        id: z.number(),
+        number: z.number(),
+        answers: z.record(z.string(), z.union([
+            z.string().max(10000),
+            z.number(),
+            z.array(z.string().max(40)).max(100)
+        ])),
+        created_at: z.number()
+    }))
+});
+
+export const zDeleteFormsByFormIdResponsesByResponseIdPath = z.object({
+    formId: z.int().gt(0).lte(9007199254740991),
+    responseId: z.int().gt(0).lte(9007199254740991)
+});
+
+/**
+ * Answer deleted successfully
+ */
+export const zDeleteFormsByFormIdResponsesByResponseIdResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Answer deleted successfully'),
+    data: z.null()
 });

@@ -50,6 +50,7 @@ export const AUDIT_ENTITIES: Record<string, { label: string; icon: string }> = {
 	org_domain: { label: "Domain", icon: "i-lucide-globe" },
 	org: { label: "Organisation", icon: "i-lucide-building" },
 	file_share: { label: "Freigabelink", icon: "i-lucide-share-2" },
+	form: { label: "Formular", icon: "i-lucide-clipboard-list" },
 	org_group: { label: "Organisationsgruppe", icon: "i-lucide-users-round" },
 };
 
@@ -111,6 +112,9 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 			return options.isAdmin ? "/admin/organization" : null;
 		case "file_share":
 			return options.isAdmin ? "/admin/shares" : null;
+		case "form":
+			// The org log is admin-only, and admins manage Kernteam forms and templates.
+			return eventPath && id ? `${eventPath}/forms/${id}` : id ? `/core-team/forms/${id}` : null;
 		case "org_group":
 			return options.isAdmin ? "/admin/groups" : null;
 		case "org_domain":
@@ -126,6 +130,7 @@ export function auditObjectLink(entry: AuditEntry, options: { isAdmin: boolean }
 const METADATA_LABELS: Record<string, string> = {
 	reason: "Grund",
 	fields: "Geänderte Felder",
+	responses: "Antworten",
 	role: "Rolle",
 	password: "Passwort",
 	sessions: "Sitzungen",

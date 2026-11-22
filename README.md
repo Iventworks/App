@@ -88,13 +88,13 @@ Organisation roles (`users.role`, per org), highest first:
 | Role | Can |
 | --- | --- |
 | `admin` | Users, invitations, org groups, full audit log, the org's branding and domains — plus everything below |
-| `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat. Acts as **leader in every event** — but sees participants' health data and the team's notes about them only in events they are on the team of. |
+| `core_team` ("Kernteam") | Create/delete events, assign leaders, org documents & news, resources, finances/statistics/staff planning across all events, core-team notes & chat, forms and form templates. Acts as **leader in every event** — but sees participants' health data and the team's notes about them only in events they are on the team of. |
 | `volunteer` | The portal: own dashboard, tasks, chats, calendar, notes; the events they are staff of |
 | `unverified` | Only their own account settings (`/pending` page) |
 
 Event roles (`event_members.role`): `leader` ("Leitung") and `staff` ("Mitarbeiter:in"). Leaders
-manage the event (participants, program, rooms, staff, groups, budget, expense review, stats,
-audit log); staff see everything operational (incl. participants' medical info), add participant
+manage the event (participants, program, rooms, staff, groups, budget, expense review, forms,
+stats, audit log); staff see everything operational (incl. participants' medical info), add participant
 notes, create tasks/notes, upload documents and submit expenses.
 
 Documents (org library and event documents) also have access lists per folder or file, like
@@ -157,8 +157,8 @@ shows the number of unread messages and notifications where the system supports 
   bookings.
 - **Copying** (core team: event page, event settings, *Kernteam → Freizeiten & Events*) creates a
   new event in planning from an existing one. You pick what comes along: team, groups, rooms,
-  responsibilities, program, tasks, budget plan, notes, news, documents, resource bookings,
-  participants. Program and due dates move with the new start date; expenses, chats and the audit
+  responsibilities, program, tasks, budget plan, notes, news, forms (as drafts), documents,
+  resource bookings, participants. Program and due dates move with the new start date; expenses, chats and the audit
   log stay with the original.
 
 ## Files
@@ -169,7 +169,7 @@ Uploads (documents, receipts, chat attachments) are stored on disk under `IVENTW
 there, so images and links open directly. Back up `data/` (database **and** uploads) together.
 
 **Share links** let people without an account open a file or folder: *Teilen* in a document's
-menu creates `<org address>/s/<token>` with what it allows (view, upload, edit, delete — or an
+menu creates `<org address>/s/doc/<token>` with what it allows (view, upload, edit, delete — or an
 upload-only drop box), an optional password and an expiry. Only the shared item and what lies
 below it are reachable through a link. Org admins see every link under *Administration →
 Freigabelinks*, can switch sharing off for the org and set a default expiry.
@@ -211,6 +211,20 @@ a private address it may not call, TLS). "An error occurred while opening the fi
 the file but couldn't convert it: `/opt/iventworks/office/logs/converter/out.log` says why. Each
 file has its own WOPI id per installation (`WopiIds`), so several installations (test, production)
 can share one office server.
+
+## Forms
+
+**Formulare** — surveys, registrations, feedback — like Microsoft or Google Forms: the Kernteam
+under *Kernteam → Formulare*, an event's Leitung under *Leitung → Formulare*. A form starts as a
+draft, empty or from a template (every org starts with *Feedback*, *Anmeldung* and
+*Veranstaltungsbewertung*; the Kernteam manages templates). Question types: short and long text,
+email, number, date, single and multiple choice, dropdown, star rating, scale, and sections;
+questions can be required and shown only for an earlier answer.
+
+Publishing gives the form a link (`<org address>/s/form/<token>`) and a QR code (PNG or SVG, e.g. for a
+slide); anyone with it can answer, without an account. Closing it (or a closing time) stops new
+answers, the link stays. *Antworten* shows statistics per question and the single answers, both
+filtered by period, an answer or text, and exports them as CSV.
 
 ## Configuration
 

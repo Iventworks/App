@@ -8216,16 +8216,16 @@ export type PutFilesByFileIdSharesByShareIdResponses = {
 
 export type PutFilesByFileIdSharesByShareIdResponse = PutFilesByFileIdSharesByShareIdResponses[keyof PutFilesByFileIdSharesByShareIdResponses];
 
-export type GetSharesByTokenData = {
+export type GetPublicDocsByTokenData = {
     body?: never;
     path: {
         token: string;
     };
     query?: never;
-    url: '/shares/{token}';
+    url: '/public/docs/{token}';
 };
 
-export type GetSharesByTokenErrors = {
+export type GetPublicDocsByTokenErrors = {
     /**
      * Validation Error
      */
@@ -8244,9 +8244,9 @@ export type GetSharesByTokenErrors = {
     };
 };
 
-export type GetSharesByTokenError = GetSharesByTokenErrors[keyof GetSharesByTokenErrors];
+export type GetPublicDocsByTokenError = GetPublicDocsByTokenErrors[keyof GetPublicDocsByTokenErrors];
 
-export type GetSharesByTokenResponses = {
+export type GetPublicDocsByTokenResponses = {
     /**
      * Share link retrieved successfully
      */
@@ -8278,9 +8278,9 @@ export type GetSharesByTokenResponses = {
     };
 };
 
-export type GetSharesByTokenResponse = GetSharesByTokenResponses[keyof GetSharesByTokenResponses];
+export type GetPublicDocsByTokenResponse = GetPublicDocsByTokenResponses[keyof GetPublicDocsByTokenResponses];
 
-export type PostSharesByTokenUnlockData = {
+export type PostPublicDocsByTokenUnlockData = {
     body: {
         password: string;
     };
@@ -8288,10 +8288,10 @@ export type PostSharesByTokenUnlockData = {
         token: string;
     };
     query?: never;
-    url: '/shares/{token}/unlock';
+    url: '/public/docs/{token}/unlock';
 };
 
-export type PostSharesByTokenUnlockErrors = {
+export type PostPublicDocsByTokenUnlockErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8326,9 +8326,9 @@ export type PostSharesByTokenUnlockErrors = {
     };
 };
 
-export type PostSharesByTokenUnlockError = PostSharesByTokenUnlockErrors[keyof PostSharesByTokenUnlockErrors];
+export type PostPublicDocsByTokenUnlockError = PostPublicDocsByTokenUnlockErrors[keyof PostPublicDocsByTokenUnlockErrors];
 
-export type PostSharesByTokenUnlockResponses = {
+export type PostPublicDocsByTokenUnlockResponses = {
     /**
      * Share link unlocked
      */
@@ -8360,9 +8360,9 @@ export type PostSharesByTokenUnlockResponses = {
     };
 };
 
-export type PostSharesByTokenUnlockResponse = PostSharesByTokenUnlockResponses[keyof PostSharesByTokenUnlockResponses];
+export type PostPublicDocsByTokenUnlockResponse = PostPublicDocsByTokenUnlockResponses[keyof PostPublicDocsByTokenUnlockResponses];
 
-export type GetSharesByTokenItemsData = {
+export type GetPublicDocsByTokenItemsData = {
     body?: never;
     path: {
         token: string;
@@ -8370,10 +8370,10 @@ export type GetSharesByTokenItemsData = {
     query?: {
         folder_id?: number;
     };
-    url: '/shares/{token}/items';
+    url: '/public/docs/{token}/items';
 };
 
-export type GetSharesByTokenItemsErrors = {
+export type GetPublicDocsByTokenItemsErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8400,9 +8400,9 @@ export type GetSharesByTokenItemsErrors = {
     };
 };
 
-export type GetSharesByTokenItemsError = GetSharesByTokenItemsErrors[keyof GetSharesByTokenItemsErrors];
+export type GetPublicDocsByTokenItemsError = GetPublicDocsByTokenItemsErrors[keyof GetPublicDocsByTokenItemsErrors];
 
-export type GetSharesByTokenItemsResponses = {
+export type GetPublicDocsByTokenItemsResponses = {
     /**
      * Folder retrieved successfully
      */
@@ -8442,9 +8442,9 @@ export type GetSharesByTokenItemsResponses = {
     };
 };
 
-export type GetSharesByTokenItemsResponse = GetSharesByTokenItemsResponses[keyof GetSharesByTokenItemsResponses];
+export type GetPublicDocsByTokenItemsResponse = GetPublicDocsByTokenItemsResponses[keyof GetPublicDocsByTokenItemsResponses];
 
-export type GetSharesByTokenFilesByFileIdContentData = {
+export type GetPublicDocsByTokenFilesByFileIdContentData = {
     body?: never;
     path: {
         token: string;
@@ -8453,10 +8453,10 @@ export type GetSharesByTokenFilesByFileIdContentData = {
     query?: {
         download?: '0' | '1';
     };
-    url: '/shares/{token}/files/{fileId}/content';
+    url: '/public/docs/{token}/files/{fileId}/content';
 };
 
-export type GetSharesByTokenFilesByFileIdContentErrors = {
+export type GetPublicDocsByTokenFilesByFileIdContentErrors = {
     /**
      * Validation Error
      */
@@ -8475,18 +8475,18 @@ export type GetSharesByTokenFilesByFileIdContentErrors = {
     };
 };
 
-export type GetSharesByTokenFilesByFileIdContentError = GetSharesByTokenFilesByFileIdContentErrors[keyof GetSharesByTokenFilesByFileIdContentErrors];
+export type GetPublicDocsByTokenFilesByFileIdContentError = GetPublicDocsByTokenFilesByFileIdContentErrors[keyof GetPublicDocsByTokenFilesByFileIdContentErrors];
 
-export type GetSharesByTokenFilesByFileIdContentResponses = {
+export type GetPublicDocsByTokenFilesByFileIdContentResponses = {
     /**
      * The file content
      */
     200: Blob | File;
 };
 
-export type GetSharesByTokenFilesByFileIdContentResponse = GetSharesByTokenFilesByFileIdContentResponses[keyof GetSharesByTokenFilesByFileIdContentResponses];
+export type GetPublicDocsByTokenFilesByFileIdContentResponse = GetPublicDocsByTokenFilesByFileIdContentResponses[keyof GetPublicDocsByTokenFilesByFileIdContentResponses];
 
-export type PutSharesByTokenFilesByFileIdContentData = {
+export type PutPublicDocsByTokenFilesByFileIdContentData = {
     body: {
         /**
          * The new contents
@@ -8498,10 +8498,10 @@ export type PutSharesByTokenFilesByFileIdContentData = {
         fileId: number;
     };
     query?: never;
-    url: '/shares/{token}/files/{fileId}/content';
+    url: '/public/docs/{token}/files/{fileId}/content';
 };
 
-export type PutSharesByTokenFilesByFileIdContentErrors = {
+export type PutPublicDocsByTokenFilesByFileIdContentErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8528,9 +8528,9 @@ export type PutSharesByTokenFilesByFileIdContentErrors = {
     };
 };
 
-export type PutSharesByTokenFilesByFileIdContentError = PutSharesByTokenFilesByFileIdContentErrors[keyof PutSharesByTokenFilesByFileIdContentErrors];
+export type PutPublicDocsByTokenFilesByFileIdContentError = PutPublicDocsByTokenFilesByFileIdContentErrors[keyof PutPublicDocsByTokenFilesByFileIdContentErrors];
 
-export type PutSharesByTokenFilesByFileIdContentResponses = {
+export type PutPublicDocsByTokenFilesByFileIdContentResponses = {
     /**
      * File replaced successfully
      */
@@ -8550,9 +8550,9 @@ export type PutSharesByTokenFilesByFileIdContentResponses = {
     };
 };
 
-export type PutSharesByTokenFilesByFileIdContentResponse = PutSharesByTokenFilesByFileIdContentResponses[keyof PutSharesByTokenFilesByFileIdContentResponses];
+export type PutPublicDocsByTokenFilesByFileIdContentResponse = PutPublicDocsByTokenFilesByFileIdContentResponses[keyof PutPublicDocsByTokenFilesByFileIdContentResponses];
 
-export type GetSharesByTokenFilesByFileIdContentByFilenameData = {
+export type GetPublicDocsByTokenFilesByFileIdContentByFilenameData = {
     body?: never;
     path: {
         token: string;
@@ -8562,10 +8562,10 @@ export type GetSharesByTokenFilesByFileIdContentByFilenameData = {
     query?: {
         download?: '0' | '1';
     };
-    url: '/shares/{token}/files/{fileId}/content/{filename}';
+    url: '/public/docs/{token}/files/{fileId}/content/{filename}';
 };
 
-export type GetSharesByTokenFilesByFileIdContentByFilenameErrors = {
+export type GetPublicDocsByTokenFilesByFileIdContentByFilenameErrors = {
     /**
      * Validation Error
      */
@@ -8584,18 +8584,18 @@ export type GetSharesByTokenFilesByFileIdContentByFilenameErrors = {
     };
 };
 
-export type GetSharesByTokenFilesByFileIdContentByFilenameError = GetSharesByTokenFilesByFileIdContentByFilenameErrors[keyof GetSharesByTokenFilesByFileIdContentByFilenameErrors];
+export type GetPublicDocsByTokenFilesByFileIdContentByFilenameError = GetPublicDocsByTokenFilesByFileIdContentByFilenameErrors[keyof GetPublicDocsByTokenFilesByFileIdContentByFilenameErrors];
 
-export type GetSharesByTokenFilesByFileIdContentByFilenameResponses = {
+export type GetPublicDocsByTokenFilesByFileIdContentByFilenameResponses = {
     /**
      * The file content
      */
     200: Blob | File;
 };
 
-export type GetSharesByTokenFilesByFileIdContentByFilenameResponse = GetSharesByTokenFilesByFileIdContentByFilenameResponses[keyof GetSharesByTokenFilesByFileIdContentByFilenameResponses];
+export type GetPublicDocsByTokenFilesByFileIdContentByFilenameResponse = GetPublicDocsByTokenFilesByFileIdContentByFilenameResponses[keyof GetPublicDocsByTokenFilesByFileIdContentByFilenameResponses];
 
-export type PostSharesByTokenFilesData = {
+export type PostPublicDocsByTokenFilesData = {
     body: {
         /**
          * The file to upload
@@ -8607,10 +8607,10 @@ export type PostSharesByTokenFilesData = {
         token: string;
     };
     query?: never;
-    url: '/shares/{token}/files';
+    url: '/public/docs/{token}/files';
 };
 
-export type PostSharesByTokenFilesErrors = {
+export type PostPublicDocsByTokenFilesErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8637,9 +8637,9 @@ export type PostSharesByTokenFilesErrors = {
     };
 };
 
-export type PostSharesByTokenFilesError = PostSharesByTokenFilesErrors[keyof PostSharesByTokenFilesErrors];
+export type PostPublicDocsByTokenFilesError = PostPublicDocsByTokenFilesErrors[keyof PostPublicDocsByTokenFilesErrors];
 
-export type PostSharesByTokenFilesResponses = {
+export type PostPublicDocsByTokenFilesResponses = {
     /**
      * File uploaded successfully
      */
@@ -8659,9 +8659,9 @@ export type PostSharesByTokenFilesResponses = {
     };
 };
 
-export type PostSharesByTokenFilesResponse = PostSharesByTokenFilesResponses[keyof PostSharesByTokenFilesResponses];
+export type PostPublicDocsByTokenFilesResponse = PostPublicDocsByTokenFilesResponses[keyof PostPublicDocsByTokenFilesResponses];
 
-export type PostSharesByTokenFoldersData = {
+export type PostPublicDocsByTokenFoldersData = {
     body: {
         name: string;
         parent_id?: number;
@@ -8670,10 +8670,10 @@ export type PostSharesByTokenFoldersData = {
         token: string;
     };
     query?: never;
-    url: '/shares/{token}/folders';
+    url: '/public/docs/{token}/folders';
 };
 
-export type PostSharesByTokenFoldersErrors = {
+export type PostPublicDocsByTokenFoldersErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8700,9 +8700,9 @@ export type PostSharesByTokenFoldersErrors = {
     };
 };
 
-export type PostSharesByTokenFoldersError = PostSharesByTokenFoldersErrors[keyof PostSharesByTokenFoldersErrors];
+export type PostPublicDocsByTokenFoldersError = PostPublicDocsByTokenFoldersErrors[keyof PostPublicDocsByTokenFoldersErrors];
 
-export type PostSharesByTokenFoldersResponses = {
+export type PostPublicDocsByTokenFoldersResponses = {
     /**
      * Folder created successfully
      */
@@ -8722,19 +8722,19 @@ export type PostSharesByTokenFoldersResponses = {
     };
 };
 
-export type PostSharesByTokenFoldersResponse = PostSharesByTokenFoldersResponses[keyof PostSharesByTokenFoldersResponses];
+export type PostPublicDocsByTokenFoldersResponse = PostPublicDocsByTokenFoldersResponses[keyof PostPublicDocsByTokenFoldersResponses];
 
-export type DeleteSharesByTokenFilesByFileIdData = {
+export type DeletePublicDocsByTokenFilesByFileIdData = {
     body?: never;
     path: {
         token: string;
         fileId: number;
     };
     query?: never;
-    url: '/shares/{token}/files/{fileId}';
+    url: '/public/docs/{token}/files/{fileId}';
 };
 
-export type DeleteSharesByTokenFilesByFileIdErrors = {
+export type DeletePublicDocsByTokenFilesByFileIdErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8761,9 +8761,9 @@ export type DeleteSharesByTokenFilesByFileIdErrors = {
     };
 };
 
-export type DeleteSharesByTokenFilesByFileIdError = DeleteSharesByTokenFilesByFileIdErrors[keyof DeleteSharesByTokenFilesByFileIdErrors];
+export type DeletePublicDocsByTokenFilesByFileIdError = DeletePublicDocsByTokenFilesByFileIdErrors[keyof DeletePublicDocsByTokenFilesByFileIdErrors];
 
-export type DeleteSharesByTokenFilesByFileIdResponses = {
+export type DeletePublicDocsByTokenFilesByFileIdResponses = {
     /**
      * Deleted successfully
      */
@@ -8775,9 +8775,9 @@ export type DeleteSharesByTokenFilesByFileIdResponses = {
     };
 };
 
-export type DeleteSharesByTokenFilesByFileIdResponse = DeleteSharesByTokenFilesByFileIdResponses[keyof DeleteSharesByTokenFilesByFileIdResponses];
+export type DeletePublicDocsByTokenFilesByFileIdResponse = DeletePublicDocsByTokenFilesByFileIdResponses[keyof DeletePublicDocsByTokenFilesByFileIdResponses];
 
-export type PutSharesByTokenFilesByFileIdData = {
+export type PutPublicDocsByTokenFilesByFileIdData = {
     body: {
         name: string;
     };
@@ -8786,10 +8786,10 @@ export type PutSharesByTokenFilesByFileIdData = {
         fileId: number;
     };
     query?: never;
-    url: '/shares/{token}/files/{fileId}';
+    url: '/public/docs/{token}/files/{fileId}';
 };
 
-export type PutSharesByTokenFilesByFileIdErrors = {
+export type PutPublicDocsByTokenFilesByFileIdErrors = {
     /**
      * Bad Request: Syntax or validation error in request
      */
@@ -8816,9 +8816,9 @@ export type PutSharesByTokenFilesByFileIdErrors = {
     };
 };
 
-export type PutSharesByTokenFilesByFileIdError = PutSharesByTokenFilesByFileIdErrors[keyof PutSharesByTokenFilesByFileIdErrors];
+export type PutPublicDocsByTokenFilesByFileIdError = PutPublicDocsByTokenFilesByFileIdErrors[keyof PutPublicDocsByTokenFilesByFileIdErrors];
 
-export type PutSharesByTokenFilesByFileIdResponses = {
+export type PutPublicDocsByTokenFilesByFileIdResponses = {
     /**
      * Renamed successfully
      */
@@ -8838,7 +8838,253 @@ export type PutSharesByTokenFilesByFileIdResponses = {
     };
 };
 
-export type PutSharesByTokenFilesByFileIdResponse = PutSharesByTokenFilesByFileIdResponses[keyof PutSharesByTokenFilesByFileIdResponses];
+export type PutPublicDocsByTokenFilesByFileIdResponse = PutPublicDocsByTokenFilesByFileIdResponses[keyof PutPublicDocsByTokenFilesByFileIdResponses];
+
+export type GetPublicFormsByTokenData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/public/forms/{token}';
+};
+
+export type GetPublicFormsByTokenErrors = {
+    /**
+     * Validation Error
+     */
+    400: {
+        success: false;
+        error: Array<unknown>;
+        data: unknown;
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type GetPublicFormsByTokenError = GetPublicFormsByTokenErrors[keyof GetPublicFormsByTokenErrors];
+
+export type GetPublicFormsByTokenResponses = {
+    /**
+     * Form retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Form retrieved successfully';
+        data: {
+            title: string;
+            description: string;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            accepting: boolean;
+        };
+    };
+};
+
+export type GetPublicFormsByTokenResponse = GetPublicFormsByTokenResponses[keyof GetPublicFormsByTokenResponses];
+
+export type PostPublicFormsByTokenResponsesData = {
+    body: {
+        answers: {
+            [key: string]: string | number | Array<string>;
+        };
+        website?: string;
+    };
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/public/forms/{token}/responses';
+};
+
+export type PostPublicFormsByTokenResponsesErrors = {
+    /**
+     * Some answers are missing or invalid / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Some answers are missing or invalid / Syntax or validation error in request';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+    /**
+     * This form doesn't take answers anymore
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'This form doesn\'t take answers anymore';
+    };
+    /**
+     * Too many answers from this address, try again later
+     */
+    429: {
+        success: false;
+        code: 429;
+        message: 'Too many answers from this address, try again later';
+    };
+};
+
+export type PostPublicFormsByTokenResponsesError = PostPublicFormsByTokenResponsesErrors[keyof PostPublicFormsByTokenResponsesErrors];
+
+export type PostPublicFormsByTokenResponsesResponses = {
+    /**
+     * Answers saved
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Answers saved';
+        data: {
+            confirmation_message: string;
+        };
+    };
+};
+
+export type PostPublicFormsByTokenResponsesResponse = PostPublicFormsByTokenResponsesResponses[keyof PostPublicFormsByTokenResponsesResponses];
 
 export type GetEventsData = {
     body?: never;
@@ -8905,7 +9151,7 @@ export type GetEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9013,7 +9259,7 @@ export type PostEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9162,7 +9408,7 @@ export type GetEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9279,7 +9525,7 @@ export type PutEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9377,7 +9623,7 @@ export type GetEventsByEventIdOverviewResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -15981,6 +16227,7 @@ export type GetEventsByEventIdCopyResponses = {
             tasks: number;
             notes: number;
             announcements: number;
+            forms: number;
             budget: number;
             documents: number;
             documents_size: number;
@@ -16007,6 +16254,7 @@ export type PostEventsByEventIdCopyData = {
             tasks?: boolean;
             notes?: boolean;
             announcements?: boolean;
+            forms?: boolean;
             budget?: boolean;
             documents?: boolean;
             resources?: boolean;
@@ -16084,7 +16332,7 @@ export type PostEventsByEventIdCopyResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -16111,6 +16359,303 @@ export type PostEventsByEventIdCopyResponses = {
 };
 
 export type PostEventsByEventIdCopyResponse = PostEventsByEventIdCopyResponses[keyof PostEventsByEventIdCopyResponses];
+
+export type GetEventsByEventIdFormsData = {
+    body?: never;
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/forms';
+};
+
+export type GetEventsByEventIdFormsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the event's leaders manage its forms
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the event\'s leaders manage its forms';
+    };
+    /**
+     * Event not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found';
+    };
+};
+
+export type GetEventsByEventIdFormsError = GetEventsByEventIdFormsErrors[keyof GetEventsByEventIdFormsErrors];
+
+export type GetEventsByEventIdFormsResponses = {
+    /**
+     * Forms retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Forms retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+        }>;
+    };
+};
+
+export type GetEventsByEventIdFormsResponse = GetEventsByEventIdFormsResponses[keyof GetEventsByEventIdFormsResponses];
+
+export type PostEventsByEventIdFormsData = {
+    body: {
+        title: string;
+        template_id?: number | null;
+    };
+    path: {
+        eventId: number;
+    };
+    query?: never;
+    url: '/events/{eventId}/forms';
+};
+
+export type PostEventsByEventIdFormsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the event's leaders manage its forms
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the event\'s leaders manage its forms';
+    };
+    /**
+     * Event not found / Template not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Event not found / Template not found';
+    };
+};
+
+export type PostEventsByEventIdFormsError = PostEventsByEventIdFormsErrors[keyof PostEventsByEventIdFormsErrors];
+
+export type PostEventsByEventIdFormsResponses = {
+    /**
+     * Form created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Form created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostEventsByEventIdFormsResponse = PostEventsByEventIdFormsResponses[keyof PostEventsByEventIdFormsResponses];
 
 export type GetOrgAnnouncementsData = {
     body?: never;
@@ -18141,3 +18686,1769 @@ export type PutOrgCoreTeamNotesByNoteIdResponses = {
 };
 
 export type PutOrgCoreTeamNotesByNoteIdResponse = PutOrgCoreTeamNotesByNoteIdResponses[keyof PutOrgCoreTeamNotesByNoteIdResponses];
+
+export type GetOrgFormsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/forms';
+};
+
+export type GetOrgFormsErrors = {
+    /**
+     * Only the core team manages its forms
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team manages its forms';
+    };
+};
+
+export type GetOrgFormsError = GetOrgFormsErrors[keyof GetOrgFormsErrors];
+
+export type GetOrgFormsResponses = {
+    /**
+     * Forms retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Forms retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+        }>;
+    };
+};
+
+export type GetOrgFormsResponse = GetOrgFormsResponses[keyof GetOrgFormsResponses];
+
+export type PostOrgFormsData = {
+    body: {
+        title: string;
+        template_id?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/forms';
+};
+
+export type PostOrgFormsErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team manages its forms
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team manages its forms';
+    };
+    /**
+     * Template not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Template not found';
+    };
+};
+
+export type PostOrgFormsError = PostOrgFormsErrors[keyof PostOrgFormsErrors];
+
+export type PostOrgFormsResponses = {
+    /**
+     * Form created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Form created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostOrgFormsResponse = PostOrgFormsResponses[keyof PostOrgFormsResponses];
+
+export type GetOrgFormTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/org/form-templates';
+};
+
+export type GetOrgFormTemplatesResponses = {
+    /**
+     * Templates retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Templates retrieved successfully';
+        data: Array<{
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+        }>;
+    };
+};
+
+export type GetOrgFormTemplatesResponse = GetOrgFormTemplatesResponses[keyof GetOrgFormTemplatesResponses];
+
+export type PostOrgFormTemplatesData = {
+    body: {
+        title: string;
+        template_id?: number | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/org/form-templates';
+};
+
+export type PostOrgFormTemplatesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * Only the core team manages templates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'Only the core team manages templates';
+    };
+    /**
+     * Template not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Template not found';
+    };
+};
+
+export type PostOrgFormTemplatesError = PostOrgFormTemplatesErrors[keyof PostOrgFormTemplatesErrors];
+
+export type PostOrgFormTemplatesResponses = {
+    /**
+     * Template created successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Template created successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostOrgFormTemplatesResponse = PostOrgFormTemplatesResponses[keyof PostOrgFormTemplatesResponses];
+
+export type DeleteFormsByFormIdData = {
+    body?: never;
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}';
+};
+
+export type DeleteFormsByFormIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type DeleteFormsByFormIdError = DeleteFormsByFormIdErrors[keyof DeleteFormsByFormIdErrors];
+
+export type DeleteFormsByFormIdResponses = {
+    /**
+     * Form deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Form deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteFormsByFormIdResponse = DeleteFormsByFormIdResponses[keyof DeleteFormsByFormIdResponses];
+
+export type GetFormsByFormIdData = {
+    body?: never;
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}';
+};
+
+export type GetFormsByFormIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type GetFormsByFormIdError = GetFormsByFormIdErrors[keyof GetFormsByFormIdErrors];
+
+export type GetFormsByFormIdResponses = {
+    /**
+     * Form retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Form retrieved successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type GetFormsByFormIdResponse = GetFormsByFormIdResponses[keyof GetFormsByFormIdResponses];
+
+export type PutFormsByFormIdData = {
+    body?: {
+        title?: string;
+        description?: string;
+        confirmation_message?: string;
+        closes_at?: number | null;
+        fields?: Array<{
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'short_text';
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'long_text';
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'single_choice';
+            options: Array<{
+                id: string;
+                label: string;
+            }>;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'multiple_choice';
+            options: Array<{
+                id: string;
+                label: string;
+            }>;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'dropdown';
+            options: Array<{
+                id: string;
+                label: string;
+            }>;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'number';
+            min?: number | null;
+            max?: number | null;
+            integer?: boolean;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'date';
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'email';
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'rating';
+            max?: number;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'scale';
+            min?: number;
+            max?: number;
+            min_label?: string;
+            max_label?: string;
+        } | {
+            id: string;
+            label: string;
+            description?: string;
+            required?: boolean;
+            condition?: {
+                field_id: string;
+                option_ids: Array<string>;
+            } | null;
+            type: 'section';
+        }>;
+    };
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}';
+};
+
+export type PutFormsByFormIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type PutFormsByFormIdError = PutFormsByFormIdErrors[keyof PutFormsByFormIdErrors];
+
+export type PutFormsByFormIdResponses = {
+    /**
+     * Form updated successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Form updated successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PutFormsByFormIdResponse = PutFormsByFormIdResponses[keyof PutFormsByFormIdResponses];
+
+export type PutFormsByFormIdStatusData = {
+    body: {
+        status: 'open' | 'closed';
+    };
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}/status';
+};
+
+export type PutFormsByFormIdStatusErrors = {
+    /**
+     * Templates can't be published / Add at least one question before publishing / Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Templates can\'t be published / Add at least one question before publishing / Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type PutFormsByFormIdStatusError = PutFormsByFormIdStatusErrors[keyof PutFormsByFormIdStatusErrors];
+
+export type PutFormsByFormIdStatusResponses = {
+    /**
+     * Form status changed successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Form status changed successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PutFormsByFormIdStatusResponse = PutFormsByFormIdStatusResponses[keyof PutFormsByFormIdStatusResponses];
+
+export type PostFormsByFormIdCopyData = {
+    body: {
+        title: string;
+        as_template?: boolean;
+    };
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}/copy';
+};
+
+export type PostFormsByFormIdCopyErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form / Only the core team manages templates
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form / Only the core team manages templates';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type PostFormsByFormIdCopyError = PostFormsByFormIdCopyErrors[keyof PostFormsByFormIdCopyErrors];
+
+export type PostFormsByFormIdCopyResponses = {
+    /**
+     * Form copied successfully
+     */
+    201: {
+        success: true;
+        code: 201;
+        message: 'Form copied successfully';
+        data: {
+            id: number;
+            scope: 'org' | 'event' | 'template';
+            event_id: number | null;
+            title: string;
+            description: string;
+            status: 'draft' | 'open' | 'closed';
+            accepting: boolean;
+            closes_at: number | null;
+            published_at: number | null;
+            closed_at: number | null;
+            public_url: string | null;
+            question_count: number;
+            response_count: number;
+            last_response_at: number | null;
+            created_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+            created_at: number;
+            updated_at: number;
+            fields: Array<{
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'short_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'long_text';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'single_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'multiple_choice';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'dropdown';
+                options: Array<{
+                    id: string;
+                    label: string;
+                }>;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'number';
+                min: number | null;
+                max: number | null;
+                integer: boolean;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'date';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'email';
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'rating';
+                max: number;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'scale';
+                min: number;
+                max: number;
+                min_label: string;
+                max_label: string;
+            } | {
+                id: string;
+                label: string;
+                description: string;
+                required: boolean;
+                condition: {
+                    field_id: string;
+                    option_ids: Array<string>;
+                } | null;
+                type: 'section';
+            }>;
+            confirmation_message: string;
+            updated_by: {
+                id: number;
+                username: string;
+                display_name: string;
+                email: string;
+                phone: string | null;
+                role: 'admin' | 'core_team' | 'volunteer' | 'unverified';
+            } | null;
+        };
+    };
+};
+
+export type PostFormsByFormIdCopyResponse = PostFormsByFormIdCopyResponses[keyof PostFormsByFormIdCopyResponses];
+
+export type DeleteFormsByFormIdResponsesData = {
+    body?: never;
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}/responses';
+};
+
+export type DeleteFormsByFormIdResponsesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type DeleteFormsByFormIdResponsesError = DeleteFormsByFormIdResponsesErrors[keyof DeleteFormsByFormIdResponsesErrors];
+
+export type DeleteFormsByFormIdResponsesResponses = {
+    /**
+     * Answers deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Answers deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteFormsByFormIdResponsesResponse = DeleteFormsByFormIdResponsesResponses[keyof DeleteFormsByFormIdResponsesResponses];
+
+export type GetFormsByFormIdResponsesData = {
+    body?: never;
+    path: {
+        formId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}/responses';
+};
+
+export type GetFormsByFormIdResponsesErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found';
+    };
+};
+
+export type GetFormsByFormIdResponsesError = GetFormsByFormIdResponsesErrors[keyof GetFormsByFormIdResponsesErrors];
+
+export type GetFormsByFormIdResponsesResponses = {
+    /**
+     * Answers retrieved successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Answers retrieved successfully';
+        data: Array<{
+            id: number;
+            number: number;
+            answers: {
+                [key: string]: string | number | Array<string>;
+            };
+            created_at: number;
+        }>;
+    };
+};
+
+export type GetFormsByFormIdResponsesResponse = GetFormsByFormIdResponsesResponses[keyof GetFormsByFormIdResponsesResponses];
+
+export type DeleteFormsByFormIdResponsesByResponseIdData = {
+    body?: never;
+    path: {
+        formId: number;
+        responseId: number;
+    };
+    query?: never;
+    url: '/forms/{formId}/responses/{responseId}';
+};
+
+export type DeleteFormsByFormIdResponsesByResponseIdErrors = {
+    /**
+     * Bad Request: Syntax or validation error in request
+     */
+    400: {
+        success: false;
+        code: 400;
+        message: 'Bad Request: Syntax or validation error in request';
+    };
+    /**
+     * You are not allowed to manage this form
+     */
+    403: {
+        success: false;
+        code: 403;
+        message: 'You are not allowed to manage this form';
+    };
+    /**
+     * Form not found / Answer not found
+     */
+    404: {
+        success: false;
+        code: 404;
+        message: 'Form not found / Answer not found';
+    };
+};
+
+export type DeleteFormsByFormIdResponsesByResponseIdError = DeleteFormsByFormIdResponsesByResponseIdErrors[keyof DeleteFormsByFormIdResponsesByResponseIdErrors];
+
+export type DeleteFormsByFormIdResponsesByResponseIdResponses = {
+    /**
+     * Answer deleted successfully
+     */
+    200: {
+        success: true;
+        code: 200;
+        message: 'Answer deleted successfully';
+        data: null;
+    };
+};
+
+export type DeleteFormsByFormIdResponsesByResponseIdResponse = DeleteFormsByFormIdResponsesByResponseIdResponses[keyof DeleteFormsByFormIdResponsesByResponseIdResponses];

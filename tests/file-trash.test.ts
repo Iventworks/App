@@ -237,25 +237,25 @@ describe("Papierkorb", () => {
 			},
 			201,
 		);
-		const token = link.url.split("/s/")[1];
+		const token = link.url.split("/s/doc/")[1];
 
-		await makeAPIRequest(`/v1/shares/${token}/files/${flyer.id}`, { method: "DELETE" });
+		await makeAPIRequest(`/v1/public/docs/${token}/files/${flyer.id}`, { method: "DELETE" });
 		const trash = await makeAPIRequest(`${base}/trash`, { authToken: leader.token });
 		const entry = trash.find((item: any) => item.id === flyer.id);
 		expect(entry.deleted_by).toBeNull();
-		await makeAPIRequest(`/v1/shares/${token}/files/${flyer.id}/content/flyer.txt`, {}, 404);
+		await makeAPIRequest(`/v1/public/docs/${token}/files/${flyer.id}/content/flyer.txt`, {}, 404);
 
 		await makeAPIRequest(`${base}/trash/${flyer.id}/restore`, {
 			method: "POST",
 			authToken: leader.token,
 		});
 		await remove(leader.token, shared.id);
-		await makeAPIRequest(`/v1/shares/${token}`, {}, 404);
+		await makeAPIRequest(`/v1/public/docs/${token}`, {}, 404);
 		await makeAPIRequest(`${base}/trash/${shared.id}/restore`, {
 			method: "POST",
 			authToken: leader.token,
 		});
-		await makeAPIRequest(`/v1/shares/${token}`, {});
+		await makeAPIRequest(`/v1/public/docs/${token}`, {});
 	});
 
 	test("program items and event copies leave the Papierkorb out", async () => {

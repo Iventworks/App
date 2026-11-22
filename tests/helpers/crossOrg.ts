@@ -485,6 +485,43 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 			.returning()
 			.get();
 
+		// A published event form with an answer, and a template.
+		const form = db
+			.insert(DB.Tables.forms)
+			.values({
+				org_id,
+				scope: "event",
+				event_id: event.id,
+				title: text("Formular"),
+				fields: [
+					{
+						id: "q",
+						type: "short_text",
+						label: "Frage",
+						description: "",
+						required: false,
+						condition: null,
+					},
+				],
+				status: "open",
+				token: FileShares.createToken(),
+				published_at: now,
+				last_response_number: 1,
+				created_by: admin.id,
+			})
+			.returning()
+			.get();
+		const formResponse = db
+			.insert(DB.Tables.formResponses)
+			.values({ org_id, form_id: form.id, number: 1, answers: { q: text("Antwort") } })
+			.returning()
+			.get();
+		const formTemplate = db
+			.insert(DB.Tables.forms)
+			.values({ org_id, scope: "template", title: text("Vorlage"), created_by: admin.id })
+			.returning()
+			.get();
+
 		const adminSession = await SessionHandler.createSession(admin.id);
 		const apiKey = await APIKeyHandler.createApiKey(volunteer.id, text("Schlüssel"));
 		const volunteerSession = await SessionHandler.createSession(volunteer.id);
@@ -546,6 +583,10 @@ export async function seedOrgData(org: OrgInfo, marker: string): Promise<SeededO
 				domainId: domain.id,
 				shareId: share.id,
 				shareToken: share.token,
+				formId: form.id,
+				formToken: form.token!,
+				responseId: formResponse.id,
+				templateId: formTemplate.id,
 			},
 		};
 	});

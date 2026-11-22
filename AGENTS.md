@@ -177,7 +177,8 @@ CMP (Crossover Management Portal) before; the repository still is.
   so the office server's code never runs on our origin (that is why not its document API). The
   office server calls back on the org's public address. Deliberate deviations and rules:
   - WOPI routes answer in WOPI's format (raw JSON, bytes, `X-WOPI-*` headers), not the envelope,
-    and are not in the OpenAPI spec. The login middleware skips `/v1/wopi/`.
+    and are not in the OpenAPI spec. The login middleware skips `/v1/wopi/` (and `/v1/public/`,
+    see Public links).
   - Every call needs the proof signature (`WopiProof`) — never token-only — and the token is
     checked again: session, person, Papierkorb, current rights (`OfficeTokens.resolve`).
   - Files are addressed by `WopiIds` (`<id>-<hash>`): the office server keys open documents by
@@ -194,9 +195,18 @@ CMP (Crossover Management Portal) before; the repository still is.
     has the fix.
   - Host names: backend services go under `ivb.` (`office.ivb.<org domain>`) — a host of its
     own, never a path or port of the app's. `ivb` is a reserved org slug.
-- **Share links** (`file_shares`, `FileShares`): `<org url>/s/<token>` (page `pages/s/[token].vue`,
-  layout `public`, API `/shares/{token}/…`) opens a file or a folder for people without an
-  account; per link read (off: upload-only), upload, edit, delete, an optional password and expiry.
+- **Public links** (for people without an account): the kind is part of the link —
+  `<org url>/s/<kind>/<token>`, page `pages/s/<kind>/[token].vue` (layout `public`, built from
+  sub-components: `components/shares/`, `Forms*`), API `/public/<kind>/{token}/…` (router
+  `routes/public/`, one sub-router per kind). Kinds: `doc` (share links, API `/public/docs`) and
+  `form` (forms, API `/public/forms`). The token in the path is the only key: the login middleware
+  skips `/v1/public/` (a visitor's expired session must not turn the page into a 401). Unknown,
+  inactive and other orgs' tokens answer 404 with the same "Link nicht gefunden" card
+  (`SharesNotFound`). A new kind gets its own page, sub-router and tag (`DOCS_TAGS.PUBLIC`); there
+  is no lookup of a token's kind, and no forwarding from the old `/s/<token>` and `/f/<token>`.
+- **Share links** (`file_shares`, `FileShares`): `<org url>/s/doc/<token>` opens a file or a
+  folder for people without an account; per link read (off: upload-only), upload, edit, delete, an
+  optional password (cookie bound to `/api/v1/public/docs/<token>`) and expiry.
   - Every request through a link resolves its ids with `FileShares.resolveInShare` (the shared
     item or something below it); the shared item itself is never renamed or deleted through it.
   - Only managers of the library create links, so a link never grants more than its creator has.
@@ -219,6 +229,37 @@ CMP (Crossover Management Portal) before; the repository still is.
     the listing); pages never derive it from roles. Program items only show and link files the
     caller can open (`FileAccess.readableIds`). Receipts follow their expense, not access lists.
   - Migration `0007` kept existing org documents visible ("Alle Mitglieder: ansehen").
+- **Forms** ("Formulare", `forms`, `form_responses`, `server/lib/forms/`): the Kernteam's
+  (`scope = org`, `/core-team/forms`), an event's (`event`, `/events/{id}/forms`) and templates
+  (`template`, Kernteam). Anyone with the link answers (`<org url>/s/form/<token>`, see Public
+  links) — no account, no internal mode.
+  - Questions are `forms.fields` (JSON), answers `form_responses.answers` by question id;
+    `FormFields` / `FormAnswers` (`server/lib/forms/fields.ts`) are pure and imported by the
+    frontend too, so the form people fill in checks exactly what the server accepts (types,
+    conditions: a question or section shown only for options of an earlier choice question; hidden
+    questions are never required and their answers are dropped).
+  - Draft → `open` (publishing sets the token, kept from then on) ↔ `closed`; `closes_at` stops
+    answers without changing the status (`FormService.accepting`). Questions may change after
+    publishing (answers keep their ids). Templates are never published.
+  - Rights: `org_forms:manage` (Kernteam) for org forms and templates — templates are readable by
+    everyone in the portal so leaders can pick one; `forms:manage` (Leitung, so also the Kernteam)
+    for event forms: answers may hold personal data, the rest of the team doesn't see them.
+  - Routes: the lists live with their place (`/org/forms`, `/org/form-templates`,
+    `/events/{id}/forms`), everything on one form is `/forms/{formId}`. One shared model
+    (`FormModel` in `shared-models/forms.ts`) instead of a `model.ts` per router.
+  - Public side: unknown links, drafts and templates 404; closed forms open without their
+    questions and refuse answers (409). A honeypot field (`website`) gets a thank-you and nothing
+    is stored; 300 answers per form and client address in 10 minutes (a room scanning a QR code
+    shares one address); at most `FormService.MAX_RESPONSES` per form. Sending isn't audited;
+    managing forms and deleting answers is (`entity_type = form`).
+  - Answers are numbered per form; `forms.last_response_number` keeps a deleted answer's number
+    from being given again (deleting all starts at 1).
+  - Statistics, filters and the CSV export run in the browser over all answers (`app/utils/forms.ts`;
+    the CSV defuses formulas like the participant export). The QR code is drawn in the browser
+    (`uqr`), downloadable as PNG and SVG.
+  - Starter templates (`FormStarters`: Feedback, Anmeldung, Veranstaltungsbewertung) are added once
+    per org (`orgs.form_starters_added`: at startup and when an org is created); after that they
+    are ordinary templates. Copying an event takes its forms as drafts (`forms` part).
 - **Org groups** (`org_groups`, *Administration → Gruppen*): admin-managed, used in org access
   lists; deleting a group removes its entries.
 - **Time**: dates are `YYYY-MM-DD` strings, instants unix ms; "today" is computed in

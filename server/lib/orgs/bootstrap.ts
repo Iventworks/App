@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { DB } from "../db";
+import { FormStarters } from "../forms/starters";
 import { AppConstants } from "../utils/constants";
 import { LCrypt } from "../utils/crypto/lcrypt";
 import { Logger } from "../utils/logger";
@@ -45,6 +46,7 @@ export class OrgBootstrap {
 		});
 
 		await OrgRegistry.reload();
+		FormStarters.addWhereMissing();
 
 		const org = multiOrg ? OrgRegistry.systemOrg() : OrgRegistry.singleOrg();
 		if (!org) throw new Error("The org for this mode is missing after bootstrap.");

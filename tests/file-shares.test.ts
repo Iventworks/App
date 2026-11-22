@@ -68,7 +68,7 @@ async function createShare(fileId: number, body: Record<string, unknown>, token 
 	);
 }
 
-const tokenOf = (url: string) => url.split("/s/")[1]!;
+const tokenOf = (url: string) => url.split("/s/doc/")[1]!;
 const READ = { read: true, upload: false, edit: false, delete: false };
 const ALL = { read: true, upload: true, edit: true, delete: true };
 
@@ -136,7 +136,7 @@ describe("Managing share links", () => {
 
 	test("a link points at the org's own address and shows up as shared", async () => {
 		const share = await createShare(sharedFolderId, { permissions: READ, label: "Für die Eltern" });
-		expect(share.url).toMatch(/^http:\/\/test\.localhost:31316\/s\/[A-Za-z0-9]{32}$/);
+		expect(share.url).toMatch(/^http:\/\/test\.localhost:31316\/s\/doc\/[A-Za-z0-9]{32}$/);
 		expect(share.label).toBe("Für die Eltern");
 		expect(share.has_password).toBe(false);
 		expect(share.expires_at).toBeNull();
@@ -210,7 +210,7 @@ describe("A read-only folder link", () => {
 	});
 
 	test("opens the folder and everything below it", async () => {
-		const info = await call("GET", `/v1/shares/${token}`);
+		const info = await call("GET", `/v1/public/docs/${token}`);
 		expect(info.status).toBe(200);
 		expect(info.json.data.kind).toBe("folder");
 		expect(info.json.data.unlocked).toBe(true);
@@ -220,15 +220,15 @@ describe("A read-only folder link", () => {
 		expect(info.text).not.toContain("Für die Eltern");
 		expect(info.text).not.toContain("uploaded_by");
 
-		const root = await call("GET", `/v1/shares/${token}/items`);
+		const root = await call("GET", `/v1/public/docs/${token}/items`);
 		expect(root.json.data.items.map((i: any) => i.name)).toEqual(["Anhänge", "brief.txt"]);
 		expect(root.json.data.path.map((i: any) => i.name)).toEqual(["Elternbrief"]);
 
-		const sub = await call("GET", `/v1/shares/${token}/items?folder_id=${subFolderId}`);
+		const sub = await call("GET", `/v1/public/docs/${token}/items?folder_id=${subFolderId}`);
 		expect(sub.json.data.path.map((i: any) => i.name)).toEqual(["Elternbrief", "Anhänge"]);
 		const nested = sub.json.data.items[0];
 		expect(nested.content_url).toBe(
-			`/api/v1/shares/${token}/files/${nestedFileId}/content/packliste.txt`,
+			`/api/v1/public/docs/${token}/files/${nestedFileId}/content/packliste.txt`,
 		);
 
 		const content = await call("GET", nested.content_url.replace("/api", ""));
@@ -238,39 +238,39 @@ describe("A read-only folder link", () => {
 	});
 
 	test("never reaches files outside the shared folder", async () => {
-		expect((await call("GET", `/v1/shares/${token}/files/${outsideFileId}/content`)).status).toBe(
-			404,
-		);
-		expect((await call("GET", `/v1/shares/${token}/items?folder_id=${outsideFileId}`)).status).toBe(
-			404,
-		);
+		expect(
+			(await call("GET", `/v1/public/docs/${token}/files/${outsideFileId}/content`)).status,
+		).toBe(404);
+		expect(
+			(await call("GET", `/v1/public/docs/${token}/items?folder_id=${outsideFileId}`)).status,
+		).toBe(404);
 		// A folder of another library (event) neither.
-		expect((await call("GET", `/v1/shares/${token}/items?folder_id=${eventFolderId}`)).status).toBe(
-			404,
-		);
+		expect(
+			(await call("GET", `/v1/public/docs/${token}/items?folder_id=${eventFolderId}`)).status,
+		).toBe(404);
 	});
 
 	test("allows no changes", async () => {
 		expect(
-			(await call("POST", `/v1/shares/${token}/files`, { form: fileForm("x.txt", "x") })).status,
+			(await call("POST", `/v1/public/docs/${token}/files`, { form: fileForm("x.txt", "x") })).status,
 		).toBe(403);
 		expect(
-			(await call("POST", `/v1/shares/${token}/folders`, { body: { name: "Neu" } })).status,
+			(await call("POST", `/v1/public/docs/${token}/folders`, { body: { name: "Neu" } })).status,
 		).toBe(403);
 		expect(
-			(await call("PUT", `/v1/shares/${token}/files/${rootFileId}`, { body: { name: "y.txt" } }))
+			(await call("PUT", `/v1/public/docs/${token}/files/${rootFileId}`, { body: { name: "y.txt" } }))
 				.status,
 		).toBe(403);
-		expect((await call("DELETE", `/v1/shares/${token}/files/${rootFileId}`)).status).toBe(403);
+		expect((await call("DELETE", `/v1/public/docs/${token}/files/${rootFileId}`)).status).toBe(403);
 	});
 
 	test("only works on its org's address", async () => {
 		await OrgService.create({ slug: "share-other", display_name: "Andere" });
-		expect((await call("GET", `/v1/shares/${token}`, { host: "share-other.localhost" })).status).toBe(
-			404,
-		);
-		expect((await call("GET", `/v1/shares/${token}`, { host: "localhost" })).status).toBe(404);
-		expect((await call("GET", `/v1/shares/${"x".repeat(32)}`)).status).toBe(404);
+		expect(
+			(await call("GET", `/v1/public/docs/${token}`, { host: "share-other.localhost" })).status,
+		).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}`, { host: "localhost" })).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${"x".repeat(32)}`)).status).toBe(404);
 	});
 });
 
@@ -284,32 +284,34 @@ describe("A full-access folder link", () => {
 	});
 
 	test("uploads, creates folders, renames, replaces and deletes inside the folder", async () => {
-		const uploaded = await call("POST", `/v1/shares/${token}/files`, {
+		const uploaded = await call("POST", `/v1/public/docs/${token}/files`, {
 			form: fileForm("foto.txt", "Bild", { parent_id: String(subFolderId) }),
 		});
 		expect(uploaded.status).toBe(201);
 		const id = uploaded.json.data.id;
 
-		const folder = await call("POST", `/v1/shares/${token}/folders`, {
+		const folder = await call("POST", `/v1/public/docs/${token}/folders`, {
 			body: { name: "Rückmeldungen" },
 		});
 		expect(folder.status).toBe(201);
 
-		const renamed = await call("PUT", `/v1/shares/${token}/files/${id}`, {
+		const renamed = await call("PUT", `/v1/public/docs/${token}/files/${id}`, {
 			body: { name: "foto-1.txt" },
 		});
 		expect(renamed.json.data.name).toBe("foto-1.txt");
 
-		const replaced = await call("PUT", `/v1/shares/${token}/files/${id}/content`, {
+		const replaced = await call("PUT", `/v1/public/docs/${token}/files/${id}/content`, {
 			form: fileForm("egal.txt", "Neues Bild"),
 		});
 		expect(replaced.status).toBe(200);
-		expect((await call("GET", `/v1/shares/${token}/files/${id}/content`)).text).toBe("Neues Bild");
-
-		expect((await call("DELETE", `/v1/shares/${token}/files/${id}`)).status).toBe(200);
-		expect((await call("DELETE", `/v1/shares/${token}/files/${folder.json.data.id}`)).status).toBe(
-			200,
+		expect((await call("GET", `/v1/public/docs/${token}/files/${id}/content`)).text).toBe(
+			"Neues Bild",
 		);
+
+		expect((await call("DELETE", `/v1/public/docs/${token}/files/${id}`)).status).toBe(200);
+		expect(
+			(await call("DELETE", `/v1/public/docs/${token}/files/${folder.json.data.id}`)).status,
+		).toBe(200);
 
 		// Recorded without a user, naming the link.
 		const log = await makeAPIRequest("/v1/admin/audit-log?search=Freigabelink", {
@@ -322,21 +324,26 @@ describe("A full-access folder link", () => {
 
 	test("the shared folder itself can't be renamed or deleted, nor anything outside", async () => {
 		expect(
-			(await call("PUT", `/v1/shares/${token}/files/${sharedFolderId}`, { body: { name: "Weg" } }))
-				.status,
+			(
+				await call("PUT", `/v1/public/docs/${token}/files/${sharedFolderId}`, { body: { name: "Weg" } })
+			).status,
 		).toBe(404);
-		expect((await call("DELETE", `/v1/shares/${token}/files/${sharedFolderId}`)).status).toBe(404);
-		expect((await call("DELETE", `/v1/shares/${token}/files/${outsideFileId}`)).status).toBe(404);
+		expect((await call("DELETE", `/v1/public/docs/${token}/files/${sharedFolderId}`)).status).toBe(
+			404,
+		);
+		expect((await call("DELETE", `/v1/public/docs/${token}/files/${outsideFileId}`)).status).toBe(
+			404,
+		);
 		expect(
 			(
-				await call("PUT", `/v1/shares/${token}/files/${outsideFileId}/content`, {
+				await call("PUT", `/v1/public/docs/${token}/files/${outsideFileId}/content`, {
 					form: fileForm("x.txt", "x"),
 				})
 			).status,
 		).toBe(404);
 		expect(
 			(
-				await call("POST", `/v1/shares/${token}/files`, {
+				await call("POST", `/v1/public/docs/${token}/files`, {
 					form: fileForm("x.txt", "x", { parent_id: String(eventFolderId) }),
 				})
 			).status,
@@ -350,9 +357,11 @@ describe("Drop box and file links", () => {
 			permissions: { read: false, upload: true, edit: false, delete: false },
 		});
 		const token = tokenOf(share.url);
-		expect((await call("GET", `/v1/shares/${token}/items`)).status).toBe(403);
-		expect((await call("GET", `/v1/shares/${token}/files/${rootFileId}/content`)).status).toBe(403);
-		const uploaded = await call("POST", `/v1/shares/${token}/files`, {
+		expect((await call("GET", `/v1/public/docs/${token}/items`)).status).toBe(403);
+		expect((await call("GET", `/v1/public/docs/${token}/files/${rootFileId}/content`)).status).toBe(
+			403,
+		);
+		const uploaded = await call("POST", `/v1/public/docs/${token}/files`, {
 			form: fileForm("abgabe.txt", "Hier"),
 		});
 		expect(uploaded.status).toBe(201);
@@ -363,23 +372,23 @@ describe("Drop box and file links", () => {
 		const share = await createShare(rootFileId, { permissions: ALL });
 		expect(share.permissions).toEqual({ read: true, upload: false, edit: true, delete: false });
 		const token = tokenOf(share.url);
-		const info = await call("GET", `/v1/shares/${token}`);
+		const info = await call("GET", `/v1/public/docs/${token}`);
 		expect(info.json.data.kind).toBe("file");
 		expect(info.json.data.item.content_url).toBe(
-			`/api/v1/shares/${token}/files/${rootFileId}/content/brief.txt`,
+			`/api/v1/public/docs/${token}/files/${rootFileId}/content/brief.txt`,
 		);
 		expect(
 			(
-				await call("PUT", `/v1/shares/${token}/files/${rootFileId}/content`, {
+				await call("PUT", `/v1/public/docs/${token}/files/${rootFileId}/content`, {
 					form: fileForm("brief.txt", "Liebe Eltern!"),
 				})
 			).status,
 		).toBe(200);
 		expect(
-			(await call("PUT", `/v1/shares/${token}/files/${rootFileId}`, { body: { name: "x.txt" } }))
+			(await call("PUT", `/v1/public/docs/${token}/files/${rootFileId}`, { body: { name: "x.txt" } }))
 				.status,
 		).toBe(404);
-		expect((await call("GET", `/v1/shares/${token}/items`)).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}/items`)).status).toBe(404);
 	});
 });
 
@@ -389,32 +398,34 @@ describe("Password, expiry and switching sharing off", () => {
 		expect(share.has_password).toBe(true);
 		const token = tokenOf(share.url);
 
-		const locked = await call("GET", `/v1/shares/${token}`);
+		const locked = await call("GET", `/v1/public/docs/${token}`);
 		expect(locked.json.data.requires_password).toBe(true);
 		expect(locked.json.data.unlocked).toBe(false);
 		expect(locked.json.data.item).toBeNull();
 		expect(locked.text).not.toContain("Elternbrief");
-		expect((await call("GET", `/v1/shares/${token}/items`)).status).toBe(401);
-		expect((await call("GET", `/v1/shares/${token}/files/${rootFileId}/content`)).status).toBe(401);
+		expect((await call("GET", `/v1/public/docs/${token}/items`)).status).toBe(401);
+		expect((await call("GET", `/v1/public/docs/${token}/files/${rootFileId}/content`)).status).toBe(
+			401,
+		);
 
 		expect(
-			(await call("POST", `/v1/shares/${token}/unlock`, { body: { password: "falsch" } })).status,
+			(await call("POST", `/v1/public/docs/${token}/unlock`, { body: { password: "falsch" } })).status,
 		).toBe(403);
-		const unlocked = await call("POST", `/v1/shares/${token}/unlock`, {
+		const unlocked = await call("POST", `/v1/public/docs/${token}/unlock`, {
 			body: { password: "geheim123" },
 		});
 		expect(unlocked.status).toBe(200);
 		expect(unlocked.json.data.item.name).toBe("Elternbrief");
 		const setCookie = unlocked.headers.get("set-cookie") ?? "";
 		expect(setCookie).toContain("HttpOnly");
-		expect(setCookie).toContain(`Path=/api/v1/shares/${token}`);
+		expect(setCookie).toContain(`Path=/api/v1/public/docs/${token}`);
 		const cookie = setCookie.split(";")[0]!;
 
-		expect((await call("GET", `/v1/shares/${token}/items`, { cookie })).status).toBe(200);
+		expect((await call("GET", `/v1/public/docs/${token}/items`, { cookie })).status).toBe(200);
 		// A forged or expired cookie doesn't help.
 		expect(
 			(
-				await call("GET", `/v1/shares/${token}/items`, {
+				await call("GET", `/v1/public/docs/${token}/items`, {
 					cookie: `iventworks_share=${Date.now() + 1e7}.${"0".repeat(64)}`,
 				})
 			).status,
@@ -426,7 +437,7 @@ describe("Password, expiry and switching sharing off", () => {
 			authToken: core.token,
 			body: { password: "anders123" },
 		});
-		expect((await call("GET", `/v1/shares/${token}/items`, { cookie })).status).toBe(401);
+		expect((await call("GET", `/v1/public/docs/${token}/items`, { cookie })).status).toBe(401);
 	});
 
 	test("password guessing is rate-limited", async () => {
@@ -435,11 +446,13 @@ describe("Password, expiry and switching sharing off", () => {
 		);
 		for (let i = 0; i < 10; i++) {
 			expect(
-				(await call("POST", `/v1/shares/${token}/unlock`, { body: { password: `nope${i}` } })).status,
+				(await call("POST", `/v1/public/docs/${token}/unlock`, { body: { password: `nope${i}` } }))
+					.status,
 			).toBe(403);
 		}
 		expect(
-			(await call("POST", `/v1/shares/${token}/unlock`, { body: { password: "richtig1" } })).status,
+			(await call("POST", `/v1/public/docs/${token}/unlock`, { body: { password: "richtig1" } }))
+				.status,
 		).toBe(429);
 	});
 
@@ -449,13 +462,13 @@ describe("Password, expiry and switching sharing off", () => {
 			expires_at: Date.now() + 60_000,
 		});
 		const token = tokenOf(share.url);
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(200);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(200);
 		await DB.instance()
 			.update(DB.Tables.fileShares)
 			.set({ expires_at: Date.now() - 1 })
 			.where(eq(DB.Tables.fileShares.id, share.id))
 			.run();
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(404);
 		const list = await makeAPIRequest(`/v1/files/${sharedFolderId}/shares`, {
 			authToken: core.token,
 		});
@@ -469,7 +482,7 @@ describe("Password, expiry and switching sharing off", () => {
 			authToken: admin.token,
 			body: { file_sharing_enabled: false },
 		});
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(404);
 		await makeAPIRequest(
 			`/v1/files/${sharedFolderId}/shares`,
 			{ method: "POST", authToken: core.token, body: { permissions: READ } },
@@ -480,7 +493,7 @@ describe("Password, expiry and switching sharing off", () => {
 			authToken: admin.token,
 			body: { file_sharing_enabled: true },
 		});
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(200);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(200);
 	});
 });
 
@@ -500,14 +513,14 @@ describe("Admin overview and clean-up", () => {
 			method: "DELETE",
 			authToken: admin.token,
 		});
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(404);
 	});
 
 	test("deleting the shared item deletes its links", async () => {
 		const file = await uploadOrgDoc("kurz.txt", "weg");
 		const token = tokenOf((await createShare(file.id, { permissions: READ })).url);
 		await makeAPIRequest(`/v1/files/${file.id}`, { method: "DELETE", authToken: core.token });
-		expect((await call("GET", `/v1/shares/${token}`)).status).toBe(404);
+		expect((await call("GET", `/v1/public/docs/${token}`)).status).toBe(404);
 		// The overview says why the link doesn't work.
 		const all = await makeAPIRequest("/v1/admin/shares", { authToken: admin.token });
 		const entry = all.find((s: any) => s.file.id === file.id);
