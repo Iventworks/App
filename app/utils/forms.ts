@@ -61,6 +61,22 @@ export const FORM_STATES: Record<
 	closed: { label: "Geschlossen", short: "Geschlossen", color: "warning", icon: "i-lucide-lock" },
 };
 
+/** Event forms: who works on it — the Leitung chooses (`leaders_only`). */
+export const FORM_MANAGERS = [
+	{
+		value: "leaders",
+		label: "Nur Leitung",
+		description:
+			"Der Rest des Teams sieht nur, dass es das Formular gibt: keine Fragen, keinen Link, keine Antworten.",
+	},
+	{
+		value: "team",
+		label: "Ganzes Team",
+		description: "Alle im Team bearbeiten es und sehen die Antworten.",
+	},
+] as const;
+export type FormManagers = (typeof FORM_MANAGERS)[number]["value"];
+
 /** Draft, open, past its closing time or full (both still `open`) or closed. */
 export function formStateOf(
 	form: Pick<FormSummary, "status" | "accepting" | "response_count">,

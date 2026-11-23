@@ -29,9 +29,19 @@ export namespace FormModel {
 		question_count: z.number(),
 		response_count: z.number(),
 		last_response_at: z.number().nullable(),
+		/**
+		 * Event forms: only the Leitung works on it. The rest of the team sees only that it exists
+		 * (no description, link or answers: those come empty).
+		 */
+		leaders_only: z.boolean(),
 		created_by: UserSummary.Schema.nullable(),
 		created_at: z.number(),
 		updated_at: z.number(),
+		/** May open it: questions, settings, link, answers. */
+		can_open: z.boolean(),
+		can_delete: z.boolean(),
+		/** May change `leaders_only` (the event's Leitung). */
+		can_restrict: z.boolean(),
 	});
 	export type Summary = z.infer<typeof Summary>;
 
@@ -64,6 +74,14 @@ export namespace FormModel.Create {
 	export type Body = z.infer<typeof Body>;
 }
 
+export namespace FormModel.CreateInEvent {
+	export const Body = FormModel.Create.Body.extend({
+		/** Only the Leitung works on it (set by the Leitung); otherwise the whole team. */
+		leaders_only: z.boolean().default(false),
+	});
+	export type Body = z.infer<typeof Body>;
+}
+
 export namespace FormModel.Update {
 	export const Body = z
 		.object({
@@ -74,6 +92,8 @@ export namespace FormModel.Update {
 			confirmation_message: z.string().trim().max(2_000),
 			closes_at: z.number().int().positive().nullable(),
 			fields: FormFields.List,
+			/** Event forms, by the Leitung: only the Leitung works on it. */
+			leaders_only: z.boolean(),
 		})
 		.partial()
 		.refine((data) => Object.values(data).some((value) => value !== undefined), {

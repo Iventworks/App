@@ -1,14 +1,21 @@
 <script setup lang="ts">
 /**
  * "Neues Formular" / "Neue Vorlage": a title and what to start from — empty or one of the
- * templates (their questions, texts and conditions are copied; the template stays as it is).
+ * templates (their questions, texts and conditions are copied; the template stays as it is). In
+ * an event the Leitung also chooses who works on it.
  */
-import type { FormSummary } from "~/utils/forms";
+import type { FormManagers, FormSummary } from "~/utils/forms";
 
 const props = defineProps<{
 	/** `template`: a new template (Kernteam). */
 	kind: "form" | "template";
-	create: (body: { title: string; template_id: number | null }) => Promise<{ id: number } | null>;
+	/** An event's Leitung: "Nur Leitung" or "Ganzes Team" (`leaders_only`). */
+	restrictable?: boolean;
+	create: (body: {
+		title: string;
+		template_id: number | null;
+		leaders_only?: boolean;
+	}) => Promise<{ id: number } | null>;
 }>();
 
 const emit = defineEmits<{ created: [id: number] }>();
@@ -19,6 +26,7 @@ const templates = ref<FormSummary[]>([]);
 const loadingTemplates = ref(false);
 const title = ref("");
 const templateId = ref<number | null>(null);
+const managers = ref<FormManagers>("leaders");
 const saving = ref(false);
 /** The title still is the chosen template's (or empty): picking another one replaces it. */
 let titleFromTemplate = true;
@@ -27,6 +35,7 @@ watch(open, async (value) => {
 	if (!value) return;
 	title.value = "";
 	templateId.value = null;
+	managers.value = "leaders";
 	titleFromTemplate = true;
 	loadingTemplates.value = true;
 	const result = await useAPI((api) => api.getOrgFormTemplates({}));
@@ -48,7 +57,11 @@ function onTitleInput() {
 async function submit() {
 	if (!title.value.trim()) return;
 	saving.value = true;
-	const created = await props.create({ title: title.value.trim(), template_id: templateId.value });
+	const created = await props.create({
+		title: title.value.trim(),
+		template_id: templateId.value,
+		...(props.restrictable ? { leaders_only: managers.value === "leaders" } : {}),
+	});
 	saving.value = false;
 	if (!created) return;
 	toast.add({
@@ -109,6 +122,10 @@ const choices = computed(() => [
 
 			<UFormField label="Titel" required>
 				<UInput v-model="title" :maxlength="200" autofocus class="w-full" @update:model-value="onTitleInput" />
+			</UFormField>
+
+			<UFormField v-if="restrictable" label="Wer arbeitet daran?" hint="Später änderbar">
+				<URadioGroup v-model="managers" :items="[...FORM_MANAGERS]" value-key="value" variant="card" />
 			</UFormField>
 		</form>
 

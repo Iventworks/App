@@ -5611,6 +5611,8 @@ export const zGetEventsResponse = z.object({
             'materials:view',
             'materials:contribute',
             'materials:manage',
+            'forms:view',
+            'forms:create',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -5759,6 +5761,8 @@ export const zPostEventsResponse = z.object({
             'materials:view',
             'materials:contribute',
             'materials:manage',
+            'forms:view',
+            'forms:create',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -5893,6 +5897,8 @@ export const zGetEventsByEventIdResponse = z.object({
             'materials:view',
             'materials:contribute',
             'materials:manage',
+            'forms:view',
+            'forms:create',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -6044,6 +6050,8 @@ export const zPutEventsByEventIdResponse = z.object({
             'materials:view',
             'materials:contribute',
             'materials:manage',
+            'forms:view',
+            'forms:create',
             'forms:manage',
             'expenses:submit',
             'expenses:view_all',
@@ -6165,6 +6173,8 @@ export const zGetEventsByEventIdOverviewResponse = z.object({
                 'materials:view',
                 'materials:contribute',
                 'materials:manage',
+                'forms:view',
+                'forms:create',
                 'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
@@ -10888,6 +10898,8 @@ export const zPostEventsByEventIdCopyResponse = z.object({
                 'materials:view',
                 'materials:contribute',
                 'materials:manage',
+                'forms:view',
+                'forms:create',
                 'forms:manage',
                 'expenses:submit',
                 'expenses:view_all',
@@ -10960,6 +10972,7 @@ export const zGetEventsByEventIdFormsResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -10974,13 +10987,17 @@ export const zGetEventsByEventIdFormsResponse = z.object({
             ])
         }).nullable(),
         created_at: z.number(),
-        updated_at: z.number()
+        updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean()
     }))
 });
 
 export const zPostEventsByEventIdFormsBody = z.object({
     title: z.string().min(1).max(200),
-    template_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
+    template_id: z.int().gt(0).lte(9007199254740991).nullish().default(null),
+    leaders_only: z.boolean().optional().default(false)
 });
 
 export const zPostEventsByEventIdFormsPath = z.object({
@@ -11017,6 +11034,7 @@ export const zPostEventsByEventIdFormsResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -11032,6 +11050,9 @@ export const zPostEventsByEventIdFormsResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -13947,6 +13968,7 @@ export const zGetOrgFormsResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -13961,7 +13983,10 @@ export const zGetOrgFormsResponse = z.object({
             ])
         }).nullable(),
         created_at: z.number(),
-        updated_at: z.number()
+        updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean()
     }))
 });
 
@@ -14000,6 +14025,7 @@ export const zPostOrgFormsResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -14015,6 +14041,9 @@ export const zPostOrgFormsResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -14205,6 +14234,7 @@ export const zGetOrgFormTemplatesResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -14219,7 +14249,10 @@ export const zGetOrgFormTemplatesResponse = z.object({
             ])
         }).nullable(),
         created_at: z.number(),
-        updated_at: z.number()
+        updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean()
     }))
 });
 
@@ -14258,6 +14291,7 @@ export const zPostOrgFormTemplatesResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -14273,6 +14307,9 @@ export const zPostOrgFormTemplatesResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -14481,6 +14518,7 @@ export const zGetFormsByFormIdResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -14496,6 +14534,9 @@ export const zGetFormsByFormIdResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -14803,7 +14844,8 @@ export const zPutFormsByFormIdBody = z.object({
             }).nullish().default(null),
             type: z.literal('section')
         })
-    ])).max(200).optional()
+    ])).max(200).optional(),
+    leaders_only: z.boolean().optional()
 });
 
 export const zPutFormsByFormIdPath = z.object({
@@ -14840,6 +14882,7 @@ export const zPutFormsByFormIdResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -14855,6 +14898,9 @@ export const zPutFormsByFormIdResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -15053,6 +15099,7 @@ export const zPutFormsByFormIdStatusResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -15068,6 +15115,9 @@ export const zPutFormsByFormIdStatusResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
@@ -15267,6 +15317,7 @@ export const zPostFormsByFormIdCopyResponse = z.object({
         question_count: z.number(),
         response_count: z.number(),
         last_response_at: z.number().nullable(),
+        leaders_only: z.boolean(),
         created_by: z.object({
             id: z.number(),
             username: z.string(),
@@ -15282,6 +15333,9 @@ export const zPostFormsByFormIdCopyResponse = z.object({
         }).nullable(),
         created_at: z.number(),
         updated_at: z.number(),
+        can_open: z.boolean(),
+        can_delete: z.boolean(),
+        can_restrict: z.boolean(),
         fields: z.array(z.union([
             z.object({
                 id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),

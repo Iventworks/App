@@ -9,7 +9,7 @@ const detail = await createFormDetail({
 	listPath: "/core-team/forms",
 	canManageTemplates: true,
 });
-if (!detail) {
+if (typeof detail === "number") {
 	throw createError({ statusCode: 404, statusMessage: "Formular nicht gefunden", fatal: true });
 }
 // Events' forms open in their event.

@@ -246,8 +246,13 @@ CMP (Crossover Management Portal) before; the repository still is.
     the statistics skip answers that don't fit their question (`FormAnswers.fits`). Templates are
     never published.
   - Rights: `org_forms:manage` (Kernteam) for org forms and templates — templates are readable by
-    everyone in the portal so leaders can pick one; `forms:manage` (Leitung, so also the Kernteam)
-    for event forms: answers may hold personal data, the rest of the team doesn't see them.
+    everyone in the portal so anyone creating a form can pick one. Event forms: the team
+    (`forms:view` / `forms:create`) creates forms and works on them, deleting only its own; the
+    Leitung (`forms:manage`, so also the Kernteam) works on all, deletes any and can keep a form for
+    itself (`forms.leaders_only`, its choice when creating and later): answers may hold personal
+    data, so the rest of the team then sees only title and status (`FormService.summaries` blanks
+    the rest). `FormService.access(form, viewer)` decides it; lists and details carry `can_open` /
+    `can_delete` / `can_restrict`. Copies and copied events keep `leaders_only`.
   - Routes: the lists live with their place (`/org/forms`, `/org/form-templates`,
     `/events/{id}/forms`), everything on one form is `/forms/{formId}`. One shared model
     (`FormModel` in `shared-models/forms.ts`) instead of a `model.ts` per router.
@@ -284,7 +289,8 @@ CMP (Crossover Management Portal) before; the repository still is.
     inventory only through `GET /events/{id}/materials/catalog` — free counts, never other events'
     names. Staff add `own` entries, ask (`material_requests`), set `location`, link to the program
     (`material_links`: program items or a Regeltermin's dates, optional quantity — overlapping
-    items needing more only warn) and tick the packing list (`packed_at`/`returned_at`).
+    items needing more only warn) and keep the packing list (one status open → packed → back:
+    `returned_at` implies `packed_at`, unpacking clears both).
   - Requests are answered by entries with `request_id`; `MaterialService.settle` makes a request
     `done` once they cover it and opens an automatically settled one again when they no longer do
     (one the Leitung decided stays; a status the Leitung just set isn't settled over). Code that

@@ -2938,7 +2938,7 @@ export const postEventsByEventIdCopy = <TComposable extends Composable = '$fetch
 /**
  * List event forms
  *
- * The event's forms with their status, link and number of answers.
+ * The event's forms with their status, link and number of answers, and what the caller may do with each. A form for the Leitung only shows the rest of the team just its title and status.
  */
 export const getEventsByEventIdForms = <TComposable extends Composable = '$fetch', DefaultT extends GetEventsByEventIdFormsResponse = GetEventsByEventIdFormsResponse>(options: Options<TComposable, GetEventsByEventIdFormsData, GetEventsByEventIdFormsResponse, DefaultT>): RequestResult<TComposable, GetEventsByEventIdFormsResponse | DefaultT, DefaultT> => (options.client ?? client).get<TComposable, GetEventsByEventIdFormsResponse | DefaultT, GetEventsByEventIdFormsError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2949,7 +2949,7 @@ export const getEventsByEventIdForms = <TComposable extends Composable = '$fetch
 /**
  * Create event form
  *
- * A new draft in the event, empty or from a template (`template_id`).
+ * A new draft in the event, empty or from a template (`template_id`). Anyone on the team; `leaders_only` (only the Leitung works on it) is the Leitung's choice.
  */
 export const postEventsByEventIdForms = <TComposable extends Composable = '$fetch', DefaultT extends PostEventsByEventIdFormsResponse = PostEventsByEventIdFormsResponse>(options: Options<TComposable, PostEventsByEventIdFormsData, PostEventsByEventIdFormsResponse, DefaultT>): RequestResult<TComposable, PostEventsByEventIdFormsResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostEventsByEventIdFormsResponse | DefaultT, PostEventsByEventIdFormsError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3566,7 +3566,7 @@ export const postOrgFormTemplates = <TComposable extends Composable = '$fetch', 
 /**
  * Delete form
  *
- * Delete a form with all its answers (or a template). The link stops working.
+ * Delete a form with all its answers (or a template). The link stops working. In an event: the Leitung, or who created it.
  */
 export const deleteFormsByFormId = <TComposable extends Composable = '$fetch', DefaultT extends DeleteFormsByFormIdResponse = DeleteFormsByFormIdResponse>(options: Options<TComposable, DeleteFormsByFormIdData, DeleteFormsByFormIdResponse, DefaultT>): RequestResult<TComposable, DeleteFormsByFormIdResponse | DefaultT, DefaultT> => (options.client ?? client).delete<TComposable, DeleteFormsByFormIdResponse | DefaultT, DeleteFormsByFormIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3588,7 +3588,7 @@ export const getFormsByFormId = <TComposable extends Composable = '$fetch', Defa
 /**
  * Update form
  *
- * Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit.
+ * Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit. `leaders_only` (event forms) is the Leitung's.
  */
 export const putFormsByFormId = <TComposable extends Composable = '$fetch', DefaultT extends PutFormsByFormIdResponse = PutFormsByFormIdResponse>(options: Options<TComposable, PutFormsByFormIdData, PutFormsByFormIdResponse, DefaultT>): RequestResult<TComposable, PutFormsByFormIdResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutFormsByFormIdResponse | DefaultT, PutFormsByFormIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -3618,7 +3618,7 @@ export const putFormsByFormIdStatus = <TComposable extends Composable = '$fetch'
 /**
  * Copy form
  *
- * A new draft with the same questions and texts, in the same place — or, with `as_template`, a new template (Kernteam). Answers, link and closing time don't come along.
+ * A new draft with the same questions and texts, in the same place (for the Leitung only if the form is) — or, with `as_template`, a new template (Kernteam). Answers, link and closing time don't come along.
  */
 export const postFormsByFormIdCopy = <TComposable extends Composable = '$fetch', DefaultT extends PostFormsByFormIdCopyResponse = PostFormsByFormIdCopyResponse>(options: Options<TComposable, PostFormsByFormIdCopyData, PostFormsByFormIdCopyResponse, DefaultT>): RequestResult<TComposable, PostFormsByFormIdCopyResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostFormsByFormIdCopyResponse | DefaultT, PostFormsByFormIdCopyError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

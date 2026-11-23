@@ -1,5 +1,10 @@
 <script setup lang="ts">
-/** "Einstellungen": the text after sending and, for forms, until when it takes answers. */
+/**
+ * "Einstellungen": the text after sending, for forms until when it takes answers, and for an
+ * event's Leitung who works on the form.
+ */
+import type { FormManagers } from "~/utils/forms";
+
 const detail = useFormDetail();
 const { form, isTemplate } = detail;
 const toast = useToast();
@@ -9,6 +14,8 @@ const DEFAULT_CONFIRMATION = "Danke! Deine Antwort wurde gespeichert.";
 
 const confirmation = ref(form.value.confirmation_message);
 const closesAt = ref(toDateTimeInput(form.value.closes_at));
+const managersOf = (leadersOnly: boolean): FormManagers => (leadersOnly ? "leaders" : "team");
+const managers = ref<FormManagers>(managersOf(form.value.leaders_only));
 
 /** Closing times compare by the minute, as the picker shows them (the API takes any time). */
 function sameClosingTime(input: string, ts: number | null) {
@@ -18,7 +25,8 @@ function sameClosingTime(input: string, ts: number | null) {
 const dirty = computed(
 	() =>
 		confirmation.value.trim() !== form.value.confirmation_message ||
-		!sameClosingTime(closesAt.value, form.value.closes_at),
+		!sameClosingTime(closesAt.value, form.value.closes_at) ||
+		managers.value !== managersOf(form.value.leaders_only),
 );
 watch(dirty, (value) => (detail.dirty.value = value), { immediate: true });
 onUnmounted(() => {
@@ -52,6 +60,9 @@ async function save() {
 	const ok = await detail.save({
 		confirmation_message: confirmation.value.trim(),
 		...(isTemplate.value ? {} : { closes_at: fromDateTimeInput(closesAt.value) }),
+		...(form.value.can_restrict && managers.value !== managersOf(form.value.leaders_only)
+			? { leaders_only: managers.value === "leaders" }
+			: {}),
 	});
 	saving.value = false;
 	if (ok) toast.add({ title: "Gespeichert", icon: "i-lucide-check", color: "success" });
@@ -91,6 +102,15 @@ onBeforeRouteLeave(async () => {
 			</div>
 		</DashboardSectionCard>
 
+		<DashboardSectionCard
+			v-if="form.can_restrict"
+			title="Wer arbeitet daran?"
+			description="Formulare im Event bearbeitet das ganze Team, wenn die Leitung sie nicht für sich behält."
+			icon="i-lucide-users"
+		>
+			<URadioGroup v-model="managers" :items="[...FORM_MANAGERS]" value-key="value" variant="card" />
+		</DashboardSectionCard>
+
 		<div class="flex justify-end gap-2">
 			<UButton
 				v-if="dirty"
@@ -100,6 +120,7 @@ onBeforeRouteLeave(async () => {
 				@click="
 					confirmation = form.confirmation_message;
 					closesAt = toDateTimeInput(form.closes_at);
+					managers = managersOf(form.leaders_only);
 				"
 			/>
 			<UButton label="Speichern" icon="i-lucide-save" :disabled="!dirty" :loading="saving" @click="save" />

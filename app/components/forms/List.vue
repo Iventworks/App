@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * The forms of a place (Kernteam, an event) or the templates: status, answers, last change; a
- * row opens the form. Published forms have their link and QR code one click away.
+ * row opens the form. Published forms have their link and QR code one click away. An event form
+ * kept for the Leitung shows the rest of the team only its title and status.
  */
 import type { TableColumn } from "@nuxt/ui";
 import type { FormState, FormSummary } from "~/utils/forms";
@@ -12,6 +13,8 @@ const props = defineProps<{
 	/** The forms' pages are `<basePath>/<id>`. */
 	basePath: string;
 	templates?: boolean;
+	/** Show "Neues Formular" (default: yes). */
+	canCreate?: boolean;
 }>();
 
 const emit = defineEmits<{ refresh: []; create: [] }>();
@@ -89,13 +92,14 @@ const shareOpen = computed({
 		"
 		empty-icon="i-lucide-clipboard-list"
 		@refresh="emit('refresh')"
-		@row-click="navigateTo(`${basePath}/${$event.id}`)"
+		@row-click="$event.can_open && navigateTo(`${basePath}/${$event.id}`)"
 	>
 		<template #header-left>
 			<slot name="header-left" />
 		</template>
 		<template #header-right>
 			<UButton
+				v-if="canCreate !== false"
 				:label="templates ? 'Neue Vorlage' : 'Neues Formular'"
 				icon="i-lucide-plus"
 				@click="emit('create')"
@@ -103,6 +107,7 @@ const shareOpen = computed({
 		</template>
 		<template #empty-actions>
 			<UButton
+				v-if="canCreate !== false"
 				:label="templates ? 'Neue Vorlage' : 'Neues Formular'"
 				icon="i-lucide-plus"
 				@click="emit('create')"
@@ -110,18 +115,42 @@ const shareOpen = computed({
 		</template>
 
 		<template #title-cell="{ row }">
-			<NuxtLink :to="`${basePath}/${row.original.id}`" class="flex items-center gap-3 hover:underline" @click.stop>
+			<component
+				:is="row.original.can_open ? 'NuxtLink' : 'div'"
+				:to="row.original.can_open ? `${basePath}/${row.original.id}` : undefined"
+				class="flex items-center gap-3"
+				:class="row.original.can_open ? 'hover:underline' : ''"
+				@click.stop
+			>
 				<UIcon
-					:name="templates ? 'i-lucide-layout-template' : 'i-lucide-clipboard-list'"
-					class="size-5 shrink-0 text-primary-400"
+					:name="
+						templates
+							? 'i-lucide-layout-template'
+							: row.original.can_open
+								? 'i-lucide-clipboard-list'
+								: 'i-lucide-lock'
+					"
+					class="size-5 shrink-0"
+					:class="row.original.can_open ? 'text-primary-400' : 'text-slate-500'"
 				/>
 				<span class="flex min-w-0 flex-col leading-tight">
-					<span class="truncate font-medium text-white">{{ row.original.title }}</span>
+					<span class="flex min-w-0 items-center gap-2">
+						<span class="truncate font-medium text-white">{{ row.original.title }}</span>
+						<UBadge
+							v-if="row.original.leaders_only"
+							label="Nur Leitung"
+							icon="i-lucide-crown"
+							color="neutral"
+							variant="subtle"
+							size="sm"
+							class="shrink-0"
+						/>
+					</span>
 					<span v-if="row.original.created_by" class="truncate text-xs text-slate-500">
 						{{ row.original.created_by.display_name }}
 					</span>
 				</span>
-			</NuxtLink>
+			</component>
 		</template>
 		<template #state-cell="{ row }">
 			<UBadge
@@ -133,7 +162,8 @@ const shareOpen = computed({
 			/>
 		</template>
 		<template #response_count-cell="{ row }">
-			<span class="text-sm tabular-nums">
+			<span v-if="!row.original.can_open" class="text-sm text-slate-600">–</span>
+			<span v-else class="text-sm tabular-nums">
 				{{ row.original.response_count }}
 				<span v-if="row.original.last_response_at" class="text-xs text-slate-500">
 					· {{ formatRelative(row.original.last_response_at) }}
@@ -158,6 +188,7 @@ const shareOpen = computed({
 					@click.stop="shareTarget = row.original"
 				/>
 				<UButton
+					v-if="row.original.can_open"
 					icon="i-lucide-chevron-right"
 					size="sm"
 					color="neutral"

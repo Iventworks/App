@@ -1,3 +1,4 @@
+import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { FormService } from "../../../../../../forms/service";
@@ -12,12 +13,24 @@ import { DOCS_TAGS } from "../../../docs";
 
 /**
  * Form templates (`scope = template`): everyone who works in the portal can pick one for a new
- * form (an event's Leitung too), only the Kernteam manages them — on `/forms/{formId}` like forms.
+ * form (an event's team too), only the Kernteam manages them — on `/forms/{formId}` like forms.
  */
 export const router = new Hono().basePath("/form-templates");
 
 const TAG = DOCS_TAGS.ORG.FORMS;
 const FORBIDDEN = "Only the core team manages templates";
+
+/** Everyone reads the templates (to start a form from one); the Kernteam manages them. */
+function viewer(c: Context) {
+	return {
+		userId: getAuthUserId(c),
+		manage: PermissionHelper.can({
+			authContext: AuthHandler.AuthContext.get(c),
+			permission: "org_forms:manage",
+		}),
+		contribute: false,
+	};
+}
 
 router.get(
 	"/",
@@ -36,7 +49,7 @@ router.get(
 		return APIResponse.success(
 			c,
 			"Templates retrieved successfully",
-			await FormService.list({ scope: "template" }),
+			await FormService.list({ scope: "template" }, viewer(c)),
 		);
 	},
 );
@@ -90,7 +103,7 @@ router.post(
 		return APIResponse.created(
 			c,
 			"Template created successfully",
-			await FormService.details(template),
+			await FormService.details(template, viewer(c)),
 		);
 	},
 );

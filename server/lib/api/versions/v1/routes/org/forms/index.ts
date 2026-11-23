@@ -24,6 +24,11 @@ function canManage(c: Context) {
 	});
 }
 
+/** The Kernteam, who manages all of these. */
+function viewer(c: Context) {
+	return { userId: getAuthUserId(c), manage: true, contribute: false };
+}
+
 router.get(
 	"/",
 
@@ -43,7 +48,7 @@ router.get(
 		return APIResponse.success(
 			c,
 			"Forms retrieved successfully",
-			await FormService.list({ scope: "org" }),
+			await FormService.list({ scope: "org" }, viewer(c)),
 		);
 	},
 );
@@ -87,6 +92,10 @@ router.post(
 			summary: `${FormService.describe(form)} angelegt${template ? ` (aus der Vorlage „${template.title}“)` : ""}`,
 		});
 
-		return APIResponse.created(c, "Form created successfully", await FormService.details(form));
+		return APIResponse.created(
+			c,
+			"Form created successfully",
+			await FormService.details(form, viewer(c)),
+		);
 	},
 );

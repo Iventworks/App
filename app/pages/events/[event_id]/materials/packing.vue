@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
- * "Packliste": go through the material when packing and when bringing it back. Optional — ticks
- * are only a help, nothing depends on them. Grouped by where things are (or come from).
+ * "Packliste": go through the material when packing and when bringing it back. Optional — the
+ * status is only a help, nothing depends on it. Each entry is open, packed or back: "Alles" sets
+ * it with a select, the other views have the next step as a button. Grouped by where things are
+ * (or come from).
  */
+import type { PackingStatus } from "~/composables/useEventMaterials";
 import type { EventMaterial } from "~/utils/types";
 
-const { items, loading, contribute, tick } = useEventMaterials();
+const { items, loading, contribute, setPacking } = useEventMaterials();
+const toast = useToast();
 
 const { value: show, items: showItems } = useQueryFilter("show", [
 	{ label: "Alles", value: "all" },
@@ -13,11 +17,42 @@ const { value: show, items: showItems } = useQueryFilter("show", [
 	{ label: "Noch nicht zurück", value: "return" },
 ]);
 
+// "Noch nicht zurück": what was packed — what never was is still under "Noch einpacken".
 const visible = computed(() =>
-	items.value.filter((item) =>
-		show.value === "pack" ? !item.packed_at : show.value === "return" ? !item.returned_at : true,
-	),
+	items.value.filter((item) => {
+		const status = packingStatus(item);
+		if (show.value === "pack") return status === "open";
+		if (show.value === "return") return status === "packed";
+		return true;
+	}),
 );
+
+const statusItems = (Object.keys(PACKING_STATUS_LABELS) as PackingStatus[]).map((status) => ({
+	label: PACKING_STATUS_LABELS[status],
+	value: status,
+	icon: PACKING_STATUS_ICONS[status],
+}));
+
+/** The next step in the filtered views; it leaves the view, so it can be taken back. */
+async function step(item: EventMaterial, to: PackingStatus) {
+	const from = packingStatus(item);
+	if (!(await setPacking(item, to))) return;
+	toast.add({
+		title: `${materialLabel(item)}: ${PACKING_STATUS_LABELS[to]}`,
+		icon: PACKING_STATUS_ICONS[to],
+		color: "success",
+		actions: [
+			{
+				label: "Rückgängig",
+				icon: "i-lucide-undo-2",
+				onClick: () => {
+					const current = items.value.find((entry) => entry.id === item.id);
+					if (current) void setPacking(current, from);
+				},
+			},
+		],
+	});
+}
 
 const UNPLACED = {
 	inventory: "Aus dem Lager",
@@ -48,8 +83,11 @@ const groups = computed(() => {
 	);
 });
 
-const packed = computed(() => items.value.filter((item) => item.packed_at).length);
-const returned = computed(() => items.value.filter((item) => item.returned_at).length);
+// By status: what is back counts as packed (also entries ticked "Zurück" alone before).
+const packed = computed(() => items.value.filter((item) => packingStatus(item) !== "open").length);
+const returned = computed(
+	() => items.value.filter((item) => packingStatus(item) === "returned").length,
+);
 
 function source(item: EventMaterial) {
 	if (item.kind === "own")
@@ -85,7 +123,7 @@ function source(item: EventMaterial) {
 			v-else-if="!visible.length"
 			icon="i-lucide-list-checks"
 			:title="items.length ? 'Alles erledigt' : 'Noch kein Material'"
-			:description="items.length ? 'In dieser Ansicht ist nichts mehr offen.' : 'Sobald Material auf der Liste steht, kannst du es hier abhaken.'"
+			:description="items.length ? 'In dieser Ansicht ist nichts mehr offen.' : 'Sobald Material auf der Liste steht, hältst du hier fest, was eingepackt und was zurück ist.'"
 		/>
 
 		<div v-else class="space-y-4">
@@ -96,17 +134,36 @@ function source(item: EventMaterial) {
 							<p class="font-medium text-white">{{ materialLabel(item) }}</p>
 							<p class="text-xs text-slate-400">{{ source(item) }}</p>
 						</div>
-						<UCheckbox
-							:model-value="!!item.packed_at"
-							label="Eingepackt"
+						<UButton
+							v-if="show === 'pack'"
+							:label="PACKING_STATUS_LABELS.packed"
+							:icon="PACKING_STATUS_ICONS.packed"
+							color="neutral"
+							variant="subtle"
+							size="sm"
 							:disabled="!contribute"
-							@update:model-value="(value: boolean | 'indeterminate') => tick(item, 'packed', value === true)"
+							@click="step(item, 'packed')"
 						/>
-						<UCheckbox
-							:model-value="!!item.returned_at"
-							label="Zurück"
+						<UButton
+							v-else-if="show === 'return'"
+							:label="PACKING_STATUS_LABELS.returned"
+							:icon="PACKING_STATUS_ICONS.returned"
+							color="neutral"
+							variant="subtle"
+							size="sm"
 							:disabled="!contribute"
-							@update:model-value="(value: boolean | 'indeterminate') => tick(item, 'returned', value === true)"
+							@click="step(item, 'returned')"
+						/>
+						<USelect
+							v-else
+							:model-value="packingStatus(item)"
+							:items="statusItems"
+							:icon="PACKING_STATUS_ICONS[packingStatus(item)]"
+							:disabled="!contribute"
+							size="sm"
+							class="w-36"
+							aria-label="Status"
+							@update:model-value="(value: PackingStatus) => setPacking(item, value)"
 						/>
 					</li>
 				</ul>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The event's forms, for its Leitung: feedback, registrations, surveys — published with a link
- * and QR code that anyone can answer. The answers may hold personal data, so the rest of the team
- * doesn't see them.
+ * The event's forms: feedback, registrations, surveys — published with a link and QR code that
+ * anyone can answer. The whole team creates and works on them; the Leitung can keep a form for
+ * itself (the answers may hold personal data), the rest of the team then only sees that it exists.
  */
 import type { FormSummary } from "~/utils/forms";
 
@@ -13,10 +13,10 @@ const toast = useToast();
 
 useSeoMeta({ title: `Formulare | ${event.value.name}` });
 
-if (!can("forms:manage")) {
+if (!can("forms:view")) {
 	throw createError({
 		statusCode: 403,
-		statusMessage: "Formulare sind nur für die Leitung.",
+		statusMessage: "Du siehst die Formulare dieses Events nicht.",
 		fatal: true,
 	});
 }
@@ -44,7 +44,7 @@ const {
 
 const createOpen = ref(false);
 
-async function create(body: { title: string; template_id: number | null }) {
+async function create(body: { title: string; template_id: number | null; leaders_only?: boolean }) {
 	const result = await useAPI((api) =>
 		api.postEventsByEventIdForms({ path: { eventId: eventId.value }, body }),
 	);
@@ -68,6 +68,7 @@ async function create(body: { title: string; template_id: number | null }) {
 					:forms="forms ?? []"
 					:loading="loading"
 					:base-path="basePath"
+					:can-create="can('forms:create')"
 					@refresh="refresh()"
 					@create="createOpen = true"
 				/>
@@ -78,6 +79,7 @@ async function create(body: { title: string; template_id: number | null }) {
 	<FormsCreateModal
 		v-model:open="createOpen"
 		kind="form"
+		:restrictable="can('forms:manage')"
 		:create="create"
 		@created="navigateTo(`${basePath}/${$event}`)"
 	/>

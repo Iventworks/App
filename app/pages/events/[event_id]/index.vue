@@ -173,6 +173,12 @@ const quickLinks = computed(() => {
 			permission: "responsibilities:view",
 		},
 		{
+			label: "Material",
+			icon: "i-lucide-package",
+			to: `${base.value}/materials`,
+			permission: "materials:view",
+		},
+		{
 			label: "Aufgaben",
 			icon: "i-lucide-list-todo",
 			to: `${base.value}/tasks`,
@@ -189,6 +195,12 @@ const quickLinks = computed(() => {
 			icon: "i-lucide-folder",
 			to: `${base.value}/documents`,
 			permission: "files:view",
+		},
+		{
+			label: "Formulare",
+			icon: "i-lucide-clipboard-list",
+			to: `${base.value}/forms`,
+			permission: "forms:view",
 		},
 		{
 			label: "Finanzen",
