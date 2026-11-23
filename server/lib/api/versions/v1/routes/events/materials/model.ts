@@ -209,7 +209,10 @@ export namespace EventMaterialsModel.Update {
 			buyer_id: F.buyer_id,
 			/** Consumable inventory items, the Leitung: the difference comes off (or back on) the stock. */
 			used_quantity: z.number().int().min(0).max(1_000_000).nullable(),
-			/** Packing list, anyone on the team. */
+			/**
+			 * Packing list, anyone on the team: one status, open → packed → back. `returned` also
+			 * marks it packed, `packed: false` also takes back `returned`.
+			 */
 			packed: z.boolean(),
 			returned: z.boolean(),
 		})

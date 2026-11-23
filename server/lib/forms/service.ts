@@ -6,9 +6,19 @@ import { DB } from "../db";
 import { inOrg, OrgContext } from "../orgs/context";
 import { FormAnswers, FormFields } from "./fields";
 
+/** Who looks at forms; what they may do with each one comes along with it (`access`). */
+export interface FormViewer {
+	userId: number;
+	/** Kernteam forms and templates: `org_forms:manage`; event forms: `forms:manage` (Leitung). */
+	manage: boolean;
+	/** Event forms: `forms:create` — the team works on the forms not kept for the Leitung. */
+	contribute: boolean;
+}
+
 /**
  * Forms ("Formulare", `forms` / `form_responses`): the lists, creating (also from a template),
- * publishing and closing, copies, and the answers. Who may do what is checked by the routes.
+ * publishing and closing, copies, and the answers. The routes check who may do what with
+ * `access`.
  */
 export namespace FormService {
 	/** Answers one form keeps at most: the whole list goes to the browser for the statistics. */
@@ -30,6 +40,20 @@ export namespace FormService {
 	export async function template(id: number) {
 		const form = await get(id);
 		return form?.scope === "template" ? form : null;
+	}
+
+	/**
+	 * What `viewer` may do with `form`: open it (questions, link, answers), delete it, keep it for
+	 * the Leitung (`leaders_only`). The team works on an event's forms that aren't for the Leitung
+	 * only and deletes its own; everything else is the Leitung's (the Kernteam's outside events).
+	 */
+	export function access(
+		form: Pick<DB.Models.Form, "scope" | "leaders_only" | "created_by">,
+		viewer: FormViewer,
+	) {
+		if (viewer.manage) return { open: true, delete: true, restrict: form.scope === "event" };
+		const team = form.scope === "event" && !form.leaders_only && viewer.contribute;
+		return { open: team, delete: team && form.created_by === viewer.userId, restrict: false };
 	}
 
 	/** Open and not past its closing time (it may still be full, see `accepting`). */
@@ -64,7 +88,7 @@ export namespace FormService {
 		return `${form.scope === "template" ? "Formularvorlage" : "Formular"} „${form.title}“`;
 	}
 
-	export async function list(where: Where): Promise<FormModel.Summary[]> {
+	export async function list(where: Where, viewer: FormViewer): Promise<FormModel.Summary[]> {
 		const T = DB.Tables;
 		const rows = await DB.instance()
 			.select()
@@ -78,7 +102,7 @@ export namespace FormService {
 			)
 			.orderBy(desc(T.forms.updated_at), desc(T.forms.id))
 			.all();
-		return await summaries(rows);
+		return await summaries(rows, viewer);
 	}
 
 	async function responseStats(formIds: number[]) {
@@ -97,14 +121,22 @@ export namespace FormService {
 		return new Map(rows.map((row) => [row.form_id, { count: row.count, last: row.last }]));
 	}
 
-	export async function summaries(forms: DB.Models.Form[]): Promise<FormModel.Summary[]> {
+	/**
+	 * The forms as listed. An event form `viewer` may not open shows only that it is there: title,
+	 * status and who made it — no description, link or answers.
+	 */
+	export async function summaries(
+		forms: DB.Models.Form[],
+		viewer: FormViewer,
+	): Promise<FormModel.Summary[]> {
 		const [stats, users] = await Promise.all([
 			responseStats(forms.map((form) => form.id)),
 			UserSummary.fetchMap(forms.map((form) => form.created_by)),
 		]);
 		return forms.map((form) => {
 			const responses = stats.get(form.id);
-			return {
+			const can = access(form, viewer);
+			const summary: FormModel.Summary = {
 				id: form.id,
 				scope: form.scope,
 				event_id: form.event_id,
@@ -119,16 +151,32 @@ export namespace FormService {
 				question_count: FormFields.questionsOf(form.fields).length,
 				response_count: responses?.count ?? 0,
 				last_response_at: responses?.last ?? null,
+				leaders_only: form.leaders_only,
 				created_by: form.created_by ? (users.get(form.created_by) ?? null) : null,
 				created_at: form.created_at,
 				updated_at: form.updated_at,
+				can_open: can.open,
+				can_delete: can.delete,
+				can_restrict: can.restrict,
+			};
+			if (form.scope !== "event" || can.open) return summary;
+			return {
+				...summary,
+				description: "",
+				public_url: null,
+				question_count: 0,
+				response_count: 0,
+				last_response_at: null,
 			};
 		});
 	}
 
-	export async function details(form: DB.Models.Form): Promise<FormModel.Details> {
+	export async function details(
+		form: DB.Models.Form,
+		viewer: FormViewer,
+	): Promise<FormModel.Details> {
 		const [[summary], users] = await Promise.all([
-			summaries([form]),
+			summaries([form], viewer),
 			UserSummary.fetchMap([form.updated_by]),
 		]);
 		return {
@@ -146,6 +194,8 @@ export namespace FormService {
 		title: string;
 		from: Pick<DB.Models.Form, "description" | "fields" | "confirmation_message"> | null;
 		userId: number | null;
+		/** Event forms: for the Leitung only. */
+		leadersOnly?: boolean;
 	}) {
 		const now = Date.now();
 		return await DB.instance()
@@ -157,6 +207,7 @@ export namespace FormService {
 				description: input.from?.description ?? "",
 				fields: input.from?.fields ?? [],
 				confirmation_message: input.from?.confirmation_message ?? "",
+				leaders_only: input.scope === "event" && (input.leadersOnly ?? false),
 				created_by: input.userId,
 				updated_by: input.userId,
 				created_at: now,
@@ -170,7 +221,10 @@ export namespace FormService {
 	export async function update(
 		form: DB.Models.Form,
 		changes: Partial<
-			Pick<DB.Models.Form, "title" | "description" | "confirmation_message" | "closes_at" | "fields">
+			Pick<
+				DB.Models.Form,
+				"title" | "description" | "confirmation_message" | "closes_at" | "fields" | "leaders_only"
+			>
 		>,
 		userId: number,
 	) {

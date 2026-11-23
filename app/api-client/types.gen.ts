@@ -9153,7 +9153,7 @@ export type GetEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9263,7 +9263,7 @@ export type PostEventsResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9414,7 +9414,7 @@ export type GetEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9533,7 +9533,7 @@ export type PutEventsByEventIdResponses = {
             updated_at: number;
             my_role: 'leader' | 'staff' | null;
             is_member: boolean;
-            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+            permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
             leaders: Array<{
                 id: number;
                 username: string;
@@ -9633,7 +9633,7 @@ export type GetEventsByEventIdOverviewResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -16345,7 +16345,7 @@ export type PostEventsByEventIdCopyResponses = {
                 updated_at: number;
                 my_role: 'leader' | 'staff' | null;
                 is_member: boolean;
-                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
+                permissions: Array<'event:view' | 'event:edit' | 'members:view' | 'members:manage' | 'members:view_leader_notes' | 'groups:view' | 'groups:manage' | 'participants:view' | 'participants:view_medical' | 'participants:manage' | 'participants:add_note' | 'rooms:view' | 'rooms:manage' | 'small_groups:view' | 'small_groups:manage' | 'program:view' | 'program:manage' | 'responsibilities:view' | 'responsibilities:manage' | 'occurrences:view' | 'occurrences:manage' | 'occurrences:signup' | 'tasks:view' | 'tasks:create' | 'tasks:manage_all' | 'notes:view' | 'notes:create' | 'notes:manage_all' | 'announcements:view' | 'announcements:manage' | 'files:view' | 'files:upload' | 'files:manage_all' | 'materials:view' | 'materials:contribute' | 'materials:manage' | 'forms:view' | 'forms:create' | 'forms:manage' | 'expenses:submit' | 'expenses:view_all' | 'expenses:review' | 'budget:view' | 'budget:manage' | 'stats:view' | 'audit_log:view'>;
                 leaders: Array<{
                     id: number;
                     username: string;
@@ -16392,12 +16392,12 @@ export type GetEventsByEventIdFormsErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * Only the event's leaders manage its forms
+     * You are not allowed to see the forms of this event
      */
     403: {
         success: false;
         code: 403;
-        message: 'Only the event\'s leaders manage its forms';
+        message: 'You are not allowed to see the forms of this event';
     };
     /**
      * Event not found
@@ -16434,6 +16434,7 @@ export type GetEventsByEventIdFormsResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -16444,6 +16445,9 @@ export type GetEventsByEventIdFormsResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
         }>;
     };
 };
@@ -16454,6 +16458,7 @@ export type PostEventsByEventIdFormsData = {
     body: {
         title: string;
         template_id?: number | null;
+        leaders_only?: boolean;
     };
     path: {
         eventId: number;
@@ -16472,12 +16477,12 @@ export type PostEventsByEventIdFormsErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * Only the event's leaders manage its forms
+     * You are not allowed to create forms in this event / Only the event's leaders keep a form for themselves
      */
     403: {
         success: false;
         code: 403;
-        message: 'Only the event\'s leaders manage its forms';
+        message: 'You are not allowed to create forms in this event / Only the event\'s leaders keep a form for themselves';
     };
     /**
      * Event not found / Template not found
@@ -16514,6 +16519,7 @@ export type PostEventsByEventIdFormsResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -16524,6 +16530,9 @@ export type PostEventsByEventIdFormsResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -20417,6 +20426,7 @@ export type GetOrgFormsResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -20427,6 +20437,9 @@ export type GetOrgFormsResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
         }>;
     };
 };
@@ -20495,6 +20508,7 @@ export type PostOrgFormsResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -20505,6 +20519,9 @@ export type PostOrgFormsResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -20681,6 +20698,7 @@ export type GetOrgFormTemplatesResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -20691,6 +20709,9 @@ export type GetOrgFormTemplatesResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
         }>;
     };
 };
@@ -20759,6 +20780,7 @@ export type PostOrgFormTemplatesResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -20769,6 +20791,9 @@ export type PostOrgFormTemplatesResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -20934,12 +20959,12 @@ export type DeleteFormsByFormIdErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * You are not allowed to manage this form
+     * You are not allowed to manage this form / Only the event's leaders and who created it delete this form
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to manage this form';
+        message: 'You are not allowed to manage this form / Only the event\'s leaders and who created it delete this form';
     };
     /**
      * Form not found
@@ -21028,6 +21053,7 @@ export type GetFormsByFormIdResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -21038,6 +21064,9 @@ export type GetFormsByFormIdResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -21321,6 +21350,7 @@ export type PutFormsByFormIdData = {
             } | null;
             type: 'section';
         }>;
+        leaders_only?: boolean;
     };
     path: {
         formId: number;
@@ -21339,12 +21369,12 @@ export type PutFormsByFormIdErrors = {
         message: 'Bad Request: Syntax or validation error in request';
     };
     /**
-     * You are not allowed to manage this form
+     * You are not allowed to manage this form / Only the event's leaders keep a form for themselves
      */
     403: {
         success: false;
         code: 403;
-        message: 'You are not allowed to manage this form';
+        message: 'You are not allowed to manage this form / Only the event\'s leaders keep a form for themselves';
     };
     /**
      * Form not found
@@ -21381,6 +21411,7 @@ export type PutFormsByFormIdResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -21391,6 +21422,9 @@ export type PutFormsByFormIdResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -21600,6 +21634,7 @@ export type PutFormsByFormIdStatusResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -21610,6 +21645,9 @@ export type PutFormsByFormIdStatusResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;
@@ -21820,6 +21858,7 @@ export type PostFormsByFormIdCopyResponses = {
             question_count: number;
             response_count: number;
             last_response_at: number | null;
+            leaders_only: boolean;
             created_by: {
                 id: number;
                 username: string;
@@ -21830,6 +21869,9 @@ export type PostFormsByFormIdCopyResponses = {
             } | null;
             created_at: number;
             updated_at: number;
+            can_open: boolean;
+            can_delete: boolean;
+            can_restrict: boolean;
             fields: Array<{
                 id: string;
                 label: string;

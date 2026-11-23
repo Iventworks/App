@@ -215,12 +215,20 @@ export async function createEventMaterials(context: {
 		return result.data;
 	}
 
-	/** Packing list ticks: shown at once, rolled back when the API refuses. */
-	async function tick(entry: EventMaterial, field: "packed" | "returned", value: boolean) {
-		const key = field === "packed" ? "packed_at" : "returned_at";
-		replaceItem({ ...entry, [key]: value ? Date.now() : null });
-		const saved = await updateEntry(entry, { [field]: value });
+	/** Packing list: shown at once, rolled back when the API refuses. */
+	async function setPacking(entry: EventMaterial, status: PackingStatus) {
+		const now = Date.now();
+		replaceItem({
+			...entry,
+			packed_at: status === "open" ? null : (entry.packed_at ?? now),
+			returned_at: status === "returned" ? (entry.returned_at ?? now) : null,
+		});
+		const saved = await updateEntry(entry, {
+			packed: status !== "open",
+			returned: status === "returned",
+		});
 		if (!saved) replaceItem(entry);
+		return saved !== null;
 	}
 
 	async function removeEntry(entry: EventMaterial) {
@@ -418,7 +426,7 @@ export async function createEventMaterials(context: {
 		linkWarnings,
 		// actions
 		updateEntry,
-		tick,
+		setPacking,
 		removeEntry,
 		addLink,
 		removeLink,
@@ -473,6 +481,16 @@ export function materialOrigin(entry: EventMaterial) {
 			: { label: "Zu kaufen", icon: MATERIAL_KIND_ICONS.purchase, color: "warning" as const };
 	}
 	return { label: "Lager", icon: MATERIAL_KIND_ICONS.inventory, color: "neutral" as const };
+}
+
+export type PackingStatus = keyof typeof PACKING_STATUS_LABELS;
+
+/** Where an entry is on the packing list: open → packed → back. */
+export function packingStatus(
+	entry: Pick<EventMaterial, "packed_at" | "returned_at">,
+): PackingStatus {
+	if (entry.returned_at) return "returned";
+	return entry.packed_at ? "packed" : "open";
 }
 
 /** "3× Gruppenzelt" / "Gruppenzelt". */

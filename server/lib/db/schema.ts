@@ -1099,8 +1099,8 @@ export const FORM_STATUSES = ["draft", "open", "closed"] as const;
 
 /**
  * Forms anyone with the link fills in (`<org url>/s/form/<token>`, no account): the Kernteam's
- * (`scope = org`), an event's (`event`, managed by its Leitung) and the Kernteam's templates for
- * both (`template`, never published). `fields` are the questions (`FormFields` in
+ * (`scope = org`), an event's (`event`, managed by its team — or by its Leitung only with
+ * `leaders_only`) and the Kernteam's templates for both (`template`, never published). `fields` are the questions (`FormFields` in
  * server/lib/forms/fields.ts). A form is a draft until it is published — then it gets its `token`
  * and keeps it —, takes answers while `open` and before `closes_at`, and keeps its link when
  * `closed`.
@@ -1119,6 +1119,8 @@ export const forms = sqliteTable(
 		// Shown after sending; empty: a default text.
 		confirmation_message: text().notNull().default(""),
 		status: text({ enum: FORM_STATUSES }).notNull().default("draft"),
+		// Event forms: only the Leitung works on it; the rest of the team sees that it exists.
+		leaders_only: integer({ mode: "boolean" }).notNull().default(false),
 		token: text().unique(),
 		// Stops taking answers at this instant (the status stays `open`).
 		closes_at: integer(),

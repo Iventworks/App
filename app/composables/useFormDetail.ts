@@ -30,23 +30,25 @@ const KEY: InjectionKey<FormDetail> = Symbol("form-detail");
 /**
  * One form's pages (Fragen / Einstellungen / Antworten, in the Kernteam area and in events): the
  * parent page loads the form with this and hands it to `provideFormDetail` (after the `await`, at
- * the top of its setup); the tabs use it through `useFormDetail()`. Null when the form can't be
- * loaded (the parent shows the error).
+ * the top of its setup); the tabs use it through `useFormDetail()`. When the form can't be loaded
+ * it returns the HTTP status instead (403: not for this person; the parent shows the error).
  */
 export async function createFormDetail(options: {
 	formId: number;
 	listPath: string;
 	canManageTemplates: boolean;
-}): Promise<FormDetail | null> {
+}): Promise<FormDetail | number> {
 	const toast = useToast();
+	let status = 404;
 
 	async function load() {
 		const result = await useAPI((api) => api.getFormsByFormId({ path: { formId: options.formId } }));
+		if (!result.success) status = result.code as number;
 		return result.success ? result.data : null;
 	}
 
 	const initial = await load();
-	if (!initial) return null;
+	if (!initial) return status;
 	const form = ref(initial) as Ref<FormDetails>;
 
 	async function refresh() {

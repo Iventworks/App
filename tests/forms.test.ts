@@ -314,20 +314,52 @@ describe("Who manages forms", () => {
 		expect(list.map((entry: any) => entry.id)).toContain(form.id);
 	});
 
-	test("event forms: the Leitung (and the core team), not the rest of the team", async () => {
-		const form = await makeAPIRequest(
+	test("event forms: the whole team works on them; deleting is the Leitung's and the creator's", async () => {
+		await makeAPIRequest(`/v1/events/${eventId}/forms`, { authToken: volunteer.token }, 403);
+
+		const own = await makeAPIRequest(
 			`/v1/events/${eventId}/forms`,
-			{ method: "POST", authToken: leader.token, body: { title: "Feedback" } },
+			{ method: "POST", authToken: staff.token, body: { title: "Spieleabend" } },
 			201,
 		);
-		await makeAPIRequest(`/v1/events/${eventId}/forms`, { authToken: staff.token }, 403);
+		expect(own).toMatchObject({
+			leaders_only: false,
+			can_open: true,
+			can_delete: true,
+			can_restrict: false,
+		});
+		// Keeping a form for the Leitung is the Leitung's.
 		await makeAPIRequest(
 			`/v1/events/${eventId}/forms`,
-			{ method: "POST", authToken: staff.token, body: { title: "X" } },
+			{ method: "POST", authToken: staff.token, body: { title: "X", leaders_only: true } },
 			403,
 		);
-		await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: staff.token }, 403);
-		await makeAPIRequest(`/v1/forms/${form.id}/responses`, { authToken: staff.token }, 403);
+		await makeAPIRequest(
+			`/v1/forms/${own.id}`,
+			{ method: "PUT", authToken: staff.token, body: { leaders_only: true } },
+			403,
+		);
+
+		const form = await makeAPIRequest(
+			`/v1/events/${eventId}/forms`,
+			{ method: "POST", authToken: leader.token, body: { title: "Feedback", leaders_only: false } },
+			201,
+		);
+		expect(form).toMatchObject({ leaders_only: false, can_restrict: true });
+		const seen = await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: staff.token });
+		expect(seen).toMatchObject({ can_open: true, can_delete: false, can_restrict: false });
+		await setFields(form.id, QUESTIONS, 200, staff.token);
+		const published = await makeAPIRequest(`/v1/forms/${form.id}/status`, {
+			method: "PUT",
+			authToken: staff.token,
+			body: { status: "open" },
+		});
+		await send(tokenOf(published.public_url), { name: "Ben", allergies: ["no"], stars: 4 });
+		expect(
+			await makeAPIRequest(`/v1/forms/${form.id}/responses`, { authToken: staff.token }),
+		).toHaveLength(1);
+		await makeAPIRequest(`/v1/forms/${form.id}`, { method: "DELETE", authToken: staff.token }, 403);
+		await makeAPIRequest(`/v1/forms/${own.id}`, { method: "DELETE", authToken: staff.token });
 		await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: core.token });
 		const list = await makeAPIRequest(`/v1/events/${eventId}/forms`, { authToken: leader.token });
 		expect(list.map((entry: any) => entry.id)).toContain(form.id);
@@ -345,6 +377,91 @@ describe("Who manages forms", () => {
 		);
 		expect(copy.event_id).toBe(eventId);
 		expect(copy.status).toBe("draft");
+	});
+
+	test("the Leitung keeps a form for itself; the rest of the team sees only that it is there", async () => {
+		const form = await makeAPIRequest(
+			`/v1/events/${eventId}/forms`,
+			{ method: "POST", authToken: leader.token, body: { title: "Anmeldung", leaders_only: true } },
+			201,
+		);
+		expect(form.leaders_only).toBe(true);
+		await setFields(form.id, QUESTIONS, 200, leader.token);
+		const published = await makeAPIRequest(`/v1/forms/${form.id}/status`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { status: "open" },
+		});
+		await send(tokenOf(published.public_url), { name: "Ida", allergies: ["no"], stars: 5 });
+
+		const listed = (
+			await makeAPIRequest(`/v1/events/${eventId}/forms`, { authToken: staff.token })
+		).find((entry: any) => entry.id === form.id);
+		expect(listed).toMatchObject({
+			title: "Anmeldung",
+			status: "open",
+			leaders_only: true,
+			can_open: false,
+			can_delete: false,
+			public_url: null,
+			response_count: 0,
+			question_count: 0,
+		});
+		await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: staff.token }, 403);
+		await makeAPIRequest(`/v1/forms/${form.id}/responses`, { authToken: staff.token }, 403);
+		await setFields(form.id, QUESTIONS, 403, staff.token);
+		await makeAPIRequest(`/v1/forms/${form.id}`, { method: "DELETE", authToken: staff.token }, 403);
+		await makeAPIRequest(
+			`/v1/forms/${form.id}/copy`,
+			{ method: "POST", authToken: staff.token, body: { title: "Meins" } },
+			403,
+		);
+
+		// A copy stays the Leitung's; the core team counts as Leitung.
+		const copy = await makeAPIRequest(
+			`/v1/forms/${form.id}/copy`,
+			{ method: "POST", authToken: core.token, body: { title: "Anmeldung (Kopie)" } },
+			201,
+		);
+		expect(copy.leaders_only).toBe(true);
+
+		// Opened up for the team.
+		await makeAPIRequest(`/v1/forms/${form.id}`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { leaders_only: false },
+		});
+		const opened = await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: staff.token });
+		expect(opened.response_count).toBe(1);
+		expect(auditSummaries(form.id)).toContain("Formular „Anmeldung“ fürs ganze Team");
+	});
+
+	test("copying the event keeps who works on its forms", async () => {
+		const copied = await makeAPIRequest(
+			`/v1/events/${eventId}/copy`,
+			{
+				method: "POST",
+				authToken: core.token,
+				body: { name: "Herbstfreizeit 2028", start_date: "2028-10-02", include: { forms: true } },
+			},
+			201,
+		);
+		const forms = await makeAPIRequest(`/v1/events/${copied.event.id}/forms`, {
+			authToken: core.token,
+		});
+		const byTitle = (title: string) => forms.find((form: any) => form.title === title);
+		expect(byTitle("Anmeldung").leaders_only).toBe(false);
+		expect(byTitle("Anmeldung (Kopie)").leaders_only).toBe(true);
+		expect(byTitle("Feedback").leaders_only).toBe(false);
+	});
+
+	test("only event forms are kept for the Leitung", async () => {
+		const form = await createOrgForm("Intern");
+		await makeAPIRequest(
+			`/v1/forms/${form.id}`,
+			{ method: "PUT", authToken: core.token, body: { leaders_only: true } },
+			400,
+		);
 	});
 
 	test("questions are checked when saved", async () => {

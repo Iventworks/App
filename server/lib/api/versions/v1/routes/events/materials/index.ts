@@ -764,13 +764,16 @@ router.put(
 
 		const now = Date.now();
 		const { packed, returned, ...fields } = body;
+		// One packing status: what is back was packed, what isn't packed isn't back either.
+		const isPacked = returned === true ? true : packed;
+		const isReturned = packed === false && returned !== true ? false : returned;
 		await DB.instance()
 			.update(T.eventMaterials)
 			.set({
 				...fields,
-				...(packed !== undefined ? { packed_at: packed ? (material.packed_at ?? now) : null } : {}),
-				...(returned !== undefined
-					? { returned_at: returned ? (material.returned_at ?? now) : null }
+				...(isPacked !== undefined ? { packed_at: isPacked ? (material.packed_at ?? now) : null } : {}),
+				...(isReturned !== undefined
+					? { returned_at: isReturned ? (material.returned_at ?? now) : null }
 					: {}),
 				updated_at: now,
 			})

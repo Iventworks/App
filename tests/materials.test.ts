@@ -269,9 +269,16 @@ describe("Booking from the inventory", () => {
 			403,
 		);
 
-		const unpacked = await update(bookingId, { packed: false, returned: true }, annaSession.token);
+		// One status: what is back was packed, what isn't packed isn't back either.
+		const back = await update(bookingId, { returned: true }, annaSession.token);
+		expect(back.packed_at).toBe(placed.packed_at);
+		expect(back.returned_at).toBeNumber();
+		const unpacked = await update(bookingId, { packed: false }, annaSession.token);
 		expect(unpacked.packed_at).toBeNull();
-		expect(unpacked.returned_at).toBeNumber();
+		expect(unpacked.returned_at).toBeNull();
+		const fresh = await update(bookingId, { returned: true }, annaSession.token);
+		expect(fresh.packed_at).toBeNumber();
+		await update(bookingId, { packed: false, returned: false }, annaSession.token);
 	});
 
 	test("the Kernteam sees the booking with the widened days", async () => {

@@ -115,7 +115,12 @@ export class PermissionHelper {
 		/** Book from the inventory, buy, answer requests, change or remove any entry. */
 		"materials:manage": "leader",
 
-		/** Forms, their link and their answers (which may hold personal data): the Leitung only. */
+		/** The event's forms list; forms for the Leitung only show just that they exist. */
+		"forms:view": "staff",
+		/** Create forms and work on the team's forms: questions, link, answers. Delete one's own. */
+		"forms:create": "staff",
+		/** Every form of the event, also those for the Leitung only (`leaders_only`), which only it
+		 * sets; delete any. Answers may hold personal data. */
 		"forms:manage": "leader",
 
 		"expenses:submit": "staff",

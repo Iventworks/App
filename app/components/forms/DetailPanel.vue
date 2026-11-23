@@ -227,14 +227,17 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 				]
 			: []),
 	],
-	[
-		{
-			label: "Löschen",
-			icon: "i-lucide-trash-2",
-			color: "error" as const,
-			onSelect: () => (deleteOpen.value = true),
-		},
-	],
+	// In an event: the Leitung, or who created it.
+	form.value.can_delete
+		? [
+				{
+					label: "Löschen",
+					icon: "i-lucide-trash-2",
+					color: "error" as const,
+					onSelect: () => (deleteOpen.value = true),
+				},
+			]
+		: [],
 ]);
 </script>
 
@@ -256,6 +259,14 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 						:label="state.label"
 						:icon="state.icon"
 						:color="state.color"
+						variant="subtle"
+						class="hidden sm:inline-flex"
+					/>
+					<UBadge
+						v-if="form.leaders_only"
+						label="Nur Leitung"
+						icon="i-lucide-crown"
+						color="neutral"
 						variant="subtle"
 						class="hidden sm:inline-flex"
 					/>

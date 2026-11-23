@@ -656,6 +656,7 @@ export class EventCopier {
 								description: form.description,
 								fields: form.fields,
 								confirmation_message: form.confirmation_message,
+								leaders_only: form.leaders_only,
 								created_by: options.userId,
 								updated_by: options.userId,
 							})

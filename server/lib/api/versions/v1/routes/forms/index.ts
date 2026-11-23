@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import type { DB } from "../../../../../db";
 import { FormFields } from "../../../../../forms/fields";
-import { FormService } from "../../../../../forms/service";
+import { FormService, type FormViewer } from "../../../../../forms/service";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuditLog } from "../../../../utils/auditLog";
 import { AuthHandler } from "../../../../utils/authHandler";
@@ -15,20 +15,22 @@ import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 
 type FormsEnv = {
-	Variables: { form: DB.Models.Form };
+	Variables: { form: DB.Models.Form; viewer: FormViewer };
 };
 
 /**
  * Everything on one form, template included: its questions and texts, publishing and closing,
- * copies and the answers. The Kernteam manages org forms and templates, an event's Leitung its
- * forms (`forms:manage`); nobody else sees them here. The lists live with their place
- * (`/org/forms`, `/org/form-templates`, `/events/{id}/forms`), the public side under
- * `/public/forms/{token}`.
+ * copies and the answers. The Kernteam manages org forms and templates; an event's team works on
+ * its forms, the Leitung on all of them (`FormService.access`: forms kept for the Leitung,
+ * deleting others' forms). The lists live with their place (`/org/forms`,
+ * `/org/form-templates`, `/events/{id}/forms`), the public side under `/public/forms/{token}`.
  */
 export const router = new Hono<FormsEnv>().basePath("/forms");
 
 const TAG = DOCS_TAGS.FORMS;
 const FORBIDDEN = "You are not allowed to manage this form";
+const FORBIDDEN_RESTRICT = "Only the event's leaders keep a form for themselves";
+const FORBIDDEN_DELETE = "Only the event's leaders and who created it delete this form";
 
 const STATUS_WORDS = {
 	open: "veröffentlicht",
@@ -36,16 +38,27 @@ const STATUS_WORDS = {
 	closed: "geschlossen",
 } as const;
 
-/** Who may manage `form`: the Kernteam for org forms and templates, the Leitung for event forms. */
-async function canManage(c: Context, form: DB.Models.Form) {
+/**
+ * The caller looking at `form`: the Kernteam manages org forms and templates; for an event form
+ * it counts what the caller may in that event. Null without an account.
+ */
+async function viewerOf(c: Context, form: DB.Models.Form): Promise<FormViewer | null> {
 	const authContext = AuthHandler.AuthContext.get(c);
-	if (authContext.type === "unauthenticated") return false;
+	if (authContext.type === "unauthenticated") return null;
 	if (form.scope === "event") {
-		if (form.event_id === null) return false;
+		if (form.event_id === null) return null;
 		const access = await EventAccess.resolve(authContext, form.event_id);
-		return PermissionHelper.canInEvent({ access, permission: "forms:manage" });
+		return {
+			userId: authContext.user_id,
+			manage: PermissionHelper.canInEvent({ access, permission: "forms:manage" }),
+			contribute: PermissionHelper.canInEvent({ access, permission: "forms:create" }),
+		};
 	}
-	return PermissionHelper.can({ authContext, permission: "org_forms:manage" });
+	return {
+		userId: authContext.user_id,
+		manage: PermissionHelper.can({ authContext, permission: "org_forms:manage" }),
+		contribute: false,
+	};
 }
 
 function auditEventId(form: DB.Models.Form) {
@@ -61,8 +74,12 @@ router.use(
 		if (!formId.success) return APIResponse.badRequest(c, "Invalid form id");
 		const form = await FormService.get(formId.data);
 		if (!form) return APIResponse.notFound(c, "Form not found");
-		if (!(await canManage(c, form))) return APIResponse.forbidden(c, FORBIDDEN);
+		const viewer = await viewerOf(c, form);
+		if (!viewer || !FormService.access(form, viewer).open) {
+			return APIResponse.forbidden(c, FORBIDDEN);
+		}
 		c.set("form", form);
+		c.set("viewer", viewer);
 		await next();
 	},
 );
@@ -86,7 +103,7 @@ router.get(
 		return APIResponse.success(
 			c,
 			"Form retrieved successfully",
-			await FormService.details(c.get("form")),
+			await FormService.details(c.get("form"), c.get("viewer")),
 		);
 	},
 );
@@ -97,13 +114,13 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Update form",
 		description:
-			"Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit.",
+			"Change the title, the texts, the closing time or the questions (`fields`, always the whole list). Allowed after publishing too: answers keep their question ids, answers to removed questions are no longer shown. Once the form has answers, a question's type only changes within text (`short_text`, `long_text`, `email`) or choice questions (`single_choice`, `multiple_choice`, `dropdown`), so its answers still fit. `leaders_only` (event forms) is the Leitung's.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("Form updated successfully", FormModel.Details),
 			APIResponseSpec.notFound("Form not found"),
-			APIResponseSpec.forbidden(FORBIDDEN),
+			APIResponseSpec.forbidden(`${FORBIDDEN} / ${FORBIDDEN_RESTRICT}`),
 		),
 	}),
 
@@ -111,7 +128,16 @@ router.put(
 
 	async (c) => {
 		const form = c.get("form");
+		const viewer = c.get("viewer");
 		const body = c.req.valid("json") as FormModel.Update.Body;
+		if (body.leaders_only !== undefined) {
+			if (form.scope !== "event") {
+				return APIResponse.badRequest(c, "Only event forms are kept for the Leitung");
+			}
+			if (!FormService.access(form, viewer).restrict) {
+				return APIResponse.forbidden(c, FORBIDDEN_RESTRICT);
+			}
+		}
 		if (body.fields) {
 			const blocked = FormFields.blockedTypeChanges(form.fields, body.fields);
 			if (blocked.length && (await FormService.responseCount(form.id)) > 0) {
@@ -123,17 +149,25 @@ router.put(
 		}
 		const updated = await FormService.update(form, body, getAuthUserId(c));
 
+		const restricted = body.leaders_only !== undefined && body.leaders_only !== form.leaders_only;
 		await AuditLog.record({
 			userId: getAuthUserId(c),
 			eventId: auditEventId(form),
 			action: "update",
 			entityType: "form",
 			entityId: form.id,
-			summary: `${FormService.describe(updated)} bearbeitet`,
+			summary:
+				restricted && Object.keys(body).length === 1
+					? `${FormService.describe(updated)} ${updated.leaders_only ? "nur für die Leitung" : "fürs ganze Team"}`
+					: `${FormService.describe(updated)} bearbeitet`,
 			metadata: { fields: Object.keys(body) },
 		});
 
-		return APIResponse.success(c, "Form updated successfully", await FormService.details(updated));
+		return APIResponse.success(
+			c,
+			"Form updated successfully",
+			await FormService.details(updated, viewer),
+		);
 	},
 );
 
@@ -189,7 +223,7 @@ router.put(
 		return APIResponse.success(
 			c,
 			"Form status changed successfully",
-			await FormService.details(updated),
+			await FormService.details(updated, c.get("viewer")),
 		);
 	},
 );
@@ -200,7 +234,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Copy form",
 		description:
-			"A new draft with the same questions and texts, in the same place — or, with `as_template`, a new template (Kernteam). Answers, link and closing time don't come along.",
+			"A new draft with the same questions and texts, in the same place (for the Leitung only if the form is) — or, with `as_template`, a new template (Kernteam). Answers, link and closing time don't come along.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -231,6 +265,7 @@ router.post(
 			title,
 			from: form,
 			userId: getAuthUserId(c),
+			leadersOnly: form.leaders_only,
 		});
 
 		await AuditLog.record({
@@ -242,7 +277,11 @@ router.post(
 			summary: `${FormService.describe(copy)} als Kopie von ${FormService.describe(form)} angelegt`,
 		});
 
-		return APIResponse.created(c, "Form copied successfully", await FormService.details(copy));
+		return APIResponse.created(
+			c,
+			"Form copied successfully",
+			await FormService.details(copy, c.get("viewer")),
+		);
 	},
 );
 
@@ -251,18 +290,22 @@ router.delete(
 
 	APIRouteSpec.authenticated({
 		summary: "Delete form",
-		description: "Delete a form with all its answers (or a template). The link stops working.",
+		description:
+			"Delete a form with all its answers (or a template). The link stops working. In an event: the Leitung, or who created it.",
 		tags: [TAG],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.successNoData("Form deleted successfully"),
 			APIResponseSpec.notFound("Form not found"),
-			APIResponseSpec.forbidden(FORBIDDEN),
+			APIResponseSpec.forbidden(`${FORBIDDEN} / ${FORBIDDEN_DELETE}`),
 		),
 	}),
 
 	async (c) => {
 		const form = c.get("form");
+		if (!FormService.access(form, c.get("viewer")).delete) {
+			return APIResponse.forbidden(c, FORBIDDEN_DELETE);
+		}
 		const answers = await FormService.remove(form);
 
 		await AuditLog.record({

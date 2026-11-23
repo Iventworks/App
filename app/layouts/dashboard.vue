@@ -136,13 +136,13 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
 		{ label: "Aufgaben", icon: "i-lucide-list-todo", to: `${base}/tasks` },
 		{ label: "Notizen", icon: "i-lucide-sticky-note", to: `${base}/notes` },
 		{ label: "Dokumente", icon: "i-lucide-folder", to: `${base}/documents` },
+		...(can("forms:view")
+			? [{ label: "Formulare", icon: "i-lucide-clipboard-list", to: `${base}/forms` }]
+			: []),
 		{ label: "Finanzen", icon: "i-lucide-receipt-euro", to: `${base}/finances` },
 	];
 
 	const leaderItems: NavigationMenuItem[] = [
-		...(can("forms:manage")
-			? [{ label: "Formulare", icon: "i-lucide-clipboard-list", to: `${base}/forms` }]
-			: []),
 		...(can("event:edit")
 			? [{ label: "Einstellungen", icon: "i-lucide-settings-2", to: `${base}/settings` }]
 			: []),

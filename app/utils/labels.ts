@@ -168,6 +168,23 @@ export const RESOURCE_CONDITION_COLORS: Record<keyof typeof RESOURCE_CONDITION_L
 	};
 export const RESOURCE_CONDITION_OPTIONS = toOptions(RESOURCE_CONDITION_LABELS);
 
+/** Packing list: one status per entry, in this order. */
+export const PACKING_STATUS_LABELS = {
+	open: "Offen",
+	packed: "Eingepackt",
+	returned: "Zurück",
+} as const;
+export const PACKING_STATUS_ICONS = {
+	open: "i-lucide-circle-dashed",
+	packed: "i-lucide-package-check",
+	returned: "i-lucide-archive-restore",
+} as const;
+export const PACKING_STATUS_COLORS: Record<keyof typeof PACKING_STATUS_LABELS, BadgeColor> = {
+	open: "neutral",
+	packed: "info",
+	returned: "success",
+};
+
 export const MATERIAL_REQUEST_STATUS_LABELS = {
 	open: "Offen",
 	done: "Erledigt",

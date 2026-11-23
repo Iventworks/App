@@ -93,9 +93,9 @@ Organisation roles (`users.role`, per org), highest first:
 | `unverified` | Only their own account settings (`/pending` page) |
 
 Event roles (`event_members.role`): `leader` ("Leitung") and `staff` ("Mitarbeiter:in"). Leaders
-manage the event (participants, program, rooms, staff, groups, budget, expense review, forms,
-material from the inventory, stats, audit log); staff see everything operational (incl. participants' medical info), add participant
-notes, create tasks/notes, upload documents, submit expenses, and add or ask for material.
+manage the event (participants, program, rooms, staff, groups, budget, expense review, forms
+kept for the Leitung, material from the inventory, stats, audit log); staff see everything operational (incl. participants' medical info), add participant
+notes, create tasks/notes and forms, upload documents, submit expenses, and add or ask for material.
 
 Documents (org library and event documents) also have access lists per folder or file, like
 Nextcloud Team folders: org documents are Kernteam-only until opened to all members, org groups or
@@ -176,7 +176,8 @@ Every event has a **Material** list:
 - The Leitung plans purchases. When one is bought it stays with the event or moves into the
   inventory (and stays booked); the buyer can file the Auslage straight from it.
 - Everyone on the team adds what they bring themselves, notes where things are, plans material for
-  program items (or the dates of a Regeltermin) and ticks the optional packing list.
+  program items (or the dates of a Regeltermin) and keeps the optional packing list (each entry
+  open, packed or back).
 - Team members who don't see the inventory ask for things ("Anfragen"). The Leitung answers in
   parts — from the inventory, to buy, someone brings it — or rejects; anyone can answer "Bringe ich
   mit". Leaders hear about new requests, who asked hears the answers.
@@ -237,7 +238,9 @@ can share one office server.
 ## Forms
 
 **Formulare** — surveys, registrations, feedback — like Microsoft or Google Forms: the Kernteam
-under *Kernteam → Formulare*, an event's Leitung under *Leitung → Formulare*. A form starts as a
+under *Kernteam → Formulare*, an event's team under *Formulare* in the event. In an event the whole
+team works on the forms; the Leitung can keep one for itself ("Nur Leitung"), the rest of the team
+then only sees that it exists. A form starts as a
 draft, empty or from a template (every org starts with *Feedback*, *Anmeldung* and
 *Veranstaltungsbewertung*; the Kernteam manages templates). Question types: short and long text,
 email, number, date, single and multiple choice, dropdown, star rating, scale, and sections;
