@@ -7,15 +7,19 @@
 import type { TableColumn } from "@nuxt/ui";
 import type { FormState, FormSummary } from "~/utils/forms";
 
-const props = defineProps<{
-	forms: FormSummary[];
-	loading: boolean;
-	/** The forms' pages are `<basePath>/<id>`. */
-	basePath: string;
-	templates?: boolean;
-	/** Show "Neues Formular" (default: yes). */
-	canCreate?: boolean;
-}>();
+// Vue makes a boolean prop that isn't passed `false`: `canCreate` needs its default.
+const props = withDefaults(
+	defineProps<{
+		forms: FormSummary[];
+		loading: boolean;
+		/** The forms' pages are `<basePath>/<id>`. */
+		basePath: string;
+		templates?: boolean;
+		/** Show "Neues Formular" / "Neue Vorlage". */
+		canCreate?: boolean;
+	}>(),
+	{ canCreate: true },
+);
 
 const emit = defineEmits<{ refresh: []; create: [] }>();
 
@@ -99,7 +103,7 @@ const shareOpen = computed({
 		</template>
 		<template #header-right>
 			<UButton
-				v-if="canCreate !== false"
+				v-if="canCreate"
 				:label="templates ? 'Neue Vorlage' : 'Neues Formular'"
 				icon="i-lucide-plus"
 				@click="emit('create')"
@@ -107,7 +111,7 @@ const shareOpen = computed({
 		</template>
 		<template #empty-actions>
 			<UButton
-				v-if="canCreate !== false"
+				v-if="canCreate"
 				:label="templates ? 'Neue Vorlage' : 'Neues Formular'"
 				icon="i-lucide-plus"
 				@click="emit('create')"
