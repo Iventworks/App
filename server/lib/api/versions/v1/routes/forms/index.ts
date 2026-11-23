@@ -32,6 +32,9 @@ const FORBIDDEN = "You are not allowed to manage this form";
 const FORBIDDEN_RESTRICT = "Only the event's leaders keep a form for themselves";
 const FORBIDDEN_DELETE = "Only the event's leaders and who created it delete this form";
 
+/** What `PUT /forms/{formId}` changes besides `leaders_only`. */
+const CONTENT = ["title", "description", "confirmation_message", "closes_at", "fields"] as const;
+
 const STATUS_WORDS = {
 	open: "veröffentlicht",
 	reopened: "wieder geöffnet",
@@ -149,17 +152,24 @@ router.put(
 		}
 		const updated = await FormService.update(form, body, getAuthUserId(c));
 
-		const restricted = body.leaders_only !== undefined && body.leaders_only !== form.leaders_only;
+		// Who works on it gets its own words. "Einstellungen" sends its other fields along unchanged,
+		// so this compares what was saved, not what was sent.
+		const access =
+			updated.leaders_only === form.leaders_only
+				? null
+				: updated.leaders_only
+					? "nur für die Leitung"
+					: "fürs ganze Team";
+		const edited = CONTENT.some((key) => JSON.stringify(updated[key]) !== JSON.stringify(form[key]));
 		await AuditLog.record({
 			userId: getAuthUserId(c),
 			eventId: auditEventId(form),
 			action: "update",
 			entityType: "form",
 			entityId: form.id,
-			summary:
-				restricted && Object.keys(body).length === 1
-					? `${FormService.describe(updated)} ${updated.leaders_only ? "nur für die Leitung" : "fürs ganze Team"}`
-					: `${FormService.describe(updated)} bearbeitet`,
+			summary: access
+				? `${FormService.describe(updated)} ${edited ? "bearbeitet, jetzt " : ""}${access}`
+				: `${FormService.describe(updated)} bearbeitet`,
 			metadata: { fields: Object.keys(body) },
 		});
 

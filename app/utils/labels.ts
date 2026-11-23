@@ -179,11 +179,6 @@ export const PACKING_STATUS_ICONS = {
 	packed: "i-lucide-package-check",
 	returned: "i-lucide-archive-restore",
 } as const;
-export const PACKING_STATUS_COLORS: Record<keyof typeof PACKING_STATUS_LABELS, BadgeColor> = {
-	open: "neutral",
-	packed: "info",
-	returned: "success",
-};
 
 export const MATERIAL_REQUEST_STATUS_LABELS = {
 	open: "Offen",

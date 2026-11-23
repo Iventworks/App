@@ -425,15 +425,37 @@ describe("Who manages forms", () => {
 		);
 		expect(copy.leaders_only).toBe(true);
 
-		// Opened up for the team.
+		// Opened up for the team — "Einstellungen" sends its other fields along, unchanged.
 		await makeAPIRequest(`/v1/forms/${form.id}`, {
 			method: "PUT",
 			authToken: leader.token,
-			body: { leaders_only: false },
+			body: {
+				confirmation_message: published.confirmation_message,
+				closes_at: published.closes_at,
+				leaders_only: false,
+			},
 		});
 		const opened = await makeAPIRequest(`/v1/forms/${form.id}`, { authToken: staff.token });
 		expect(opened.response_count).toBe(1);
 		expect(auditSummaries(form.id)).toContain("Formular „Anmeldung“ fürs ganze Team");
+
+		// Changed along with something else; then kept for the Leitung again.
+		await makeAPIRequest(`/v1/forms/${copy.id}`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { confirmation_message: "Danke!", leaders_only: false },
+		});
+		await makeAPIRequest(`/v1/forms/${copy.id}`, {
+			method: "PUT",
+			authToken: leader.token,
+			body: { leaders_only: true },
+		});
+		expect(auditSummaries(copy.id)).toEqual(
+			expect.arrayContaining([
+				"Formular „Anmeldung (Kopie)“ bearbeitet, jetzt fürs ganze Team",
+				"Formular „Anmeldung (Kopie)“ nur für die Leitung",
+			]),
+		);
 	});
 
 	test("copying the event keeps who works on its forms", async () => {

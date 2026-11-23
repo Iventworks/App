@@ -83,8 +83,11 @@ const groups = computed(() => {
 	);
 });
 
-const packed = computed(() => items.value.filter((item) => item.packed_at).length);
-const returned = computed(() => items.value.filter((item) => item.returned_at).length);
+// By status: what is back counts as packed (also entries ticked "Zurück" alone before).
+const packed = computed(() => items.value.filter((item) => packingStatus(item) !== "open").length);
+const returned = computed(
+	() => items.value.filter((item) => packingStatus(item) === "returned").length,
+);
 
 function source(item: EventMaterial) {
 	if (item.kind === "own")
@@ -120,7 +123,7 @@ function source(item: EventMaterial) {
 			v-else-if="!visible.length"
 			icon="i-lucide-list-checks"
 			:title="items.length ? 'Alles erledigt' : 'Noch kein Material'"
-			:description="items.length ? 'In dieser Ansicht ist nichts mehr offen.' : 'Sobald Material auf der Liste steht, kannst du es hier abhaken.'"
+			:description="items.length ? 'In dieser Ansicht ist nichts mehr offen.' : 'Sobald Material auf der Liste steht, hältst du hier fest, was eingepackt und was zurück ist.'"
 		/>
 
 		<div v-else class="space-y-4">

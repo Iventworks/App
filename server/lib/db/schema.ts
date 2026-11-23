@@ -1100,10 +1100,10 @@ export const FORM_STATUSES = ["draft", "open", "closed"] as const;
 /**
  * Forms anyone with the link fills in (`<org url>/s/form/<token>`, no account): the Kernteam's
  * (`scope = org`), an event's (`event`, managed by its team — or by its Leitung only with
- * `leaders_only`) and the Kernteam's templates for both (`template`, never published). `fields` are the questions (`FormFields` in
- * server/lib/forms/fields.ts). A form is a draft until it is published — then it gets its `token`
- * and keeps it —, takes answers while `open` and before `closes_at`, and keeps its link when
- * `closed`.
+ * `leaders_only`) and the Kernteam's templates for both (`template`, never published). `fields`
+ * are the questions (`FormFields` in server/lib/forms/fields.ts). A form is a draft until it is
+ * published — then it gets its `token` and keeps it —, takes answers while `open` and before
+ * `closes_at`, and keeps its link when `closed`.
  * @deprecated Use DB.Tables.forms to access this table.
  */
 export const forms = sqliteTable(
