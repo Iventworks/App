@@ -83,6 +83,7 @@ export default defineNuxtConfig({
 	// The whole portal is behind login and renders client-side.
 	routeRules: {
 		"/**": { ssr: false },
+		// "/s/**": { ssr: true },
 	},
 
 	app: {
