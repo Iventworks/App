@@ -31,6 +31,8 @@ export namespace EventNotesModel {
 		/** Markdown. */
 		content: z.string().max(100_000),
 		pinned: z.boolean(),
+		/** Event-wide notes only: the rest of the team only reads it. Set by the Leitung. */
+		read_only: z.boolean(),
 	};
 }
 
@@ -50,6 +52,7 @@ export namespace EventNotesModel.Create {
 		title: EventNotesModel.NoteFields.title,
 		content: EventNotesModel.NoteFields.content.default(""),
 		pinned: EventNotesModel.NoteFields.pinned.default(false),
+		read_only: EventNotesModel.NoteFields.read_only.default(false),
 		/** Set for a group note (e.g. Küchenteam); omit/null for an event-wide note. */
 		group_id: z.number().int().positive().nullable().default(null),
 	});

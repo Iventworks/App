@@ -98,6 +98,18 @@ const filters = computed(() => [
 		placeholder: "Alle Kategorien",
 		options: categories.value.map((value) => ({ label: value, value })),
 	},
+	{
+		column: "location" as const,
+		type: "multi-select" as const,
+		placeholder: "Alle Lagerorte",
+		icon: "i-lucide-map-pin",
+		options: locationOptions(
+			(resources.value ?? []).map((resource) => resource.location),
+			"Ohne Lagerort",
+		),
+		filterFn: (row: { original: Resource }, _column: string, selected?: string[]) =>
+			matchesLocation(row.original.location, selected),
+	},
 ]);
 
 function upcomingBookings(resource: Resource) {

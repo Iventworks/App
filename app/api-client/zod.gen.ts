@@ -8534,6 +8534,7 @@ export const zGetEventsByEventIdNotesResponse = z.object({
         title: z.string(),
         content: z.string(),
         pinned: z.boolean(),
+        read_only: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         updated_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -8578,6 +8579,7 @@ export const zPostEventsByEventIdNotesBody = z.object({
     title: z.string().min(1).max(200),
     content: z.string().max(100000).optional().default(''),
     pinned: z.boolean().optional().default(false),
+    read_only: z.boolean().optional().default(false),
     group_id: z.int().gt(0).lte(9007199254740991).nullish().default(null)
 });
 
@@ -8606,6 +8608,7 @@ export const zPostEventsByEventIdNotesResponse = z.object({
         title: z.string(),
         content: z.string(),
         pinned: z.boolean(),
+        read_only: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         updated_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),
@@ -8664,7 +8667,8 @@ export const zDeleteEventsByEventIdNotesByNoteIdResponse = z.object({
 export const zPutEventsByEventIdNotesByNoteIdBody = z.object({
     title: z.string().min(1).max(200).optional(),
     content: z.string().max(100000).optional(),
-    pinned: z.boolean().optional()
+    pinned: z.boolean().optional(),
+    read_only: z.boolean().optional()
 });
 
 export const zPutEventsByEventIdNotesByNoteIdPath = z.object({
@@ -8693,6 +8697,7 @@ export const zPutEventsByEventIdNotesByNoteIdResponse = z.object({
         title: z.string(),
         content: z.string(),
         pinned: z.boolean(),
+        read_only: z.boolean(),
         created_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         updated_by: z.int().gte(-9007199254740991).lte(9007199254740991).nullable(),
         created_at: z.int().gte(-9007199254740991).lte(9007199254740991),

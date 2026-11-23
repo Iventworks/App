@@ -3,7 +3,7 @@
  * "Packliste": go through the material when packing and when bringing it back. Optional — the
  * status is only a help, nothing depends on it. Each entry is open, packed or back: "Alles" sets
  * it with a select, the other views have the next step as a button. Grouped by where things are
- * (or come from).
+ * (or come from); the place filter narrows the list and the counters to some places.
  */
 import type { PackingStatus } from "~/composables/useEventMaterials";
 import type { EventMaterial } from "~/utils/types";
@@ -17,9 +17,26 @@ const { value: show, items: showItems } = useQueryFilter("show", [
 	{ label: "Noch nicht zurück", value: "return" },
 ]);
 
+const places = ref<string[]>([]);
+const placeItems = computed(() =>
+	locationOptions(
+		items.value.map((item) => item.location),
+		"Noch ohne Ort",
+	),
+);
+// Places that are gone (renamed, removed) no longer filter.
+watch(placeItems, (options) => {
+	const known = places.value.filter((place) => options.some((option) => option.value === place));
+	if (known.length !== places.value.length) places.value = known;
+});
+
+const inPlaces = computed(() =>
+	items.value.filter((item) => matchesLocation(item.location, places.value)),
+);
+
 // "Noch nicht zurück": what was packed — what never was is still under "Noch einpacken".
 const visible = computed(() =>
-	items.value.filter((item) => {
+	inPlaces.value.filter((item) => {
 		const status = packingStatus(item);
 		if (show.value === "pack") return status === "open";
 		if (show.value === "return") return status === "packed";
@@ -84,9 +101,11 @@ const groups = computed(() => {
 });
 
 // By status: what is back counts as packed (also entries ticked "Zurück" alone before).
-const packed = computed(() => items.value.filter((item) => packingStatus(item) !== "open").length);
+const packed = computed(
+	() => inPlaces.value.filter((item) => packingStatus(item) !== "open").length,
+);
 const returned = computed(
-	() => items.value.filter((item) => packingStatus(item) === "returned").length,
+	() => inPlaces.value.filter((item) => packingStatus(item) === "returned").length,
 );
 
 function source(item: EventMaterial) {
@@ -102,14 +121,24 @@ function source(item: EventMaterial) {
 		<DashboardFilterBar>
 			<template #left>
 				<USelect v-model="show" :items="showItems" class="w-full sm:w-52" />
+				<USelectMenu
+					v-if="placeItems.length > 1 || places.length"
+					v-model="places"
+					:items="placeItems"
+					value-key="value"
+					multiple
+					placeholder="Alle Orte"
+					icon="i-lucide-map-pin"
+					class="w-full sm:w-auto sm:min-w-48"
+				/>
 			</template>
 			<template #right>
 				<div class="flex flex-wrap gap-4 text-sm text-slate-400">
 					<span>
-						<span class="font-medium text-white tabular-nums">{{ packed }}</span> von {{ items.length }} eingepackt
+						<span class="font-medium text-white tabular-nums">{{ packed }}</span> von {{ inPlaces.length }} eingepackt
 					</span>
 					<span>
-						<span class="font-medium text-white tabular-nums">{{ returned }}</span> von {{ items.length }} zurück
+						<span class="font-medium text-white tabular-nums">{{ returned }}</span> von {{ inPlaces.length }} zurück
 					</span>
 				</div>
 			</template>

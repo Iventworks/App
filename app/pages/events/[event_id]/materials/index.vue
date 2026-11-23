@@ -39,7 +39,7 @@ const columns: TableColumn<EventMaterial>[] = [
 	{ id: "actions", header: "" },
 ];
 
-const filters = [
+const filters = computed(() => [
 	{ column: "name" as const, type: "text" as const, placeholder: "Material suchen …" },
 	{
 		column: "kind" as const,
@@ -47,7 +47,19 @@ const filters = [
 		placeholder: "Alle Herkünfte",
 		options: MATERIAL_KIND_OPTIONS,
 	},
-];
+	{
+		column: "location" as const,
+		type: "multi-select" as const,
+		placeholder: "Alle Orte",
+		icon: "i-lucide-map-pin",
+		options: locationOptions(
+			items.value.map((item) => item.location),
+			"Noch ohne Ort",
+		),
+		filterFn: (row: { original: EventMaterial }, _column: string, selected?: string[]) =>
+			matchesLocation(row.original.location, selected),
+	},
+]);
 
 const overbooked = computed(() => items.value.filter((item) => item.overbooked));
 const toBuy = computed(() =>

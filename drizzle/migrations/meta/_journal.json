@@ -155,6 +155,13 @@
       "when": 1795419343452,
       "tag": "0021_forms_leaders_only",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1795426419510,
+      "tag": "0022_notes_read_only",
+      "breakpoints": true
     }
   ]
 }

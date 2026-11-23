@@ -13046,6 +13046,7 @@ export type GetEventsByEventIdNotesResponses = {
             title: string;
             content: string;
             pinned: boolean;
+            read_only: boolean;
             created_by: number | null;
             updated_by: number | null;
             created_at: number;
@@ -13084,6 +13085,7 @@ export type PostEventsByEventIdNotesData = {
         title: string;
         content?: string;
         pinned?: boolean;
+        read_only?: boolean;
         group_id?: number | null;
     };
     path: {
@@ -13139,6 +13141,7 @@ export type PostEventsByEventIdNotesResponses = {
             title: string;
             content: string;
             pinned: boolean;
+            read_only: boolean;
             created_by: number | null;
             updated_by: number | null;
             created_at: number;
@@ -13230,6 +13233,7 @@ export type PutEventsByEventIdNotesByNoteIdData = {
         title?: string;
         content?: string;
         pinned?: boolean;
+        read_only?: boolean;
     };
     path: {
         eventId: number;
@@ -13285,6 +13289,7 @@ export type PutEventsByEventIdNotesByNoteIdResponses = {
             title: string;
             content: string;
             pinned: boolean;
+            read_only: boolean;
             created_by: number | null;
             updated_by: number | null;
             created_at: number;

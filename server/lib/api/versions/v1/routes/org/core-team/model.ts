@@ -169,11 +169,14 @@ export namespace CoreTeamModel.StaffPlanning {
 }
 
 export namespace CoreTeamModel.Notes {
-	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true }).extend({
-		creator: UserSummary.Schema.nullable(),
-		updater: UserSummary.Schema.nullable(),
-		can_delete: z.boolean(),
-	});
+	export const Note = createSelectSchema(DB.Tables.notes)
+		// `read_only` is for event-wide notes.
+		.omit({ org_id: true, read_only: true })
+		.extend({
+			creator: UserSummary.Schema.nullable(),
+			updater: UserSummary.Schema.nullable(),
+			can_delete: z.boolean(),
+		});
 	export type Note = z.infer<typeof Note>;
 
 	export const Params = z.object({

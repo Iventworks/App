@@ -141,14 +141,29 @@ const allFilters = computed<FilterConfig[]>(() => props.filters ?? []);
 // Column filters state
 const columnFilters = ref<ColumnFiltersState>([]);
 
-// Drop filter state for columns that no longer have a filter. Unset filters stay out of the
-// state: TanStack applies every entry in it, even an empty one.
-watch(
-	() => allFilters.value.map((f) => f.column as string),
-	(filterColumns) => {
-		columnFilters.value = columnFilters.value.filter((f) => filterColumns.includes(f.id));
-	},
-);
+// Drop filter state for columns that no longer have a filter, and multi-select values that are no
+// longer offered (options built from the data, e.g. the last entry of a place moved elsewhere):
+// the select can't show them, so the table would stay filtered behind "Alle …". Unset filters stay
+// out of the state: TanStack applies every entry in it, even an empty one.
+watch(allFilters, (filters) => {
+	let changed = false;
+	const next = columnFilters.value.flatMap((state) => {
+		const filter = filters.find((f) => f.column === state.id);
+		if (!filter) {
+			changed = true;
+			return [];
+		}
+		if (filter.type !== "multi-select" || !filter.options || !Array.isArray(state.value)) {
+			return [state];
+		}
+		const options = filter.options;
+		const offered = state.value.filter((value) => options.some((option) => option.value === value));
+		if (offered.length === state.value.length) return [state];
+		changed = true;
+		return offered.length ? [{ ...state, value: offered }] : [];
+	});
+	if (changed) columnFilters.value = next;
+});
 
 // Helper to get/set filter value for a specific column
 function getFilterValue(column: string): any {
