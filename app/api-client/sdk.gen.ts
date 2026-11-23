@@ -2453,7 +2453,7 @@ export const getEventsByEventIdNotes = <TComposable extends Composable = '$fetch
 /**
  * Create event note
  *
- * Create an event-wide note (visible to all staff) or a group note (`group_id`, visible to the group and leaders).
+ * Create an event-wide note (visible to all staff) or a group note (`group_id`, visible to the group and leaders). Leaders can make an event-wide note `read_only`: the rest of the team then only reads it.
  */
 export const postEventsByEventIdNotes = <TComposable extends Composable = '$fetch', DefaultT extends PostEventsByEventIdNotesResponse = PostEventsByEventIdNotesResponse>(options: Options<TComposable, PostEventsByEventIdNotesData, PostEventsByEventIdNotesResponse, DefaultT>): RequestResult<TComposable, PostEventsByEventIdNotesResponse | DefaultT, DefaultT> => (options.client ?? client).post<TComposable, PostEventsByEventIdNotesResponse | DefaultT, PostEventsByEventIdNotesError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2468,7 +2468,7 @@ export const postEventsByEventIdNotes = <TComposable extends Composable = '$fetc
 /**
  * Delete event note
  *
- * Delete a note. Allowed for its creator and leaders.
+ * Delete a note. Allowed for leaders, and for its creator unless the note is `read_only`.
  */
 export const deleteEventsByEventIdNotesByNoteId = <TComposable extends Composable = '$fetch', DefaultT extends DeleteEventsByEventIdNotesByNoteIdResponse = DeleteEventsByEventIdNotesByNoteIdResponse>(options: Options<TComposable, DeleteEventsByEventIdNotesByNoteIdData, DeleteEventsByEventIdNotesByNoteIdResponse, DefaultT>): RequestResult<TComposable, DeleteEventsByEventIdNotesByNoteIdResponse | DefaultT, DefaultT> => (options.client ?? client).delete<TComposable, DeleteEventsByEventIdNotesByNoteIdResponse | DefaultT, DeleteEventsByEventIdNotesByNoteIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -2479,7 +2479,7 @@ export const deleteEventsByEventIdNotesByNoteId = <TComposable extends Composabl
 /**
  * Update event note
  *
- * Update a note. Event-wide notes are editable by all staff, group notes by the group's members; leaders can edit every note.
+ * Update a note. Event-wide notes are editable by all staff unless the Leitung made them `read_only`, group notes by the group's members; leaders can edit every note. Only leaders change `read_only`.
  */
 export const putEventsByEventIdNotesByNoteId = <TComposable extends Composable = '$fetch', DefaultT extends PutEventsByEventIdNotesByNoteIdResponse = PutEventsByEventIdNotesByNoteIdResponse>(options: Options<TComposable, PutEventsByEventIdNotesByNoteIdData, PutEventsByEventIdNotesByNoteIdResponse, DefaultT>): RequestResult<TComposable, PutEventsByEventIdNotesByNoteIdResponse | DefaultT, DefaultT> => (options.client ?? client).put<TComposable, PutEventsByEventIdNotesByNoteIdResponse | DefaultT, PutEventsByEventIdNotesByNoteIdError, DefaultT>({
     security: [{ scheme: 'bearer', type: 'http' }],

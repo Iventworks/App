@@ -611,6 +611,7 @@ export class EventCopier {
 								title: note.title,
 								content: note.content,
 								pinned: note.pinned,
+								read_only: note.read_only,
 								created_by: options.userId,
 								updated_by: options.userId,
 							})

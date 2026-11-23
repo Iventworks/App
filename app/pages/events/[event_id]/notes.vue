@@ -2,7 +2,8 @@
 /**
  * Event notes: one shared notebook for all staff ("Alle Mitarbeitenden") plus one per group the
  * caller belongs to (leaders see every group). Event-wide notes are collaborative — any staff
- * member may edit them; deleting is up to the author and the leaders.
+ * member may edit them; deleting is up to the author and the leaders. The Leitung can make an
+ * event-wide note read-only ("Schreibgeschützt"): the rest of the team then only reads it.
  */
 import type {
 	GetEventsByEventIdGroupsResponses,
@@ -117,8 +118,8 @@ async function select(id: number | "new" | null) {
 
 const schema = zPostEventsByEventIdNotesBody;
 
-const editor = reactive({ title: "", content: "", pinned: false });
-const original = ref({ title: "", content: "", pinned: false });
+const editor = reactive({ title: "", content: "", pinned: false, read_only: false });
+const original = ref({ title: "", content: "", pinned: false, read_only: false });
 const saving = ref(false);
 
 watch(
@@ -126,8 +127,8 @@ watch(
 	() => {
 		const note = selectedNote.value;
 		const values = note
-			? { title: note.title, content: note.content, pinned: note.pinned }
-			: { title: "", content: "", pinned: false };
+			? { title: note.title, content: note.content, pinned: note.pinned, read_only: note.read_only }
+			: { title: "", content: "", pinned: false, read_only: false };
 		Object.assign(editor, values);
 		original.value = { ...values };
 	},
@@ -143,7 +144,15 @@ const dirty = computed(
 		isEditing.value &&
 		(editor.title !== original.value.title ||
 			editor.content !== original.value.content ||
-			editor.pinned !== original.value.pinned),
+			editor.pinned !== original.value.pinned ||
+			editor.read_only !== original.value.read_only),
+);
+
+/** The Leitung makes notes for the whole team read-only. */
+const canLock = computed(
+	() =>
+		can("notes:manage_all") &&
+		(selectedNote.value ? selectedNote.value.group_id === null : activeGroupId.value === null),
 );
 
 const askUnsaved = useUnsavedChangesDialog();
@@ -186,11 +195,13 @@ async function save(options: { openCreated?: boolean } = {}): Promise<boolean> {
 
 	saving.value = true;
 	const note = selectedNote.value;
+	// Only the Leitung sends `read_only`; the API refuses it from anyone else.
+	const readOnly = canLock.value ? { read_only: editor.read_only } : {};
 	const result = note
 		? await useAPI((api) =>
 				api.putEventsByEventIdNotesByNoteId({
 					path: { eventId: eventId.value, noteId: note.id },
-					body: { title, content: editor.content, pinned: editor.pinned },
+					body: { title, content: editor.content, pinned: editor.pinned, ...readOnly },
 				}),
 			)
 		: await useAPI((api) =>
@@ -200,6 +211,7 @@ async function save(options: { openCreated?: boolean } = {}): Promise<boolean> {
 						title,
 						content: editor.content,
 						pinned: editor.pinned,
+						...readOnly,
 						group_id: activeGroupId.value,
 					},
 				}),
@@ -211,7 +223,12 @@ async function save(options: { openCreated?: boolean } = {}): Promise<boolean> {
 		return false;
 	}
 
-	original.value = { title, content: editor.content, pinned: editor.pinned };
+	original.value = {
+		title,
+		content: editor.content,
+		pinned: editor.pinned,
+		read_only: editor.read_only,
+	};
 	editor.title = title;
 	toast.add({ title: "Notiz gespeichert", color: "success", icon: "i-lucide-check" });
 	await refresh();
@@ -283,7 +300,10 @@ const activeGroup = computed(() =>
 					<div :class="['space-y-2', selectedId !== null ? 'hidden lg:block' : '']">
 						<p class="text-sm text-slate-400">
 							<template v-if="activeGroup">Nur für die Gruppe „{{ activeGroup.name }}“ sichtbar.</template>
-							<template v-else>Für alle Mitarbeitenden dieses Events sichtbar und bearbeitbar.</template>
+							<template v-else>
+								Für alle Mitarbeitenden dieses Events sichtbar und bearbeitbar. Schreibgeschützte Notizen
+								ändert nur die Leitung.
+							</template>
 						</p>
 
 						<UEmpty
@@ -309,6 +329,12 @@ const activeGroup = computed(() =>
 							<p class="flex items-center gap-2 font-medium text-white">
 								<UIcon v-if="note.pinned" name="i-lucide-pin" class="size-4 shrink-0 text-primary-400" />
 								<span class="truncate">{{ note.title }}</span>
+								<UIcon
+									v-if="note.read_only"
+									name="i-lucide-lock"
+									class="ml-auto size-3.5 shrink-0 text-slate-500"
+									aria-label="Schreibgeschützt"
+								/>
 							</p>
 							<p class="mt-1 truncate text-xs text-slate-500">
 								{{ note.updater?.display_name ?? note.creator?.display_name ?? "Unbekannt" }} ·
@@ -348,7 +374,12 @@ const activeGroup = computed(() =>
 										:ui="{ base: 'px-0 text-xl font-semibold' }"
 									/>
 								</UFormField>
-								<USwitch v-model="editor.pinned" label="Angepinnt" />
+								<div class="flex flex-wrap gap-x-5 gap-y-2">
+									<USwitch v-model="editor.pinned" label="Angepinnt" />
+									<UTooltip v-if="canLock" text="Die anderen im Team können die Notiz nur lesen.">
+										<USwitch v-model="editor.read_only" label="Schreibgeschützt" />
+									</UTooltip>
+								</div>
 							</div>
 
 							<FormMarkdownEditor
@@ -391,6 +422,12 @@ const activeGroup = computed(() =>
 							:description="`${selectedNote.updater?.display_name ?? selectedNote.creator?.display_name ?? 'Unbekannt'} · ${formatRelative(selectedNote.updated_at)}`"
 							:icon="selectedNote.pinned ? 'i-lucide-pin' : 'i-lucide-sticky-note'"
 						>
+							<template v-if="selectedNote.read_only" #actions>
+								<UBadge label="Schreibgeschützt" icon="i-lucide-lock" color="neutral" variant="subtle" />
+							</template>
+							<p v-if="selectedNote.read_only" class="mb-3 text-sm text-slate-400">
+								Nur die Leitung kann diese Notiz ändern.
+							</p>
 							<ContentMarkdownView :content="selectedNote.content" />
 						</DashboardSectionCard>
 					</div>

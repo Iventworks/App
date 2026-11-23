@@ -9,7 +9,7 @@ import { EventExpensesModel } from "../server/lib/api/versions/v1/routes/events/
 import { EventNotesModel } from "../server/lib/api/versions/v1/routes/events/notes/model";
 import { FilesModel } from "../server/lib/api/versions/v1/routes/files/model";
 import { DB } from "../server/lib/db";
-import { OrgContext } from "../server/lib/orgs/context";
+import { inOrg, OrgContext } from "../server/lib/orgs/context";
 import { FileStorage } from "../server/lib/utils/fileStorage";
 import { makeAPIRequest } from "./helpers/api";
 import { hostHeaders, TEST_HOST } from "./helpers/orgs";
@@ -188,6 +188,163 @@ describe("Event notes", () => {
 			403,
 		);
 		await makeAPIRequest(`/v1/events/${eventId}/notes/${eventNoteId}`, {
+			method: "DELETE",
+			authToken: leaderSession.token,
+		});
+	});
+});
+
+describe("Read-only event notes", () => {
+	function auditSummaries(noteId: number) {
+		return DB.instance()
+			.select({ summary: DB.Tables.auditLogs.summary })
+			.from(DB.Tables.auditLogs)
+			.where(
+				and(
+					inOrg(DB.Tables.auditLogs),
+					eq(DB.Tables.auditLogs.entity_type, "note"),
+					eq(DB.Tables.auditLogs.entity_id, noteId),
+				),
+			)
+			.all()
+			.map((row) => row.summary);
+	}
+
+	test("only the Leitung makes notes read-only, and only notes for the whole team", async () => {
+		const note = await makeAPIRequest(`/v1/events/${eventId}/notes`, {
+			method: "POST",
+			authToken: helperSession.token,
+			body: { title: "Ablauf Anreise", content: "Ab 15 Uhr" },
+			expectedBodySchema: EventNotesModel.Create.Response,
+		});
+		expect(note.read_only).toBe(false);
+
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes`,
+			{
+				method: "POST",
+				authToken: helperSession.token,
+				body: { title: "Nope", read_only: true },
+			},
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes/${note.id}`,
+			{ method: "PUT", authToken: helperSession.token, body: { read_only: true } },
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes`,
+			{
+				method: "POST",
+				authToken: leaderSession.token,
+				body: { title: "Küche intern", group_id: kitchenGroupId, read_only: true },
+			},
+			400,
+		);
+		const groupNote = await makeAPIRequest(`/v1/events/${eventId}/notes`, {
+			method: "POST",
+			authToken: cookSession.token,
+			body: { title: "Spülplan", group_id: kitchenGroupId },
+			expectedBodySchema: EventNotesModel.Create.Response,
+		});
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes/${groupNote.id}`,
+			{ method: "PUT", authToken: leaderSession.token, body: { read_only: true } },
+			400,
+		);
+
+		// Sending the unchanged value along is fine.
+		await makeAPIRequest(`/v1/events/${eventId}/notes/${note.id}`, {
+			method: "PUT",
+			authToken: helperSession.token,
+			body: { content: "Ab 15:30 Uhr", read_only: false },
+			expectedBodySchema: EventNotesModel.Update.Response,
+		});
+	});
+
+	test("the rest of the team only reads a read-only note", async () => {
+		const note = await makeAPIRequest(`/v1/events/${eventId}/notes`, {
+			method: "POST",
+			authToken: helperSession.token,
+			body: { title: "Notfallnummern", content: "112" },
+			expectedBodySchema: EventNotesModel.Create.Response,
+		});
+		expect(note.can_delete).toBe(true);
+
+		const locked = await makeAPIRequest(`/v1/events/${eventId}/notes/${note.id}`, {
+			method: "PUT",
+			authToken: leaderSession.token,
+			body: { read_only: true },
+			expectedBodySchema: EventNotesModel.Update.Response,
+		});
+		expect(locked.read_only).toBe(true);
+
+		const helperView = await makeAPIRequest(`/v1/events/${eventId}/notes`, {
+			authToken: helperSession.token,
+			expectedBodySchema: EventNotesModel.GetAll.Response,
+		});
+		const seen = helperView.find((entry) => entry.id === note.id)!;
+		expect(seen.content).toBe("112");
+		expect(seen.can_edit).toBe(false);
+		expect(seen.can_delete).toBe(false);
+
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes/${note.id}`,
+			{ method: "PUT", authToken: helperSession.token, body: { content: "110" } },
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes/${note.id}`,
+			{ method: "PUT", authToken: cookSession.token, body: { pinned: true } },
+			403,
+		);
+		await makeAPIRequest(
+			`/v1/events/${eventId}/notes/${note.id}`,
+			{ method: "DELETE", authToken: helperSession.token },
+			403,
+		);
+
+		// The Leitung still edits it, and the core team counts as Leitung.
+		const coreView = await makeAPIRequest(`/v1/events/${eventId}/notes/${note.id}`, {
+			method: "PUT",
+			authToken: coreSession.token,
+			body: { content: "112 und 110" },
+			expectedBodySchema: EventNotesModel.Update.Response,
+		});
+		expect(coreView.can_edit).toBe(true);
+
+		const unlocked = await makeAPIRequest(`/v1/events/${eventId}/notes/${note.id}`, {
+			method: "PUT",
+			authToken: leaderSession.token,
+			body: { content: "112, 110", read_only: false },
+			expectedBodySchema: EventNotesModel.Update.Response,
+		});
+		expect(unlocked.read_only).toBe(false);
+		await makeAPIRequest(`/v1/events/${eventId}/notes/${note.id}`, {
+			method: "PUT",
+			authToken: helperSession.token,
+			body: { content: "112, 110, 116117" },
+			expectedBodySchema: EventNotesModel.Update.Response,
+		});
+
+		expect(auditSummaries(note.id)).toEqual([
+			"Notiz „Notfallnummern“ angelegt",
+			"Notiz „Notfallnummern“ schreibgeschützt",
+			"Notiz „Notfallnummern“ bearbeitet",
+			"Notiz „Notfallnummern“ bearbeitet, Schreibschutz aufgehoben",
+			"Notiz „Notfallnummern“ bearbeitet",
+		]);
+
+		const created = await makeAPIRequest(`/v1/events/${eventId}/notes`, {
+			method: "POST",
+			authToken: leaderSession.token,
+			body: { title: "Hausordnung", read_only: true },
+			expectedBodySchema: EventNotesModel.Create.Response,
+		});
+		expect(created.read_only).toBe(true);
+		expect(auditSummaries(created.id)).toEqual(["Notiz „Hausordnung“ schreibgeschützt angelegt"]);
+		await makeAPIRequest(`/v1/events/${eventId}/notes/${created.id}`, {
 			method: "DELETE",
 			authToken: leaderSession.token,
 		});

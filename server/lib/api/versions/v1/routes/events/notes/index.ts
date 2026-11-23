@@ -54,14 +54,30 @@ async function getMyGroupIds(eventId: number, userId: number) {
 	return rows.map((row) => row.id);
 }
 
+/** What `PUT /notes/{noteId}` changes besides `read_only`. */
+const CONTENT = ["title", "content", "pinned"] as const;
+
+/** A read-only note is the Leitung's: the rest of the team only reads it. */
 function canEdit(c: Context<NotesEnv>, note: DB.Models.Note, myGroupIds: number[]) {
 	if (EventAccess.can(c, "notes:manage_all")) return true;
-	if (note.group_id === null) return EventAccess.can(c, "notes:create");
+	if (note.group_id === null) return !note.read_only && EventAccess.can(c, "notes:create");
 	return myGroupIds.includes(note.group_id);
 }
 
 function canDelete(c: Context<NotesEnv>, note: DB.Models.Note) {
-	return EventAccess.can(c, "notes:manage_all") || note.created_by === c.get("eventAccess").userId;
+	if (EventAccess.can(c, "notes:manage_all")) return true;
+	return !note.read_only && note.created_by === c.get("eventAccess").userId;
+}
+
+/** Only the Leitung makes notes read-only, and only those for the whole team. */
+function checkReadOnly(c: Context<NotesEnv>, groupId: number | null) {
+	if (!EventAccess.can(c, "notes:manage_all")) {
+		return APIResponse.forbidden(c, "Only the Leitung can make a note read-only");
+	}
+	if (groupId !== null) {
+		return APIResponse.badRequest(c, "Only notes for the whole team can be read-only");
+	}
+	return null;
 }
 
 async function toResponse(
@@ -95,6 +111,18 @@ async function toResponse(
 		can_edit: canEdit(c, note, myGroupIds),
 		can_delete: canDelete(c, note),
 	}));
+}
+
+/** The audit entry: what changed, compared with what was saved. */
+function describeUpdate(before: DB.Models.Note, after: DB.Models.Note) {
+	const title = `Notiz „${after.title}“`;
+	const edited = CONTENT.some((key) => after[key] !== before[key]);
+	if (after.read_only === before.read_only) return `${title} bearbeitet`;
+	if (after.read_only)
+		return edited ? `${title} bearbeitet und schreibgeschützt` : `${title} schreibgeschützt`;
+	return edited
+		? `${title} bearbeitet, Schreibschutz aufgehoben`
+		: `Schreibschutz für ${title} aufgehoben`;
 }
 
 router.get(
@@ -164,7 +192,7 @@ router.post(
 	APIRouteSpec.authenticated({
 		summary: "Create event note",
 		description:
-			"Create an event-wide note (visible to all staff) or a group note (`group_id`, visible to the group and leaders).",
+			"Create an event-wide note (visible to all staff) or a group note (`group_id`, visible to the group and leaders). Leaders can make an event-wide note `read_only`: the rest of the team then only reads it.",
 		tags: [DOCS_TAGS.EVENTS.NOTES],
 
 		responses: APIResponseSpec.describeBasic(
@@ -187,6 +215,11 @@ router.post(
 		const event = c.get("event");
 		const { userId } = c.get("eventAccess");
 		const body = c.req.valid("json") as EventNotesModel.Create.Body;
+
+		if (body.read_only) {
+			const refused = checkReadOnly(c, body.group_id);
+			if (refused) return refused;
+		}
 
 		let groupName: string | null = null;
 		if (body.group_id !== null) {
@@ -221,6 +254,7 @@ router.post(
 				title: body.title,
 				content: body.content,
 				pinned: body.pinned,
+				read_only: body.read_only,
 				created_by: userId,
 				updated_by: userId,
 			})
@@ -235,7 +269,7 @@ router.post(
 			entityId: note.id,
 			summary: groupName
 				? `Notiz „${note.title}“ für ${groupName} angelegt`
-				: `Notiz „${note.title}“ angelegt`,
+				: `Notiz „${note.title}“ ${note.read_only ? "schreibgeschützt " : ""}angelegt`,
 		});
 
 		const [result] = await toResponse(c, [note]);
@@ -281,7 +315,7 @@ router.put(
 	APIRouteSpec.authenticated({
 		summary: "Update event note",
 		description:
-			"Update a note. Event-wide notes are editable by all staff, group notes by the group's members; leaders can edit every note.",
+			"Update a note. Event-wide notes are editable by all staff unless the Leitung made them `read_only`, group notes by the group's members; leaders can edit every note. Only leaders change `read_only`.",
 		tags: [DOCS_TAGS.EVENTS.NOTES],
 
 		responses: APIResponseSpec.describeWithWrongInputs(
@@ -303,6 +337,10 @@ router.put(
 		if (!canEdit(c, note, myGroupIds)) {
 			return APIResponse.forbidden(c, "You are not allowed to edit this note");
 		}
+		if (body.read_only !== undefined && body.read_only !== note.read_only) {
+			const refused = checkReadOnly(c, note.group_id);
+			if (refused) return refused;
+		}
 
 		const updated = await DB.instance()
 			.update(DB.Tables.notes)
@@ -317,7 +355,7 @@ router.put(
 			action: "update",
 			entityType: "note",
 			entityId: note.id,
-			summary: `Notiz „${updated.title}“ bearbeitet`,
+			summary: describeUpdate(note, updated),
 		});
 
 		const [result] = await toResponse(c, [updated]);
@@ -330,7 +368,8 @@ router.delete(
 
 	APIRouteSpec.authenticated({
 		summary: "Delete event note",
-		description: "Delete a note. Allowed for its creator and leaders.",
+		description:
+			"Delete a note. Allowed for leaders, and for its creator unless the note is `read_only`.",
 		tags: [DOCS_TAGS.EVENTS.NOTES],
 
 		responses: APIResponseSpec.describeBasic(

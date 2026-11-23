@@ -167,7 +167,12 @@ beforeAll(async () => {
 	});
 	await post(`${base}/tasks`, { title: "Einkaufen", group_id: groupId });
 
-	await post(`${base}/notes`, { title: "Packliste", content: "Zelt, Schlafsack", group_id: null });
+	await post(`${base}/notes`, {
+		title: "Packliste",
+		content: "Zelt, Schlafsack",
+		group_id: null,
+		read_only: true,
+	});
 	await post(`${base}/notes`, { title: "Rezepte", content: "Chili", group_id: groupId });
 	await post(`${base}/announcements`, { title: "Anreise um 15 Uhr", content: "Bitte pünktlich" });
 	await post(`${base}/budget`, { kind: "expense", category: "Verpflegung", planned_cents: 200_000 });
@@ -369,6 +374,8 @@ describe("Copying everything", () => {
 		expect(notes.map((note: any) => note.title).sort()).toEqual(["Packliste", "Rezepte"]);
 		const groups = await api(`/v1/events/${copyId}/groups`);
 		expect(notes.find((note: any) => note.title === "Rezepte").group?.id).toBe(groups[0].id);
+		// Read-only for the team stays read-only.
+		expect(notes.find((note: any) => note.title === "Packliste").read_only).toBe(true);
 
 		const announcements = await api(`/v1/events/${copyId}/announcements`);
 		expect(announcements.map((entry: any) => entry.title)).toEqual(["Anreise um 15 Uhr"]);

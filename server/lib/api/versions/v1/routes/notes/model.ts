@@ -3,7 +3,8 @@ import { z } from "zod";
 import { DB } from "../../../../../db";
 
 export namespace PersonalNotesModel {
-	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true });
+	// `read_only` is for event-wide notes.
+	export const Note = createSelectSchema(DB.Tables.notes).omit({ org_id: true, read_only: true });
 	export type Note = z.infer<typeof Note>;
 
 	export const Params = z.object({

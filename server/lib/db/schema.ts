@@ -1037,7 +1037,8 @@ export const NOTE_SCOPES = ["personal", "event", "group", "core_team"] as const;
 
 /**
  * Notes: personal (`user_id`), event-wide (`event_id`), group-level (`group_id`) or the core
- * team's internal notes (`scope = core_team`).
+ * team's internal notes (`scope = core_team`). The Leitung can make an event-wide note
+ * `read_only`: the rest of the team then only reads it.
  * @deprecated Use DB.Tables.notes to access this table.
  */
 export const notes = sqliteTable(
@@ -1052,6 +1053,8 @@ export const notes = sqliteTable(
 		title: text().notNull(),
 		content: text().notNull().default(""),
 		pinned: integer({ mode: "boolean" }).notNull().default(false),
+		/** Event-wide notes only: only the Leitung edits and deletes it. */
+		read_only: integer({ mode: "boolean" }).notNull().default(false),
 		created_by: integer().references(() => users.id, { onDelete: "set null" }),
 		updated_by: integer().references(() => users.id, { onDelete: "set null" }),
 		created_at: SQLUtils.getCreatedAtColumn(),
